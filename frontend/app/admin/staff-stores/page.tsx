@@ -178,7 +178,7 @@ export default function AdminStaffStorePage() {
       )}
 
       {/* Summary Statistics */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <div className="card bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
           <div className="flex items-start justify-between">
             <div>
@@ -216,16 +216,6 @@ export default function AdminStaffStorePage() {
               <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{totalStats.total_sold.toLocaleString()}</p>
             </div>
             <TrendingUp className="w-8 h-8 text-green-300 opacity-50" />
-          </div>
-        </div>
-
-        <div className="card bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900 dark:to-red-800">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs text-red-700 dark:text-red-300 font-medium">Available</p>
-              <p className="text-3xl font-bold text-red-900 dark:text-red-100 mt-2">{totalStats.total_available.toLocaleString()}</p>
-            </div>
-            <BarChart3 className="w-8 h-8 text-red-300 opacity-50" />
           </div>
         </div>
 
@@ -393,7 +383,7 @@ export default function AdminStaffStorePage() {
           </div>
 
           {/* Staff Store Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 pb-6 border-b dark:border-gray-700">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-6 border-b dark:border-gray-700">
             <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded">
               <p className="text-xs text-blue-700 dark:text-blue-300">Total Items</p>
               <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{staffDetails.total_items || 0}</p>
@@ -406,15 +396,31 @@ export default function AdminStaffStorePage() {
               <p className="text-xs text-green-700 dark:text-green-300">Sold</p>
               <p className="text-2xl font-bold text-green-900 dark:text-green-100">{(staffDetails.total_sold || 0).toLocaleString()}</p>
             </div>
-            <div className="bg-orange-50 dark:bg-orange-900 p-3 rounded">
-              <p className="text-xs text-orange-700 dark:text-orange-300">Available</p>
-              <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{(staffDetails.total_available || 0).toLocaleString()}</p>
-            </div>
             <div className="bg-indigo-50 dark:bg-indigo-900 p-3 rounded">
               <p className="text-xs text-indigo-700 dark:text-indigo-300">Amount Sold</p>
               <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">₦{(staffDetails.total_amount_sold || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
             </div>
           </div>
+
+          {/* Commission Card - Only for Commission Staff */}
+          {selectedStaff && staffDetails.items && staffDetails.items[0]?.users?.role === 'commission_staff' && (
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900 dark:to-amber-800 p-4 rounded mb-6 border-2 border-amber-200 dark:border-amber-700">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-amber-700 dark:text-amber-300 font-bold">💰 Total Commission That Can Be Earned</p>
+                  <p className="text-3xl font-bold text-amber-900 dark:text-amber-100 mt-2">
+                    ₦{staffDetails.items?.reduce((sum: number, item: any) => {
+                      const commission = item.items?.commission || 0;
+                      return sum + (commission * item.quantity);
+                    }, 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+                    Based on {staffDetails.items?.length || 0} stock items × commission rate × quantity in store
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Items Table */}
           <h3 className="text-lg font-bold mb-4">Items in Store</h3>
