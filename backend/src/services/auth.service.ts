@@ -10,7 +10,8 @@ export class AuthService {
     password: string,
     fullName: string,
     role: 'admin' | 'sales' | 'sales_staff' | 'staff_commission' | 'commission_staff' | 'staff_non_commission' | 'non_commission_staff',
-    storeLocation: string = 'Jalingo'
+    storeLocation: string = 'Jalingo',
+    customUsername?: string
   ): Promise<User> {
     // Create auth user
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -21,8 +22,8 @@ export class AuthService {
 
     if (authError) throw authError;
 
-    // Generate username from email
-    const username = this.generateUsernameFromEmail(email);
+    // Use custom username if provided, otherwise generate from email
+    const username = customUsername || this.generateUsernameFromEmail(email);
 
     // Create user profile
     const { data: user, error: profileError } = await supabaseAdmin

@@ -521,10 +521,12 @@ router.get('/dashboard', authMiddleware, async (req: AuthRequest, res: Response)
       .select('quantity, status')
       .eq('staff_id', req.user!.id);
 
-    // Get all sales made by staff
+    // Get all sales made by staff - join items to get commission rate
+    // NOTE: commission is calculated from items.commission, NOT staff_sales.commission
+    // because PostgREST schema cache doesn't see the staff_sales.commission column
     const { data: sales } = await supabaseAdmin
       .from('staff_sales')
-      .select('quantity, total_amount, commission')
+      .select('quantity, total_amount, items:item_id(commission)')
       .eq('staff_id', req.user!.id);
 
     // Get pending payments
@@ -551,9 +553,9 @@ router.get('/dashboard', authMiddleware, async (req: AuthRequest, res: Response)
     // Check if user is commission staff
     const isCommissionStaff = ['commission_staff', 'staff_commission'].includes(req.user!.role || '');
     
-    // Calculate total commission for commission staff
+    // Calculate total commission for commission staff (from items.commission × quantity)
     const totalCommission = isCommissionStaff 
-      ? (sales?.reduce((sum, s) => sum + (parseFloat(s.commission || 0)), 0) || 0)
+      ? (sales?.reduce((sum, s) => sum + (parseFloat((s as any).items?.commission || 0) * (s.quantity || 0)), 0) || 0)
       : 0;
 
     const dashboard = {

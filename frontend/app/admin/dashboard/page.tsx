@@ -72,6 +72,8 @@ export default function AdminDashboard() {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [dateRangeStart, setDateRangeStart] = useState<string>('');
   const [dateRangeEnd, setDateRangeEnd] = useState<string>('');
+  const [selectedStaff, setSelectedStaff] = useState<string>(''); // Staff filter
+  const [staffWithReceipts, setStaffWithReceipts] = useState<StaffInfo[]>([]); // Staff who have generated receipts
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -158,6 +160,18 @@ export default function AdminDashboard() {
         });
         
         setReceipts(allReceipts);
+        
+        // Extract unique staff members who have generated receipts
+        const uniqueStaffMap = new Map<string, StaffInfo>();
+        (allReceipts || []).forEach((receipt: any) => {
+          if (receipt.staff_id && staffMapData[receipt.staff_id]) {
+            uniqueStaffMap.set(receipt.staff_id, staffMapData[receipt.staff_id]);
+          }
+        });
+        const staffList = Array.from(uniqueStaffMap.values()).sort((a, b) => 
+          a.full_name.localeCompare(b.full_name)
+        );
+        setStaffWithReceipts(staffList);
       } catch (error) {
         console.error('❌ Failed to fetch data:', error);
       } finally {
@@ -233,6 +247,11 @@ export default function AdminDashboard() {
         }
       }
 
+      // Staff filter
+      if (selectedStaff && receipt.staff_id !== selectedStaff) {
+        return false;
+      }
+
       return true;
     })
     .sort((a, b) => {
@@ -250,7 +269,7 @@ export default function AdminDashboard() {
   // Reset to page 1 when search query, sort, or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, sortOrder, filterType, selectedDate, dateRangeStart, dateRangeEnd]);
+  }, [searchQuery, sortOrder, filterType, selectedDate, dateRangeStart, dateRangeEnd, selectedStaff]);
 
   if (isLoading) {
     return <div className="text-center py-12">Loading dashboard...</div>;
@@ -327,7 +346,7 @@ export default function AdminDashboard() {
 
         {/* Search and Sort */}
         <div className="space-y-3">
-          {/* Row 1: Search and Sort */}
+          {/* Row 1: Search, Sort, and Staff Filter */}
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 text-gray-400" size={20} />
@@ -339,6 +358,18 @@ export default function AdminDashboard() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
               />
             </div>
+            <select
+              value={selectedStaff}
+              onChange={(e) => setSelectedStaff(e.target.value)}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white bg-white whitespace-nowrap"
+            >
+              <option value="">All Staff</option>
+              {staffWithReceipts.map((staff) => (
+                <option key={staff.id} value={staff.id}>
+                  {staff.full_name}
+                </option>
+              ))}
+            </select>
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
@@ -401,17 +432,18 @@ export default function AdminDashboard() {
             )}
 
             {/* Clear Filter Button */}
-            {filterType !== 'none' && (
+            {(filterType !== 'none' || selectedStaff) && (
               <button
                 onClick={() => {
                   setFilterType('none');
                   setSelectedDate('');
                   setDateRangeStart('');
                   setDateRangeEnd('');
+                  setSelectedStaff('');
                 }}
                 className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition whitespace-nowrap"
               >
-                Clear Filter
+                Clear All Filters
               </button>
             )}
           </div>

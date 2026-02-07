@@ -102,16 +102,20 @@ Go to **SQL Editor** → Click **"New query"** → Paste this:
 
 ```sql
 -- Users table
+-- ⚠️ NOTE: Passwords are NOT stored here - they're managed by Supabase Auth
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
   full_name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('admin', 'sales', 'staff_commission', 'staff_non_commission')),
+  username TEXT UNIQUE,
+  role TEXT NOT NULL CHECK (role IN ('admin', 'sales', 'sales_staff', 'staff_commission', 'commission_staff', 'staff_non_commission', 'non_commission_staff')),
   store_location TEXT DEFAULT 'Jalingo',
   is_active BOOLEAN DEFAULT true,
+  phone_number VARCHAR(20),
+  profile_image_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  last_login TIMESTAMP WITH TIME ZONE
 );
 
 -- Items table

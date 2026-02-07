@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User } from 'lucide-react';
+import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User, Eye, EyeOff } from 'lucide-react';
 
 interface Staff {
   id: string;
@@ -82,10 +82,33 @@ export default function StaffManagementPage() {
     email: '',
     password: '',
     full_name: '',
+    username: '',
     phone_number: '',
     role: 'sales_staff',
     store_location: 'Jalingo',
   });
+  const [showPassword, setShowPassword] = useState(false); // Password visibility toggle
+  const [showEditPassword, setShowEditPassword] = useState(false); // Edit password visibility toggle
+
+  // Function to generate username from email
+  const generateUsernameFromEmail = (email: string): string => {
+    if (!email) return '';
+    // Extract part before @ and convert to lowercase, replace dots with underscores, remove spaces
+    return email.split('@')[0].replace(/\./g, '_').replace(/\s/g, '').toLowerCase();
+  };
+
+  // Handle email change and auto-generate username
+  const handleEmailChange = (email: string) => {
+    const generatedUsername = generateUsernameFromEmail(email);
+    setFormData({ ...formData, email, username: generatedUsername });
+  };
+
+  // Handle username change with space validation
+  const handleUsernameChange = (username: string) => {
+    // Remove spaces from username and convert to lowercase
+    const cleanUsername = username.replace(/\s/g, '').toLowerCase();
+    setFormData({ ...formData, username: cleanUsername });
+  };
 
   useEffect(() => {
     fetchStaff();
@@ -114,10 +137,18 @@ export default function StaffManagementPage() {
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Client-side validation for password
+    if (!formData.password || formData.password.trim() === '') {
+      alert('Password is required and cannot be empty');
+      return;
+    }
+    
     try {
       await api.post('/api/admin/staff/create', formData);
       setShowAddForm(false);
-      setFormData({ email: '', password: '', full_name: '', phone_number: '', role: 'sales_staff', store_location: 'Jalingo' });
+      setFormData({ email: '', password: '', full_name: '', username: '', phone_number: '', role: 'sales_staff', store_location: 'Jalingo' });
+      setShowPassword(false);
       fetchStaff();
       alert('Staff created successfully');
     } catch (error: any) {
@@ -127,6 +158,7 @@ export default function StaffManagementPage() {
 
   const handleEditClick = (member: Staff) => {
     setEditingMemberId(member.id);
+    setShowEditPassword(false);
     setEditFormData({
       full_name: member.full_name,
       username: member.username,
@@ -146,6 +178,7 @@ export default function StaffManagementPage() {
       await api.put(`/api/admin/staff/${editingMemberId}`, editFormData);
       setEditingMemberId(null);
       setEditFormData({});
+      setShowEditPassword(false);
       fetchStaff();
       alert('Staff updated successfully');
     } catch (error: any) {
@@ -157,6 +190,7 @@ export default function StaffManagementPage() {
   const handleCancelEdit = () => {
     setEditingMemberId(null);
     setEditFormData({});
+    setShowEditPassword(false);
   };
 
   const handleToggleStatus = async (memberId: string, isActive: boolean) => {
@@ -316,11 +350,22 @@ export default function StaffManagementPage() {
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => handleEmailChange(e.target.value)}
                 className="input"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">💡 Username will be auto-generated from email (lowercase, dots replaced with underscores)</p>
+              <p className="text-xs text-gray-500 mt-1">💡 Username will be auto-generated from email</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Username</label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => handleUsernameChange(e.target.value)}
+                className="input"
+                placeholder="auto-generated from email"
+              />
+              <p className="text-xs text-gray-500 mt-1">💡 Will auto-generate from email. Edit to customize. No spaces allowed.</p>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Phone Number</label>
@@ -334,13 +379,28 @@ export default function StaffManagementPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Password</label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="input"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="input pr-10"
+                  placeholder="Enter a secure password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Role</label>
@@ -535,13 +595,27 @@ export default function StaffManagementPage() {
                       <div className="space-y-2">
                         <div>
                           <label className="block text-xs font-medium mb-1">New Password (optional)</label>
-                          <input
-                            type="password"
-                            value={editFormData.password || ''}
-                            onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
-                            className="input text-sm"
-                            placeholder="Leave blank to keep current"
-                          />
+                          <div className="relative">
+                            <input
+                              type={showEditPassword ? 'text' : 'password'}
+                              value={editFormData.password || ''}
+                              onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                              className="input text-sm pr-10"
+                              placeholder="Leave blank to keep current"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowEditPassword(!showEditPassword)}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition"
+                              title={showEditPassword ? 'Hide password' : 'Show password'}
+                            >
+                              {showEditPassword ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ) : (

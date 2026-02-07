@@ -504,7 +504,9 @@ export class StaffStoreService {
     const commissionPerUnit = itemData?.commission || 0;
     const totalCommission = commissionPerUnit * quantity;
 
-    // Create staff sale record with commission
+    // Create staff sale record
+    // NOTE: commission column removed from INSERT because PostgREST schema cache
+    // doesn't see it. Commission is calculated on-the-fly from items.commission instead.
     const { data: sale, error: saleError } = await supabaseAdmin
       .from('staff_sales')
       .insert([
@@ -514,7 +516,6 @@ export class StaffStoreService {
           quantity,
           unit_price: unitPrice,
           total_amount: totalAmount,
-          commission: totalCommission,
           payment_method: paymentMethod,
           receipt_number: `STAFF-${Date.now()}`,
         },
@@ -523,6 +524,11 @@ export class StaffStoreService {
       .single();
 
     if (saleError) throw saleError;
+
+    // Attach commission to the response (calculated from items table, not stored in staff_sales)
+    if (sale) {
+      (sale as any).commission = totalCommission;
+    }
 
     // Update staff store: increase quantity_sold
     // NOTE: quantity_available is GENERATED ALWAYS AS (quantity - quantity_sold), so it auto-updates
