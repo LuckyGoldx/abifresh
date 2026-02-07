@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User, Eye, EyeOff } from 'lucide-react';
+import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User, Eye, EyeOff, Trash2 } from 'lucide-react';
 
 interface Staff {
   id: string;
@@ -89,6 +89,11 @@ export default function StaffManagementPage() {
   });
   const [showPassword, setShowPassword] = useState(false); // Password visibility toggle
   const [showEditPassword, setShowEditPassword] = useState(false); // Edit password visibility toggle
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ stage: 'first' | 'second' | null; staffId: string | null; staffName: string | null }>({
+    stage: null,
+    staffId: null,
+    staffName: null,
+  });
 
   // Function to generate username from email
   const generateUsernameFromEmail = (email: string): string => {
@@ -209,6 +214,32 @@ export default function StaffManagementPage() {
     } catch (error: any) {
       console.error(`${action} error:`, error);
       alert(error.response?.data?.error || `Failed to ${action} staff`);
+    }
+  };
+
+  const handleDeleteClick = (memberId: string, memberName: string) => {
+    setDeleteConfirmation({ stage: 'first', staffId: memberId, staffName: memberName });
+  };
+
+  const handleDeleteConfirmFirst = () => {
+    setDeleteConfirmation(prev => ({ ...prev, stage: 'second' }));
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmation({ stage: null, staffId: null, staffName: null });
+  };
+
+  const handleDeleteConfirmSecond = async () => {
+    if (!deleteConfirmation.staffId) return;
+
+    try {
+      await api.delete(`/api/admin/staff/${deleteConfirmation.staffId}`);
+      setDeleteConfirmation({ stage: null, staffId: null, staffName: null });
+      fetchStaff();
+      alert('Staff member deleted successfully');
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      alert(error.response?.data?.error || 'Failed to delete staff');
     }
   };
 
@@ -662,6 +693,13 @@ export default function StaffManagementPage() {
                             <UserCheck className="w-4 h-4" />
                           )}
                         </button>
+                        <button 
+                          onClick={() => handleDeleteClick(member.id, member.full_name)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete staff"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     )}
                   </td>
@@ -671,6 +709,64 @@ export default function StaffManagementPage() {
           </table>
         </div>
       </div>
+
+      {/* First Delete Confirmation Modal */}
+      {deleteConfirmation.stage === 'first' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 space-y-4">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">Delete Staff Member?</h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Are you sure you want to delete <strong>{deleteConfirmation.staffName}</strong>?
+            </p>
+            <p className="text-sm text-red-600 dark:text-red-400">
+              ⚠️ This action cannot be undone. All staff data will be permanently removed.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={handleDeleteCancel}
+                className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirmFirst}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Second Delete Confirmation Modal (Final Confirmation) */}
+      {deleteConfirmation.stage === 'second' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 space-y-4">
+            <h3 className="text-lg font-bold text-red-600 dark:text-red-400">⚠️ FINAL CONFIRMATION</h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              This is your final chance to cancel. Deleting <strong>{deleteConfirmation.staffName}</strong> is permanent and irreversible.
+            </p>
+            <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+              Click "Permanently Delete" below only if you are absolutely certain.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={handleDeleteCancel}
+                className="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white rounded hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+              >
+                Cancel & Go Back
+              </button>
+              <button
+                onClick={handleDeleteConfirmSecond}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition font-bold"
+              >
+                Permanently Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

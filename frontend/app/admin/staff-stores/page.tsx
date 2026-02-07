@@ -119,6 +119,32 @@ export default function AdminStaffStorePage() {
     }
   });
 
+  // Calculate totals for all staff (not filtered by type)
+  const allStaffTotals = {
+    total_staff: storesStats.length,
+    total_items_count: storesStats.reduce((sum, s) => sum + (isNaN(s.total_items) ? 0 : s.total_items), 0),
+    total_quantity: storesStats.reduce((sum, s) => sum + (isNaN(s.total_quantity) ? 0 : s.total_quantity), 0),
+    total_sold: storesStats.reduce((sum, s) => sum + (isNaN(s.total_sold) ? 0 : s.total_sold), 0),
+    total_available: storesStats.reduce((sum, s) => sum + (isNaN(s.available) ? 0 : s.available), 0),
+    total_amount_sold: storesStats.reduce((sum, s) => sum + (isNaN(s.total_amount_sold) ? 0 : s.total_amount_sold), 0),
+  };
+
+  // Calculate totals by staff type
+  const commissionStaffTotals = {
+    total_staff: storesStats.filter(s => s.staff_role === 'commission_staff').length,
+    total_amount_sold: storesStats
+      .filter(s => s.staff_role === 'commission_staff')
+      .reduce((sum, s) => sum + (isNaN(s.total_amount_sold) ? 0 : s.total_amount_sold), 0),
+  };
+
+  const nonCommissionStaffTotals = {
+    total_staff: storesStats.filter(s => s.staff_role === 'non_commission_staff').length,
+    total_amount_sold: storesStats
+      .filter(s => s.staff_role === 'non_commission_staff')
+      .reduce((sum, s) => sum + (isNaN(s.total_amount_sold) ? 0 : s.total_amount_sold), 0),
+  };
+
+  // Filtered totals (based on current filter)
   const totalStats = {
     total_staff: filteredByType.length,
     total_items_count: filteredByType.reduce((sum, s) => sum + (isNaN(s.total_items) ? 0 : s.total_items), 0),
@@ -206,8 +232,16 @@ export default function AdminStaffStorePage() {
         <div className="card bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Total Amount Sold</p>
-              <p className="text-3xl font-bold text-indigo-900 dark:text-indigo-100 mt-2">₦{totalStats.total_amount_sold.toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
+              <p className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Total Amount Sold (All Staff)</p>
+              <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 mt-1">₦{allStaffTotals.total_amount_sold.toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
+              <div className="mt-2 text-xs space-y-1">
+                <p className="text-indigo-700 dark:text-indigo-300">
+                  <span className="font-semibold">Commission:</span> ₦{commissionStaffTotals.total_amount_sold.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </p>
+                <p className="text-indigo-700 dark:text-indigo-300">
+                  <span className="font-semibold">Non-Commission:</span> ₦{nonCommissionStaffTotals.total_amount_sold.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </p>
+              </div>
             </div>
             <BarChart3 className="w-8 h-8 text-indigo-300 opacity-50" />
           </div>

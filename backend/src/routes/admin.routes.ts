@@ -41,7 +41,7 @@ router.get('/staff', authMiddleware, roleMiddleware('admin', 'sales', 'sales_sta
  */
 router.post('/staff/create', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password, full_name, username, role, store_location } = req.body;
+    const { email, password, full_name, role, store_location } = req.body;
 
     if (!email || !password || !full_name || !role) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -52,8 +52,7 @@ router.post('/staff/create', authMiddleware, roleMiddleware('admin'), async (req
       password,
       full_name,
       role,
-      store_location || 'Jalingo',
-      username
+      store_location || 'Jalingo'
     );
 
     res.status(201).json({
@@ -357,6 +356,52 @@ router.put('/staff/:id/activate', authMiddleware, roleMiddleware('admin'), async
     res.json({ message: 'Staff activated successfully' });
   } catch (error: any) {
     console.error(`Activate error:`, error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Delete staff member
+ */
+router.delete('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`Deleting staff ${id}`);
+
+    // Verify user exists
+    const { data: user, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, full_name')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !user) {
+      console.error(`User not found for delete: ${id}`, fetchError);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Delete from users table (Supabase will handle auth user cleanup if configured)
+    const { error: deleteError } = await supabaseAdmin
+      .from('users')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) throw deleteError;
+
+    // Also delete from Supabase Auth if possible
+    try {
+      await supabaseAdmin.auth.admin.deleteUser(id);
+      console.log(`✅ Deleted auth user for ${id}`);
+    } catch (authDeleteError: any) {
+      console.warn(`⚠️ Warning deleting auth user: ${authDeleteError.message}`);
+      // Continue anyway - user profile is already deleted
+    }
+
+    console.log(`✅ Staff deleted successfully: ${user.email}`);
+    res.json({ message: 'Staff deleted successfully' });
+  } catch (error: any) {
+    console.error(`Delete error:`, error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -697,40 +742,56 @@ router.get('/staff-stores/:staffId', authMiddleware, roleMiddleware('admin'), as
 router.get('/staff-stores-stats', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
     console.log('📊 Fetching staff-stores-stats...');
-    const { data: stores, error } = await supabaseAdmin
+    
+    // Get store inventory data
+    const { data: stores, error: storeError } = await supabaseAdmin
       .from('staff_store')
       .select('id, staff_id, item_id, quantity, quantity_sold');
 
-    if (error) {
-      console.error('❌ Error fetching stores:', error);
-      throw error;
+    if (storeError) {
+      console.error('❌ Error fetching stores:', storeError);
+      throw storeError;
     }
 
-    console.log(`📦 Found ${stores?.length || 0} store records`);
+    // Get receipts data for amount sold
+    const { data: receipts, error: receiptError } = await supabaseAdmin
+      .from('receipts')
+      .select('staff_id, total_amount');
+
+    if (receiptError) {
+      console.error('❌ Error fetching receipts:', receiptError);
+      throw receiptError;
+    }
+
+    console.log(`📦 Found ${stores?.length || 0} store records and ${receipts?.length || 0} receipts`);
 
     // Get user info
-    const staffIds = [...new Set((stores || []).map(s => s.staff_id))];
-    const itemIds = [...new Set((stores || []).map(s => s.item_id))];
+    const staffIds = [...new Set([
+      ...(stores || []).map(s => s.staff_id),
+      ...(receipts || []).map(r => r.staff_id)
+    ])];
     
     const { data: users } = await supabaseAdmin
       .from('users')
       .select('id, full_name, role')
       .in('id', staffIds);
 
-    const { data: items } = await supabaseAdmin
-      .from('items')
-      .select('id, unit_price, base_price')
-      .in('id', itemIds);
-
     const userMap = new Map(users?.map(u => [u.id, u]) || []);
-    const itemMap = new Map(items?.map(i => [i.id, { unit_price: i.unit_price || i.base_price || 0 }]) || []);
 
+    // Calculate receipts totals per staff
+    const receiptTotals = (receipts || []).reduce((acc: any, receipt: any) => {
+      const staffId = receipt.staff_id;
+      if (!acc[staffId]) {
+        acc[staffId] = 0;
+      }
+      acc[staffId] += parseFloat(receipt.total_amount || 0);
+      return acc;
+    }, {});
+
+    // Calculate store inventory stats
     const staffStats = (stores || []).reduce((acc: any, store: any) => {
       const staffId = store.staff_id;
       const user = userMap.get(staffId);
-      const item = itemMap.get(store.item_id);
-      const unitPrice = item?.unit_price || 0;
-      const amountSold = (store.quantity_sold || 0) * unitPrice;
       
       if (!acc[staffId]) {
         acc[staffId] = {
@@ -746,9 +807,13 @@ router.get('/staff-stores-stats', authMiddleware, roleMiddleware('admin'), async
       acc[staffId].total_items += 1;
       acc[staffId].total_quantity += store.quantity || 0;
       acc[staffId].total_sold += store.quantity_sold || 0;
-      acc[staffId].total_amount_sold += amountSold;
       return acc;
     }, {});
+
+    // Add receipt totals to staff stats
+    Object.values(staffStats).forEach((stat: any) => {
+      stat.total_amount_sold = receiptTotals[stat.staff_id] || 0;
+    });
 
     const stats = Object.values(staffStats).map((stat: any) => ({
       ...stat,
