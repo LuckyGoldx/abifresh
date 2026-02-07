@@ -49,7 +49,7 @@ router.get('/posted-items', authMiddleware, async (req: AuthRequest, res: Respon
       .from('posted_items')
       .select(`
         *,
-        items:item_id(*),
+        items:item_id(id, name, unit_price, commission),
         posted_by:poster_id(id, full_name, email)
       `)
       .eq('staff_id', req.user!.id)
@@ -57,18 +57,25 @@ router.get('/posted-items', authMiddleware, async (req: AuthRequest, res: Respon
 
     if (error) throw error;
 
-    const postedItems = (data || []).map((item: any) => ({
-      id: item.id,
-      item_id: item.item_id,
-      item_name: item.items?.name || 'Unknown',
-      quantity: item.quantity,
-      status: item.status,
-      posted_at: item.created_at,
-      posted_by: item.posted_by?.full_name || 'Unknown',
-      staff_comment: item.staff_comment,
-      notes: item.notes,
-      unit_price: item.unit_price,
-    }));
+    const postedItems = (data || []).map((item: any) => {
+      const commission = item.items?.commission || 0;
+      const totalCommission = commission * item.quantity;
+      
+      return {
+        id: item.id,
+        item_id: item.item_id,
+        item_name: item.items?.name || 'Unknown',
+        quantity: item.quantity,
+        status: item.status,
+        posted_at: item.created_at,
+        posted_by: item.posted_by?.full_name || 'Unknown',
+        staff_comment: item.staff_comment,
+        notes: item.notes,
+        unit_price: item.unit_price,
+        commission_per_unit: commission,
+        total_commission_if_sold: totalCommission,
+      };
+    });
 
     res.json(postedItems);
   } catch (error: any) {
