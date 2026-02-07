@@ -1,0 +1,116 @@
+// Quick Supabase Connection Test
+// Run this to verify your Supabase connection before running the SQL script
+
+const { createClient } = require('@supabase/supabase-js');
+
+const supabaseUrl = 'https://cifzlksxpjghpgxhrwkg.supabase.co';
+const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNpZnpsa3NweGpnaHBneGhyd2tnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTMzMDEzMCwiZXhwIjoyMDg0OTA2MTMwfQ.7Eg2j5-16Mr97DvRhipQ8XSq-BCkDcKiO5NRqkwfHm4';
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+async function testConnection() {
+  console.log('🔍 Testing Supabase Connection...\n');
+  console.log('URL:', supabaseUrl);
+  console.log('Key:', supabaseServiceKey.substring(0, 20) + '...\n');
+  
+  // Test 1: Check if project is accessible
+  console.log('Test 1: Check project health');
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('count')
+      .limit(1);
+    
+    if (error) {
+      console.log('❌ Cannot access users table:', error.message);
+      console.log('   This might be normal if table doesn\'t exist yet\n');
+    } else {
+      console.log('✅ Users table is accessible!\n');
+    }
+  } catch (err) {
+    console.log('❌ Connection error:', err.message, '\n');
+  }
+  
+  // Test 2: Check existing users
+  console.log('Test 2: Check existing users');
+  try {
+    const { data: existingUsers, error: usersError } = await supabase
+      .from('users')
+      .select('email, role, is_active');
+    
+    if (usersError) {
+      console.log('❌ Cannot query users:', usersError.message, '\n');
+    } else if (existingUsers && existingUsers.length > 0) {
+      console.log(`✅ Found ${existingUsers.length} existing users:`);
+      existingUsers.forEach(u => {
+        console.log(`   - ${u.email} (${u.role}) ${u.is_active ? '✓ Active' : '✗ Inactive'}`);
+      });
+      console.log('');
+    } else {
+      console.log('⚠️  No users found in database\n');
+    }
+  } catch (err) {
+    console.log('❌ Error:', err.message, '\n');
+  }
+  
+  // Test 3: Check auth.users
+  console.log('Test 3: Check authentication users');
+  try {
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    
+    if (authError) {
+      console.log('❌ Cannot list auth users:', authError.message, '\n');
+    } else if (authUsers && authUsers.users && authUsers.users.length > 0) {
+      console.log(`✅ Found ${authUsers.users.length} auth users:`);
+      authUsers.users.forEach(u => {
+        console.log(`   - ${u.email} (created: ${new Date(u.created_at).toLocaleString()})`);
+      });
+      console.log('');
+    } else {
+      console.log('⚠️  No authentication users found\n');
+    }
+  } catch (err) {
+    console.log('❌ Error:', err.message, '\n');
+  }
+  
+  // Test 4: Test authentication
+  console.log('Test 4: Test login with admin@abifresh.com');
+  try {
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: 'admin@abifresh.com',
+      password: 'admin123'
+    });
+    
+    if (authError) {
+      console.log('❌ Login failed:', authError.message);
+      console.log('   → You need to run the SQL script to create users!\n');
+    } else if (authData.user) {
+      console.log('✅ Login successful!');
+      console.log('   User ID:', authData.user.id);
+      console.log('   Email:', authData.user.email);
+      console.log('   → Users are already set up correctly!\n');
+    }
+  } catch (err) {
+    console.log('❌ Error:', err.message, '\n');
+  }
+  
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('NEXT STEPS:');
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('1. Go to https://supabase.com/dashboard');
+  console.log('2. Select your project');
+  console.log('3. Click "SQL Editor" → "New query"');
+  console.log('4. Copy and paste contents of SUPABASE_FRESH_USER_SETUP.sql');
+  console.log('5. Click "Run" to execute');
+  console.log('6. Check for success message');
+  console.log('7. Run this test again to verify');
+  console.log('═══════════════════════════════════════════════════════════\n');
+}
+
+testConnection().then(() => {
+  console.log('Test complete!\n');
+  process.exit(0);
+}).catch(err => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});

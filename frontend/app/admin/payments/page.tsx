@@ -1,0 +1,852 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import api from '@/lib/api';
+import { CreditCard, CheckCircle, Clock, XCircle, Search, Filter, BarChart3, TrendingUp, Eye, Download, X, FileText, Phone, MapPin } from 'lucide-react';
+
+interface PaymentItem {
+  item_id: string;
+  item_name: string;
+  quantity: number;
+  amount: number;
+}
+
+interface Payment {
+  id: string;
+  staff_id: string;
+  staff_name: string;
+  staff_email: string;
+  staff_role: string;
+  staff_phone?: string;
+  amount: number;
+  payment_type: string;
+  payment_method?: string;
+  status: string;
+  notes: string;
+  reference_number?: string;
+  items_paid_for?: PaymentItem[];
+  receipt_url?: string;
+  requested_date: string;
+  approved_date: string;
+  created_at: string;
+  rejection_reason?: string;
+}
+
+export default function PaymentsPage() {
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState('all');
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [sortBy, setSortBy] = useState('requested_date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [actionInProgress, setActionInProgress] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Download receipt handler - handles cross-origin downloads
+  const handleDownloadReceipt = async (url: string, filename?: string) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename || `receipt_${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback: open in new tab
+      window.open(url, '_blank');
+    }
+  };
+
+  // Format payment method for display
+  const formatPaymentMethod = (method?: string) => {
+    if (!method) return 'Not specified';
+    const formatted: { [key: string]: string } = {
+      'cash': 'Cash',
+      'online': 'Online Transfer',
+      'bank_deposit': 'Bank Deposit',
+      'pos': 'POS',
+    };
+    return formatted[method.toLowerCase()] || method;
+  };
+
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  useEffect(() => {
+    filterPayments();
+  }, [payments, searchTerm, statusFilter, paymentTypeFilter, dateRange, sortBy, sortOrder]);
+
+  const fetchPayments = async () => {
+    try {
+      setIsLoading(true);
+      let response;
+      try {
+        // Try to fetch all payments first
+        response = await api.get('/api/admin/payments/all');
+        console.log('✅ Fetched all payments:', response.data);
+      } catch (error: any) {
+        // Fall back to pending payments
+        console.log('⚠️ /all endpoint not available, falling back to /pending');
+        response = await api.get('/api/admin/payments/pending');
+        console.log('✅ Fetched pending payments:', response.data);
+      }
+      setPayments(response.data || []);
+    } catch (error: any) {
+      console.error('Failed to fetch payments:', error?.response?.data || error?.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filterPayments = () => {
+    let filtered = [...payments];
+
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(p =>
+        p.staff_name?.toLowerCase().includes(term) ||
+        p.staff_email?.toLowerCase().includes(term) ||
+        p.id.toLowerCase().includes(term)
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(p => p.status === statusFilter);
+    }
+
+    // Payment method filter
+    if (paymentTypeFilter !== 'all') {
+      filtered = filtered.filter(p => (p.payment_method || p.payment_type) === paymentTypeFilter);
+    }
+
+    // Date range filter
+    if (dateRange.from) {
+      const fromDate = new Date(dateRange.from);
+      filtered = filtered.filter(p => new Date(p.requested_date) >= fromDate);
+    }
+    if (dateRange.to) {
+      const toDate = new Date(dateRange.to);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(p => new Date(p.requested_date) <= toDate);
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      let aVal: any = a[sortBy as keyof Payment];
+      let bVal: any = b[sortBy as keyof Payment];
+
+      if (sortBy === 'amount') {
+        aVal = parseFloat(aVal);
+        bVal = parseFloat(bVal);
+      } else {
+        aVal = new Date(aVal).getTime();
+        bVal = new Date(bVal).getTime();
+      }
+
+      return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+
+    setFilteredPayments(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const handleApprove = async (id: string) => {
+    if (!confirm('Are you sure you want to approve this payment?')) return;
+
+    setActionInProgress(true);
+    try {
+      await api.post(`/api/admin/payments/${id}/approve`);
+      alert('✅ Payment approved successfully! Staff member has been notified.');
+      setShowDetailsModal(false);
+      setSelectedPayment(null);
+      fetchPayments();
+    } catch (error: any) {
+      alert('❌ ' + (error.response?.data?.error || 'Failed to approve payment'));
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  const handleReject = async (paymentId: string) => {
+    if (!rejectReason.trim()) {
+      alert('Please enter a reason for rejection');
+      return;
+    }
+
+    setActionInProgress(true);
+    try {
+      await api.post(`/api/admin/payments/${paymentId}/reject`, { reason: rejectReason });
+      alert('✅ Payment rejected successfully! Staff member has been notified with the reason.');
+      setShowRejectModal(false);
+      setShowDetailsModal(false);
+      setRejectReason('');
+      setSelectedPayment(null);
+      fetchPayments();
+    } catch (error: any) {
+      alert('❌ ' + (error.response?.data?.error || 'Failed to reject payment'));
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+      case 'approved':
+        return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+      case 'rejected':
+        return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+      case 'paid':
+        return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+      default:
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="w-4 h-4" />;
+      case 'approved':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'rejected':
+        return <XCircle className="w-4 h-4" />;
+      default:
+        return <CreditCard className="w-4 h-4" />;
+    }
+  };
+
+  const stats = {
+    total: payments.length,
+    pending: payments.filter(p => p.status === 'pending').length,
+    approved: payments.filter(p => p.status === 'approved').length,
+    rejected: payments.filter(p => p.status === 'rejected').length,
+    totalAmount: (payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0) +
+                  payments.filter(p => p.status === 'approved').reduce((sum, p) => sum + p.amount, 0)),
+    pendingAmount: payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
+    approvedAmount: payments.filter(p => p.status === 'approved').reduce((sum, p) => sum + p.amount, 0),
+    rejectedAmount: payments.filter(p => p.status === 'rejected').reduce((sum, p) => sum + p.amount, 0),
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+          <CreditCard className="w-8 h-8 text-pink-500" />
+          Payment Management System
+        </h1>
+        <button
+          onClick={fetchPayments}
+          className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {/* Statistics Dashboard */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="card border-l-4 border-l-yellow-500">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Pending Payments</p>
+          <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            ₦{stats.pendingAmount.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="card border-l-4 border-l-green-500">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Approved Payments</p>
+          <p className="text-3xl font-bold text-green-600">{stats.approved}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            ₦{stats.approvedAmount.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="card border-l-4 border-l-red-500">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Rejected Payments</p>
+          <p className="text-3xl font-bold text-red-600">{stats.rejected}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            ₦{stats.rejectedAmount.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="card border-l-4 border-l-blue-500">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Total Amount</p>
+          <p className="text-3xl font-bold text-blue-600">₦{stats.totalAmount.toLocaleString()}</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+            <Filter className="w-5 h-5 text-pink-500" />
+            Filters & Search
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search staff name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+          >
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+          </select>
+
+          {/* Payment Method Filter */}
+          <select
+            value={paymentTypeFilter}
+            onChange={(e) => setPaymentTypeFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+          >
+            <option value="all">All Methods</option>
+            <option value="cash">Cash</option>
+            <option value="online">Online Transfer</option>
+            <option value="bank_deposit">Bank Deposit</option>
+            <option value="pos">POS</option>
+          </select>
+
+          {/* Sort By */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+          >
+            <option value="requested_date">Date</option>
+            <option value="amount">Amount</option>
+            <option value="staff_name">Staff Name</option>
+          </select>
+
+          {/* Sort Order */}
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600 transition"
+          >
+            {sortOrder === 'desc' ? '↓ Newest' : '↑ Oldest'}
+          </button>
+        </div>
+
+        {/* Date Range */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label className="text-sm text-gray-600 dark:text-gray-400">From Date</label>
+            <input
+              type="date"
+              value={dateRange.from}
+              onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-600 dark:text-gray-400">To Date</label>
+            <input
+              type="date"
+              value={dateRange.to}
+              onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+          Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredPayments.length)}-{Math.min(currentPage * itemsPerPage, filteredPayments.length)} of {filteredPayments.length} payments
+        </div>
+      </div>
+
+      {/* Payments Table */}
+      <div className="card">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-pink-500" />
+          Payment Details
+        </h2>
+
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <th className="text-left py-3 px-4 text-sm font-semibold">Staff Information</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold">Amount</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold">Type</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold">Status</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold">Date</th>
+                <th className="text-left py-3 px-4 text-sm font-semibold">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPayments
+                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                .map((payment) => (
+                <tr key={payment.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                  <td className="py-3 px-4">
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">{payment.staff_name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{payment.staff_email}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 capitalize">{payment.staff_role}</p>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className="font-bold text-lg text-orange-600">₦{payment.amount.toLocaleString()}</span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className="text-sm px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+                      {formatPaymentMethod(payment.payment_method || payment.payment_type)}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-1 ${getStatusColor(payment.status)} rounded text-xs flex items-center gap-1 w-fit`}>
+                      {getStatusIcon(payment.status)}
+                      {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    <div>
+                      <p className="text-gray-900 dark:text-white">{new Date(payment.requested_date).toLocaleString()}</p>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedPayment(payment);
+                          setShowDetailsModal(true);
+                        }}
+                        title="View Details"
+                        className="flex items-center justify-center gap-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {payment.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setSelectedPayment(payment);
+                              setShowDetailsModal(true);
+                            }}
+                            className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedPayment(payment);
+                              setShowDetailsModal(true);
+                            }}
+                            className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Reject
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredPayments.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>No payments found</p>
+            </div>
+          )}
+        </div>
+
+        {/* Pagination Controls */}
+        {filteredPayments.length > itemsPerPage && (
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Page {currentPage} of {Math.ceil(filteredPayments.length / itemsPerPage)}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Previous
+              </button>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.ceil(filteredPayments.length / itemsPerPage) }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-2 rounded-lg transition ${
+                      currentPage === page
+                        ? 'bg-pink-500 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setCurrentPage(Math.min(Math.ceil(filteredPayments.length / itemsPerPage), currentPage + 1))}
+                disabled={currentPage === Math.ceil(filteredPayments.length / itemsPerPage)}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Payment Details Modal */}
+      {showDetailsModal && selectedPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Payment Details</h2>
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setShowRejectModal(false);
+                  setSelectedPayment(null);
+                  setRejectReason('');
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              {/* Staff Information Section */}
+              <div className="border-b dark:border-gray-700 pb-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Staff Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Staff Name</p>
+                    <p className="font-semibold text-gray-800 dark:text-white">{selectedPayment.staff_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Phone Number</p>
+                    <p className="font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      {selectedPayment.staff_phone || 'Not provided'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
+                    <p className="font-semibold text-gray-800 dark:text-white">{selectedPayment.staff_email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Role</p>
+                    <p className="font-semibold text-gray-800 dark:text-white capitalize">{selectedPayment.staff_role}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Information Section */}
+              <div className="border-b dark:border-gray-700 pb-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Payment Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Amount</p>
+                    <p className="font-bold text-2xl text-orange-600">₦{selectedPayment.amount.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
+                    <p className={`font-semibold inline-block px-3 py-1 rounded text-sm ${getStatusColor(selectedPayment.status)}`}>
+                      {selectedPayment.status.charAt(0).toUpperCase() + selectedPayment.status.slice(1)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Payment Method</p>
+                    <p className="font-semibold text-gray-800 dark:text-white capitalize">{selectedPayment.payment_method || 'Not specified'}</p>
+                  </div>
+                  {selectedPayment.reference_number && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Reference Number</p>
+                      <p className="font-semibold text-gray-800 dark:text-white">{selectedPayment.reference_number}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Items Paid For Section */}
+              {selectedPayment.items_paid_for && selectedPayment.items_paid_for.length > 0 && (
+                <div className="border-b dark:border-gray-700 pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Items Paid For</h3>
+                  <div className="space-y-2">
+                    {selectedPayment.items_paid_for.map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                        <div>
+                          <p className="font-semibold text-gray-800 dark:text-white">{item.item_name}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Quantity: {item.quantity}</p>
+                        </div>
+                        <p className="font-bold text-lg text-orange-600">₦{item.amount.toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Receipt Section */}
+              {selectedPayment.receipt_url && selectedPayment.receipt_url.trim() !== '' && (
+                <div className="border-b dark:border-gray-700 pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Receipt Preview</h3>
+                  
+                  {/* Clickable Receipt Image */}
+                  <div 
+                    className="cursor-pointer mb-3"
+                    onClick={() => setShowReceiptPreview(true)}
+                    title="Click to view fullscreen"
+                  >
+                    <img 
+                      src={selectedPayment.receipt_url} 
+                      alt="Receipt"
+                      className="max-w-full h-auto border border-gray-200 dark:border-gray-600 rounded"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="100"%3E%3Crect fill="%23f0f0f0" width="200" height="100"/%3E%3Ctext x="100" y="50" text-anchor="middle" dy=".3em" fill="%23999"%3EImage not found%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Simple Icon Buttons */}
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={() => setShowReceiptPreview(true)}
+                      className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
+                      title="View fullscreen"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDownloadReceipt(selectedPayment.receipt_url!, `receipt_${selectedPayment.reference_number || selectedPayment.id}.jpg`)}
+                      className="text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition"
+                      title="Download receipt"
+                    >
+                      <Download className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes Section */}
+              {selectedPayment.notes && (
+                <div className="border-b dark:border-gray-700 pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Notes</h3>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded">
+                    <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{selectedPayment.notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Rejection Reason Section */}
+              {selectedPayment.status === 'rejected' && selectedPayment.rejection_reason && (
+                <div className="border-b dark:border-gray-700 pb-4">
+                  <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-3">Rejection Reason</h3>
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded">
+                    <p className="text-red-800 dark:text-red-200 whitespace-pre-wrap">{selectedPayment.rejection_reason}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Dates Section */}
+              <div className="border-b dark:border-gray-700 pb-4">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Timeline</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Requested Date</p>
+                    <p className="font-semibold text-gray-800 dark:text-white">{new Date(selectedPayment.requested_date).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Created Date</p>
+                    <p className="font-semibold text-gray-800 dark:text-white">{new Date(selectedPayment.created_at).toLocaleString()}</p>
+                  </div>
+                  {selectedPayment.approved_date && selectedPayment.status === 'approved' && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Approved Date</p>
+                      <p className="font-semibold text-green-600">{new Date(selectedPayment.approved_date).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer - Action Buttons */}
+            {selectedPayment.status === 'pending' && !showRejectModal && (
+              <div className="p-6 border-t dark:border-gray-700 flex gap-4 bg-gray-50 dark:bg-gray-700">
+                <button
+                  onClick={() => handleApprove(selectedPayment.id)}
+                  disabled={actionInProgress}
+                  className="flex-1 px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Approve Payment
+                </button>
+                <button
+                  onClick={() => setShowRejectModal(true)}
+                  disabled={actionInProgress}
+                  className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <XCircle className="w-5 h-5" />
+                  Reject Payment
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Reason Modal */}
+      {showRejectModal && selectedPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
+            {/* Modal Header */}
+            <div className="p-6 border-b dark:border-gray-700 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Reject Payment</h2>
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Staff: <span className="font-semibold text-gray-800 dark:text-white">{selectedPayment.staff_name}</span>
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Amount: <span className="font-bold text-lg text-orange-600">₦{selectedPayment.amount.toLocaleString()}</span>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 dark:text-white mb-2">
+                  Reason for Rejection <span className="text-gray-400">(Optional)</span>
+                </label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Enter reason for rejecting this payment (staff will see this message)..."
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white resize-none"
+                  rows={5}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  💡 Tip: Be specific about why the payment was rejected so the staff member can correct the issue.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t dark:border-gray-700 flex gap-3 bg-gray-50 dark:bg-gray-700">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                }}
+                disabled={actionInProgress}
+                className="flex-1 px-4 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReject(selectedPayment.id)}
+                disabled={actionInProgress}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <XCircle className="w-4 h-4" />
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Receipt Preview Modal */}
+      {showReceiptPreview && selectedPayment?.receipt_url && (
+        <div className="fixed inset-0 bg-black bg-opacity-95 z-50 overflow-auto">
+          {/* Fixed header with reference, download and close */}
+          <div className="fixed top-0 left-0 right-0 flex justify-between items-center p-4 z-20 bg-gradient-to-b from-black/80 to-transparent">
+            <div className="text-white text-sm">
+              {selectedPayment.reference_number && (
+                <span className="bg-black/50 px-3 py-1 rounded">Ref: {selectedPayment.reference_number}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => handleDownloadReceipt(selectedPayment.receipt_url!, `receipt_${selectedPayment.reference_number || selectedPayment.id}.jpg`)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded flex items-center gap-2 text-sm transition"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </button>
+              <button
+                onClick={() => setShowReceiptPreview(false)}
+                className="bg-white rounded-full p-2 hover:bg-gray-200"
+                title="Close"
+              >
+                <X className="w-5 h-5 text-black" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Scrollable image container */}
+          <div className="min-h-full flex items-start justify-center p-4 pt-20 pb-8">
+            <img
+              src={selectedPayment.receipt_url}
+              alt="Receipt"
+              className="max-w-full h-auto"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

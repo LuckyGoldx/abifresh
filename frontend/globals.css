@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #ec4899; /* Pink */
+  --primary-dark: #be185d;
+  --background: #ffffff;
+  --background-dark: #0f172a;
+  --text: #1e293b;
+  --text-light: #94a3b8;
+  --border: #e2e8f0;
+  --border-dark: #1e293b;
+}
+
+[data-theme='dark'] {
+  --primary: #ec4899;
+  --primary-dark: #be185d;
+  --background: #0f172a;
+  --text: #f1f5f9;
+  --text-light: #cbd5e1;
+  --border: #1e293b;
+  --border-dark: #0f172a;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.btn-primary {
+  @apply bg-pink-500 hover:bg-pink-600 text-white font-semibold py-2 px-4 rounded-lg transition;
+}
+
+.btn-secondary {
+  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition;
+}
+
+.card {
+  @apply bg-white dark:bg-slate-800 rounded-lg shadow p-6 border border-gray-200 dark:border-slate-700;
+}
+
+.input {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500;
+}
+
+.badge {
+  @apply inline-block px-3 py-1 rounded-full text-sm font-semibold;
+}
+
+.badge-success {
+  @apply bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200;
+}
+
+.badge-warning {
+  @apply bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200;
+}
+
+.badge-danger {
+  @apply bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200;
+}
+
+.table-responsive {
+  @apply overflow-x-auto;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Custom Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-track:dark {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ec4899;
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #be185d;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #ec4899;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #be185d;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-color: #ec4899 #f1f5f9;
+  scrollbar-width: thin;
+}
+
+.dark * {
+  scrollbar-color: #ec4899 #1e293b;
+}
