@@ -716,6 +716,32 @@ router.get('/staff-stores/:staffId', authMiddleware, roleMiddleware('admin'), as
       amount_sold: ((item.quantity_sold || 0) * (item.items?.unit_price || item.items?.base_price || 0)),
     }));
 
+    // Fetch receipts for this staff to calculate actual commission earned
+    const { data: receipts, error: receiptError } = await supabaseAdmin
+      .from('receipts')
+      .select('id, total_amount, created_at')
+      .eq('staff_id', staffId)
+      .order('created_at', { ascending: false });
+
+    if (receiptError) {
+      console.error('⚠️  Error fetching receipts:', receiptError);
+    }
+
+    // Calculate actual commission earned from receipts
+    // For commission staff, commission = sum of (item commission value × quantity sold)
+    let totalCommissionEarned = 0;
+    
+    if (receipts && receipts.length > 0) {
+      // Sum commission from all sold items
+      totalCommissionEarned = itemsWithAmount.reduce((sum, item) => {
+        const commissionPerUnit = item.items?.commission || 0;
+        const commissionFromItem = commissionPerUnit * (item.quantity_sold || 0);
+        return sum + commissionFromItem;
+      }, 0);
+      
+      console.log(`💰 Staff ${staffId} has ${receipts.length} receipts, total commission earned: ₦${totalCommissionEarned}`);
+    }
+
     // Calculate summary
     const summary = {
       staff_id: staffId,
@@ -724,10 +750,12 @@ router.get('/staff-stores/:staffId', authMiddleware, roleMiddleware('admin'), as
       total_sold: itemsWithAmount.reduce((sum, item) => sum + (item.quantity_sold || 0), 0),
       total_available: itemsWithAmount.reduce((sum, item) => sum + (item.quantity_available || 0), 0),
       total_amount_sold: itemsWithAmount.reduce((sum, item) => sum + (item.amount_sold || 0), 0),
+      total_commission_earned: totalCommissionEarned,
+      receipts_count: receipts?.length || 0,
       items: itemsWithAmount,
     };
 
-    console.log(`✅ Summary: items=${summary.total_items}, qty=${summary.total_quantity}, sold=${summary.total_sold}, available=${summary.total_available}, amount_sold=${summary.total_amount_sold}`);
+    console.log(`✅ Summary: items=${summary.total_items}, qty=${summary.total_quantity}, sold=${summary.total_sold}, available=${summary.total_available}, amount_sold=${summary.total_amount_sold}, commission_earned=${summary.total_commission_earned}`);
 
     res.json(summary);
   } catch (error: any) {

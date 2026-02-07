@@ -402,21 +402,40 @@ export default function AdminStaffStorePage() {
             </div>
           </div>
 
-          {/* Commission Card - Only for Commission Staff */}
+          {/* Commission Cards - Only for Commission Staff */}
           {selectedStaff && staffDetails.items && staffDetails.items[0]?.users?.role === 'commission_staff' && (
-            <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900 dark:to-amber-800 p-4 rounded mb-6 border-2 border-amber-200 dark:border-amber-700">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-amber-700 dark:text-amber-300 font-bold">💰 Total Commission That Can Be Earned</p>
-                  <p className="text-3xl font-bold text-amber-900 dark:text-amber-100 mt-2">
-                    ₦{staffDetails.items?.reduce((sum: number, item: any) => {
-                      const commission = item.items?.commission || 0;
-                      return sum + (commission * item.quantity);
-                    }, 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
-                    Based on {staffDetails.items?.length || 0} stock items × commission rate × quantity in store
-                  </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {/* Actual Commission Earned */}
+              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 p-4 rounded border-2 border-green-200 dark:border-green-700">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-green-700 dark:text-green-300 font-bold">✅ Total Commission Earned</p>
+                    <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">
+                      ₦{(staffDetails.total_commission_earned || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-green-700 dark:text-green-300 mt-2">
+                      From {staffDetails.receipts_count || 0} sales receipts
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Potential Commission */}
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900 dark:to-amber-800 p-4 rounded border-2 border-amber-200 dark:border-amber-700">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 font-bold">🎯 Potential Commission (Remaining)</p>
+                    <p className="text-3xl font-bold text-amber-900 dark:text-amber-100 mt-2">
+                      ₦{staffDetails.items?.reduce((sum: number, item: any) => {
+                        const commission = item.items?.commission || 0;
+                        const remainingQty = (item.quantity || 0) - (item.quantity_sold || 0);
+                        return sum + (commission * remainingQty);
+                      }, 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+                      From {staffDetails.items?.length || 0} stock items × available qty
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
