@@ -13,7 +13,21 @@ if (!supabaseServiceKey) {
 }
 
 // Admin client for privileged operations
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+// Configure with db.schema = null to disable schema caching
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  db: {
+    schema: 'public'
+  },
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'abifresh-backend'
+    }
+  }
+});
 
 // Regular client for auth operations (can validate passwords)
 export const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);

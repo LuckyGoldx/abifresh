@@ -2,8 +2,8 @@ import { supabaseAdmin } from '../config/supabase';
 
 interface CreateExpenseParams {
   staff_id: string;
-  expense_type: string;
-  amount: number;
+  expense_type: string;  // maps to expense_category in DB
+  amount: number;        // maps to expense_amount in DB
   description?: string;
   expense_date?: string;
 }
@@ -11,8 +11,8 @@ interface CreateExpenseParams {
 interface Expense {
   id: string;
   staff_id: string;
-  expense_type: string;
-  amount: number;
+  expense_category: string;
+  expense_amount: number;
   description: string;
   expense_date: string;
   created_at: string;
@@ -21,44 +21,33 @@ interface Expense {
 
 class ExpensesService {
   /**
-   * Create a new expense using raw SQL via PostgreSQL
-   * Bypasses PostgREST schema cache issues
+   * Create a new expense
+   * Maps frontend field names to actual database column names:
+   *   expense_type → expense_category
+   *   amount → expense_amount
    */
   async createExpense(params: CreateExpenseParams): Promise<any> {
     try {
       const { staff_id, expense_type, amount, description, expense_date } = params;
 
-      // Use raw SQL - execute directly on database
-      const { data, error } = await (supabaseAdmin as any)
-        .rpc('exec', {
-          sql: `
-            INSERT INTO public.expenses (staff_id, expense_type, amount, description, expense_date)
-            VALUES ($1::uuid, $2::text, $3::decimal, $4::text, $5::timestamptz)
-            RETURNING *
-          `,
-          params: [staff_id, expense_type, parseFloat(amount.toString()), description || '', expense_date || new Date().toISOString()]
-        });
+      const { data, error } = await supabaseAdmin
+        .from('staff_expenses')
+        .insert({
+          staff_id,
+          expense_category: expense_type,  // DB column is expense_category
+          expense_amount: parseFloat(amount.toString()),  // DB column is expense_amount
+          description: description || null,
+          expense_date: expense_date || new Date().toISOString().split('T')[0],
+        })
+        .select()
+        .single();
 
       if (error) {
-        // Fallback: Try direct admin client query
-        console.log('⚠️  RPC approach failed, trying admin query...');
-        const result = await supabaseAdmin
-          .from('expenses')
-          .insert({
-            staff_id,
-            expense_type,
-            amount: parseFloat(amount.toString()),
-            description: description || null,
-            expense_date: expense_date || new Date().toISOString()
-          })
-          .select()
-          .single();
-
-        if (result.error) throw result.error;
-        return result.data;
+        console.error('❌ Supabase insert error:', error.message);
+        throw error;
       }
 
-      console.log('✅ Expense created via raw SQL:', data);
+      console.log('✅ Expense created:', data);
       return data;
     } catch (error: any) {
       console.error('❌ ExpensesService.createExpense error:', error.message);
@@ -69,22 +58,31 @@ class ExpensesService {
   /**
    * Get expenses for a staff member
    */
-  async getExpensesByStaff(staff_id: string): Promise<Expense[]> {
+  async getExpensesByStaff(staff_id: string): Promise<any[]> {
     try {
-      // Try direct query first
-      const { data, error } = await (supabaseAdmin as any)
-        .from('expenses')
+      const { data, error } = await supabaseAdmin
+        .from('staff_expenses')
         .select('*')
         .eq('staff_id', staff_id)
         .order('expense_date', { ascending: false });
 
       if (error) {
-        // Return empty array if table not accessible
         console.warn('⚠️  Could not fetch expenses:', error.message);
         return [];
       }
 
-      return data || [];
+      // Map DB column names back to frontend-friendly names
+      return (data || []).map((exp: any) => ({
+        id: exp.id,
+        staff_id: exp.staff_id,
+        expense_type: exp.expense_category,  // Map back for frontend
+        amount: exp.expense_amount,          // Map back for frontend
+        description: exp.description,
+        expense_date: exp.expense_date,
+        status: exp.status,
+        created_at: exp.created_at,
+        updated_at: exp.updated_at,
+      }));
     } catch (error: any) {
       console.error('❌ ExpensesService.getExpensesByStaff error:', error.message);
       return [];
@@ -94,10 +92,10 @@ class ExpensesService {
   /**
    * Get all expenses (admin)
    */
-  async getAllExpenses(staff_id?: string): Promise<Expense[]> {
+  async getAllExpenses(staff_id?: string): Promise<any[]> {
     try {
-      let query = (supabaseAdmin as any)
-        .from('expenses')
+      let query = supabaseAdmin
+        .from('staff_expenses')
         .select('*');
 
       if (staff_id) {
@@ -111,7 +109,18 @@ class ExpensesService {
         return [];
       }
 
-      return data || [];
+      // Map DB column names back to frontend-friendly names
+      return (data || []).map((exp: any) => ({
+        id: exp.id,
+        staff_id: exp.staff_id,
+        expense_type: exp.expense_category,
+        amount: exp.expense_amount,
+        description: exp.description,
+        expense_date: exp.expense_date,
+        status: exp.status,
+        created_at: exp.created_at,
+        updated_at: exp.updated_at,
+      }));
     } catch (error: any) {
       console.error('❌ ExpensesService.getAllExpenses error:', error.message);
       return [];
