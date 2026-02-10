@@ -147,77 +147,6 @@ export default function ComprehensiveReportsPage() {
       }));
   };
 
-  const renderLowStockSection = () => {
-    const filteredItems = getFilteredLowStockItems();
-    if (filteredItems.length === 0) return null;
-
-    const storeNames: { [key: string]: string } = {
-      main: 'Main Store',
-      active: 'Active Store',
-      staff: 'Staff Store',
-      all: 'All Stores',
-    };
-
-    const storeName = storeNames[selectedStore] || 'All Stores';
-
-    return (
-      <div className="card border-2 border-orange-300 bg-orange-50 dark:bg-orange-900/20">
-        <h3 className="text-lg font-semibold mb-4 text-orange-800 dark:text-orange-200 flex items-center gap-2">
-          <AlertCircle className="w-5 h-5" />
-          Low Stock Items - {storeName} (Combined Quantity &lt; 100)
-        </h3>
-        <div className="text-xs text-orange-700 dark:text-orange-300 mb-4 p-2 bg-orange-100 dark:bg-orange-900/30 rounded">
-          <p><strong>Reorder Level:</strong> Minimum stock level before reordering. When stock falls below this, consider placing a new order.</p>
-          <p><strong>Status:</strong> Urgent (0-19 qty), Critical (20-49 qty), Low (50-99 qty)</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-orange-100 dark:bg-orange-800">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold">Item Name</th>
-                <th className="px-4 py-3 text-left font-semibold">Total Quantity</th>
-                <th className="px-4 py-3 text-left font-semibold">Reorder Level</th>
-                <th className="px-4 py-3 text-left font-semibold">Status</th>
-                <th className="px-4 py-3 text-left font-semibold">Stores</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredItems.map((item, idx) => (
-                <tr key={idx} className="border-b dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20">
-                  <td className="px-4 py-3 font-medium">{item.item_name || `Item ${item.item_id}`}</td>
-                  <td className="px-4 py-3">
-                    <span className="font-bold text-lg">{item.total_quantity}</span>
-                  </td>
-                  <td className="px-4 py-3">100</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-3 py-1 rounded text-xs font-semibold text-white ${
-                      item.status === 'Urgent' ? 'bg-red-600' :
-                      item.status === 'Critical' ? 'bg-red-500' :
-                      'bg-orange-500'
-                    }`}>
-                      {item.status || 'Low'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {item.stores && item.stores.length > 0 ? (
-                      <div className="space-y-1">
-                        {item.stores.map((store: any, i: number) => (
-                          <div key={i}>{store.store}: {store.quantity}</div>
-                        ))}
-                      </div>
-                    ) : (
-                      'N/A'
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
   const renderFilterSection = () => (
     <div className="card space-y-4">
       <div className="flex items-center justify-between">
@@ -667,9 +596,6 @@ export default function ComprehensiveReportsPage() {
       </div>
       )}
 
-      {/* Low Stock Items for Main Store */}
-      {(selectedStore === 'all' || selectedStore === 'main') && renderLowStockSection()}
-
       {/* Active Store Inventory */}
       {(selectedStore === 'all' || selectedStore === 'active') && (
       <div className="card">
@@ -701,9 +627,6 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
       )}
-
-      {/* Low Stock Items for Active Store */}
-      {(selectedStore === 'all' || selectedStore === 'active') && renderLowStockSection()}
 
       {/* Staff Store Inventory */}
       {(selectedStore === 'all' || selectedStore === 'staff') && (
@@ -739,11 +662,68 @@ export default function ComprehensiveReportsPage() {
       </div>
       )}
 
-      {/* Low Stock Items for Staff Store */}
-      {(selectedStore === 'all' || selectedStore === 'staff') && renderLowStockSection()}
-
-      {/* Old Low Stock Items Section - Keep for backward compatibility */}
-
+      {/* Low Stock Items - Action Required */}
+      {getFilteredLowStockItems().length > 0 && (
+        <div className="card border-2 border-orange-300 bg-orange-50 dark:bg-orange-900/20">
+          <h3 className="text-lg font-semibold mb-4 text-orange-800 dark:text-orange-200 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            Low Stock Items - Action Required 
+            {selectedStore === 'main' && ' (Main Store)'}
+            {selectedStore === 'active' && ' (Active Store)'}
+            {selectedStore === 'staff' && ' (Staff Store)'}
+            {selectedStore === 'all' && ' (All Stores)'}
+            {' (Combined Quantity < 100)'}
+          </h3>
+          <div className="text-xs text-orange-700 dark:text-orange-300 mb-4 p-2 bg-orange-100 dark:bg-orange-900/30 rounded">
+            <p><strong>Reorder Level:</strong> Minimum stock level before reordering. When stock falls below this, consider placing a new order.</p>
+            <p><strong>Status:</strong> Urgent (0-19 qty), Critical (20-49 qty), Low (50-99 qty)</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-orange-100 dark:bg-orange-800">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold">Item Name</th>
+                  <th className="px-4 py-3 text-left font-semibold">Total Quantity</th>
+                  <th className="px-4 py-3 text-left font-semibold">Reorder Level</th>
+                  <th className="px-4 py-3 text-left font-semibold">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold">Stores</th>
+                </tr>
+              </thead>
+              <tbody>
+                {getFilteredLowStockItems().map((item, idx) => (
+                  <tr key={idx} className="border-b dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20">
+                    <td className="px-4 py-3 font-medium">{item.item_name || `Item ${item.item_id}`}</td>
+                    <td className="px-4 py-3">
+                      <span className="font-bold text-lg">{item.total_quantity}</span>
+                    </td>
+                    <td className="px-4 py-3">100</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-3 py-1 rounded text-xs font-semibold text-white ${
+                        item.status === 'Urgent' ? 'bg-red-600' :
+                        item.status === 'Critical' ? 'bg-red-500' :
+                        'bg-orange-500'
+                      }`}>
+                        {item.status || 'Low'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {item.stores && item.stores.length > 0 ? (
+                        <div className="space-y-1">
+                          {item.stores.map((store: any, i: number) => (
+                            <div key={i}>{store.store}: {store.quantity}</div>
+                          ))}
+                        </div>
+                      ) : (
+                        'N/A'
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 
