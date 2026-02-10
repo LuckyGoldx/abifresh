@@ -127,9 +127,9 @@ export default function ComprehensiveReportsPage() {
     }
 
     const storeNames: { [key: string]: string } = {
-      main: 'Main Store',
-      active: 'Active Store',
-      staff: 'Staff Store',
+      main: 'Main',
+      active: 'Active',
+      staff: 'Staff',
     };
 
     const selectedStoreName = storeNames[selectedStore] || '';
