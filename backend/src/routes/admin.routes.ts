@@ -224,6 +224,33 @@ router.get('/reports/sales', authMiddleware, roleMiddleware('admin'), async (req
 });
 
 /**
+ * Get comprehensive reports with all data
+ */
+router.get('/reports/comprehensive', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const dateRange = (req.query.dateRange as string || 'month') as any;
+    const customFrom = req.query.customFrom as string | undefined;
+    const customTo = req.query.customTo as string | undefined;
+    const staffId = req.query.staffId as string | undefined;
+    const staffRole = req.query.staffRole as string | undefined;
+
+    console.log(`📥 GET /api/admin/reports/comprehensive - Query params:`, {
+      dateRange,
+      customFrom,
+      customTo,
+      staffId,
+      staffRole,
+    });
+
+    const report = await adminService.getComprehensiveReport(dateRange, customFrom, customTo, staffId, staffRole);
+    res.json(report);
+  } catch (error: any) {
+    console.error('❌ Comprehensive reports error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * Update staff - can edit name, username, email, phone, role, location, and password
  */
 router.put('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
@@ -407,14 +434,60 @@ router.delete('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req:
 });
 
 /**
+ * Debug: Check raw expenses data
+ */
+router.get('/expenses/debug/raw', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('🔍 DEBUG: Fetching raw expenses...');
+    
+    // Get raw expenses
+    const { data: expenses, error: expError } = await supabaseAdmin
+      .from('staff_expenses')
+      .select('*')
+      .limit(5);
+    
+    console.log(`Raw expenses:`, expenses);
+    if (expError) console.error('Error:', expError);
+    
+    // Get raw users
+    const { data: users, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, email, role')
+      .limit(5);
+    
+    console.log(`Raw users:`, users);
+    if (userError) console.error('Error:', userError);
+    
+    res.json({
+      expenses: expenses || [],
+      users: users || [],
+      errors: {
+        expenses: expError?.message,
+        users: userError?.message,
+      }
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * Get expenses
  */
 router.get('/expenses', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
+    console.log('📨 GET /api/admin/expenses request received');
     const staffId = req.query.staff_id as string | undefined;
     const expenses = await adminService.getStaffExpenses(staffId);
+    
+    console.log(`📤 Returning ${expenses.length} expenses`);
+    if (expenses.length > 0) {
+      console.log(`📤 First expense:`, JSON.stringify(expenses[0]).substring(0, 200));
+    }
+    
     res.json(expenses);
   } catch (error: any) {
+    console.error('❌ Error fetching expenses:', error);
     res.status(400).json({ error: error.message });
   }
 });

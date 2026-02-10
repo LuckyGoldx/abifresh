@@ -282,10 +282,146 @@ export class AdminService {
   }
 
   /**
-   * Get staff expenses
+   * Get staff expenses with enriched staff information
    */
   async getStaffExpenses(staffId?: string): Promise<any[]> {
-    return await expensesService.getAllExpenses(staffId);
+    try {
+      console.log(`\n🚀 === Starting getStaffExpenses, staffId filter: ${staffId || 'none'} ===`);
+      
+      // Try fetching with JOIN using Supabase
+      console.log('📝 Attempting to fetch expenses with staff JOIN...');
+      
+      let query = supabaseAdmin
+        .from('staff_expenses')
+        .select(`
+          id,
+          staff_id,
+          expense_category,
+          expense_amount,
+          description,
+          expense_date,
+          status,
+          created_at,
+          updated_at,
+          users:staff_id (
+            id,
+            full_name,
+            email,
+            role
+          )
+        `);
+
+      if (staffId) {
+        query = query.eq('staff_id', staffId);
+      }
+
+      const { data: joinedExpenses, error: joinError } = await query.order('expense_date', { ascending: false });
+
+      if (!joinError && joinedExpenses && joinedExpenses.length > 0) {
+        console.log(`✅ JOIN query successful! Got ${joinedExpenses.length} expenses`);
+        
+        // Map the joined data
+        const mappedExpenses = joinedExpenses.map((exp: any) => {
+          const user = exp.users;
+          console.log(`🔍 Expense staff info:`, { staff_id: exp.staff_id, user_name: user?.full_name });
+          
+          return {
+            id: exp.id,
+            staff_id: exp.staff_id,
+            expense_type: exp.expense_category,
+            amount: exp.expense_amount,
+            description: exp.description,
+            expense_date: exp.expense_date,
+            status: exp.status,
+            created_at: exp.created_at,
+            updated_at: exp.updated_at,
+            staff_name: user?.full_name || 'Unknown Staff',
+            staff_email: user?.email || 'N/A',
+            staff_role: user?.role || 'Unknown Role',
+            staff_phone: null,  // Phone field not available in users table
+          };
+        });
+        
+        console.log(`✅ Mapped ${mappedExpenses.length} expenses with staff info`);
+        if (mappedExpenses.length > 0) {
+          console.log(`📤 Sample: ${mappedExpenses[0].staff_name} - ${mappedExpenses[0].expense_type}`);
+        }
+        return mappedExpenses;
+      }
+
+      // Fallback to manual enrichment if JOIN fails
+      console.log(`⚠️ JOIN query failed or returned no data: ${joinError?.message || 'unknown error'}`);
+      console.log('📝 Falling back to manual enrichment method...');
+      
+      const expenses = await expensesService.getAllExpenses(staffId);
+      
+      console.log(`📊 Raw expenses count: ${expenses.length}`);
+      if (expenses.length > 0) {
+        console.log(`📊 First expense staff_id: ${expenses[0].staff_id}`);
+      }
+      
+      if (!expenses || expenses.length === 0) {
+        console.log('📭 No expenses found');
+        return [];
+      }
+
+      // Get unique staff IDs from expenses - filter out null/undefined
+      const staffIds = [...new Set(expenses.map(e => e.staff_id).filter(Boolean))];
+      console.log(`📥 Unique staff IDs to fetch: ${staffIds.length}`, staffIds);
+
+      if (staffIds.length === 0) {
+        console.warn('⚠️ No valid staff IDs found in expenses');
+        return expenses;
+      }
+
+      // Fetch staff information
+      const { data: staffMembers, error: staffError } = await supabaseAdmin
+        .from('users')
+        .select('id, full_name, email, role')
+        .in('id', staffIds);
+
+      if (staffError) {
+        console.error('❌ Error fetching staff info:', staffError);
+        return expenses;
+      }
+
+      console.log(`📥 Fetched ${(staffMembers || []).length} staff members from database`);
+      if ((staffMembers || []).length > 0) {
+        console.log(`📥 First staff member:`, staffMembers?.[0]);
+      }
+
+      // Create a map of staff by ID for quick lookup
+      const staffMap: Record<string, any> = {};
+      (staffMembers || []).forEach(staff => {
+        staffMap[staff.id] = staff;
+        console.log(`✅ Mapped staff ${staff.id} -> ${staff.full_name}`);
+      });
+
+      // Enrich expenses with staff information
+      const enrichedExpenses = expenses.map((expense: any) => {
+        const staff = staffMap[expense.staff_id];
+        if (!staff) {
+          console.log(`⚠️ No staff found for staff_id="${expense.staff_id}"`);
+        }
+        
+        return {
+          ...expense,
+          staff_name: staff?.full_name || 'Unknown Staff',
+          staff_email: staff?.email || 'N/A',
+          staff_role: staff?.role || 'Unknown Role',
+          staff_phone: null,  // Phone field not available in users table
+        };
+      });
+
+      console.log(`✅ Enriched ${enrichedExpenses.length} expenses with staff information\n`);
+      return enrichedExpenses;
+    } catch (error: any) {
+      console.error('❌ Error enriching expenses with staff info:', error.message);
+      console.error('❌ Stack:', error.stack);
+      // Fall back to basic expenses without staff enrichment
+      console.log('⚠️ Returning raw expenses due to error');
+      return await expensesService.getAllExpenses(staffId);
+    }
   }
 
   /**
@@ -383,6 +519,334 @@ export class AdminService {
       skipped,
       errors,
     };
+  }
+
+  /**
+   * Get comprehensive reports with all data aggregations
+   */
+  async getComprehensiveReport(
+    dateRange: 'today' | 'week' | 'month' | 'year' | 'custom',
+    customFrom?: string,
+    customTo?: string,
+    staffId?: string,
+    staffRole?: string
+  ): Promise<any> {
+    try {
+      console.log(`\n🚀 === Generating Comprehensive Report ===`);
+      console.log(`   Date Range: ${dateRange}, Staff ID: ${staffId}, Staff Role: ${staffRole}`);
+
+      // Calculate date range
+      const now = new Date();
+      let from = new Date();
+      let to = new Date();
+
+      switch (dateRange) {
+        case 'today':
+          from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+          break;
+        case 'week':
+          from = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          from = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'year':
+          from = new Date(now.getFullYear(), 0, 1);
+          break;
+        case 'custom':
+          if (customFrom) from = new Date(customFrom);
+          if (customTo) to = new Date(customTo);
+          break;
+      }
+
+      const fromISO = from.toISOString();
+      const toISO = to.toISOString();
+      console.log(`   Date filters: ${fromISO} to ${toISO}`);
+
+      // Fetch sales data
+      let salesQuery = supabaseAdmin
+        .from('sales')
+        .select('*, users:staff_id(id, full_name, email, role), items(id, name, category)')
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO);
+
+      if (staffId) salesQuery = salesQuery.eq('staff_id', staffId);
+
+      const { data: sales, error: salesError } = await salesQuery;
+      if (salesError) {
+        console.error('Sales fetch error:', salesError);
+        throw salesError;
+      }
+
+      console.log(`✅ Fetched ${sales?.length || 0} sales records`);
+
+      // Fetch expenses data
+      let expensesQuery = supabaseAdmin
+        .from('staff_expenses')
+        .select('*, users:staff_id(id, full_name, email, role)')
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO);
+
+      if (staffId) expensesQuery = expensesQuery.eq('staff_id', staffId);
+
+      const { data: expenses, error: expensesError } = await expensesQuery;
+      if (expensesError) {
+        console.error('Expenses fetch error:', expensesError);
+        throw expensesError;
+      }
+
+      console.log(`✅ Fetched ${expenses?.length || 0} expense records`);
+
+      // Fetch inventory data
+      const { data: mainStoreInventory, error: mainStoreError } = await supabaseAdmin
+        .from('inventory_main_store')
+        .select('*');
+
+      if (mainStoreError) console.error('Main store inventory error:', mainStoreError);
+
+      const { data: activeStoreInventory, error: activeStoreError } = await supabaseAdmin
+        .from('inventory_active_store')
+        .select('*');
+
+      if (activeStoreError) console.error('Active store inventory error:', activeStoreError);
+
+      console.log(`✅ Fetched ${mainStoreInventory?.length || 0} main store items and ${activeStoreInventory?.length || 0} active store items`);
+
+      // Calculate summaries
+      const salesArray = sales || [];
+      const expensesArray = expenses || [];
+      const mainStoreArray = mainStoreInventory || [];
+      const activeStoreArray = activeStoreInventory || [];
+
+      const totalRevenue = salesArray.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+      const totalExpenses = expensesArray.reduce((sum, e) => sum + (e.expense_amount || 0), 0);
+      const totalProfit = totalRevenue - totalExpenses;
+      const totalItemsSold = salesArray.reduce((sum, s) => sum + (s.quantity || 0), 0);
+      const avgTransaction = salesArray.length > 0 ? totalRevenue / salesArray.length : 0;
+
+      // Group sales by staff
+      const salesByStaff = new Map<string, any>();
+      salesArray.forEach((sale) => {
+        const staffName = sale.users?.full_name || `Staff ${sale.staff_id}`;
+        const key = sale.staff_id;
+        if (!salesByStaff.has(key)) {
+          salesByStaff.set(key, {
+            staff_id: sale.staff_id,
+            staff_name: staffName,
+            total_sales: 0,
+            total_amount: 0,
+            items_count: 0,
+          });
+        }
+        const current = salesByStaff.get(key);
+        current.total_sales += 1;
+        current.total_amount += sale.total_amount || 0;
+        current.items_count += sale.quantity || 0;
+      });
+
+      // Group sales by staff role
+      const salesByRole = new Map<string, any>();
+      salesArray.forEach((sale) => {
+        const role = sale.users?.role || 'unknown';
+        if (!salesByRole.has(role)) {
+          salesByRole.set(role, {
+            role: role,
+            total_sales: 0,
+            total_amount: 0,
+          });
+        }
+        const current = salesByRole.get(role);
+        current.total_sales += 1;
+        current.total_amount += sale.total_amount || 0;
+      });
+
+      // Group sales by day
+      const salesByDay = new Map<string, any>();
+      salesArray.forEach((sale) => {
+        const date = new Date(sale.created_at).toISOString().split('T')[0];
+        if (!salesByDay.has(date)) {
+          salesByDay.set(date, {
+            date: date,
+            total_sales: 0,
+            total_amount: 0,
+          });
+        }
+        const current = salesByDay.get(date);
+        current.total_sales += 1;
+        current.total_amount += sale.total_amount || 0;
+      });
+
+      // Group items sold
+      const itemsSold = new Map<string, any>();
+      salesArray.forEach((sale) => {
+        const itemName = sale.items?.name || `Item ${sale.item_id}`;
+        if (!itemsSold.has(sale.item_id)) {
+          itemsSold.set(sale.item_id, {
+            item_id: sale.item_id,
+            item_name: itemName,
+            quantity_sold: 0,
+            total_revenue: 0,
+          });
+        }
+        const current = itemsSold.get(sale.item_id);
+        current.quantity_sold += sale.quantity || 0;
+        current.total_revenue += sale.total_amount || 0;
+      });
+
+      // Calculate average price per item
+      itemsSold.forEach((item) => {
+        item.avg_price = item.quantity_sold > 0 ? item.total_revenue / item.quantity_sold : 0;
+      });
+
+      // Group expenses by staff
+      const expensesByStaff = new Map<string, any>();
+      expensesArray.forEach((expense) => {
+        const staffName = expense.users?.full_name || `Staff ${expense.staff_id}`;
+        if (!expensesByStaff.has(expense.staff_id)) {
+          expensesByStaff.set(expense.staff_id, {
+            staff_id: expense.staff_id,
+            staff_name: staffName,
+            total_amount: 0,
+            count: 0,
+          });
+        }
+        const current = expensesByStaff.get(expense.staff_id);
+        current.total_amount += expense.expense_amount || 0;
+        current.count += 1;
+      });
+
+      // Group expenses by type
+      const expensesByType = new Map<string, any>();
+      expensesArray.forEach((expense) => {
+        const type = expense.expense_category || 'other';
+        if (!expensesByType.has(type)) {
+          expensesByType.set(type, {
+            expense_type: type,
+            total_amount: 0,
+            count: 0,
+          });
+        }
+        const current = expensesByType.get(type);
+        current.total_amount += expense.expense_amount || 0;
+        current.count += 1;
+      });
+
+      // Group expenses by day
+      const expensesByDay = new Map<string, any>();
+      expensesArray.forEach((expense) => {
+        const date = new Date(expense.created_at).toISOString().split('T')[0];
+        if (!expensesByDay.has(date)) {
+          expensesByDay.set(date, {
+            date: date,
+            total_amount: 0,
+          });
+        }
+        const current = expensesByDay.get(date);
+        current.total_amount += expense.expense_amount || 0;
+      });
+
+      // Calculate inventory totals and find low stock
+      const mainStoreTotal = mainStoreArray.length;
+      const activeStoreTotal = activeStoreArray.length;
+      const lowStockItems = [
+        ...(mainStoreArray.filter((item: any) => (item.quantity || 0) <= (item.reorder_level || 10)) || []),
+        ...(activeStoreArray.filter((item: any) => (item.quantity || 0) <= (item.reorder_level || 10)) || []),
+      ];
+
+      // Top performers
+      const topStaff = Array.from(salesByStaff.values())
+        .sort((a, b) => b.total_amount - a.total_amount)
+        .slice(0, 5);
+
+      const topItems = Array.from(itemsSold.values())
+        .sort((a, b) => b.total_revenue - a.total_revenue)
+        .slice(0, 5);
+
+      // Staff performance details
+      const staffPerformanceMap = new Map<string, any>();
+
+      // Add sales data
+      Array.from(salesByStaff.values()).forEach((sale) => {
+        if (!staffPerformanceMap.has(sale.staff_id)) {
+          staffPerformanceMap.set(sale.staff_id, {
+            staff_id: sale.staff_id,
+            staff_name: sale.staff_name,
+            role: 'unknown',
+            total_transactions: 0,
+            total_revenue: 0,
+            total_expenses: 0,
+            profit_loss: 0,
+          });
+        }
+        const current = staffPerformanceMap.get(sale.staff_id);
+        current.total_transactions = sale.total_sales;
+        current.total_revenue = sale.total_amount;
+      });
+
+      // Add expense data and role info
+      expensesArray.forEach((expense) => {
+        if (!staffPerformanceMap.has(expense.staff_id)) {
+          staffPerformanceMap.set(expense.staff_id, {
+            staff_id: expense.staff_id,
+            staff_name: expense.users?.full_name || `Staff ${expense.staff_id}`,
+            role: expense.users?.role || 'unknown',
+            total_transactions: 0,
+            total_revenue: 0,
+            total_expenses: 0,
+            profit_loss: 0,
+          });
+        }
+        const current = staffPerformanceMap.get(expense.staff_id);
+        current.total_expenses += expense.expense_amount || 0;
+        current.role = expense.users?.role || current.role;
+      });
+
+      // Calculate profit/loss
+      staffPerformanceMap.forEach((staff) => {
+        staff.profit_loss = staff.total_revenue - staff.total_expenses;
+      });
+
+      console.log(`✅ Report generation complete`);
+
+      return {
+        summary: {
+          total_sales: salesArray.length,
+          total_revenue: totalRevenue,
+          total_expenses: totalExpenses,
+          total_profit: totalProfit,
+          total_items_sold: totalItemsSold,
+          avg_transaction: avgTransaction,
+        },
+        sales: {
+          by_staff: Array.from(salesByStaff.values()),
+          by_staff_role: Array.from(salesByRole.values()),
+          by_day: Array.from(salesByDay.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+          items_list: Array.from(itemsSold.values()).sort((a, b) => b.total_revenue - a.total_revenue),
+        },
+        expenses: {
+          total: totalExpenses,
+          by_staff: Array.from(expensesByStaff.values()),
+          by_type: Array.from(expensesByType.values()),
+          by_day: Array.from(expensesByDay.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+        },
+        inventory: {
+          main_store_total: mainStoreTotal,
+          main_store_items: mainStoreArray,
+          active_store_total: activeStoreTotal,
+          active_store_items: activeStoreArray,
+          low_stock_items: lowStockItems,
+        },
+        performance: {
+          top_staff: topStaff,
+          top_items: topItems,
+          staff_details: Array.from(staffPerformanceMap.values()),
+        },
+      };
+    } catch (error: any) {
+      console.error('❌ Error generating comprehensive report:', error);
+      throw error;
+    }
   }
 }
 
