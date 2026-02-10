@@ -43,9 +43,16 @@ interface ComprehensiveReport {
   };
   inventory: {
     main_store_total: number;
+    main_store_total_quantity: number;
     main_store_items: Array<any>;
     active_store_total: number;
+    active_store_total_quantity: number;
     active_store_items: Array<any>;
+    staff_store_total: number;
+    staff_store_total_quantity: number;
+    staff_store_items: Array<any>;
+    low_stock_total: number;
+    low_stock_total_quantity: number;
     low_stock_items: Array<any>;
   };
   performance: {
@@ -457,21 +464,26 @@ export default function ComprehensiveReportsPage() {
   const renderInventoryTab = () => (
     <div className="space-y-6">
       {/* Inventory Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card border-l-4 border-l-blue-500">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Main Store Items</p>
           <p className="text-3xl font-bold text-blue-600">{report?.inventory.main_store_total || 0}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Different SKUs</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Total Qty: {report?.inventory.main_store_total_quantity || 0} units</p>
         </div>
         <div className="card border-l-4 border-l-green-500">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Active Store Items</p>
           <p className="text-3xl font-bold text-green-600">{report?.inventory.active_store_total || 0}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Different SKUs</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Total Qty: {report?.inventory.active_store_total_quantity || 0} units</p>
+        </div>
+        <div className="card border-l-4 border-l-purple-500">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Staff Store Items</p>
+          <p className="text-3xl font-bold text-purple-600">{report?.inventory.staff_store_total || 0}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Total Qty: {report?.inventory.staff_store_total_quantity || 0} units</p>
         </div>
         <div className="card border-l-4 border-l-orange-500">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Low Stock Items</p>
-          <p className="text-3xl font-bold text-orange-600">{report?.inventory.low_stock_items?.length || 0}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Items to reorder</p>
+          <p className="text-3xl font-bold text-orange-600">{report?.inventory.low_stock_total || 0}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Total Qty: {report?.inventory.low_stock_total_quantity || 0} units</p>
         </div>
       </div>
 
@@ -526,6 +538,38 @@ export default function ComprehensiveReportsPage() {
                 <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="px-4 py-3 font-medium">{item.item_name}</td>
                   <td className="px-4 py-3">{item.quantity}</td>
+                  <td className="px-4 py-3">₦{(item.unit_price || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-green-600 font-semibold">₦{((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Staff Store Inventory */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+          <Warehouse className="w-5 h-5 text-purple-500" />
+          Staff Store Inventory
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold">Item Name</th>
+                <th className="px-4 py-3 text-left font-semibold">Quantity</th>
+                <th className="px-4 py-3 text-left font-semibold">Available</th>
+                <th className="px-4 py-3 text-left font-semibold">Unit Price</th>
+                <th className="px-4 py-3 text-left font-semibold">Total Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(report?.inventory.staff_store_items || []).slice(0, 15).map((item, idx) => (
+                <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <td className="px-4 py-3 font-medium">{item.item_name}</td>
+                  <td className="px-4 py-3">{item.quantity}</td>
+                  <td className="px-4 py-3">{item.quantity_available || item.quantity}</td>
                   <td className="px-4 py-3">₦{(item.unit_price || 0).toLocaleString()}</td>
                   <td className="px-4 py-3 text-green-600 font-semibold">₦{((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()}</td>
                 </tr>

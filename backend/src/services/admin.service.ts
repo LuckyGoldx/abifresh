@@ -656,26 +656,64 @@ export class AdminService {
 
       console.log(`✅ Fetched ${expenses?.length || 0} expense records`);
 
-      // Fetch inventory data
-      const { data: mainStoreInventory, error: mainStoreError } = await supabaseAdmin
+      // Fetch inventory data with item details
+      const { data: mainStoreRaw, error: mainStoreError } = await supabaseAdmin
         .from('inventory_main_store')
-        .select('*');
+        .select('*, items(id, name, unit_price)');
 
       if (mainStoreError) console.error('Main store inventory error:', mainStoreError);
 
-      const { data: activeStoreInventory, error: activeStoreError } = await supabaseAdmin
+      const { data: activeStoreRaw, error: activeStoreError } = await supabaseAdmin
         .from('inventory_active_store')
-        .select('*');
+        .select('*, items(id, name, unit_price)');
 
       if (activeStoreError) console.error('Active store inventory error:', activeStoreError);
 
-      console.log(`✅ Fetched ${mainStoreInventory?.length || 0} main store items and ${activeStoreInventory?.length || 0} active store items`);
+      const { data: staffStoreRaw, error: staffStoreError } = await supabaseAdmin
+        .from('staff_store')
+        .select('*, items(id, name, unit_price)');
+
+      if (staffStoreError) console.error('Staff store inventory error:', staffStoreError);
+
+      console.log(`✅ Fetched ${mainStoreRaw?.length || 0} main store items, ${activeStoreRaw?.length || 0} active store items, and ${staffStoreRaw?.length || 0} staff store items`);
+
+      // Enrich inventory data with friendly field names
+      const mainStoreArray = (mainStoreRaw || []).map((inv: any) => ({
+        id: inv.id,
+        item_id: inv.item_id,
+        item_name: inv.items?.name || `Item ${inv.item_id}`,
+        quantity: inv.quantity_in_stock || 0,
+        unit_price: inv.items?.unit_price || 0,
+        reorder_level: inv.reorder_level || 10,
+        last_restocked: inv.last_restocked,
+        notes: inv.notes,
+      }));
+
+      const activeStoreArray = (activeStoreRaw || []).map((inv: any) => ({
+        id: inv.id,
+        item_id: inv.item_id,
+        item_name: inv.items?.name || `Item ${inv.item_id}`,
+        quantity: inv.quantity_available || 0,
+        quantity_sold: inv.quantity_sold || 0,
+        unit_price: inv.items?.unit_price || 0,
+        last_updated: inv.last_updated,
+      }));
+
+      const staffStoreArray = (staffStoreRaw || []).map((inv: any) => ({
+        id: inv.id,
+        staff_id: inv.staff_id,
+        item_id: inv.item_id,
+        item_name: inv.items?.name || `Item ${inv.item_id}`,
+        quantity: inv.quantity || 0,
+        quantity_available: inv.quantity_available || 0,
+        quantity_sold: inv.quantity_sold || 0,
+        unit_price: inv.items?.unit_price || 0,
+        posted_date: inv.posted_date,
+      }));
 
       // Calculate summaries
       const salesArray = receipts || [];
       const expensesArray = expenses || [];
-      const mainStoreArray = mainStoreInventory || [];
-      const activeStoreArray = activeStoreInventory || [];
 
       const totalRevenue = salesArray.reduce((sum, s) => sum + (s.total_amount || 0), 0);
       const totalExpenses = expensesArray.reduce((sum, e) => sum + (e.expense_amount || 0), 0);
@@ -816,11 +854,21 @@ export class AdminService {
 
       // Calculate inventory totals and find low stock
       const mainStoreTotal = mainStoreArray.length;
+      const mainStoreTotalQuantity = mainStoreArray.reduce((sum, item: any) => sum + (item.quantity || 0), 0);
+      
       const activeStoreTotal = activeStoreArray.length;
+      const activeStoreTotalQuantity = activeStoreArray.reduce((sum, item: any) => sum + (item.quantity || 0), 0);
+      
+      const staffStoreTotal = staffStoreArray.length;
+      const staffStoreTotalQuantity = staffStoreArray.reduce((sum, item: any) => sum + (item.quantity || 0), 0);
+      
       const lowStockItems = [
         ...(mainStoreArray.filter((item: any) => (item.quantity || 0) <= (item.reorder_level || 10)) || []),
-        ...(activeStoreArray.filter((item: any) => (item.quantity || 0) <= (item.reorder_level || 10)) || []),
+        ...(activeStoreArray.filter((item: any) => (item.quantity || 0) <= 10) || []),
+        ...(staffStoreArray.filter((item: any) => (item.quantity || 0) <= 5) || []),
       ];
+      const lowStockTotal = lowStockItems.length;
+      const lowStockTotalQuantity = lowStockItems.reduce((sum, item: any) => sum + (item.quantity || 0), 0);
 
       // Top performers
       const topStaff = Array.from(salesByStaff.values())
@@ -900,9 +948,16 @@ export class AdminService {
         },
         inventory: {
           main_store_total: mainStoreTotal,
+          main_store_total_quantity: mainStoreTotalQuantity,
           main_store_items: mainStoreArray,
           active_store_total: activeStoreTotal,
+          active_store_total_quantity: activeStoreTotalQuantity,
           active_store_items: activeStoreArray,
+          staff_store_total: staffStoreTotal,
+          staff_store_total_quantity: staffStoreTotalQuantity,
+          staff_store_items: staffStoreArray,
+          low_stock_total: lowStockTotal,
+          low_stock_total_quantity: lowStockTotalQuantity,
           low_stock_items: lowStockItems,
         },
         performance: {
