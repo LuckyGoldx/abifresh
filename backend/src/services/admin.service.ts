@@ -564,29 +564,42 @@ export class AdminService {
       const toISO = to.toISOString();
       console.log(`   Date filters: ${fromISO} to ${toISO}`);
 
-      // Fetch sales data
-      let salesQuery = supabaseAdmin
-        .from('sales')
-        .select('*, users:staff_id(id, full_name, email, role), items(id, name, category)')
+      // Fetch receipts data (actual sales records)
+      let receiptsQuery = supabaseAdmin
+        .from('receipts')
+        .select('*, users!staff_id(id, full_name, email, role)')
         .gte('created_at', fromISO)
         .lte('created_at', toISO);
 
-      if (staffId) salesQuery = salesQuery.eq('staff_id', staffId);
+      if (staffId) receiptsQuery = receiptsQuery.eq('staff_id', staffId);
 
-      const { data: sales, error: salesError } = await salesQuery;
-      if (salesError) {
-        console.error('Sales fetch error:', salesError);
-        throw salesError;
+      const { data: receipts, error: receiptsError } = await receiptsQuery;
+      if (receiptsError) {
+        console.error('Receipts fetch error:', receiptsError);
+        throw receiptsError;
       }
 
-      console.log(`✅ Fetched ${sales?.length || 0} sales records`);
+      console.log(`✅ Fetched ${receipts?.length || 0} receipts records`);
+
+      // Fetch receipt items to get item details
+      const { data: receiptItems, error: itemsError } = await supabaseAdmin
+        .from('receipt_items')
+        .select('*, items(id, name, category)')
+        .in('receipt_id', (receipts || []).map(r => r.id));
+
+      if (itemsError) {
+        console.error('Receipt items fetch error:', itemsError);
+        throw itemsError;
+      }
+
+      console.log(`✅ Fetched ${receiptItems?.length || 0} receipt item records`);
 
       // Fetch expenses data
       let expensesQuery = supabaseAdmin
         .from('staff_expenses')
         .select('*, users:staff_id(id, full_name, email, role)')
-        .gte('created_at', fromISO)
-        .lte('created_at', toISO);
+        .gte('expense_date', from.toISOString().split('T')[0])
+        .lte('expense_date', to.toISOString().split('T')[0]);
 
       if (staffId) expensesQuery = expensesQuery.eq('staff_id', staffId);
 
@@ -614,7 +627,7 @@ export class AdminService {
       console.log(`✅ Fetched ${mainStoreInventory?.length || 0} main store items and ${activeStoreInventory?.length || 0} active store items`);
 
       // Calculate summaries
-      const salesArray = sales || [];
+      const salesArray = receipts || [];
       const expensesArray = expenses || [];
       const mainStoreArray = mainStoreInventory || [];
       const activeStoreArray = activeStoreInventory || [];
@@ -622,17 +635,26 @@ export class AdminService {
       const totalRevenue = salesArray.reduce((sum, s) => sum + (s.total_amount || 0), 0);
       const totalExpenses = expensesArray.reduce((sum, e) => sum + (e.expense_amount || 0), 0);
       const totalProfit = totalRevenue - totalExpenses;
-      const totalItemsSold = salesArray.reduce((sum, s) => sum + (s.quantity || 0), 0);
+      const totalItemsSold = (receiptItems || []).reduce((sum, ri) => sum + (ri.quantity || 0), 0);
       const avgTransaction = salesArray.length > 0 ? totalRevenue / salesArray.length : 0;
+
+      // Create mapping of receipt items by receipt_id for easier lookup
+      const itemsByReceiptId = new Map<string, any[]>();
+      (receiptItems || []).forEach((item) => {
+        if (!itemsByReceiptId.has(item.receipt_id)) {
+          itemsByReceiptId.set(item.receipt_id, []);
+        }
+        itemsByReceiptId.get(item.receipt_id)!.push(item);
+      });
 
       // Group sales by staff
       const salesByStaff = new Map<string, any>();
-      salesArray.forEach((sale) => {
-        const staffName = sale.users?.full_name || `Staff ${sale.staff_id}`;
-        const key = sale.staff_id;
+      salesArray.forEach((receipt) => {
+        const staffName = receipt.users?.full_name || `Staff ${receipt.staff_id}`;
+        const key = receipt.staff_id;
         if (!salesByStaff.has(key)) {
           salesByStaff.set(key, {
-            staff_id: sale.staff_id,
+            staff_id: receipt.staff_id,
             staff_name: staffName,
             total_sales: 0,
             total_amount: 0,
@@ -641,14 +663,15 @@ export class AdminService {
         }
         const current = salesByStaff.get(key);
         current.total_sales += 1;
-        current.total_amount += sale.total_amount || 0;
-        current.items_count += sale.quantity || 0;
+        current.total_amount += receipt.total_amount || 0;
+        const receiptItemsForThisReceipt = itemsByReceiptId.get(receipt.id) || [];
+        current.items_count += receiptItemsForThisReceipt.reduce((sum, item) => sum + (item.quantity || 0), 0);
       });
 
       // Group sales by staff role
       const salesByRole = new Map<string, any>();
-      salesArray.forEach((sale) => {
-        const role = sale.users?.role || 'unknown';
+      salesArray.forEach((receipt) => {
+        const role = receipt.users?.role || 'unknown';
         if (!salesByRole.has(role)) {
           salesByRole.set(role, {
             role: role,
@@ -658,13 +681,13 @@ export class AdminService {
         }
         const current = salesByRole.get(role);
         current.total_sales += 1;
-        current.total_amount += sale.total_amount || 0;
+        current.total_amount += receipt.total_amount || 0;
       });
 
       // Group sales by day
       const salesByDay = new Map<string, any>();
-      salesArray.forEach((sale) => {
-        const date = new Date(sale.created_at).toISOString().split('T')[0];
+      salesArray.forEach((receipt) => {
+        const date = new Date(receipt.created_at).toISOString().split('T')[0];
         if (!salesByDay.has(date)) {
           salesByDay.set(date, {
             date: date,
@@ -674,24 +697,24 @@ export class AdminService {
         }
         const current = salesByDay.get(date);
         current.total_sales += 1;
-        current.total_amount += sale.total_amount || 0;
+        current.total_amount += receipt.total_amount || 0;
       });
 
       // Group items sold
       const itemsSold = new Map<string, any>();
-      salesArray.forEach((sale) => {
-        const itemName = sale.items?.name || `Item ${sale.item_id}`;
-        if (!itemsSold.has(sale.item_id)) {
-          itemsSold.set(sale.item_id, {
-            item_id: sale.item_id,
+      (receiptItems || []).forEach((receiptItem) => {
+        const itemName = receiptItem.items?.name || `Item ${receiptItem.item_id}`;
+        if (!itemsSold.has(receiptItem.item_id)) {
+          itemsSold.set(receiptItem.item_id, {
+            item_id: receiptItem.item_id,
             item_name: itemName,
             quantity_sold: 0,
             total_revenue: 0,
           });
         }
-        const current = itemsSold.get(sale.item_id);
-        current.quantity_sold += sale.quantity || 0;
-        current.total_revenue += sale.total_amount || 0;
+        const current = itemsSold.get(receiptItem.item_id);
+        current.quantity_sold += receiptItem.quantity || 0;
+        current.total_revenue += receiptItem.total_price || 0;
       });
 
       // Calculate average price per item

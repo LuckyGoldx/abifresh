@@ -14,6 +14,7 @@ import adminRoutes from './routes/admin.routes';
 import staffRoutes from './routes/staff.routes';
 import receiptsRoutes from './routes/receipts.routes';
 import notificationsRoutes from './routes/notifications.routes';
+import testRoutes from './routes/test.routes';
 import { supabaseAdmin } from './config/supabase';
 
 // Initialize Express app
@@ -86,6 +87,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/receipts', receiptsRoutes);
+app.use('/api/test', testRoutes);
 app.use('/api', notificationsRoutes);
 
 // 404 Handler

@@ -5,6 +5,78 @@ import { authMiddleware, AuthRequest } from '../middleware/auth';
 const router = express.Router();
 
 /**
+ * GET /api/receipts/test-db
+ * Debug endpoint to check database content (PUBLIC - no auth required)
+ * MUST BE BEFORE OTHER GET ROUTES
+ */
+router.get('/test-db', async (req: Request, res: Response) => {
+  try {
+    const { supabaseAdmin } = require('../config/supabase');
+    
+    console.log('\n🔍 === Testing Database Connection ===\n');
+
+    // Test receipts
+    const { data: receipts, error: receiptsError } = await supabaseAdmin
+      .from('receipts')
+      .select('*')
+      .limit(5);
+    
+    console.log(`Receipts: ${receiptsError ? 'ERROR: ' + receiptsError.message : 'OK - ' + (receipts?.length || 0) + ' records'}`);
+
+    // Test receipt_items
+    const { data: items, error: itemsError } = await supabaseAdmin
+      .from('receipt_items')
+      .select('*')
+      .limit(5);
+    
+    console.log(`Receipt Items: ${itemsError ? 'ERROR: ' + itemsError.message : 'OK - ' + (items?.length || 0) + ' records'}`);
+
+    // Test staff_expenses
+    const { data: expenses, error: expensesError } = await supabaseAdmin
+      .from('staff_expenses')
+      .select('*')
+      .limit(5);
+    
+    console.log(`Staff Expenses: ${expensesError ? 'ERROR: ' + expensesError.message : 'OK - ' + (expenses?.length || 0) + ' records'}`);
+
+    // Test users
+    const { data: users, error: usersError } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .limit(5);
+    
+    console.log(`Users: ${usersError ? 'ERROR: ' + usersError.message : 'OK - ' + (users?.length || 0) + ' records'}`);
+
+    // Test items
+    const { data: allItems, error: allItemsError } = await supabaseAdmin
+      .from('items')
+      .select('*')
+      .limit(5);
+    
+    console.log(`Items: ${allItemsError ? 'ERROR: ' + allItemsError.message : 'OK - ' + (allItems?.length || 0) + ' records'}`);
+
+    res.json({
+      status: 'Database test complete',
+      summary: {
+        receipts: receiptsError ? 'ERROR' : (receipts?.length || 0),
+        receipt_items: itemsError ? 'ERROR' : (items?.length || 0),
+        staff_expenses: expensesError ? 'ERROR' : (expenses?.length || 0),
+        users: usersError ? 'ERROR' : (users?.length || 0),
+        items: allItemsError ? 'ERROR' : (allItems?.length || 0),
+      },
+      raw_data: {
+        receipts: receipts?.slice(0, 2),
+        receipt_items: items?.slice(0, 2),
+        staff_expenses: expenses?.slice(0, 2),
+      },
+    });
+  } catch (error: any) {
+    console.error('❌ Test error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * POST /api/receipts/create
  * Create a new receipt
  */
