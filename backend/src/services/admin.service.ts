@@ -567,19 +567,40 @@ export class AdminService {
       // Fetch receipts data (actual sales records)
       let receiptsQuery = supabaseAdmin
         .from('receipts')
-        .select('*, users!staff_id(id, full_name, email, role)')
+        .select('*')
         .gte('created_at', fromISO)
         .lte('created_at', toISO);
 
       if (staffId) receiptsQuery = receiptsQuery.eq('staff_id', staffId);
 
-      const { data: receipts, error: receiptsError } = await receiptsQuery;
+      const { data: receiptsRaw, error: receiptsError } = await receiptsQuery;
       if (receiptsError) {
         console.error('Receipts fetch error:', receiptsError);
         throw receiptsError;
       }
 
-      console.log(`✅ Fetched ${receipts?.length || 0} receipts records`);
+      console.log(`✅ Fetched ${receiptsRaw?.length || 0} receipts records`);
+
+      // Enrich receipts with user data
+      const receiptStaffIds = new Set((receiptsRaw || []).map(r => r.staff_id));
+      let receiptUsersMap = new Map<string, any>();
+      
+      if (receiptStaffIds.size > 0) {
+        const { data: receiptStaffData } = await supabaseAdmin
+          .from('users')
+          .select('id, full_name, email, role')
+          .in('id', Array.from(receiptStaffIds));
+        
+        if (receiptStaffData) {
+          receiptStaffData.forEach(u => receiptUsersMap.set(u.id, u));
+        }
+      }
+
+      // Merge user data into receipts
+      const receipts = (receiptsRaw || []).map(r => ({
+        ...r,
+        users: receiptUsersMap.get(r.staff_id) || { full_name: null, email: null, role: null }
+      }));
 
       // Fetch receipt items to get item details
       const { data: receiptItems, error: itemsError } = await supabaseAdmin
@@ -595,19 +616,43 @@ export class AdminService {
       console.log(`✅ Fetched ${receiptItems?.length || 0} receipt item records`);
 
       // Fetch expenses data
+      // Get expenses without join first, then enrich with user data
       let expensesQuery = supabaseAdmin
         .from('staff_expenses')
-        .select('*, users:staff_id(id, full_name, email, role)')
+        .select('*')
         .gte('expense_date', from.toISOString().split('T')[0])
         .lte('expense_date', to.toISOString().split('T')[0]);
 
       if (staffId) expensesQuery = expensesQuery.eq('staff_id', staffId);
 
-      const { data: expenses, error: expensesError } = await expensesQuery;
+      const { data: expensesRaw, error: expensesError } = await expensesQuery;
       if (expensesError) {
         console.error('Expenses fetch error:', expensesError);
         throw expensesError;
       }
+
+      console.log(`✅ Fetched ${expensesRaw?.length || 0} expense records`);
+
+      // Enrich expenses with user data
+      const staffIds = new Set((expensesRaw || []).map(e => e.staff_id));
+      let usersData = new Map<string, any>();
+      
+      if (staffIds.size > 0) {
+        const { data: staffData, error: staffError } = await supabaseAdmin
+          .from('users')
+          .select('id, full_name, email, role')
+          .in('id', Array.from(staffIds));
+        
+        if (!staffError && staffData) {
+          staffData.forEach(u => usersData.set(u.id, u));
+        }
+      }
+
+      // Merge user data into expenses
+      const expenses = (expensesRaw || []).map(e => ({
+        ...e,
+        users: usersData.get(e.staff_id) || { full_name: null, email: null, role: null }
+      }));
 
       console.log(`✅ Fetched ${expenses?.length || 0} expense records`);
 
