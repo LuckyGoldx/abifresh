@@ -492,6 +492,25 @@ export default function ComprehensiveReportsPage() {
 
   const renderInventoryTab = () => (
     <div className="space-y-6">
+      {/* Data Quality Alert */}
+      {(report?.inventory.main_store_items || []).some((item: any) => item.item_name?.includes('Item')) && (
+        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 rounded-lg p-4">
+          <h3 className="text-red-800 dark:text-red-200 font-bold mb-2 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            ⚠️ Data Issue: Item Names Not Matching
+          </h3>
+          <p className="text-red-700 dark:text-red-300 text-sm mb-3">
+            Item names are showing as IDs instead of actual names. This means the inventory database has invalid item IDs.
+          </p>
+          <p className="text-red-700 dark:text-red-300 text-sm font-mono bg-red-100 dark:bg-red-800 p-2 rounded mb-3">
+            <strong>Quick Fix:</strong> Run the FIX_INVENTORY_DATA.sql script in Supabase SQL Editor. Check your desktop for FIX_INVENTORY_DATA.sql file.
+          </p>
+          <p className="text-red-600 dark:text-red-300 text-xs">
+            This script will rebuild inventory tables with valid item IDs and show correct names and prices.
+          </p>
+        </div>
+      )}
+
       {/* Inventory Summary KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <div className="card border-l-4 border-l-indigo-500">
@@ -583,11 +602,28 @@ export default function ComprehensiveReportsPage() {
             </thead>
             <tbody>
               {(report?.inventory.main_store_items || []).slice(0, 15).map((item, idx) => (
-                <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                  <td className="px-4 py-3 font-medium">{item.item_name}</td>
+                <tr key={idx} className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 ${item.unit_price === 0 ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
+                  <td className="px-4 py-3 font-medium">
+                    {item.item_name}
+                    {item.unit_price === 0 && (
+                      <span className="text-xs text-red-600 dark:text-red-400 ml-2 font-normal">(⚠️ Invalid Item ID)</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{item.quantity}</td>
-                  <td className="px-4 py-3">₦{(item.unit_price || 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-green-600 font-semibold">₦{((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    {item.unit_price === 0 ? (
+                      <span className="text-red-600 dark:text-red-400 font-semibold">₦0 (Invalid)</span>
+                    ) : (
+                      `₦${(item.unit_price || 0).toLocaleString()}`
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-green-600 font-semibold">
+                    {item.unit_price === 0 ? (
+                      <span className="text-red-600 dark:text-red-400">₦0 (Invalid)</span>
+                    ) : (
+                      `₦${((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()}`
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -615,11 +651,28 @@ export default function ComprehensiveReportsPage() {
             </thead>
             <tbody>
               {(report?.inventory.active_store_items || []).slice(0, 15).map((item, idx) => (
-                <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
-                  <td className="px-4 py-3 font-medium">{item.item_name}</td>
+                <tr key={idx} className={`border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 ${item.unit_price === 0 ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
+                  <td className="px-4 py-3 font-medium">
+                    {item.item_name}
+                    {item.unit_price === 0 && (
+                      <span className="text-xs text-red-600 dark:text-red-400 ml-2 font-normal">(⚠️ Invalid Item ID)</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">{item.quantity}</td>
-                  <td className="px-4 py-3">₦{(item.unit_price || 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-green-600 font-semibold">₦{((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    {item.unit_price === 0 ? (
+                      <span className="text-red-600 dark:text-red-400 font-semibold">₦0 (Invalid)</span>
+                    ) : (
+                      `₦${(item.unit_price || 0).toLocaleString()}`
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-green-600 font-semibold">
+                    {item.unit_price === 0 ? (
+                      <span className="text-red-600 dark:text-red-400">₦0 (Invalid)</span>
+                    ) : (
+                      `₦${((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()}`
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -691,8 +744,13 @@ export default function ComprehensiveReportsPage() {
               </thead>
               <tbody>
                 {getFilteredLowStockItems().map((item, idx) => (
-                  <tr key={idx} className="border-b dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20">
-                    <td className="px-4 py-3 font-medium">{item.item_name || `Item ${item.item_id}`}</td>
+                  <tr key={idx} className={`border-b dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20 ${item.unit_price === 0 ? 'bg-red-50 dark:bg-red-900/10' : ''}`}>
+                    <td className="px-4 py-3 font-medium">
+                      {item.item_name || `Item ${item.item_id}`}
+                      {item.unit_price === 0 && (
+                        <span className="text-xs text-red-600 dark:text-red-400 ml-2 font-normal">(⚠️ Invalid)</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="font-bold text-lg">{item.total_quantity}</span>
                     </td>
