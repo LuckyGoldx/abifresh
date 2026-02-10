@@ -75,6 +75,7 @@ export default function ComprehensiveReportsPage() {
   const [staff, setStaff] = useState<any[]>([]);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedStaffDetail, setSelectedStaffDetail] = useState<any>(null);
+  const [selectedStore, setSelectedStore] = useState<'all' | 'main' | 'active' | 'staff'>('all');
 
   useEffect(() => {
     fetchAllStaff();
@@ -116,6 +117,34 @@ export default function ComprehensiveReportsPage() {
 
   const handleExportPDF = () => {
     alert('PDF export feature coming soon!');
+  };
+
+  const getFilteredLowStockItems = () => {
+    const items = report?.inventory.low_stock_items || [];
+    
+    if (selectedStore === 'all') {
+      return items;
+    }
+
+    const storeNames: { [key: string]: string } = {
+      main: 'Main Store',
+      active: 'Active Store',
+      staff: 'Staff Store',
+    };
+
+    const selectedStoreName = storeNames[selectedStore] || '';
+
+    // Filter items to only show those that have stock in the selected store
+    return items
+      .filter((item: any) => {
+        const storeEntry = item.stores?.find((store: any) => store.store === selectedStoreName);
+        return storeEntry && storeEntry.quantity > 0;
+      })
+      .map((item: any) => ({
+        ...item,
+        // Filter stores array to only show the selected store
+        stores: item.stores?.filter((store: any) => store.store === selectedStoreName),
+      }));
   };
 
   const renderFilterSection = () => (
@@ -210,7 +239,7 @@ export default function ComprehensiveReportsPage() {
   );
 
   const renderSummaryCards = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div className="card border-l-4 border-l-green-500">
         <div className="flex items-center justify-between">
           <div>
@@ -389,7 +418,7 @@ export default function ComprehensiveReportsPage() {
   const renderExpensesTab = () => (
     <div className="space-y-6">
       {/* Expenses Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card border-l-4 border-l-red-500">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Total Expenses</p>
           <p className="text-3xl font-bold text-red-600">₦{(report?.summary.total_expenses || 0).toLocaleString()}</p>
@@ -463,31 +492,80 @@ export default function ComprehensiveReportsPage() {
 
   const renderInventoryTab = () => (
     <div className="space-y-6">
-      {/* Inventory Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Inventory Summary KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div className="card border-l-4 border-l-indigo-500">
+          <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Total Items</p>
+          <p className="text-2xl md:text-3xl font-bold text-indigo-600">
+            {((report?.inventory.main_store_total || 0) + (report?.inventory.active_store_total || 0) + (report?.inventory.staff_store_total || 0))}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">
+            Quantity: {((report?.inventory.main_store_total_quantity || 0) + (report?.inventory.active_store_total_quantity || 0) + (report?.inventory.staff_store_total_quantity || 0))}
+          </p>
+        </div>
         <div className="card border-l-4 border-l-blue-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Main Store Items</p>
-          <p className="text-3xl font-bold text-blue-600">{report?.inventory.main_store_total || 0}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Total Qty: {report?.inventory.main_store_total_quantity || 0} units</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Main Store</p>
+          <p className="text-2xl md:text-3xl font-bold text-blue-600">{report?.inventory.main_store_total || 0}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.main_store_total_quantity || 0}</p>
         </div>
         <div className="card border-l-4 border-l-green-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Active Store Items</p>
-          <p className="text-3xl font-bold text-green-600">{report?.inventory.active_store_total || 0}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Total Qty: {report?.inventory.active_store_total_quantity || 0} units</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Active Store</p>
+          <p className="text-2xl md:text-3xl font-bold text-green-600">{report?.inventory.active_store_total || 0}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.active_store_total_quantity || 0}</p>
         </div>
         <div className="card border-l-4 border-l-purple-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Staff Store Items</p>
-          <p className="text-3xl font-bold text-purple-600">{report?.inventory.staff_store_total || 0}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Total Qty: {report?.inventory.staff_store_total_quantity || 0} units</p>
-        </div>
-        <div className="card border-l-4 border-l-orange-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Low Stock Items</p>
-          <p className="text-3xl font-bold text-orange-600">{report?.inventory.low_stock_total || 0}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Total Qty: {report?.inventory.low_stock_total_quantity || 0} units</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Staff Store</p>
+          <p className="text-2xl md:text-3xl font-bold text-purple-600">{report?.inventory.staff_store_total || 0}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.staff_store_total_quantity || 0}</p>
         </div>
       </div>
 
+      {/* Store Filter Buttons */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => setSelectedStore('all')}
+          className={`px-4 py-2 rounded-lg font-medium transition ${
+            selectedStore === 'all'
+              ? 'bg-blue-500 text-white shadow-lg'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+          }`}
+        >
+          All Stores
+        </button>
+        <button
+          onClick={() => setSelectedStore('main')}
+          className={`px-4 py-2 rounded-lg font-medium transition ${
+            selectedStore === 'main'
+              ? 'bg-blue-500 text-white shadow-lg'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+          }`}
+        >
+          Main Store
+        </button>
+        <button
+          onClick={() => setSelectedStore('active')}
+          className={`px-4 py-2 rounded-lg font-medium transition ${
+            selectedStore === 'active'
+              ? 'bg-blue-500 text-white shadow-lg'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+          }`}
+        >
+          Active Store
+        </button>
+        <button
+          onClick={() => setSelectedStore('staff')}
+          className={`px-4 py-2 rounded-lg font-medium transition ${
+            selectedStore === 'staff'
+              ? 'bg-blue-500 text-white shadow-lg'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+          }`}
+        >
+          Staff Store
+        </button>
+      </div>
+
       {/* Main Store Inventory */}
+      {(selectedStore === 'all' || selectedStore === 'main') && (
       <div className="card">
         <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
           <Warehouse className="w-5 h-5 text-blue-500" />
@@ -516,8 +594,10 @@ export default function ComprehensiveReportsPage() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Active Store Inventory */}
+      {(selectedStore === 'all' || selectedStore === 'active') && (
       <div className="card">
         <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
           <Warehouse className="w-5 h-5 text-green-500" />
@@ -546,8 +626,10 @@ export default function ComprehensiveReportsPage() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Staff Store Inventory */}
+      {(selectedStore === 'all' || selectedStore === 'staff') && (
       <div className="card">
         <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
           <Warehouse className="w-5 h-5 text-purple-500" />
@@ -578,34 +660,57 @@ export default function ComprehensiveReportsPage() {
           </table>
         </div>
       </div>
+      )}
 
-      {/* Low Stock Items */}
-      {(report?.inventory.low_stock_items || []).length > 0 && (
+      {/* Low Stock Items - Action Required */}
+      {getFilteredLowStockItems().length > 0 && (
         <div className="card border-2 border-orange-300 bg-orange-50 dark:bg-orange-900/20">
           <h3 className="text-lg font-semibold mb-4 text-orange-800 dark:text-orange-200 flex items-center gap-2">
             <AlertCircle className="w-5 h-5" />
-            Low Stock Items - Action Required
+            Low Stock Items - Action Required (Combined Quantity &lt; 100)
           </h3>
+          <div className="text-xs text-orange-700 dark:text-orange-300 mb-4 p-2 bg-orange-100 dark:bg-orange-900/30 rounded">
+            <p><strong>Reorder Level:</strong> Minimum stock level before reordering. When stock falls below this, consider placing a new order.</p>
+            <p><strong>Status:</strong> Urgent (0-19 qty), Critical (20-49 qty), Low (50-99 qty)</p>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-orange-100 dark:bg-orange-800">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold">Item Name</th>
-                  <th className="px-4 py-3 text-left font-semibold">Current Quantity</th>
+                  <th className="px-4 py-3 text-left font-semibold">Total Quantity</th>
                   <th className="px-4 py-3 text-left font-semibold">Reorder Level</th>
                   <th className="px-4 py-3 text-left font-semibold">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold">Stores</th>
                 </tr>
               </thead>
               <tbody>
-                {(report?.inventory.low_stock_items || []).map((item, idx) => (
-                  <tr key={idx} className="border-b dark:border-orange-700">
-                    <td className="px-4 py-3 font-medium">{item.item_name}</td>
-                    <td className="px-4 py-3 text-orange-600 font-bold">{item.quantity}</td>
-                    <td className="px-4 py-3">{item.reorder_level}</td>
+                {getFilteredLowStockItems().map((item, idx) => (
+                  <tr key={idx} className="border-b dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20">
+                    <td className="px-4 py-3 font-medium">{item.item_name || `Item ${item.item_id}`}</td>
                     <td className="px-4 py-3">
-                      <span className="px-3 py-1 bg-orange-600 text-white rounded text-xs font-semibold">
-                        REORDER SOON
+                      <span className="font-bold text-lg">{item.total_quantity}</span>
+                    </td>
+                    <td className="px-4 py-3">100</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-3 py-1 rounded text-xs font-semibold text-white ${
+                        item.status === 'Urgent' ? 'bg-red-600' :
+                        item.status === 'Critical' ? 'bg-red-500' :
+                        'bg-orange-500'
+                      }`}>
+                        {item.status || 'Low'}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {item.stores && item.stores.length > 0 ? (
+                        <div className="space-y-1">
+                          {item.stores.map((store: any, i: number) => (
+                            <div key={i}>{store.store}: {store.quantity}</div>
+                          ))}
+                        </div>
+                      ) : (
+                        'N/A'
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -633,7 +738,7 @@ export default function ComprehensiveReportsPage() {
               <XAxis dataKey="staff_name" angle={-45} textAnchor="end" height={80} />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="total_revenue" fill="#10b981" name="Revenue (₦)" />
+              <Bar dataKey="total_amount" fill="#10b981" name="Revenue (₦)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
