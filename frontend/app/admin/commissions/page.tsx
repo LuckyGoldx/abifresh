@@ -294,8 +294,7 @@ export default function AdminCommissionsPage() {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
-    const ms = String(date.getMilliseconds()).padStart(3, '0');
-    return `${formatDate(dateString)} ${hours}:${minutes}:${seconds}:${ms}`;
+    return { date: formatDate(dateString), time: `${hours}:${minutes}:${seconds}` };
   };
 
   const exportToCSV = () => {
@@ -918,7 +917,10 @@ export default function AdminCommissionsPage() {
                     .map((payment) => (
                     <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                        {formatDateTime(payment.created_at)}
+                        <div className="flex flex-col">
+                          <div>{formatDateTime(payment.created_at).date}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">{formatDateTime(payment.created_at).time}</div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
@@ -1001,6 +1003,40 @@ export default function AdminCommissionsPage() {
               </div>
             </div>
 
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Custom Date</h3>
+              <div className="flex items-end gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Select a Day
+                  </label>
+                  <input
+                    type="date"
+                    value={analyticsStartDate}
+                    onChange={(e) => {
+                      setAnalyticsStartDate(e.target.value);
+                      setAnalyticsEndDate('');
+                      if (e.target.value) {
+                        setAnalyticsPeriodCode('');
+                      }
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+                {analyticsStartDate && (
+                  <button
+                    onClick={() => {
+                      setAnalyticsStartDate('');
+                      setAnalyticsPeriodCode('all');
+                    }}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Clear Date
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Custom Date Range</h3>
               <div className="flex items-end gap-4 flex-wrap">
@@ -1010,11 +1046,12 @@ export default function AdminCommissionsPage() {
                   </label>
                   <input
                     type="date"
-                    value={analyticsStartDate}
+                    value={analyticsEndDate}
                     onChange={(e) => {
-                      setAnalyticsStartDate(e.target.value);
+                      setAnalyticsEndDate(e.target.value);
                       if (e.target.value) {
                         setAnalyticsPeriodCode('');
+                        setAnalyticsStartDate('');
                       }
                     }}
                     className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
@@ -1026,11 +1063,12 @@ export default function AdminCommissionsPage() {
                   </label>
                   <input
                     type="date"
-                    value={analyticsEndDate}
+                    value={analyticsStartDate}
                     onChange={(e) => {
-                      setAnalyticsEndDate(e.target.value);
+                      setAnalyticsStartDate(e.target.value);
                       if (e.target.value) {
                         setAnalyticsPeriodCode('');
+                        setAnalyticsEndDate('');
                       }
                     }}
                     className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"

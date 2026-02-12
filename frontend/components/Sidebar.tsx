@@ -46,7 +46,7 @@ export default function Sidebar({ menuItems, role }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="py-6 px-4 space-y-2">
+        <nav className="py-6 px-4 space-y-2 h-[calc(100vh-180px)] overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const isNotifications = item.label === 'Notifications';
