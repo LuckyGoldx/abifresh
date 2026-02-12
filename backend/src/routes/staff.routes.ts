@@ -1028,27 +1028,31 @@ router.get('/commissions/details', authMiddleware, async (req: AuthRequest, res:
       .eq('payment_type', 'commission')
       .eq('status', 'approved');
 
-    // Calculate totals
-    const totalCommissionGenerated = sales?.reduce((sum, s) => sum + (s.commission_amount || 0), 0) || 0;
+    // Calculate totals - commission is calculated from items.commission * quantity
+    const totalCommissionGenerated = sales?.reduce((sum, s) => {
+      const commission = parseFloat((s as any).items?.commission || 0) * (s.quantity || 0);
+      return sum + commission;
+    }, 0) || 0;
     const totalCommissionPaid = commissionPayments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
     const totalItemsSold = sales?.length || 0;
     const totalUnitsCommissioned = sales?.reduce((sum, s) => sum + (s.quantity || 0), 0) || 0;
     const pendingCommission = totalCommissionGenerated - totalCommissionPaid;
 
-    // Top performing items
+    // Top performing items - calculate commission from items.commission * quantity
     const itemPerformance = sales?.reduce((acc: any, sale: any) => {
       const itemName = sale.items?.name || 'Unknown';
+      const commissionAmount = parseFloat(sale.items?.commission || 0) * (sale.quantity || 0);
       const existing = acc.find((i: any) => i.name === itemName);
       if (existing) {
         existing.quantity += sale.quantity || 0;
-        existing.commission += sale.commission_amount || 0;
+        existing.commission += commissionAmount;
         existing.sales += 1;
       } else {
         acc.push({
           name: itemName,
           sku: sale.items?.sku,
           quantity: sale.quantity || 0,
-          commission: sale.commission_amount || 0,
+          commission: commissionAmount,
           sales: 1,
           rate: sale.items?.commission || 0,
         });
@@ -1056,14 +1060,15 @@ router.get('/commissions/details', authMiddleware, async (req: AuthRequest, res:
       return acc;
     }, [])?.sort((a: any, b: any) => b.commission - a.commission) || [];
 
-    // Commission by month (last 12 months)
+    // Commission by month (last 12 months) - calculate commission from items.commission * quantity
     const currentDate = new Date();
     const monthlyCommission: any = {};
     
     sales?.forEach((sale: any) => {
       const saleDate = new Date(sale.sale_date);
       const monthKey = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
-      monthlyCommission[monthKey] = (monthlyCommission[monthKey] || 0) + (sale.commission_amount || 0);
+      const commissionAmount = parseFloat(sale.items?.commission || 0) * (sale.quantity || 0);
+      monthlyCommission[monthKey] = (monthlyCommission[monthKey] || 0) + commissionAmount;
     });
 
     res.json({
@@ -1078,7 +1083,12 @@ router.get('/commissions/details', authMiddleware, async (req: AuthRequest, res:
         amount: p.amount,
         approved_date: p.approved_date,
       })) || [],
-      sales: sales || [],
+      sales: sales?.map((sale: any) => ({
+        ...sale,
+        item_name: sale.items?.name,
+        item_sku: sale.items?.sku,
+        commission_amount: parseFloat(sale.items?.commission || 0) * (sale.quantity || 0),
+      })) || [],
       top_items: itemPerformance,
       monthly_commission: monthlyCommission,
     });
