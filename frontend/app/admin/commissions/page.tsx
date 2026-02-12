@@ -166,7 +166,7 @@ export default function AdminCommissionsPage() {
     if (activeTab === 'analytics') {
       fetchAnalytics();
     }
-  }, [activeTab, analyticsPeriodCode]);
+  }, [activeTab, analyticsPeriodCode, analyticsStartDate, analyticsEndDate]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -206,17 +206,39 @@ export default function AdminCommissionsPage() {
 
   const fetchAnalytics = async () => {
     try {
-      // Convert period code to date range
-      const periodRange = getAnalyticsPeriodRange(analyticsPeriodCode);
+      // Use custom dates if both are provided, otherwise use period code
+      let startDate: string;
+      let endDate: string;
+      let period: number;
+
+      if (analyticsStartDate && analyticsEndDate) {
+        // Custom date range
+        startDate = new Date(analyticsStartDate).toISOString();
+        endDate = new Date(analyticsEndDate).toISOString();
+        // Calculate days between dates for period
+        const msPerDay = 24 * 60 * 60 * 1000;
+        period = Math.ceil((new Date(analyticsEndDate).getTime() - new Date(analyticsStartDate).getTime()) / msPerDay);
+      } else if (analyticsStartDate) {
+        // Single day
+        startDate = new Date(analyticsStartDate).toISOString();
+        endDate = new Date(analyticsStartDate).toISOString();
+        period = 1;
+      } else {
+        // Use period code
+        const periodRange = getAnalyticsPeriodRange(analyticsPeriodCode);
+        startDate = periodRange.startDate;
+        endDate = periodRange.endDate;
+        period = getPeriodDays(analyticsPeriodCode);
+      }
       
       const response = await axios.get(
         `${API_BASE_URL}/api/admin/commissions/analytics`,
         {
           headers: { Authorization: `Bearer ${token}` },
           params: {
-            startDate: periodRange.startDate,
-            endDate: periodRange.endDate,
-            period: getPeriodDays(analyticsPeriodCode),
+            startDate,
+            endDate,
+            period,
           },
         }
       );
@@ -1046,12 +1068,11 @@ export default function AdminCommissionsPage() {
                   </label>
                   <input
                     type="date"
-                    value={analyticsEndDate}
+                    value={analyticsStartDate}
                     onChange={(e) => {
-                      setAnalyticsEndDate(e.target.value);
+                      setAnalyticsStartDate(e.target.value);
                       if (e.target.value) {
                         setAnalyticsPeriodCode('');
-                        setAnalyticsStartDate('');
                       }
                     }}
                     className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
@@ -1063,12 +1084,11 @@ export default function AdminCommissionsPage() {
                   </label>
                   <input
                     type="date"
-                    value={analyticsStartDate}
+                    value={analyticsEndDate}
                     onChange={(e) => {
-                      setAnalyticsStartDate(e.target.value);
+                      setAnalyticsEndDate(e.target.value);
                       if (e.target.value) {
                         setAnalyticsPeriodCode('');
-                        setAnalyticsEndDate('');
                       }
                     }}
                     className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"

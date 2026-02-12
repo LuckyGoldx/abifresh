@@ -543,6 +543,14 @@ router.get('/dashboard', authMiddleware, async (req: AuthRequest, res: Response)
       .eq('staff_id', req.user!.id)
       .eq('status', 'approved');
 
+    // Get paid commission (commission payments that have been approved)
+    const { data: commissionPayments } = await supabaseAdmin
+      .from('staff_payments')
+      .select('amount')
+      .eq('staff_id', req.user!.id)
+      .eq('payment_type', 'commission')
+      .eq('status', 'approved');
+
     // Count unread notifications
     const { count: unreadNotifications } = await supabaseAdmin
       .from('notifications')
@@ -558,6 +566,11 @@ router.get('/dashboard', authMiddleware, async (req: AuthRequest, res: Response)
       ? (sales?.reduce((sum, s) => sum + (parseFloat((s as any).items?.commission || 0) * (s.quantity || 0)), 0) || 0)
       : 0;
 
+    // Calculate paid commission (commission payments that have been approved)
+    const paidCommission = isCommissionStaff
+      ? (commissionPayments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0)
+      : 0;
+
     const dashboard = {
       total_items_sold: sales?.reduce((sum, s) => sum + s.quantity, 0) || 0,
       total_amount_sold: sales?.reduce((sum, s) => sum + s.total_amount, 0) || 0,
@@ -569,6 +582,7 @@ router.get('/dashboard', authMiddleware, async (req: AuthRequest, res: Response)
       total_expenses: 0,
       unread_notifications: unreadNotifications || 0,
       total_commission: totalCommission,
+      paid_commission: paidCommission,
       is_commission_staff: isCommissionStaff,
     };
 

@@ -16,6 +16,7 @@ interface StaffDashboard {
   total_expenses: number;
   unread_notifications: number;
   total_commission: number;
+  paid_commission: number;
   is_commission_staff: boolean;
 }
 
@@ -210,6 +211,15 @@ export default function StaffDashboard() {
             value={`₦${(dashboard?.total_commission || 0).toLocaleString()}`}
             color="bg-orange-500"
             subtitle="Commission earned"
+          />
+        )}
+        {dashboard?.is_commission_staff && (
+          <StatCard
+            icon={CheckCircle2}
+            title="Paid Commission"
+            value={`₦${(dashboard?.paid_commission || 0).toLocaleString()}`}
+            color="bg-green-500"
+            subtitle={`Out of ₦${(dashboard?.total_commission || 0).toLocaleString()}`}
           />
         )}
       </div>
