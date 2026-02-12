@@ -936,4 +936,471 @@ router.get('/staff-stores-stats', authMiddleware, roleMiddleware('admin'), async
   }
 });
 
+/**
+ * ===========================================================================
+ * COMMISSION TRACKING ENDPOINTS
+ * ===========================================================================
+ */
+
+/**
+ * Get commission overview - Summary of all commissions
+ */
+router.get('/commissions/overview', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('📊 GET /api/admin/commissions/overview - Fetching commission overview');
+
+    // Get all commission staff (check both role variations)
+    const { data: commissionStaff, error: staffError } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, email, username, role')
+      .or('role.eq.staff_commission,role.eq.commission_staff');
+
+    if (staffError) throw staffError;
+
+    if (!commissionStaff || commissionStaff.length === 0) {
+      console.log('⚠️ No commission staff found');
+      return res.json({
+        total_commission_generated: 0,
+        total_commission_paid: 0,
+        total_commission_pending: 0,
+        commission_staff_count: 0,
+        staff_commissions: [],
+      });
+    }
+
+    console.log(`✅ Found ${commissionStaff.length} commission staff`);
+
+    // Calculate commissions for each staff using staff_sales table (primary source of truth)
+    const staffCommissions = await Promise.all(
+      commissionStaff.map(async (staff) => {
+        let totalCommission = 0;
+        let totalSales = 0;
+        let itemsSold = 0;
+
+        // Primary: Use staff_sales table (matches staff dashboard data source)
+        const { data: sales, error: salesError } = await supabaseAdmin
+          .from('staff_sales')
+          .select('quantity, total_amount, items:item_id(commission)')
+          .eq('staff_id', staff.id);
+
+        if (!salesError && sales && sales.length > 0) {
+          sales.forEach((sale: any) => {
+            const quantity = sale.quantity || 0;
+            const commissionPerUnit = sale.items?.commission || 0;
+            
+            totalSales += sale.total_amount || 0;
+            itemsSold += quantity;
+            totalCommission += commissionPerUnit * quantity;
+          });
+        }
+
+        // Fallback to staff_store table if no sales in staff_sales
+        if (itemsSold === 0) {
+          const { data: staffStore, error: storeError } = await supabaseAdmin
+            .from('staff_store')
+            .select('item_id, quantity_sold, items(commission, unit_price)')
+            .eq('staff_id', staff.id);
+
+          if (!storeError && staffStore) {
+            staffStore.forEach((store: any) => {
+              if (store.items && store.quantity_sold) {
+                const commissionPerUnit = store.items.commission || 0;
+                const unitPrice = store.items.unit_price || 0;
+                
+                totalCommission += commissionPerUnit * store.quantity_sold;
+                totalSales += unitPrice * store.quantity_sold;
+                itemsSold += store.quantity_sold;
+              }
+            });
+          }
+        }
+
+        // Get commission payments made
+        const { data: payments, error: paymentsError } = await supabaseAdmin
+          .from('staff_payments')
+          .select('amount, status')
+          .eq('staff_id', staff.id)
+          .eq('payment_type', 'commission')
+          .in('status', ['approved', 'paid']);
+
+        const totalPaid = !paymentsError && payments 
+          ? payments.reduce((sum, p) => sum + (p.amount || 0), 0)
+          : 0;
+
+        console.log(`   ${staff.full_name}: Commission=₦${totalCommission}, Sales=₦${totalSales}, Items=${itemsSold}, Paid=₦${totalPaid}`);
+
+        return {
+          staff_id: staff.id,
+          staff_name: staff.full_name,
+          staff_email: staff.email,
+          staff_username: staff.username,
+          total_commission_generated: totalCommission,
+          total_commission_paid: totalPaid,
+          commission_pending: totalCommission - totalPaid,
+          total_sales: totalSales,
+          items_sold: itemsSold,
+        };
+      })
+    );
+
+    const validStaffCommissions = staffCommissions;
+
+    const overview = {
+      total_commission_generated: validStaffCommissions.reduce((sum, sc) => sum + sc.total_commission_generated, 0),
+      total_commission_paid: validStaffCommissions.reduce((sum, sc) => sum + sc.total_commission_paid, 0),
+      total_commission_pending: validStaffCommissions.reduce((sum, sc) => sum + sc.commission_pending, 0),
+      commission_staff_count: validStaffCommissions.length,
+      staff_commissions: validStaffCommissions,
+    };
+
+    console.log('✅ Commission overview:', overview);
+    res.json(overview);
+  } catch (error: any) {
+    console.error('❌ Error fetching commission overview:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get detailed commission breakdown for a specific staff member
+ */
+router.get('/commissions/staff/:staffId', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { staffId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    console.log(`📊 GET /api/admin/commissions/staff/${staffId} - Fetching detailed breakdown`);
+
+    // Get staff info
+    const { data: staff, error: staffError } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, email, username, role')
+      .eq('id', staffId)
+      .single();
+
+    if (staffError || !staff) {
+      return res.status(404).json({ error: 'Staff not found' });
+    }
+
+    // Build query for staff_sales (primary source - matches staff dashboard)
+    let salesQuery = supabaseAdmin
+      .from('staff_sales')
+      .select('*, items:item_id(id, name, commission, category)')
+      .eq('staff_id', staffId)
+      .order('created_at', { ascending: false });
+
+    if (startDate) {
+      salesQuery = salesQuery.gte('created_at', startDate);
+    }
+    if (endDate) {
+      salesQuery = salesQuery.lte('created_at', endDate);
+    }
+
+    const { data: sales, error: salesError } = await salesQuery;
+
+    if (salesError) throw salesError;
+
+    if (!sales || sales.length === 0) {
+      return res.json({
+        staff,
+        total_commission: 0,
+        total_sales: 0,
+        total_items_sold: 0,
+        receipts: [],
+        commission_by_item: [],
+      });
+    }
+
+    // Transform staff_sales data to match the receipts format expected by frontend
+    const receiptsWithCommission = sales.map((sale: any) => {
+      const item = sale.items || {};
+      const commissionPerUnit = item.commission || 0;
+      const totalCommission = commissionPerUnit * sale.quantity;
+
+      return {
+        id: sale.id,
+        receipt_number: sale.receipt_number,
+        total_amount: sale.total_amount,
+        payment_method: sale.payment_method,
+        created_at: sale.created_at,
+        commission: totalCommission,
+        items: [
+          {
+            item_id: sale.item_id,
+            item_name: item.name || 'Unknown',
+            quantity: sale.quantity,
+            unit_price: sale.unit_price,
+            total_price: sale.total_amount,
+            commission_per_unit: commissionPerUnit,
+            total_commission: totalCommission,
+          },
+        ],
+      };
+    });
+
+    // Calculate commission by item
+    const commissionByItem: Record<string, any> = {};
+    sales.forEach((sale: any) => {
+      const item = sale.items || {};
+      const commissionPerUnit = item.commission || 0;
+      const totalCommission = commissionPerUnit * sale.quantity;
+
+      if (!commissionByItem[sale.item_id]) {
+        commissionByItem[sale.item_id] = {
+          item_id: sale.item_id,
+          item_name: item.name || 'Unknown',
+          category: item.category || 'Uncategorized',
+          quantity_sold: 0,
+          total_sales: 0,
+          commission_per_unit: commissionPerUnit,
+          total_commission: 0,
+        };
+      }
+
+      commissionByItem[sale.item_id].quantity_sold += sale.quantity;
+      commissionByItem[sale.item_id].total_sales += sale.total_amount;
+      commissionByItem[sale.item_id].total_commission += totalCommission;
+    });
+
+    const totalCommission = receiptsWithCommission.reduce((sum, r) => sum + r.commission, 0);
+    const totalSales = sales.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+    const totalItemsSold = sales.reduce((sum, s) => sum + s.quantity, 0);
+
+    res.json({
+      staff,
+      total_commission: totalCommission,
+      total_sales: totalSales,
+      total_items_sold: totalItemsSold,
+      receipts: receiptsWithCommission,
+      commission_by_item: Object.values(commissionByItem),
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching staff commission details:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get commission payment history
+ */
+router.get('/commissions/payments', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('📊 GET /api/admin/commissions/payments - Fetching commission payment history');
+
+    const { data: payments, error: paymentsError } = await supabaseAdmin
+      .from('staff_payments')
+      .select('*')
+      .eq('payment_type', 'commission')
+      .order('created_at', { ascending: false });
+
+    if (paymentsError) throw paymentsError;
+
+    if (!payments || payments.length === 0) {
+      return res.json([]);
+    }
+
+    // Get staff details
+    const staffIds = [...new Set(payments.map(p => p.staff_id))];
+    const { data: staff, error: staffError } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, email')
+      .in('id', staffIds);
+
+    if (staffError) throw staffError;
+
+    const staffMap: Record<string, any> = {};
+    staff?.forEach(s => {
+      staffMap[s.id] = s;
+    });
+
+    const paymentsWithStaff = payments.map(p => ({
+      ...p,
+      staff_name: staffMap[p.staff_id]?.full_name || 'Unknown',
+      staff_email: staffMap[p.staff_id]?.email || 'Unknown',
+    }));
+
+    res.json(paymentsWithStaff);
+  } catch (error: any) {
+    console.error('❌ Error fetching commission payments:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Create commission payment
+ */
+router.post('/commissions/pay', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { staff_id, amount, notes } = req.body;
+
+    if (!staff_id || !amount) {
+      return res.status(400).json({ error: 'Missing required fields: staff_id, amount' });
+    }
+
+    console.log(`💰 Creating commission payment for staff ${staff_id}: ₦${amount}`);
+
+    // Create payment record
+    const { data: payment, error: paymentError } = await supabaseAdmin
+      .from('staff_payments')
+      .insert([
+        {
+          staff_id,
+          amount,
+          payment_type: 'commission',
+          status: 'approved',
+          notes: notes || 'Commission payment',
+          approved_by: req.user?.id,
+          approved_date: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single();
+
+    if (paymentError) throw paymentError;
+
+    console.log('✅ Commission payment created:', payment.id);
+    res.json({ message: 'Commission payment created successfully', payment });
+  } catch (error: any) {
+    console.error('❌ Error creating commission payment:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get commission analytics - trends, top performers, etc.
+ */
+router.get('/commissions/analytics', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { period = '30', startDate, endDate } = req.query;
+    
+    // Determine date range - use explicit dates if provided, otherwise calculate from period
+    let dateStart = new Date();
+    let dateEnd = new Date();
+    
+    if (startDate && endDate) {
+      dateStart = new Date(startDate as string);
+      dateEnd = new Date(endDate as string);
+      console.log(`📊 GET /api/admin/commissions/analytics - Period: ${startDate} to ${endDate}`);
+    } else {
+      dateStart.setDate(dateStart.getDate() - parseInt(period as string));
+      console.log(`📊 GET /api/admin/commissions/analytics - Period: ${period} days`);
+    }
+
+    // Get commission staff (both role variations)
+    const { data: commissionStaff, error: staffError } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, email')
+      .or('role.eq.staff_commission,role.eq.commission_staff');
+
+    if (staffError) throw staffError;
+
+    if (!commissionStaff || commissionStaff.length === 0) {
+      return res.json({
+        top_performers: [],
+        commission_trends: [],
+        items_with_highest_commission: [],
+        period_days: parseInt(period as string),
+      });
+    }
+
+    const staffIds = commissionStaff.map(s => s.id);
+
+    // Get staff_sales for the period (matches staff dashboard data source)
+    const { data: sales, error: salesError } = await supabaseAdmin
+      .from('staff_sales')
+      .select('*, items:item_id(id, name, commission, category)')
+      .in('staff_id', staffIds)
+      .gte('created_at', dateStart.toISOString())
+      .lte('created_at', dateEnd.toISOString())
+      .order('created_at', { ascending: true });
+
+    if (salesError) throw salesError;
+
+    if (!sales || sales.length === 0) {
+      return res.json({
+        top_performers: [],
+        commission_trends: [],
+        items_with_highest_commission: [],
+        period_days: parseInt(period as string),
+      });
+    }
+
+    // Calculate top performers
+    const performerStats: Record<string, any> = {};
+    commissionStaff.forEach(staff => {
+      performerStats[staff.id] = {
+        staff_id: staff.id,
+        staff_name: staff.full_name,
+        total_commission: 0,
+        total_sales: 0,
+        items_sold: 0,
+      };
+    });
+
+    sales.forEach((sale: any) => {
+      if (sale.items && performerStats[sale.staff_id]) {
+        const commission = (sale.items.commission || 0) * sale.quantity;
+        performerStats[sale.staff_id].total_commission += commission;
+        performerStats[sale.staff_id].total_sales += sale.total_amount;
+        performerStats[sale.staff_id].items_sold += sale.quantity;
+      }
+    });
+
+    const topPerformers = Object.values(performerStats)
+      .sort((a: any, b: any) => b.total_commission - a.total_commission)
+      .slice(0, 10);
+
+    // Calculate commission trends (daily)
+    const trendMap: Record<string, number> = {};
+    sales.forEach((sale: any) => {
+      if (sale.items) {
+        const date = new Date(sale.created_at).toISOString().split('T')[0];
+        const commission = (sale.items.commission || 0) * sale.quantity;
+        trendMap[date] = (trendMap[date] || 0) + commission;
+      }
+    });
+
+    const commissionTrends = Object.entries(trendMap)
+      .map(([date, commission]) => ({ date, commission }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Calculate items with highest commission
+    const itemCommissionMap: Record<string, any> = {};
+    sales.forEach((sale: any) => {
+      if (sale.items) {
+        const itemId = sale.items.id;
+        const commission = (sale.items.commission || 0) * sale.quantity;
+
+        if (!itemCommissionMap[itemId]) {
+          itemCommissionMap[itemId] = {
+            item_id: itemId,
+            item_name: sale.items.name,
+            category: sale.items.category,
+            commission_per_unit: sale.items.commission || 0,
+            quantity_sold: 0,
+            total_commission: 0,
+          };
+        }
+
+        itemCommissionMap[itemId].quantity_sold += sale.quantity;
+        itemCommissionMap[itemId].total_commission += commission;
+      }
+    });
+
+    const itemsWithHighestCommission = Object.values(itemCommissionMap)
+      .sort((a: any, b: any) => b.total_commission - a.total_commission)
+      .slice(0, 10);
+
+    res.json({
+      top_performers: topPerformers,
+      commission_trends: commissionTrends,
+      items_with_highest_commission: itemsWithHighestCommission,
+      period_days: parseInt(period as string),
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching commission analytics:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 export default router;
