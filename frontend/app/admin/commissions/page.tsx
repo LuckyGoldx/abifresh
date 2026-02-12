@@ -144,10 +144,14 @@ export default function AdminCommissionsPage() {
   const [paymentNotes, setPaymentNotes] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
   const [analyticsPeriod, setAnalyticsPeriod] = useState('30');
-  const [analyticsPeriodCode, setAnalyticsPeriodCode] = useState('month');
+  const [analyticsPeriodCode, setAnalyticsPeriodCode] = useState('all');
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [paymentPeriodCode, setPaymentPeriodCode] = useState('month');
+  const [paymentPeriodCode, setPaymentPeriodCode] = useState('all');
   const [selectedDate, setSelectedDate] = useState('');
+  const [paymentStartDate, setPaymentStartDate] = useState('');
+  const [paymentEndDate, setPaymentEndDate] = useState('');
+  const [analyticsStartDate, setAnalyticsStartDate] = useState('');
+  const [analyticsEndDate, setAnalyticsEndDate] = useState('');
   const [paymentAmountError, setPaymentAmountError] = useState('');
   
   const token = useAuthStore((state) => state.token);
@@ -617,63 +621,6 @@ export default function AdminCommissionsPage() {
       {/* Tab Content */}
       {activeTab === 'overview' && overview && (
         <div className="space-y-6">
-          {/* Date Range Filter */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Filter by Period</h3>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { label: '1 Hour', value: '1h' },
-                  { label: '12 Hours', value: '12h' },
-                  { label: 'Today', value: 'today' },
-                  { label: 'This Week', value: 'week' },
-                  { label: 'This Month', value: 'month' },
-                  { label: 'This Year', value: 'year' },
-                  { label: 'Last Year', value: 'lastyear' },
-                  { label: 'All Time', value: 'all' },
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setAnalyticsPeriodCode(option.value);
-                    }}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-                      analyticsPeriodCode === option.value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Custom Date Range</h3>
-              <div className="flex items-end gap-4 flex-wrap">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -816,6 +763,8 @@ export default function AdminCommissionsPage() {
                       setSelectedDate(e.target.value);
                       if (e.target.value) {
                         setPaymentPeriodCode('');
+                        setPaymentStartDate('');
+                        setPaymentEndDate('');
                       }
                     }}
                     className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
@@ -827,6 +776,57 @@ export default function AdminCommissionsPage() {
                     className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                   >
                     Clear Date
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Custom Date Range</h3>
+              <div className="flex items-end gap-4 flex-wrap">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={paymentStartDate}
+                    onChange={(e) => {
+                      setPaymentStartDate(e.target.value);
+                      if (e.target.value) {
+                        setPaymentPeriodCode('');
+                        setSelectedDate('');
+                      }
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={paymentEndDate}
+                    onChange={(e) => {
+                      setPaymentEndDate(e.target.value);
+                      if (e.target.value) {
+                        setPaymentPeriodCode('');
+                        setSelectedDate('');
+                      }
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+                {(paymentStartDate || paymentEndDate) && (
+                  <button
+                    onClick={() => {
+                      setPaymentStartDate('');
+                      setPaymentEndDate('');
+                    }}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Clear Range
                   </button>
                 )}
               </div>
@@ -863,48 +863,57 @@ export default function AdminCommissionsPage() {
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {payments
                     .filter(payment => {
-                      if (!selectedDate) {
-                        // Filter by period if no specific date selected
-                        const now = new Date();
-                        const paymentDate = new Date(payment.created_at);
-                        
-                        if (paymentPeriodCode === 'all') return true;
-                        if (paymentPeriodCode === '1h') return now.getTime() - paymentDate.getTime() <= 3600000;
-                        if (paymentPeriodCode === '12h') return now.getTime() - paymentDate.getTime() <= 43200000;
-                        if (paymentPeriodCode === 'today') {
-                          paymentDate.setHours(0, 0, 0, 0);
-                          now.setHours(0, 0, 0, 0);
-                          return paymentDate.getTime() === now.getTime();
-                        }
-                        if (paymentPeriodCode === 'week') {
-                          const weekAgo = new Date(now);
-                          weekAgo.setDate(now.getDate() - 7);
-                          return paymentDate >= weekAgo;
-                        }
-                        if (paymentPeriodCode === 'month') {
-                          const monthAgo = new Date(now);
-                          monthAgo.setDate(now.getDate() - 30);
-                          return paymentDate >= monthAgo;
-                        }
-                        if (paymentPeriodCode === 'year') {
-                          const yearAgo = new Date(now);
-                          yearAgo.setMonth(now.getMonth() - 12);
-                          return paymentDate >= yearAgo;
-                        }
-                        if (paymentPeriodCode === 'lastyear') {
-                          const lastYearStart = new Date(now.getFullYear() - 1, 0, 1);
-                          const lastYearEnd = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
-                          return paymentDate >= lastYearStart && paymentDate <= lastYearEnd;
-                        }
-                        return true;
-                      } else {
-                        // Filter by specific date
+                      const paymentDate = new Date(payment.created_at);
+                      
+                      // Filter by custom date range if both dates are set
+                      if (paymentStartDate && paymentEndDate) {
+                        const startDate = new Date(paymentStartDate);
+                        const endDate = new Date(paymentEndDate);
+                        startDate.setHours(0, 0, 0, 0);
+                        endDate.setHours(23, 59, 59, 999);
+                        return paymentDate >= startDate && paymentDate <= endDate;
+                      }
+                      
+                      // Filter by specific date if set
+                      if (selectedDate) {
                         const selectedDateObj = new Date(selectedDate);
                         const paymentDateObj = new Date(payment.created_at);
                         selectedDateObj.setHours(0, 0, 0, 0);
                         paymentDateObj.setHours(0, 0, 0, 0);
                         return selectedDateObj.getTime() === paymentDateObj.getTime();
                       }
+                      
+                      // Filter by period
+                      const now = new Date();
+                      if (paymentPeriodCode === 'all') return true;
+                      if (paymentPeriodCode === '1h') return now.getTime() - paymentDate.getTime() <= 3600000;
+                      if (paymentPeriodCode === '12h') return now.getTime() - paymentDate.getTime() <= 43200000;
+                      if (paymentPeriodCode === 'today') {
+                        const todayStart = new Date(now);
+                        todayStart.setHours(0, 0, 0, 0);
+                        return paymentDate >= todayStart;
+                      }
+                      if (paymentPeriodCode === 'week') {
+                        const weekAgo = new Date(now);
+                        weekAgo.setDate(now.getDate() - 7);
+                        return paymentDate >= weekAgo;
+                      }
+                      if (paymentPeriodCode === 'month') {
+                        const monthAgo = new Date(now);
+                        monthAgo.setDate(now.getDate() - 30);
+                        return paymentDate >= monthAgo;
+                      }
+                      if (paymentPeriodCode === 'year') {
+                        const yearAgo = new Date(now);
+                        yearAgo.setMonth(now.getMonth() - 12);
+                        return paymentDate >= yearAgo;
+                      }
+                      if (paymentPeriodCode === 'lastyear') {
+                        const lastYearStart = new Date(now.getFullYear() - 1, 0, 1);
+                        const lastYearEnd = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59);
+                        return paymentDate >= lastYearStart && paymentDate <= lastYearEnd;
+                      }
+                      return true;
                     })
                     .map((payment) => (
                     <tr key={payment.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -959,11 +968,9 @@ export default function AdminCommissionsPage() {
       {activeTab === 'analytics' && (
         <div className="space-y-6">
           {/* Period Selector */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Commission Analytics
-              </h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Filter by Period</h3>
               <div className="flex flex-wrap gap-2">
                 {[
                   { label: '1 Hour', value: '1h' },
@@ -973,12 +980,17 @@ export default function AdminCommissionsPage() {
                   { label: 'This Month', value: 'month' },
                   { label: 'This Year', value: 'year' },
                   { label: 'Last Year', value: 'lastyear' },
+                  { label: 'All Time', value: 'all' },
                 ].map((option) => (
                   <button
                     key={option.value}
-                    onClick={() => setAnalyticsPeriodCode(option.value)}
+                    onClick={() => {
+                      setAnalyticsPeriodCode(option.value);
+                      setAnalyticsStartDate('');
+                      setAnalyticsEndDate('');
+                    }}
                     className={`px-3 py-1 rounded-lg text-sm font-medium transition ${
-                      analyticsPeriodCode === option.value
+                      analyticsPeriodCode === option.value && !analyticsStartDate && !analyticsEndDate
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
@@ -986,6 +998,56 @@ export default function AdminCommissionsPage() {
                     {option.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Custom Date Range</h3>
+              <div className="flex items-end gap-4 flex-wrap">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={analyticsStartDate}
+                    onChange={(e) => {
+                      setAnalyticsStartDate(e.target.value);
+                      if (e.target.value) {
+                        setAnalyticsPeriodCode('');
+                      }
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={analyticsEndDate}
+                    onChange={(e) => {
+                      setAnalyticsEndDate(e.target.value);
+                      if (e.target.value) {
+                        setAnalyticsPeriodCode('');
+                      }
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  />
+                </div>
+                {(analyticsStartDate || analyticsEndDate) && (
+                  <button
+                    onClick={() => {
+                      setAnalyticsStartDate('');
+                      setAnalyticsEndDate('');
+                      setAnalyticsPeriodCode('all');
+                    }}
+                    className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                  >
+                    Clear Range
+                  </button>
+                )}
               </div>
             </div>
           </div>
