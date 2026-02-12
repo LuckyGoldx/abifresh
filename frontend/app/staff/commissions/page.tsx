@@ -272,15 +272,8 @@ export default function CommissionStaffPage() {
           {showExportMenu && (
             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
               <button
-                onClick={handleExportCSV}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white flex items-center space-x-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export as CSV</span>
-              </button>
-              <button
                 onClick={handleExportExcel}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white flex items-center space-x-2 border-t border-gray-200 dark:border-gray-700"
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white flex items-center space-x-2"
               >
                 <Download className="w-4 h-4" />
                 <span>Export as Excel</span>
