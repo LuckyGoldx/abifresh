@@ -536,13 +536,14 @@ router.get('/dashboard', authMiddleware, async (req: AuthRequest, res: Response)
       .eq('staff_id', req.user!.id)
       .eq('status', 'pending');
 
-    // Get approved payments (exclude commission - those are tracked separately)
+    // Get approved payments (regular payments from /staff/payments, not commission)
+    // Only include payments where payment_type is 'other' (regular staff payment requests)
     const { data: approvedPayments } = await supabaseAdmin
       .from('staff_payments')
       .select('amount, approved_amount')
       .eq('staff_id', req.user!.id)
       .eq('status', 'approved')
-      .neq('payment_type', 'commission');
+      .eq('payment_type', 'other');
 
     // Get paid commission (commission payments that have been approved)
     const { data: commissionPayments } = await supabaseAdmin
