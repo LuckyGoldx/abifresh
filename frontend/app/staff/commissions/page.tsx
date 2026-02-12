@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
-import { TrendingUp, DollarSign, CheckCircle2, Clock, Package, BarChart3, Download, Filter } from 'lucide-react';
+import { TrendingUp, DollarSign, CheckCircle2, Clock, Package, BarChart3, Download, Filter, ChevronDown } from 'lucide-react';
 
 interface CommissionData {
   summary: {
@@ -65,10 +65,11 @@ export default function CommissionStaffPage() {
     }
   };
 
-  const handleExport = () => {
-    if (!commissions) return;
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
-    // Create CSV content
+  const generateCSV = () => {
+    if (!commissions) return '';
+
     let csv = 'Commission Report Export\n';
     csv += `Generated: ${new Date().toLocaleString()}\n\n`;
     csv += 'SUMMARY\n';
@@ -91,7 +92,11 @@ export default function CommissionStaffPage() {
       csv += `"${item.name}","${item.sku}",${item.quantity},"₦${item.commission.toLocaleString()}",${item.sales}\n`;
     });
 
-    // Download as CSV
+    return csv;
+  };
+
+  const handleExportCSV = () => {
+    const csv = generateCSV();
     const element = document.createElement('a');
     element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
     element.setAttribute('download', `commission-report-${new Date().toISOString().split('T')[0]}.csv`);
@@ -99,6 +104,136 @@ export default function CommissionStaffPage() {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    setShowExportMenu(false);
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const XLSX = await import('xlsx');
+      const { utils } = XLSX;
+      
+      const ws = utils.aoa_to_sheet([
+        ['Commission Report Export'],
+        [`Generated: ${new Date().toLocaleString()}`],
+        [],
+        ['SUMMARY'],
+        ['Total Commission Generated', `₦${commissions?.summary.total_commission_generated.toLocaleString()}`],
+        ['Total Commission Paid', `₦${commissions?.summary.total_commission_paid.toLocaleString()}`],
+        ['Pending Commission', `₦${commissions?.summary.pending_commission.toLocaleString()}`],
+        ['Total Items Sold', commissions?.summary.total_items_sold],
+        ['Total Units', commissions?.summary.total_units_commissioned],
+        [],
+        ['COMMISSION PAYMENTS'],
+        ['Date', 'Amount'],
+      ]);
+
+      commissions?.commissions.forEach((c) => {
+        const amount = typeof c.amount === 'string' ? parseFloat(c.amount) : c.amount;
+        utils.sheet_add_aoa(ws, [[new Date(c.approved_date).toLocaleString(), `₦${amount.toLocaleString()}`]], { origin: -1 });
+      });
+
+      utils.sheet_add_aoa(ws, [[], ['TOP ITEMS'], ['Item', 'SKU', 'Units Sold', 'Commission', 'Sales Count']], { origin: -1 });
+      
+      commissions?.top_items.forEach((item) => {
+        utils.sheet_add_aoa(ws, [[item.name, item.sku, item.quantity, `₦${item.commission.toLocaleString()}`, item.sales]], { origin: -1 });
+      });
+
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, 'Commission Report');
+      XLSX.writeFile(wb, `commission-report-${new Date().toISOString().split('T')[0]}.xlsx`);
+      setShowExportMenu(false);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+      
+      // Create a temporary div with the data to convert to PDF
+      const element = document.createElement('div');
+      element.style.padding = '20px';
+      element.style.fontFamily = 'Arial, sans-serif';
+      element.style.backgroundColor = 'white';
+      element.innerHTML = `
+        <h1 style="font-size: 24px; margin-bottom: 10px;">Commission Report</h1>
+        <p style="margin-bottom: 20px; color: #666;">Generated: ${new Date().toLocaleString()}</p>
+        
+        <h2 style="font-size: 18px; margin-top: 20px; margin-bottom: 10px;">Summary</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 8px;">Total Commission Generated</td>
+            <td style="padding: 8px; text-align: right; font-weight: bold;">₦${commissions?.summary.total_commission_generated.toLocaleString()}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 8px;">Total Commission Paid</td>
+            <td style="padding: 8px; text-align: right; font-weight: bold;">₦${commissions?.summary.total_commission_paid.toLocaleString()}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 8px;">Pending Commission</td>
+            <td style="padding: 8px; text-align: right; font-weight: bold;">₦${commissions?.summary.pending_commission.toLocaleString()}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 8px;">Total Items Sold</td>
+            <td style="padding: 8px; text-align: right; font-weight: bold;">${commissions?.summary.total_items_sold}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px;">Total Units</td>
+            <td style="padding: 8px; text-align: right; font-weight: bold;">${commissions?.summary.total_units_commissioned}</td>
+          </tr>
+        </table>
+        
+        <h2 style="font-size: 18px; margin-top: 20px; margin-bottom: 10px;">Top Items</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #f5f5f5; border-bottom: 2px solid #333;">
+              <th style="padding: 8px; text-align: left;">Item</th>
+              <th style="padding: 8px; text-align: left;">SKU</th>
+              <th style="padding: 8px; text-align: right;">Units</th>
+              <th style="padding: 8px; text-align: right;">Commission</th>
+              <th style="padding: 8px; text-align: right;">Sales</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${commissions?.top_items.map((item) => `
+              <tr style="border-bottom: 1px solid #ddd;">
+                <td style="padding: 8px;">${item.name}</td>
+                <td style="padding: 8px;">${item.sku || '-'}</td>
+                <td style="padding: 8px; text-align: right;">${item.quantity}</td>
+                <td style="padding: 8px; text-align: right;">₦${item.commission.toLocaleString()}</td>
+                <td style="padding: 8px; text-align: right;">${item.sales}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      
+      document.body.appendChild(element);
+      const canvas = await html2canvas(element);
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF();
+      const imgWidth = 190;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pdf.internal.pageSize.getHeight();
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+      }
+      
+      pdf.save(`commission-report-${new Date().toISOString().split('T')[0]}.pdf`);
+      document.body.removeChild(element);
+      setShowExportMenu(false);
+    } catch (error) {
+      console.error('Error exporting to PDF:', error);
+    }
   };
 
   if (loading) {
@@ -125,17 +260,45 @@ export default function CommissionStaffPage() {
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Commission Management</h1>
           <p className="text-gray-600 dark:text-gray-400">Track all your commissions and earnings</p>
         </div>
-        <button
-          onClick={handleExport}
-          className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-        >
-          <Download className="w-4 h-4" />
-          <span>Export Report</span>
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export Report</span>
+            <ChevronDown className="w-4 h-4" />
+          </button>
+          {showExportMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+              <button
+                onClick={handleExportCSV}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white flex items-center space-x-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export as CSV</span>
+              </button>
+              <button
+                onClick={handleExportExcel}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white flex items-center space-x-2 border-t border-gray-200 dark:border-gray-700"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export as Excel</span>
+              </button>
+              <button
+                onClick={handleExportPDF}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white flex items-center space-x-2 border-t border-gray-200 dark:border-gray-700"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export as PDF</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={DollarSign}
           title="Total Commission"
