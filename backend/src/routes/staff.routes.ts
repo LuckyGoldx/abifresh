@@ -1001,4 +1001,91 @@ router.get('/store/sales-history', authMiddleware, async (req: AuthRequest, res:
   }
 });
 
+/**
+ * Get comprehensive commission data for commission staff
+ */
+router.get('/commissions/details', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    // Check if user is commission staff
+    const isCommissionStaff = ['commission_staff', 'staff_commission'].includes(req.user!.role || '');
+    
+    if (!isCommissionStaff) {
+      return res.status(403).json({ error: 'Not a commission staff member' });
+    }
+
+    // Get all sales with commission details
+    const { data: sales } = await supabaseAdmin
+      .from('staff_sales')
+      .select('*, items:item_id(name, sku, commission)')
+      .eq('staff_id', req.user!.id)
+      .order('sale_date', { ascending: false });
+
+    // Get total and paid commission from payments
+    const { data: commissionPayments } = await supabaseAdmin
+      .from('staff_payments')
+      .select('amount, approved_date')
+      .eq('staff_id', req.user!.id)
+      .eq('payment_type', 'commission')
+      .eq('status', 'approved');
+
+    // Calculate totals
+    const totalCommissionGenerated = sales?.reduce((sum, s) => sum + (s.commission_amount || 0), 0) || 0;
+    const totalCommissionPaid = commissionPayments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+    const totalItemsSold = sales?.length || 0;
+    const totalUnitsCommissioned = sales?.reduce((sum, s) => sum + (s.quantity || 0), 0) || 0;
+    const pendingCommission = totalCommissionGenerated - totalCommissionPaid;
+
+    // Top performing items
+    const itemPerformance = sales?.reduce((acc: any, sale: any) => {
+      const itemName = sale.items?.name || 'Unknown';
+      const existing = acc.find((i: any) => i.name === itemName);
+      if (existing) {
+        existing.quantity += sale.quantity || 0;
+        existing.commission += sale.commission_amount || 0;
+        existing.sales += 1;
+      } else {
+        acc.push({
+          name: itemName,
+          sku: sale.items?.sku,
+          quantity: sale.quantity || 0,
+          commission: sale.commission_amount || 0,
+          sales: 1,
+          rate: sale.items?.commission || 0,
+        });
+      }
+      return acc;
+    }, [])?.sort((a: any, b: any) => b.commission - a.commission) || [];
+
+    // Commission by month (last 12 months)
+    const currentDate = new Date();
+    const monthlyCommission: any = {};
+    
+    sales?.forEach((sale: any) => {
+      const saleDate = new Date(sale.sale_date);
+      const monthKey = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
+      monthlyCommission[monthKey] = (monthlyCommission[monthKey] || 0) + (sale.commission_amount || 0);
+    });
+
+    res.json({
+      summary: {
+        total_commission_generated: totalCommissionGenerated,
+        total_commission_paid: totalCommissionPaid,
+        pending_commission: pendingCommission,
+        total_items_sold: totalItemsSold,
+        total_units_commissioned: totalUnitsCommissioned,
+      },
+      commissions: commissionPayments?.map((p: any) => ({
+        amount: p.amount,
+        approved_date: p.approved_date,
+      })) || [],
+      sales: sales || [],
+      top_items: itemPerformance,
+      monthly_commission: monthlyCommission,
+    });
+  } catch (error: any) {
+    console.error('Error fetching commission details:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 export default router;
