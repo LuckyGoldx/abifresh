@@ -100,25 +100,39 @@ export class InventoryService {
     unitPrice: number,
     sku: string,
     quantity: number = 0,
-    commission: number = 0
+    commission: number = 0,
+    extra: {
+      brand?: string;
+      package_type?: string;
+      price_jalingo?: number;
+      price_outside?: number;
+      image_url?: string;
+    } = {}
   ): Promise<any> {
-    console.log('🔧 addItem called:', { name, sku, quantity, commission });
+    console.log('🔧 addItem called:', { name, sku, quantity, commission, ...extra });
     
     // Insert into items table with store quantities
+    const insertData: any = {
+      name,
+      category,
+      unit_price: unitPrice,
+      sku,
+      commission,
+      main_store_quantity: quantity,
+      active_store_quantity: 0,
+      is_available: true,
+    };
+
+    // Add extra fields if provided
+    if (extra.brand) insertData.brand = extra.brand;
+    if (extra.package_type) insertData.package_type = extra.package_type;
+    if (extra.price_jalingo !== undefined) insertData.price_jalingo = extra.price_jalingo;
+    if (extra.price_outside !== undefined) insertData.price_outside = extra.price_outside;
+    if (extra.image_url) insertData.image_url = extra.image_url;
+
     const { data: itemData, error: itemError } = await supabaseAdmin
       .from('items')
-      .insert([
-        {
-          name,
-          category,
-          unit_price: unitPrice,
-          sku,
-          commission,
-          main_store_quantity: quantity,
-          active_store_quantity: 0,
-          is_available: true,
-        },
-      ])
+      .insert([insertData])
       .select()
       .single();
 

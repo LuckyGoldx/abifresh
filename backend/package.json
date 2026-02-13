@@ -20,6 +20,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
     "@types/express-fileupload": "^1.5.1",
+    "@types/multer": "^2.0.0",
     "axios": "^1.6.0",
     "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
@@ -28,7 +29,8 @@
     "express-fileupload": "^1.5.2",
     "express-validator": "^7.0.0",
     "helmet": "^7.0.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.0",

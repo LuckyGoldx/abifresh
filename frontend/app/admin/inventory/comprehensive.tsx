@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { Plus, Edit2, Trash2, ChevronRight, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronRight, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { PRODUCT_CATALOG, getBrandNames, getPackageTypes, getProductVariants, getBrandCategory, isOthersBrand } from '@/lib/productCatalog';
+import type { ProductVariant } from '@/lib/productCatalog';
 
 interface Item {
   id: string;
@@ -15,6 +17,11 @@ interface Item {
   active_store_quantity: number;
   quantity_sold: number;
   commission: number;
+  brand?: string;
+  package_type?: string;
+  price_jalingo?: number;
+  price_outside?: number;
+  image_url?: string;
   created_at: string;
 }
 
@@ -54,6 +61,11 @@ export default function ComprehensiveInventoryPage() {
     main_store_quantity: 0,
     commission: 0,
     quantity_mode: 'add' as 'add' | 'update',
+    brand: '',
+    package_type: '',
+    price_jalingo: 0,
+    price_outside: 0,
+    image_url: '',
   });
 
   const [transferData, setTransferData] = useState({
@@ -152,6 +164,11 @@ export default function ComprehensiveInventoryPage() {
           unit_price: formData.unit_price,
           quantity: quantityToAdd,
           commission: formData.commission || 0,
+          brand: formData.brand || undefined,
+          package_type: formData.package_type || undefined,
+          price_jalingo: formData.price_jalingo || 0,
+          price_outside: formData.price_outside || 0,
+          image_url: formData.image_url || undefined,
         }),
       });
 
@@ -210,6 +227,11 @@ export default function ComprehensiveInventoryPage() {
           unit_price: formData.unit_price,
           main_store_quantity: newMainQty,
           commission: formData.commission || 0,
+          brand: formData.brand || undefined,
+          package_type: formData.package_type || undefined,
+          price_jalingo: formData.price_jalingo || 0,
+          price_outside: formData.price_outside || 0,
+          image_url: formData.image_url || undefined,
         }),
       });
 
@@ -281,6 +303,11 @@ export default function ComprehensiveInventoryPage() {
       main_store_quantity: 0,
       commission: 0,
       quantity_mode: 'add',
+      brand: '',
+      package_type: '',
+      price_jalingo: 0,
+      price_outside: 0,
+      image_url: '',
     });
   };
 
@@ -345,6 +372,11 @@ export default function ComprehensiveInventoryPage() {
       main_store_quantity: 0,
       commission: item.commission || 0,
       quantity_mode: 'add',
+      brand: item.brand || '',
+      package_type: item.package_type || '',
+      price_jalingo: item.price_jalingo || 0,
+      price_outside: item.price_outside || 0,
+      image_url: item.image_url || '',
     });
     setModalType('edit');
   };
@@ -659,8 +691,8 @@ export default function ComprehensiveInventoryPage() {
       </div>
 
       {/* Modals */}
-      {modalType === 'add' && <AddEditModal type="add" formData={formData} setFormData={setFormData} onSubmit={handleAddItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} />}
-      {modalType === 'edit' && <AddEditModal type="edit" formData={formData} setFormData={setFormData} onSubmit={handleEditItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} />}
+      {modalType === 'add' && <AddEditModal type="add" formData={formData} setFormData={setFormData} onSubmit={handleAddItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} />}
+      {modalType === 'edit' && <AddEditModal type="edit" formData={formData} setFormData={setFormData} onSubmit={handleEditItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} />}
       {modalType === 'transfer' && selectedItem && (
         <TransferModal item={selectedItem} transferData={transferData} setTransferData={setTransferData} onSubmit={handleTransfer} onClose={() => setModalType(null)} />
       )}
@@ -699,6 +731,7 @@ function AddEditModal({
   onSubmit,
   onClose,
   onNameChange,
+  token,
 }: {
   type: 'add' | 'edit';
   formData: any;
@@ -706,10 +739,106 @@ function AddEditModal({
   onSubmit: () => void;
   onClose: () => void;
   onNameChange: (name: string) => void;
+  token: string | null;
 }) {
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(formData.image_url || null);
+
+  // Cascading dropdown state
+  const brandNames = getBrandNames();
+  const isOthers = isOthersBrand(formData.brand);
+  const packageTypes = formData.brand && !isOthers ? getPackageTypes(formData.brand) : [];
+  const productVariants = formData.brand && formData.package_type && !isOthers
+    ? getProductVariants(formData.brand, formData.package_type)
+    : [];
+
+  const handleBrandChange = (brand: string) => {
+    const category = getBrandCategory(brand);
+    setFormData({
+      ...formData,
+      brand,
+      package_type: '',
+      name: '',
+      sku: '',
+      category: category || formData.category,
+      price_jalingo: 0,
+      price_outside: 0,
+    });
+  };
+
+  const handlePackageChange = (packageType: string) => {
+    setFormData({
+      ...formData,
+      package_type: packageType,
+      name: '',
+      sku: '',
+      price_jalingo: 0,
+      price_outside: 0,
+    });
+  };
+
+  const handleVariantChange = (variantName: string) => {
+    const variant = productVariants.find((v) => v.name === variantName);
+    const sku = generateSKUFromName(variantName);
+    setFormData({
+      ...formData,
+      name: variantName,
+      sku,
+      unit_price: variant?.priceJalingo || formData.unit_price,
+      price_jalingo: variant?.priceJalingo || 0,
+      price_outside: variant?.priceOutside || 0,
+    });
+  };
+
+  const generateSKUFromName = (name: string) => {
+    if (!name || name.trim().length === 0) return '';
+    // Generate SKU: first 3 chars uppercase + dash + 3-digit hash
+    const clean = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const abbrev = clean.substring(0, 3);
+    const hash = Math.abs(name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 900 + 100);
+    return `${abbrev}-${hash}`;
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Preview
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    // Upload
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+
+      const res = await fetch('http://localhost:5000/api/inventory/upload-image', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: fd,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Upload failed');
+      }
+
+      const { url } = await res.json();
+      setFormData({ ...formData, image_url: url });
+    } catch (err: any) {
+      console.error('Image upload error:', err);
+      alert('Failed to upload image: ' + err.message);
+      setImagePreview(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-screen overflow-y-auto flex flex-col p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto flex flex-col p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{type === 'add' ? 'Add New Item' : 'Edit Item'}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -718,16 +847,85 @@ function AddEditModal({
         </div>
 
         <div className="space-y-4 flex-grow overflow-y-auto">
+          {/* Level 1: Brand */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Name</label>
-            <input
-              type="text"
-              placeholder="Item Name"
-              value={formData.name}
-              onChange={(e) => onNameChange(e.target.value)}
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brand</label>
+            <select
+              value={formData.brand}
+              onChange={(e) => handleBrandChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-            />
+            >
+              <option value="">-- Select Brand --</option>
+              {brandNames.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
           </div>
+
+          {/* Level 2: Package Type */}
+          {formData.brand && !isOthers && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Package Type</label>
+              <select
+                value={formData.package_type}
+                onChange={(e) => handlePackageChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">-- Select Package Type --</option>
+                {packageTypes.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Level 2 & 3 text inputs for "OTHERS" */}
+          {isOthers && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Package Type</label>
+                <input
+                  type="text"
+                  placeholder="Enter package type"
+                  value={formData.package_type}
+                  onChange={(e) => setFormData({ ...formData, package_type: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Name</label>
+                <input
+                  type="text"
+                  placeholder="Enter product name"
+                  value={formData.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setFormData({ ...formData, name, sku: generateSKUFromName(name) });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Level 3: Product Variant */}
+          {formData.brand && formData.package_type && !isOthers && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Specific Product Name</label>
+              <select
+                value={formData.name}
+                onChange={(e) => handleVariantChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">-- Select Product --</option>
+                {productVariants.map((v) => (
+                  <option key={v.name} value={v.name}>{v.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* SKU (Auto-generated) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SKU (Auto-generated)</label>
             <input
@@ -738,11 +936,65 @@ function AddEditModal({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-600 dark:text-gray-400"
             />
           </div>
+
+          {/* Category (auto-filled from brand, editable) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price (₦)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+            <input
+              type="text"
+              placeholder="Enter category"
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          {/* Price in Jalingo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PRICE/CTN/BAG IN JALINGO (₦)</label>
             <input
               type="number"
-              placeholder="Enter price"
+              placeholder="Enter price in Jalingo"
+              min="0"
+              step="0.01"
+              value={formData.price_jalingo || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '' || !isNaN(Number(val))) {
+                  setFormData({ ...formData, price_jalingo: val ? parseFloat(val) : 0 });
+                }
+              }}
+              onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          {/* Price Outside Jalingo */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PRICE/CTN/BAG OUTSIDE JALINGO (₦)</label>
+            <input
+              type="number"
+              placeholder="Enter price outside Jalingo"
+              min="0"
+              step="0.01"
+              value={formData.price_outside || ''}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === '' || !isNaN(Number(val))) {
+                  setFormData({ ...formData, price_outside: val ? parseFloat(val) : 0 });
+                }
+              }}
+              onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          {/* Unit Price (general price field) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit Price (₦)</label>
+            <input
+              type="number"
+              placeholder="Enter unit price"
               min="0"
               step="0.01"
               value={formData.unit_price || ''}
@@ -752,14 +1004,12 @@ function AddEditModal({
                   setFormData({ ...formData, unit_price: val ? parseFloat(val) : 0 });
                 }
               }}
-              onKeyDown={(e) => {
-                if (['-', '+', 'e', 'E'].includes(e.key)) {
-                  e.preventDefault();
-                }
-              }}
+              onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
           </div>
+
+          {/* Quantity Mode (edit only) */}
           {type === 'edit' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity Mode</label>
@@ -778,6 +1028,8 @@ function AddEditModal({
               </p>
             </div>
           )}
+
+          {/* Quantity */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {type === 'add' ? 'Quantity (Main Store)' : formData.quantity_mode === 'add' ? 'Add Quantity' : 'New Quantity'}
@@ -794,31 +1046,19 @@ function AddEditModal({
                   setFormData({ ...formData, main_store_quantity: val ? parseInt(val) : 0 });
                 }
               }}
-              onKeyDown={(e) => {
-                if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
-                  e.preventDefault();
-                }
-              }}
+              onKeyDown={(e) => { if (['-', '+', 'e', 'E', '.'].includes(e.key)) e.preventDefault(); }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {type === 'add' 
-                ? 'All quantity goes to Main Store. Total = Active Store + Main Store' 
+                ? 'All quantity goes to Main Store.' 
                 : formData.quantity_mode === 'add'
                 ? 'This amount will be added to existing Main Store quantity'
                 : 'This amount will replace existing Main Store quantity'}
             </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
-            <input
-              type="text"
-              placeholder="Enter category"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-            />
-          </div>
+
+          {/* Commission */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Commission</label>
             <input
@@ -833,13 +1073,45 @@ function AddEditModal({
                   setFormData({ ...formData, commission: val ? parseFloat(val) : 0 });
                 }
               }}
-              onKeyDown={(e) => {
-                if (['-', '+', 'e', 'E'].includes(e.key)) {
-                  e.preventDefault();
-                }
-              }}
+              onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             />
+          </div>
+
+          {/* Product Image Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product Image</label>
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
+              {imagePreview ? (
+                <div className="relative">
+                  <img src={imagePreview} alt="Product preview" className="w-full h-40 object-contain rounded-lg" />
+                  <button
+                    onClick={() => {
+                      setImagePreview(null);
+                      setFormData({ ...formData, image_url: '' });
+                    }}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center cursor-pointer py-4">
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {uploading ? 'Uploading...' : 'Click to upload image'}
+                  </span>
+                  <span className="text-xs text-gray-400 mt-1">JPEG, PNG, WebP, GIF (max 5MB)</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleImageUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
           </div>
         </div>
 
@@ -852,7 +1124,8 @@ function AddEditModal({
           </button>
           <button
             onClick={onSubmit}
-            className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700"
+            disabled={uploading}
+            className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50"
           >
             {type === 'add' ? 'Add' : 'Update'}
           </button>

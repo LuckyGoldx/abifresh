@@ -1,8 +1,24 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
 import { inventoryService } from '../services/inventory.service';
+import { supabaseAdmin } from '../config/supabase';
+import multer from 'multer';
 
 const router = Router();
+
+// Configure multer for memory storage (we'll upload to Supabase Storage)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, WebP, and GIF images are allowed'));
+    }
+  },
+});
 
 /**
  * Get all items (accessible by all authenticated users)
@@ -52,9 +68,9 @@ router.get('/items/:id', authMiddleware, async (req: AuthRequest, res: Response)
  */
 router.post('/items', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    const { name, category, unit_price, sku, quantity, commission } = req.body;
+    const { name, category, unit_price, sku, quantity, commission, brand, package_type, price_jalingo, price_outside, image_url } = req.body;
     
-    console.log('📝 POST /items - Adding new item:', { name, sku, quantity, commission });
+    console.log('📝 POST /items - Adding new item:', { name, sku, quantity, commission, brand, package_type });
 
     if (!name || !category || unit_price === undefined || !sku) {
       return res.status(400).json({ error: 'Missing required fields: name, category, unit_price, sku' });
@@ -66,7 +82,8 @@ router.post('/items', authMiddleware, roleMiddleware('admin'), async (req: AuthR
       unit_price,
       sku,
       quantity || 0,
-      commission || 0
+      commission || 0,
+      { brand, package_type, price_jalingo, price_outside, image_url }
     );
 
     console.log('✅ Item added successfully:', item.id);
@@ -92,6 +109,11 @@ router.put('/items/:id', authMiddleware, roleMiddleware('admin'), async (req: Au
     if (sku !== undefined) updates.sku = sku;
     if (commission !== undefined) updates.commission = commission;
     if (main_store_quantity !== undefined) updates.main_store_quantity = main_store_quantity;
+    if (req.body.brand !== undefined) updates.brand = req.body.brand;
+    if (req.body.package_type !== undefined) updates.package_type = req.body.package_type;
+    if (req.body.price_jalingo !== undefined) updates.price_jalingo = req.body.price_jalingo;
+    if (req.body.price_outside !== undefined) updates.price_outside = req.body.price_outside;
+    if (req.body.image_url !== undefined) updates.image_url = req.body.image_url;
 
     const item = await inventoryService.editItem(id, updates);
     res.json(item);
@@ -207,6 +229,46 @@ router.get('/unavailable', authMiddleware, async (req: AuthRequest, res: Respons
     const items = await inventoryService.getUnavailableItems();
     res.json(items);
   } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Upload product image to Supabase Storage
+ */
+router.post('/upload-image', authMiddleware, roleMiddleware('admin'), upload.single('image'), async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    const file = req.file;
+    const fileExt = file.originalname.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `products/${fileName}`;
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabaseAdmin.storage
+      .from('product-images')
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('❌ Storage upload error:', error);
+      throw error;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabaseAdmin.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    console.log('✅ Image uploaded:', urlData.publicUrl);
+    res.json({ url: urlData.publicUrl });
+  } catch (error: any) {
+    console.error('❌ Image upload error:', error.message);
     res.status(400).json({ error: error.message });
   }
 });
