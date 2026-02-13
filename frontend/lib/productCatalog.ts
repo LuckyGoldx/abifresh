@@ -2,8 +2,8 @@
  * ABIFRESH Product Catalog - Cascading Dropdown Data
  * Brand (Level 1) → Package Type (Level 2) → Specific Product Name (Level 3)
  * 
- * All names are EXACT as they appear in the ABIFRESH PRODUCTS PDF.
- * DO NOT alter, change, or "fix" any name — they must match the PDF exactly.
+ * All names are EXACT as they appear in the ABIFRESH PRODUCTS Excel sheet.
+ * DO NOT alter, change, or "fix" any name — they must match the Excel exactly.
  */
 
 export interface ProductVariant {
@@ -157,7 +157,7 @@ export const PRODUCT_CATALOG: Brand[] = [
     category: 'Sanitary Pads',
     packages: [
       {
-        name: 'BLUE MEGA MIX 18+7+5',
+        name: 'BLUE MEGA MIX18+7+5',
         variants: [
           { name: 'BESENSE BLUE MEGA MIX 30 PCS ZIP PAD', priceJalingo: 39900, priceOutside: 41100 },
         ],
@@ -219,7 +219,7 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'BOX PACK AFRICAN TRADITIONAL 18+7+5 ATZIP',
         variants: [
-          { name: 'ZIP PACK AFRICAN TRADITIONAL BY 30 PC', priceJalingo: 39900, priceOutside: 39900 },
+          { name: 'ZIP PACK AFRICAN TRADITIONAL BY 30 PCS', priceJalingo: 39900, priceOutside: 39900 },
         ],
       },
       {
@@ -249,13 +249,13 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'JUSTFIT ZIP PACK 19+7+5',
         variants: [
-          { name: 'JUSTFIT ZIP PAD BY 30PCS', priceJalingo: 37000, priceOutside: 37200 },
+          { name: 'JUSTFIT ZIP PAD BY 30 PCS', priceJalingo: 37000, priceOutside: 37200 },
         ],
       },
       {
         name: 'BESENSE PANTY LINER',
         variants: [
-          { name: 'PANTY LINERS BY 30PCS', priceJalingo: 30000, priceOutside: 30200 },
+          { name: 'PANTY LINERS BY 30 PCS', priceJalingo: 30000, priceOutside: 30200 },
         ],
       },
       {
@@ -327,7 +327,7 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'ANGEL GREEN BY 7 AND 8',
         variants: [
-          { name: 'ANGEL BY 7&8PCS', priceJalingo: 5500, priceOutside: 0 },
+          { name: 'ANGEL BY 7 &8 PCS', priceJalingo: 5500, priceOutside: 0 },
         ],
       },
     ],
@@ -383,7 +383,7 @@ export const PRODUCT_CATALOG: Brand[] = [
     category: 'Adult Diapers',
     packages: [
       {
-        name: 'ADULT MEDIUM/LARGE/XTRA LARGE',
+        name: 'ADULT MEDIUM/LARGE/XTRAL LARGE',
         variants: [
           { name: 'ADULT M/L/XL', priceJalingo: 72000, priceOutside: 0 },
         ],
@@ -409,7 +409,7 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'HAND SANITIZING WIPES',
         variants: [
-          { name: 'HAND SANITIZING WIPES', priceJalingo: 11000, priceOutside: 0 },
+          { name: 'HANDSANITIZING WIPES', priceJalingo: 11000, priceOutside: 0 },
         ],
       },
     ],
