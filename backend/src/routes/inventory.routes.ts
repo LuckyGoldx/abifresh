@@ -2,23 +2,8 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
 import { inventoryService } from '../services/inventory.service';
 import { supabaseAdmin } from '../config/supabase';
-import multer from 'multer';
 
 const router = Router();
-
-// Configure multer for memory storage (we'll upload to Supabase Storage)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (_req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only JPEG, PNG, WebP, and GIF images are allowed'));
-    }
-  },
-});
 
 /**
  * Get all items (accessible by all authenticated users)
@@ -236,28 +221,50 @@ router.get('/unavailable', authMiddleware, async (req: AuthRequest, res: Respons
 /**
  * Upload product image to Supabase Storage
  */
-router.post('/upload-image', authMiddleware, roleMiddleware('admin'), upload.single('image'), async (req: AuthRequest, res: Response) => {
+router.post('/upload-image', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.file) {
+    // express-fileupload stores files in req.files
+    if (!req.files || !req.files.image) {
+      console.warn('⚠️  No image file provided in upload request');
       return res.status(400).json({ error: 'No image file provided' });
     }
 
-    const file = req.file;
-    const fileExt = file.originalname.split('.').pop();
+    const file = Array.isArray(req.files.image) ? req.files.image[0] : req.files.image;
+    
+    console.log(`📸 Image upload started: ${file.name} (${file.size} bytes)`);
+
+    // Validate file type
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.mimetype)) {
+      return res.status(400).json({ error: 'Only JPEG, PNG, WebP, and GIF images are allowed' });
+    }
+
+    // Validate file size (5MB = 5242880 bytes)
+    if (file.size > 5 * 1024 * 1024) {
+      return res.status(400).json({ error: 'File size must be less than 5MB' });
+    }
+
+    const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     const filePath = `products/${fileName}`;
 
     // Upload to Supabase Storage
+    console.log(`📤 Uploading to Supabase Storage: ${filePath}`);
+    
     const { data, error } = await supabaseAdmin.storage
       .from('product-images')
-      .upload(filePath, file.buffer, {
+      .upload(filePath, file.data, {
         contentType: file.mimetype,
         upsert: false,
       });
 
     if (error) {
-      console.error('❌ Storage upload error:', error);
-      throw error;
+      console.error('❌ Storage upload failed:', {
+        message: error.message,
+        statusCode: error.statusCode,
+        error: error,
+      });
+      throw new Error(`Storage upload failed: ${error.message}`);
     }
 
     // Get public URL
@@ -265,11 +272,18 @@ router.post('/upload-image', authMiddleware, roleMiddleware('admin'), upload.sin
       .from('product-images')
       .getPublicUrl(filePath);
 
-    console.log('✅ Image uploaded:', urlData.publicUrl);
+    if (!urlData || !urlData.publicUrl) {
+      throw new Error('Failed to get public URL for uploaded image');
+    }
+
+    console.log('✅ Image uploaded successfully:', urlData.publicUrl);
     res.json({ url: urlData.publicUrl });
   } catch (error: any) {
-    console.error('❌ Image upload error:', error.message);
-    res.status(400).json({ error: error.message });
+    console.error('❌ Image upload error:', {
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+    });
+    res.status(400).json({ error: error.message || 'Image upload failed' });
   }
 });
 

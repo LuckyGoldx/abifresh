@@ -16,6 +16,7 @@ import receiptsRoutes from './routes/receipts.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import testRoutes from './routes/test.routes';
 import { supabaseAdmin } from './config/supabase';
+import { initializeStorageBuckets } from './config/storage-init';
 
 // Initialize Express app
 const app = express();
@@ -104,6 +105,21 @@ app.use((req: Request, res: Response) => {
 
 // Global error handler
 app.use((err: any, req: Request, res: Response) => {
+  console.error('❌ Global Error Handler:', err);
+  
+  // Handle multer errors
+  if (err.name === 'MulterError') {
+    console.error('MulterError:', err.message);
+    return res.status(400).json({ error: `File upload error: ${err.message}` });
+  }
+  
+  // Handle file upload validation errors
+  if (err.message && err.message.includes('Only')) {
+    console.error('File filter error:', err.message);
+    return res.status(400).json({ error: err.message });
+  }
+  
+  // Generic error
   console.error('Error:', err);
   res.status(500).json({
     error: 'Internal server error',
@@ -112,10 +128,13 @@ app.use((err: any, req: Request, res: Response) => {
 });
 
 // Start server with error handling
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  
+  // Initialize storage buckets
+  await initializeStorageBuckets();
 });
 
 // Handle server errors

@@ -73,6 +73,9 @@ export default function ComprehensiveInventoryPage() {
     direction: 'main-to-active' as 'main-to-active' | 'active-to-main',
   });
 
+  // Image preview state
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -309,6 +312,7 @@ export default function ComprehensiveInventoryPage() {
       price_outside: 0,
       image_url: '',
     });
+    setImagePreview(null);
   };
 
   // Auto-generate SKU from item name
@@ -378,6 +382,8 @@ export default function ComprehensiveInventoryPage() {
       price_outside: item.price_outside || 0,
       image_url: item.image_url || '',
     });
+    // Set image preview for editing
+    setImagePreview(item.image_url || null);
     setModalType('edit');
   };
 
@@ -586,9 +592,14 @@ export default function ComprehensiveInventoryPage() {
             <table className="w-full">
               <thead className="bg-gray-100 dark:bg-gray-700 border-b dark:border-gray-600">
                 <tr>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Image</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Item Name</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Package Type</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Brand</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">SKU</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Category</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Price Jalingo</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Price Outside</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">Price (₦)</th>
                   <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-200">Quantity</th>
                   <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 dark:text-gray-200">Active</th>
@@ -620,9 +631,29 @@ export default function ComprehensiveInventoryPage() {
 
                   return (
                     <tr key={item.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      {/* Image Column - First */}
+                      <td className="px-4 py-3 text-center">
+                        {item.image_url ? (
+                          <img 
+                            src={item.image_url} 
+                            alt={item.name}
+                            className="w-12 h-12 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                            <span className="text-xs text-gray-600 dark:text-gray-400 font-semibold">
+                              {item.name.toUpperCase().substring(0, 2)}
+                            </span>
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 font-medium">{item.name}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{item.package_type || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{item.brand || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{item.sku}</td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{item.category}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">₦{(item.price_jalingo || 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">₦{(item.price_outside || 0).toLocaleString()}</td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">₦{item.unit_price.toLocaleString()}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-sm font-semibold">
@@ -691,8 +722,8 @@ export default function ComprehensiveInventoryPage() {
       </div>
 
       {/* Modals */}
-      {modalType === 'add' && <AddEditModal type="add" formData={formData} setFormData={setFormData} onSubmit={handleAddItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} />}
-      {modalType === 'edit' && <AddEditModal type="edit" formData={formData} setFormData={setFormData} onSubmit={handleEditItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} />}
+      {modalType === 'add' && <AddEditModal type="add" formData={formData} setFormData={setFormData} imagePreview={imagePreview} setImagePreview={setImagePreview} onSubmit={handleAddItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} />}
+      {modalType === 'edit' && <AddEditModal type="edit" formData={formData} setFormData={setFormData} imagePreview={imagePreview} setImagePreview={setImagePreview} onSubmit={handleEditItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} />}
       {modalType === 'transfer' && selectedItem && (
         <TransferModal item={selectedItem} transferData={transferData} setTransferData={setTransferData} onSubmit={handleTransfer} onClose={() => setModalType(null)} />
       )}
@@ -728,6 +759,8 @@ function AddEditModal({
   type,
   formData,
   setFormData,
+  imagePreview,
+  setImagePreview,
   onSubmit,
   onClose,
   onNameChange,
@@ -736,13 +769,14 @@ function AddEditModal({
   type: 'add' | 'edit';
   formData: any;
   setFormData: (data: any) => void;
+  imagePreview: string | null;
+  setImagePreview: (preview: string | null) => void;
   onSubmit: () => void;
   onClose: () => void;
   onNameChange: (name: string) => void;
   token: string | null;
 }) {
   const [uploading, setUploading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(formData.image_url || null);
 
   // Cascading dropdown state
   const brandNames = getBrandNames();
@@ -841,7 +875,7 @@ function AddEditModal({
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto flex flex-col p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{type === 'add' ? 'Add New Item' : 'Edit Item'}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={() => { setImagePreview(null); onClose(); }} className="text-gray-500 hover:text-gray-700">
             <X size={24} />
           </button>
         </div>
@@ -1117,7 +1151,7 @@ function AddEditModal({
 
         <div className="flex gap-3 mt-6 pt-4 border-t dark:border-gray-700">
           <button
-            onClick={onClose}
+            onClick={() => { setImagePreview(null); onClose(); }}
             className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel

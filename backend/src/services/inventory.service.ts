@@ -157,6 +157,11 @@ export class InventoryService {
     main_store_quantity?: number;
     active_store_quantity?: number;
     commission?: number;
+    brand?: string;
+    package_type?: string;
+    price_jalingo?: number;
+    price_outside?: number;
+    image_url?: string;
   }): Promise<any> {
     const itemUpdates: any = {};
 
@@ -167,6 +172,11 @@ export class InventoryService {
     if (updates.commission !== undefined) itemUpdates.commission = updates.commission;
     if (updates.main_store_quantity !== undefined) itemUpdates.main_store_quantity = updates.main_store_quantity;
     if (updates.active_store_quantity !== undefined) itemUpdates.active_store_quantity = updates.active_store_quantity;
+    if (updates.brand !== undefined) itemUpdates.brand = updates.brand;
+    if (updates.package_type !== undefined) itemUpdates.package_type = updates.package_type;
+    if (updates.price_jalingo !== undefined) itemUpdates.price_jalingo = updates.price_jalingo;
+    if (updates.price_outside !== undefined) itemUpdates.price_outside = updates.price_outside;
+    if (updates.image_url !== undefined) itemUpdates.image_url = updates.image_url;
 
     // Update items table
     if (Object.keys(itemUpdates).length > 0) {
