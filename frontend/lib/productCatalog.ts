@@ -3,6 +3,7 @@
  * Brand (Level 1) → Package Type (Level 2) → Specific Product Name (Level 3)
  * 
  * All names are EXACT as they appear in the ABIFRESH PRODUCTS PDF.
+ * DO NOT alter, change, or "fix" any name — they must match the PDF exactly.
  */
 
 export interface ProductVariant {
@@ -61,10 +62,10 @@ export const PRODUCT_CATALOG: Brand[] = [
         name: 'LEBRACE JUMBO PACK',
         variants: [
           { name: 'LEB JUMBO PACK SI', priceJalingo: 26700, priceOutside: 27000 },
-          { name: 'LEB JUMBO PACKS 2', priceJalingo: 26700, priceOutside: 27000 },
-          { name: 'LEB JUMBO PACKS 3', priceJalingo: 26700, priceOutside: 27000 },
-          { name: 'LEB JUMBO PACKS 4', priceJalingo: 26700, priceOutside: 27000 },
-          { name: 'LEB JUMBO PACKS 5', priceJalingo: 26700, priceOutside: 27000 },
+          { name: 'LEB JUMBO PACK S2', priceJalingo: 26700, priceOutside: 27000 },
+          { name: 'LEB JUMBO PACK S3', priceJalingo: 26700, priceOutside: 27000 },
+          { name: 'LEB JUMBO PACK S4', priceJalingo: 26700, priceOutside: 27000 },
+          { name: 'LEB JUMBO PACK S5', priceJalingo: 26700, priceOutside: 27000 },
         ],
       },
     ],
@@ -132,21 +133,21 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'JUSTFIT ECO PACK',
         variants: [
-          { name: 'JUSTFIT ECO PACKS 1', priceJalingo: 17300, priceOutside: 17600 },
-          { name: 'JUSTFIT ECO PACKS 2', priceJalingo: 17300, priceOutside: 17600 },
-          { name: 'JUSTFIT ECO PACKS 3', priceJalingo: 17300, priceOutside: 17600 },
-          { name: 'JUSTFIT ECO PACKS 4', priceJalingo: 17300, priceOutside: 17600 },
-          { name: 'JUSTFIT ECO PACKS 5', priceJalingo: 17300, priceOutside: 17600 },
+          { name: 'JUSTFIT ECO PACK S1', priceJalingo: 17300, priceOutside: 17600 },
+          { name: 'JUSTFIT ECO PACK S2', priceJalingo: 17300, priceOutside: 17600 },
+          { name: 'JUSTFIT ECO PACK S3', priceJalingo: 17300, priceOutside: 17600 },
+          { name: 'JUSTFIT ECO PACK S4', priceJalingo: 17300, priceOutside: 17600 },
+          { name: 'JUSTFIT ECO PACK S5', priceJalingo: 17300, priceOutside: 17600 },
         ],
       },
       {
         name: 'JUSTFIT JUMBO PACK',
         variants: [
           { name: 'JUSTFIT JUMBO PACK SI', priceJalingo: 24600, priceOutside: 24900 },
-          { name: 'JUSTFIT JUMBO PACKS 2', priceJalingo: 24600, priceOutside: 24900 },
-          { name: 'JUSTFIT JUMBO PACKS 3', priceJalingo: 24600, priceOutside: 24900 },
-          { name: 'JUSTFIT JUMBO PACKS 4', priceJalingo: 24600, priceOutside: 24900 },
-          { name: 'JUSTFIT JUMBO PACKS 5', priceJalingo: 24600, priceOutside: 24900 },
+          { name: 'JUSTFIT JUMBO PACK S2', priceJalingo: 24600, priceOutside: 24900 },
+          { name: 'JUSTFIT JUMBO PACK S3', priceJalingo: 24600, priceOutside: 24900 },
+          { name: 'JUSTFIT JUMBO PACK S4', priceJalingo: 24600, priceOutside: 24900 },
+          { name: 'JUSTFIT JUMBO PACK S5', priceJalingo: 24600, priceOutside: 24900 },
         ],
       },
     ],
@@ -180,15 +181,15 @@ export const PRODUCT_CATALOG: Brand[] = [
         ],
       },
       {
-        name: 'ECOMIX 6+^+2',
+        name: 'ECO MIX 6+^+2',
         variants: [
-          { name: 'BESENSE ECOMIX BY 14 PCS', priceJalingo: 15000, priceOutside: 15700 },
+          { name: 'BESENSE ECO MIX BY 14PCS', priceJalingo: 15000, priceOutside: 15700 },
         ],
       },
       {
         name: 'KNIGHT USE HEAVY FLOW N10',
         variants: [
-          { name: 'BESENSE N10', priceJalingo: 11900, priceOutside: 12100 },
+          { name: 'DESENSE N10', priceJalingo: 11900, priceOutside: 12100 },
         ],
       },
       {
@@ -198,9 +199,9 @@ export const PRODUCT_CATALOG: Brand[] = [
         ],
       },
       {
-        name: 'BOX PACK AFRICAN TRADITIONAL 8+2 AT 10',
+        name: 'BOX PACK AFRICAN TRADITIONAL 8+2 AT10',
         variants: [
-          { name: 'AFRICAN TRADITIONAL BY 8+2 LINER', priceJalingo: 11500, priceOutside: 11700 },
+          { name: 'AFRICAN TRADITIONAL BY 8+2LINER', priceJalingo: 11500, priceOutside: 11700 },
         ],
       },
       {
@@ -216,9 +217,9 @@ export const PRODUCT_CATALOG: Brand[] = [
         ],
       },
       {
-        name: 'BOX PACK AFRICAN TRADITIONAL 18+7+5 AT ZIP',
+        name: 'BOX PACK AFRICAN TRADITIONAL 18+7+5 ATZIP',
         variants: [
-          { name: 'ZIP PACK AFRICAN TRADITIONAL BY 30 PCS', priceJalingo: 39900, priceOutside: 39900 },
+          { name: 'ZIP PACK AFRICAN TRADITIONAL BY 30 PC', priceJalingo: 39900, priceOutside: 39900 },
         ],
       },
       {
@@ -236,7 +237,7 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'POCKET SACHET PACK AT3',
         variants: [
-          { name: 'BESENSE POCKET PACK AT3 (P2+1 LINER)', priceJalingo: 4800, priceOutside: 5000 },
+          { name: 'BESENSE POCKET PACK AT3 (P2+ 1LINER)', priceJalingo: 4800, priceOutside: 5000 },
         ],
       },
     ],
@@ -248,13 +249,13 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'JUSTFIT ZIP PACK 19+7+5',
         variants: [
-          { name: 'JUSTFIT ZIP PAD BY 30 PCS', priceJalingo: 37000, priceOutside: 37200 },
+          { name: 'JUSTFIT ZIP PAD BY 30PCS', priceJalingo: 37000, priceOutside: 37200 },
         ],
       },
       {
         name: 'BESENSE PANTY LINER',
         variants: [
-          { name: 'PANTY LINERS BY 30 PCS', priceJalingo: 30000, priceOutside: 30200 },
+          { name: 'PANTY LINERS BY 30PCS', priceJalingo: 30000, priceOutside: 30200 },
         ],
       },
       {
@@ -276,39 +277,39 @@ export const PRODUCT_CATALOG: Brand[] = [
     category: 'Wipes',
     packages: [
       {
-        name: 'BESENSE WIPES BY 10 PCS',
+        name: 'BESENSE WIPES BY 10PCS',
         variants: [
-          { name: 'BESENSE WIPES BY 10 PCS', priceJalingo: 17000, priceOutside: 17000 },
+          { name: 'BESENSE WIPES BY 10PCS', priceJalingo: 17000, priceOutside: 17000 },
         ],
       },
       {
-        name: 'BESENSE WIPES BY 40 PCS',
+        name: 'BESENSE WIPES BY 40PCS',
         variants: [
-          { name: 'BESENSE WIPES BY 40 PCS', priceJalingo: 7500, priceOutside: 7500 },
+          { name: 'BESENSE WIPES BY 40PCS', priceJalingo: 7500, priceOutside: 7500 },
         ],
       },
       {
-        name: 'BESENSE WIPES BY 60 PCS',
+        name: 'BESENSE WIPES BY 60PCS',
         variants: [
-          { name: 'BESENSE WIPES BY 60 PCS', priceJalingo: 14900, priceOutside: 14900 },
+          { name: 'BESENSE WIPES BY 60PCS', priceJalingo: 14900, priceOutside: 14900 },
         ],
       },
       {
-        name: 'BESENSE WIPES BY 80 PCS',
+        name: 'BESENSE WIPES BY 80PCS',
         variants: [
-          { name: 'BESENSE WIPES BY 80 PCS', priceJalingo: 11300, priceOutside: 11300 },
+          { name: 'BESENSE WIPES BY 80PCS', priceJalingo: 11300, priceOutside: 11300 },
         ],
       },
       {
-        name: 'BESENSE WIPES BY 100 PCS',
+        name: 'BESENSE WIPES BY 100PCS',
         variants: [
-          { name: 'BESENSE WIPES BY 100 PCS', priceJalingo: 13400, priceOutside: 13400 },
+          { name: 'BESENSE WIPES BY 100PCS', priceJalingo: 13400, priceOutside: 13400 },
         ],
       },
       {
-        name: 'BESENSE WIPES BY 128 PCS',
+        name: 'BESENSE WIPES BY 128PCS',
         variants: [
-          { name: 'BESENSE WIPES BY 128 PCS', priceJalingo: 14800, priceOutside: 14800 },
+          { name: 'BESENSE WIPES BY 128PCS', priceJalingo: 14800, priceOutside: 14800 },
         ],
       },
     ],
@@ -320,13 +321,13 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'ANGEL YELLOW BY 10',
         variants: [
-          { name: 'ANGEL BY 10 PCS', priceJalingo: 5600, priceOutside: 0 },
+          { name: 'ANGEL BY 10PCS', priceJalingo: 5600, priceOutside: 0 },
         ],
       },
       {
         name: 'ANGEL GREEN BY 7 AND 8',
         variants: [
-          { name: 'ANGEL BY 7&8 PCS', priceJalingo: 5500, priceOutside: 0 },
+          { name: 'ANGEL BY 7&8PCS', priceJalingo: 5500, priceOutside: 0 },
         ],
       },
     ],
@@ -358,21 +359,21 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'DR BROWN ECO PACK',
         variants: [
-          { name: 'DR BROWN ECO PACKS 1', priceJalingo: 0, priceOutside: 0 },
-          { name: 'DR BROWN ECO PACKS 2', priceJalingo: 0, priceOutside: 0 },
-          { name: 'DR BROWN ECO PACKS 3', priceJalingo: 0, priceOutside: 0 },
-          { name: 'DR BROWN ECO PACKS 4', priceJalingo: 0, priceOutside: 0 },
-          { name: 'DR BROWN ECO PACKS 5', priceJalingo: 0, priceOutside: 0 },
+          { name: 'DR BROWN ECO PACK S1', priceJalingo: 0, priceOutside: 0 },
+          { name: 'DR BROWN ECO PACK S2', priceJalingo: 0, priceOutside: 0 },
+          { name: 'DR BROWN ECO PACK S3', priceJalingo: 0, priceOutside: 0 },
+          { name: 'DR BROWN ECO PACK S4', priceJalingo: 0, priceOutside: 0 },
+          { name: 'DR BROWN ECO PACK S5', priceJalingo: 0, priceOutside: 0 },
         ],
       },
       {
-        name: 'DR BROWN JUMBO PACK',
+        name: 'LEBRACE JUMBO PACK',
         variants: [
           { name: 'DR BROWN JUMBO PACK SI', priceJalingo: 0, priceOutside: 0 },
-          { name: 'DR BROWN JUMBO PACKS 2', priceJalingo: 0, priceOutside: 0 },
-          { name: 'DR BROWN JUMBO PACKS 3', priceJalingo: 0, priceOutside: 0 },
-          { name: 'DR BROWN JUMBO PACKS 4', priceJalingo: 0, priceOutside: 0 },
-          { name: 'DR BROWN JUMBO PACKS 5', priceJalingo: 0, priceOutside: 0 },
+          { name: 'DR BROWN JUMBO PACK S2', priceJalingo: 0, priceOutside: 0 },
+          { name: 'DR BROWN JUMBO PACK S3', priceJalingo: 0, priceOutside: 0 },
+          { name: 'DR BROWN JUMBO PACK S4', priceJalingo: 0, priceOutside: 0 },
+          { name: 'DR BROWN JUMBO PACK S5', priceJalingo: 0, priceOutside: 0 },
         ],
       },
     ],
@@ -396,13 +397,13 @@ export const PRODUCT_CATALOG: Brand[] = [
       {
         name: 'DR BROWN WIPES BY 50',
         variants: [
-          { name: 'WIPES BY 50 PCS', priceJalingo: 10500, priceOutside: 0 },
+          { name: 'WIPES BY 50PCS', priceJalingo: 10500, priceOutside: 0 },
         ],
       },
       {
         name: 'DR BROWN WIPES BY 120',
         variants: [
-          { name: 'WIPES BY 120 PCS', priceJalingo: 22000, priceOutside: 0 },
+          { name: 'WIPES BY 120PCS', priceJalingo: 22000, priceOutside: 0 },
         ],
       },
       {
