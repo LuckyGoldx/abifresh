@@ -10,7 +10,8 @@ interface Item {
   name: string;
   sku: string;
   active_store_quantity: number;
-  unit_price: number;
+  price_jalingo: number;
+  unit_price?: number;
   category: string;
 }
 
@@ -63,7 +64,7 @@ export default function UnavailableItemsPage() {
               </span>
             </div>
             <div className="flex justify-between items-center mt-4">
-              <p className="text-2xl font-bold text-gray-400">₦{item.unit_price.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-400">₦{(item.price_jalingo || 0).toLocaleString()}</p>
               <p className="text-sm text-red-600 dark:text-red-400">Stock: 0</p>
             </div>
           </div>

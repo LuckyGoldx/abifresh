@@ -32,11 +32,16 @@ interface Item {
   id: string;
   name: string;
   sku: string;
-  unit_price: number;
+  price_jalingo: number;
+  unit_price?: number;
   active_store_quantity: number;
   main_store_quantity: number;
   commission: number;
   category: string;
+  brand?: string;
+  package_type?: string;
+  price_outside?: number;
+  image_url?: string;
 }
 
 interface CartItem extends Item {
@@ -376,7 +381,7 @@ export default function SalesDashboard() {
 
   const calculateCartTotal = () => {
     return cart.reduce((sum, item) => {
-      let itemTotal = item.unit_price * item.sale_quantity;
+      let itemTotal = (item.price_jalingo || 0) * item.sale_quantity;
       if (item.sold_outside_jalingo) {
         itemTotal += logisticPrice * item.sale_quantity;
       }
@@ -395,7 +400,7 @@ export default function SalesDashboard() {
         items: cart.map(item => ({
           item_id: item.id,
           quantity: item.sale_quantity,
-          unit_price: item.unit_price,
+          unit_price: item.price_jalingo || 0,
           payment_method: cart[0].payment_method,
           sold_outside_jalingo: cart[0].sold_outside_jalingo,
           logistics_fee: cart[0].sold_outside_jalingo ? logisticPrice : 0,
@@ -420,8 +425,8 @@ export default function SalesDashboard() {
           id: item.id,
           name: item.name,
           quantity: item.sale_quantity,
-          unit_price: item.unit_price,
-          subtotal: item.unit_price * item.sale_quantity,
+          unit_price: item.price_jalingo || 0,
+          subtotal: (item.price_jalingo || 0) * item.sale_quantity,
         })),
         logistics_fee: cart[0].sold_outside_jalingo ? logisticPrice * cart.reduce((sum, item) => sum + item.sale_quantity, 0) : 0,
         total_amount: calculateCartTotal(),

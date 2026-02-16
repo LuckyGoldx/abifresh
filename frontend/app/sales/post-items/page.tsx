@@ -371,7 +371,7 @@ export default function PostItemsPage() {
                         </button>
                       </div>
                       <p className="text-right text-sm font-semibold text-gray-900 dark:text-white mt-1">
-                        ₦{(item.unit_price * item.post_quantity).toLocaleString()}
+                        ₦{((item.price_jalingo || 0) * item.post_quantity).toLocaleString()}
                       </p>
                     </div>
                   ))}
@@ -510,7 +510,7 @@ export default function PostItemsPage() {
                       </button>
                     </div>
                     <p className="text-right text-lg font-semibold text-gray-900 dark:text-white mt-2">
-                      ₦{(item.unit_price * item.post_quantity).toLocaleString()}
+                      ₦{((item.price_jalingo || 0) * item.post_quantity).toLocaleString()}
                     </p>
                   </div>
                 ))}
@@ -581,7 +581,7 @@ export default function PostItemsPage() {
                         </p>
                       </div>
                       <p className="font-bold text-pink-600 dark:text-pink-400 text-lg">
-                        ₦{(item.unit_price * item.post_quantity).toLocaleString()}
+                        ₦{((item.price_jalingo || 0) * item.post_quantity).toLocaleString()}
                       </p>
                     </div>
                   ))}

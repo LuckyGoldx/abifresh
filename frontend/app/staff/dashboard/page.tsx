@@ -30,7 +30,8 @@ interface Sale {
     sku: string;
   };
   quantity: number;
-  unit_price: number;
+  price_jalingo: number;
+  unit_price?: number;
   total_amount: number;
   payment_method: string;
   sale_date: string;
@@ -330,7 +331,7 @@ export default function StaffDashboard() {
                   <tr key={sale.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                     <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{sale.item_name || sale.items?.name || 'Item'}</td>
                     <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">{sale.quantity}</td>
-                    <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">₦{(sale.unit_price || 0).toLocaleString()}</td>
+                    <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">₦{(sale.price_jalingo || 0).toLocaleString()}</td>
                     <td className="py-3 px-4 text-right font-bold text-pink-600 dark:text-pink-400">₦{(sale.total_amount || 0).toLocaleString()}</td>
                     <td className="py-3 px-4 text-center">
                       <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1 rounded text-xs font-medium capitalize">

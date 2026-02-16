@@ -27,7 +27,8 @@ interface Sale {
   item_id: string;
   item_name: string;
   quantity: number;
-  unit_price: number;
+  price_jalingo: number;
+  unit_price?: number;
   total_amount: number;
   sale_date: string;
 }
@@ -99,7 +100,7 @@ export default function SalesPaymentsPage() {
             item_id: sale.item_id,
             item_name: itemName,
             quantity: quantity,
-            unit_price: parseFloat(sale.unit_price as any) || 0,
+            unit_price: parseFloat(sale.price_jalingo || sale.unit_price as any) || 0,
             total_amount: parseFloat(sale.total_amount as any) || 0,
             sale_date: sale.sale_date || sale.created_at,
           };
@@ -115,7 +116,7 @@ export default function SalesPaymentsPage() {
             item_id: sale.item_id,
             item_name: itemName,
             quantity: quantity,
-            unit_price: parseFloat(sale.unit_price as any) || 0,
+            unit_price: parseFloat(sale.price_jalingo || sale.unit_price as any) || 0,
             total_amount: parseFloat(sale.total_amount as any) || 0,
             sale_date: sale.sale_date || sale.created_at,
           };
@@ -241,7 +242,7 @@ export default function SalesPaymentsPage() {
           item_id: sale.item_id,
           item_name: sale.item_name,
           quantity: sale.quantity,
-          unit_price: sale.unit_price,
+          unit_price: sale.price_jalingo,
           total_amount: sale.total_amount,
           sale_ids: [sale.id], // Track individual sale IDs
         });
