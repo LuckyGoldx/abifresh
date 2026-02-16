@@ -31,10 +31,32 @@ interface Item {
   quantity: number;
   commission: number;
   category: string;
+  brand?: string;
+  package_type?: string;
+  price_jalingo?: number;
+  price_outside?: number;
+  image_url?: string;
 }
 
 interface CartItem extends Item {
   sale_quantity: number;
+}
+
+/**
+ * Convert any image URL (old Supabase public URL or new proxy path) to a working proxy URL.
+ */
+function getImageUrl(url: string | undefined | null): string | null {
+  if (!url) return null;
+  const API_BASE = 'http://localhost:5000';
+  // Already a full proxy URL
+  if (url.startsWith(API_BASE + '/api/inventory/images/')) return url;
+  // Relative proxy path from upload endpoint
+  if (url.startsWith('/api/inventory/images/')) return `${API_BASE}${url}`;
+  // Old Supabase URL - extract filename from path like .../products/filename.jpg
+  const match = url.match(/products\/([^?]+)/);
+  if (match) return `${API_BASE}/api/inventory/images/${match[1]}`;
+  // Fallback
+  return url;
 }
 
 export default function MakeSalePage() {
@@ -57,6 +79,7 @@ export default function MakeSalePage() {
   const [globalPaymentMethod, setGlobalPaymentMethod] = useState<'cash' | 'pos' | 'transfer'>('cash');
   const [globalOutsideJalingo, setGlobalOutsideJalingo] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -387,12 +410,48 @@ export default function MakeSalePage() {
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {filteredItems.map((item) => (
               <div key={item.id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition overflow-hidden flex flex-col h-full">
+                {/* Product Image Section */}
+                <div className="relative bg-gray-100 dark:bg-gray-700 h-48 flex items-center justify-center overflow-hidden cursor-pointer group">
+                  {item.image_url ? (
+                    <img 
+                      src={getImageUrl(item.image_url) || ''} 
+                      alt={item.name}
+                      className="w-full h-full object-cover hover:scale-110 transition-transform cursor-pointer"
+                      onClick={() => setFullscreenImage(getImageUrl(item.image_url) || '')}
+                      onError={(e) => {
+                        console.error(`❌ Image failed to load: ${item.image_url}`);
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700">
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-white opacity-80">
+                          {(item.name || 'Item').toUpperCase().substring(0, 2)}
+                        </div>
+                        <p className="text-xs text-white opacity-60 mt-1">No image</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Info Section */}
                 <div className="p-4 flex flex-col flex-1">
                   <h3 className="font-bold text-base text-gray-900 dark:text-white line-clamp-2 mb-2">{item.name || 'Item'}</h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.category || 'N/A'} • {item.sku || 'N/A'}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Stock: {item.quantity || 0}</p>
-                  <p className="text-lg font-bold text-pink-600 mt-auto pt-3">₦{item.unit_price.toLocaleString()}</p>
+                  
+                  {item.brand && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1">🏷️ {item.brand}</p>
+                  )}
+                  
+                  {item.package_type && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">📦 {item.package_type}</p>
+                  )}
+                  
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{item.category || 'N/A'} • {item.sku || 'N/A'}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2">📊 Stock: {item.quantity || 0}</p>
+                  
+                  <p className="text-lg font-bold text-pink-600 mt-auto pt-2">₦{item.unit_price.toLocaleString()}</p>
                 </div>
+
                 <button
                   onClick={() => addToCart(item)}
                   disabled={item.quantity === 0}
@@ -807,6 +866,33 @@ export default function MakeSalePage() {
                 <Download size={18} /> Download
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Image Modal */}
+      {fullscreenImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+          onClick={() => setFullscreenImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={fullscreenImage}
+              alt="Fullscreen"
+              className="max-w-full max-h-[85vh] object-contain"
+              onError={(e) => {
+                console.error('❌ Fullscreen image failed to load');
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <button
+              onClick={() => setFullscreenImage(null)}
+              className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white rounded-lg p-2 transition"
+              title="Close image"
+            >
+              <X size={24} />
+            </button>
           </div>
         </div>
       )}

@@ -28,8 +28,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  useTempFiles: true,
-  tempFileDir: '/tmp/',
+  useTempFiles: false, // Keep files in memory instead of /tmp/ (Windows compatibility)
 }));
 
 // Request logging middleware

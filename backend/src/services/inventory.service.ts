@@ -22,7 +22,12 @@ export class InventoryService {
         main_store_quantity,
         is_available,
         created_at,
-        updated_at
+        updated_at,
+        brand,
+        package_type,
+        price_jalingo,
+        price_outside,
+        image_url
       `)
       .order('name');
 
@@ -46,6 +51,9 @@ export class InventoryService {
       console.log(`📦 Item: ${item.name}`, {
         main_qty: item.main_store_quantity,
         active_qty: item.active_store_quantity,
+        brand: item.brand,
+        package_type: item.package_type,
+        image_url: item.image_url?.substring(0, 50) || 'none',
       });
       
       return result;
@@ -76,7 +84,12 @@ export class InventoryService {
         main_store_quantity,
         is_available,
         created_at,
-        updated_at
+        updated_at,
+        brand,
+        package_type,
+        price_jalingo,
+        price_outside,
+        image_url
       `)
       .eq('id', itemId)
       .single();

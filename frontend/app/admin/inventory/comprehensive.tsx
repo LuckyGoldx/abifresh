@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import { Plus, Edit2, Trash2, ChevronRight, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { PRODUCT_CATALOG, getBrandNames, getPackageTypes, getProductVariants, getBrandCategory, isOthersBrand } from '@/lib/productCatalog';
 import type { ProductVariant } from '@/lib/productCatalog';
+import { toast } from 'sonner';
 
 interface Item {
   id: string;
@@ -37,6 +38,27 @@ interface StoreStats {
 
 type StoreView = 'all' | 'main' | 'active' | 'unavailable' | 'low-stocks' | 'out-of-stock';
 type ModalType = 'add' | 'edit' | 'transfer' | null;
+
+const API_BASE = 'http://localhost:5000';
+
+/**
+ * Convert any image URL (old Supabase public URL or new proxy path) to a working proxy URL.
+ * - If it's already a full proxy URL, return as-is
+ * - If it's a relative proxy path like /api/inventory/images/..., prepend API_BASE
+ * - If it's an old Supabase URL, extract the filename and build a proxy URL
+ */
+function getImageUrl(url: string | undefined | null): string | null {
+  if (!url) return null;
+  // Already a full proxy URL
+  if (url.startsWith(API_BASE + '/api/inventory/images/')) return url;
+  // Relative proxy path from upload endpoint
+  if (url.startsWith('/api/inventory/images/')) return `${API_BASE}${url}`;
+  // Old Supabase URL - extract filename from path like .../products/filename.jpg
+  const match = url.match(/products\/([^?]+)/);
+  if (match) return `${API_BASE}/api/inventory/images/${match[1]}`;
+  // Fallback - return original (might fail, but better than nothing)
+  return url;
+}
 
 export default function ComprehensiveInventoryPage() {
   const token = useAuthStore((state) => state.token);
@@ -75,6 +97,7 @@ export default function ComprehensiveInventoryPage() {
 
   // Image preview state
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -127,11 +150,12 @@ export default function ComprehensiveInventoryPage() {
       const itemsData = await itemsRes.json();
       console.log('📦 Items loaded:', itemsData.length, 'items');
       console.log('📊 First item RAW:', JSON.stringify(itemsData[0], null, 2));
-      console.log('🔍 Quantity check:', {
+      console.log('🔍 Image & Field check:', {
         name: itemsData[0]?.name,
-        main_store_quantity: itemsData[0]?.main_store_quantity,
-        active_store_quantity: itemsData[0]?.active_store_quantity,
-        all_keys: Object.keys(itemsData[0] || {}).filter(k => k.includes('quantity') || k.includes('store'))
+        image_url: itemsData[0]?.image_url,
+        brand: itemsData[0]?.brand,
+        package_type: itemsData[0]?.package_type,
+        all_keys: Object.keys(itemsData[0] || {})
       });
       setItems(itemsData);
     } catch (err: any) {
@@ -144,10 +168,16 @@ export default function ComprehensiveInventoryPage() {
 
   const handleAddItem = async () => {
     try {
-      // Check for SKU uniqueness
-      const existingSku = items.some(item => item.sku.toLowerCase() === formData.sku.toLowerCase());
-      if (existingSku) {
-        setError(`SKU "${formData.sku}" already exists. Please use a different name.`);
+      // Check for duplicate item (by SKU or Name)
+      const existingBySku = items.find(item => item.sku.toLowerCase() === formData.sku.toLowerCase());
+      const existingByName = items.find(item => item.name.toLowerCase() === formData.name.toLowerCase());
+      
+      if (existingBySku || existingByName) {
+        const duplicateItem = existingBySku || existingByName;
+        toast.error(
+          `⚠️ "${duplicateItem.name}" already exists in inventory! Search for it and edit instead.`,
+          { duration: 5000 }
+        );
         return;
       }
 
@@ -177,14 +207,21 @@ export default function ComprehensiveInventoryPage() {
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || 'Failed to add item');
+        const errorMsg = errData.error || 'Failed to add item';
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
       }
       console.log('✅ Item added successfully');
+      toast.success('✅ Item added successfully');
       setModalType(null);
       resetForm();
       await fetchData();
     } catch (err: any) {
-      setError(err.message);
+      const errorMsg = err.message || 'Error adding item';
+      setError(errorMsg);
+      if (!errorMsg.includes('SKU')) {
+        toast.error(errorMsg);
+      }
       console.error('Add item error:', err);
     }
   };
@@ -240,15 +277,22 @@ export default function ComprehensiveInventoryPage() {
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || 'Failed to edit item');
+        const errorMsg = errData.error || 'Failed to edit item';
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
       }
       console.log('✅ Item edited successfully');
+      toast.success('✅ Item updated successfully');
       setModalType(null);
       resetForm();
       setSelectedItem(null);
       await fetchData();
     } catch (err: any) {
-      setError(err.message);
+      const errorMsg = err.message || 'Error editing item';
+      setError(errorMsg);
+      if (!errorMsg.includes('SKU')) {
+        toast.error(errorMsg);
+      }
       console.error('Edit item error:', err);
     }
   };
@@ -272,13 +316,20 @@ export default function ComprehensiveInventoryPage() {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed to transfer');
+      if (!res.ok) {
+        const errorMsg = 'Failed to transfer item';
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+      toast.success(`✅ Transferred ${transferData.quantity} units ${transferData.direction === 'main-to-active' ? 'to Active Store' : 'to Main Store'}`);
       setModalType(null);
       setTransferData({ quantity: 0, direction: 'main-to-active' });
       setSelectedItem(null);
       fetchData();
     } catch (err: any) {
-      setError(err.message);
+      const errorMsg = err.message || 'Error transferring item';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -290,10 +341,17 @@ export default function ComprehensiveInventoryPage() {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error('Failed to delete item');
+      if (!res.ok) {
+        const errorMsg = 'Failed to delete item';
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+      toast.success('✅ Item deleted successfully');
       fetchData();
     } catch (err: any) {
-      setError(err.message);
+      const errorMsg = err.message || 'Error deleting item';
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -368,6 +426,13 @@ export default function ComprehensiveInventoryPage() {
 
   const openEditModal = (item: Item) => {
     setSelectedItem(item);
+    console.log('🔍 EDIT MODAL OPENED - Item:', {
+      id: item.id,
+      name: item.name,
+      image_url: item.image_url,
+      brand: item.brand,
+      package_type: item.package_type,
+    });
     setFormData({
       name: item.name,
       sku: item.sku,
@@ -382,8 +447,9 @@ export default function ComprehensiveInventoryPage() {
       price_outside: item.price_outside || 0,
       image_url: item.image_url || '',
     });
-    // Set image preview for editing
-    setImagePreview(item.image_url || null);
+    // Set image preview for editing - use proxy URL
+    setImagePreview(getImageUrl(item.image_url) || null);
+    console.log('📸 Image preview set to:', getImageUrl(item.image_url) || null);
     setModalType('edit');
   };
 
@@ -409,7 +475,7 @@ export default function ComprehensiveInventoryPage() {
         {stats && (
           <div className="mb-8">
             {storeView === 'all' && (
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard title="Total Items" value={stats.total_items} color="blue" />
                 <StatCard title="Main Store" value={stats.total_main_store} color="purple" />
                 <StatCard title="Active Store" value={stats.total_active_store} color="green" />
@@ -614,10 +680,15 @@ export default function ComprehensiveInventoryPage() {
                 {filteredItems.map((item) => {
                   const totalQty = item.main_store_quantity + item.active_store_quantity;
                   const totalValue = totalQty * item.unit_price;
-                  console.log(`🔍 ${item.name}:`, 
-                    `Main=${item.main_store_quantity}`, 
-                    `Active=${item.active_store_quantity}`, 
-                    `Total=${totalQty}`);
+                  console.log(`🔍 TABLE ROW: ${item.name}:`, {
+                    main_qty: item.main_store_quantity,
+                    active_qty: item.active_store_quantity,
+                    total_qty: totalQty,
+                    image_url: item.image_url,
+                    brand: item.brand,
+                    package_type: item.package_type,
+                    has_image: !!item.image_url,
+                  });
                   let status = 'In Stock';
                   let statusColor = 'bg-green-100 text-green-800';
                   
@@ -635,9 +706,17 @@ export default function ComprehensiveInventoryPage() {
                       <td className="px-4 py-3 text-center">
                         {item.image_url ? (
                           <img 
-                            src={item.image_url} 
+                            src={getImageUrl(item.image_url) || ''} 
                             alt={item.name}
-                            className="w-12 h-12 rounded object-cover"
+                            className="w-12 h-12 rounded object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setFullscreenImage(getImageUrl(item.image_url) || '')}
+                            onError={(e) => {
+                              console.error(`❌ Image failed to load:`, item.image_url);
+                              e.currentTarget.style.display = 'none';
+                            }}
+                            onLoad={() => {
+                              console.log(`✅ Image loaded successfully:`, item.image_url);
+                            }}
                           />
                         ) : (
                           <div className="w-12 h-12 rounded bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
@@ -726,6 +805,33 @@ export default function ComprehensiveInventoryPage() {
       {modalType === 'edit' && <AddEditModal type="edit" formData={formData} setFormData={setFormData} imagePreview={imagePreview} setImagePreview={setImagePreview} onSubmit={handleEditItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} />}
       {modalType === 'transfer' && selectedItem && (
         <TransferModal item={selectedItem} transferData={transferData} setTransferData={setTransferData} onSubmit={handleTransfer} onClose={() => setModalType(null)} />
+      )}
+
+      {/* Fullscreen Image Modal */}
+      {fullscreenImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+          onClick={() => setFullscreenImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={fullscreenImage}
+              alt="Fullscreen"
+              className="max-w-full max-h-[85vh] object-contain"
+              onError={(e) => {
+                console.error('❌ Fullscreen image failed to load');
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            <button
+              onClick={() => setFullscreenImage(null)}
+              className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white rounded-lg p-2 transition"
+              title="Close image"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -856,14 +962,21 @@ function AddEditModal({
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Upload failed');
+        const errorMsg = err.error || 'Upload failed';
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
       }
 
       const { url } = await res.json();
-      setFormData({ ...formData, image_url: url });
+      const proxyUrl = getImageUrl(url) || url;
+      setFormData({ ...formData, image_url: proxyUrl });
+      console.log('📸 Image uploaded successfully:', proxyUrl);
+      console.log('📷 Image preview set to:', proxyUrl);
+      toast.success('✅ Image uploaded successfully');
     } catch (err: any) {
       console.error('Image upload error:', err);
-      alert('Failed to upload image: ' + err.message);
+      const errorMsg = 'Failed to upload image: ' + err.message;
+      toast.error(errorMsg);
       setImagePreview(null);
     } finally {
       setUploading(false);
@@ -1118,9 +1231,21 @@ function AddEditModal({
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
               {imagePreview ? (
                 <div className="relative">
-                  <img src={imagePreview} alt="Product preview" className="w-full h-40 object-contain rounded-lg" />
+                  <img 
+                    src={imagePreview} 
+                    alt="Product preview" 
+                    className="w-full h-40 object-contain rounded-lg bg-gray-200 dark:bg-gray-600"
+                    onError={(e) => {
+                      console.error('❌ Preview image failed to load:', imagePreview);
+                      e.currentTarget.style.display = 'none';
+                    }}
+                    onLoad={() => {
+                      console.log('✅ Preview image loaded successfully');
+                    }}
+                  />
                   <button
                     onClick={() => {
+                      console.log('🗑️ Clearing image preview');
                       setImagePreview(null);
                       setFormData({ ...formData, image_url: '' });
                     }}

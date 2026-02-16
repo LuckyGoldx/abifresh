@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import { Toaster } from 'sonner';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [mounted, setMounted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -55,14 +57,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-slate-900">
-      <Sidebar menuItems={menuItems} role="admin" />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-auto p-4 md:p-8">
-          {children}
-        </main>
+    <>
+      <Toaster position="top-right" />
+      <div className="flex h-screen bg-gray-100 dark:bg-slate-900">
+        <Sidebar menuItems={menuItems} role="admin" isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-auto p-4 md:p-8">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
