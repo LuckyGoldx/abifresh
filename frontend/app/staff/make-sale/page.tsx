@@ -355,7 +355,7 @@ export default function MakeSalePage() {
               className="rounded w-4 h-4 cursor-pointer"
             />
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Outside Jalingo (+₦{logisticPrice} logistics)
+              Outside Jalingo
             </span>
           </label>
         </div>
