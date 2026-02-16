@@ -27,13 +27,13 @@ interface Item {
   id: string;
   name: string;
   sku: string;
-  unit_price: number;
+  price_jalingo: number;
+  unit_price?: number;
   active_store_quantity: number;
   commission: number;
   category: string;
   brand?: string;
   package_type?: string;
-  price_jalingo?: number;
   price_outside?: number;
   image_url?: string;
 }
@@ -203,7 +203,7 @@ export default function MakeSalePage() {
 
   const calculateCartTotal = () => {
     return cart.reduce((sum, item) => {
-      let itemTotal = item.unit_price * item.sale_quantity;
+      let itemTotal = (item.price_jalingo || 0) * item.sale_quantity;
       if (globalOutsideJalingo) {
         itemTotal += logisticPrice * item.sale_quantity;
       }
@@ -239,7 +239,7 @@ export default function MakeSalePage() {
         items: cart.map(item => ({
           item_id: item.id,
           quantity: item.sale_quantity,
-          unit_price: item.unit_price,
+          unit_price: item.price_jalingo || 0,
           payment_method: globalPaymentMethod,
           sold_outside_jalingo: globalOutsideJalingo,
           logistics_fee: globalOutsideJalingo ? logisticPrice : 0,
@@ -288,7 +288,7 @@ export default function MakeSalePage() {
           item_id: item.id,
           name: item.name,
           quantity: item.sale_quantity,
-          unit_price: item.unit_price,
+          unit_price: item.price_jalingo || 0,
         })),
       };
 
@@ -321,7 +321,7 @@ export default function MakeSalePage() {
             <div className="flex justify-between items-start mb-2">
               <div className="flex-1">
                 <span className="font-semibold text-gray-900 dark:text-white">{item.name}</span>
-                <p className="text-xs text-gray-600 dark:text-gray-400">₦{item.unit_price.toLocaleString()}/unit</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">₦{(item.price_jalingo || 0).toLocaleString()}/unit</p>
               </div>
               <button onClick={() => removeFromCart(item.id)} className="text-red-500 hover:text-red-700 ml-2">
                 <Trash2 className="w-4 h-4" />
@@ -354,7 +354,7 @@ export default function MakeSalePage() {
 
             {/* Item Total */}
             <div className="text-right font-bold text-gray-900 dark:text-white">
-              ₦{((item.unit_price) * item.sale_quantity).toLocaleString()}
+              ₦{(((item.price_jalingo || 0)) * item.sale_quantity).toLocaleString()}
             </div>
           </div>
         ))}
@@ -503,7 +503,7 @@ export default function MakeSalePage() {
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{item.category} • {item.sku}</p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2">📊 Stock: {item.active_store_quantity}</p>
                   
-                  <p className="text-lg font-bold text-pink-600 mt-auto pt-2">₦{item.unit_price.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-pink-600 mt-auto pt-2">₦{(item.price_jalingo || 0).toLocaleString()}</p>
                 </div>
 
                 <button
@@ -597,7 +597,7 @@ export default function MakeSalePage() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900 dark:text-white">{item.name}</h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          ₦{item.unit_price.toLocaleString()} × {item.sale_quantity}
+                          ₦{(item.price_jalingo || 0).toLocaleString()} × {item.sale_quantity}
                         </p>
                       </div>
                       
@@ -627,7 +627,7 @@ export default function MakeSalePage() {
 
                       <div className="text-right min-w-[100px]">
                         <p className="font-bold text-gray-900 dark:text-white">
-                          ₦{(item.unit_price * item.sale_quantity).toLocaleString()}
+                          ₦{((item.price_jalingo || 0) * item.sale_quantity).toLocaleString()}
                         </p>
                       </div>
 
@@ -813,8 +813,8 @@ export default function MakeSalePage() {
                       <div key={idx} className="flex justify-between text-sm text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0">
                         <span className="flex-1 font-medium">{item.name}</span>
                         <span className="w-16 text-right">{item.sale_quantity}</span>
-                        <span className="w-20 text-right">₦{item.unit_price.toLocaleString()}</span>
-                        <span className="w-24 text-right font-bold text-gray-900 dark:text-white">₦{(item.unit_price * item.sale_quantity).toLocaleString()}</span>
+                        <span className="w-20 text-right">₦{(item.price_jalingo || 0).toLocaleString()}</span>
+                        <span className="w-24 text-right font-bold text-gray-900 dark:text-white">₦{((item.price_jalingo || 0) * item.sale_quantity).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -939,7 +939,7 @@ export default function MakeSalePage() {
                         ctx.textAlign = 'center';
                         ctx.fillText(item.sale_quantity.toString(), 350, yPos);
                         ctx.textAlign = 'right';
-                        ctx.fillText(`₦${(item.unit_price * item.sale_quantity).toLocaleString()}`, 570, yPos);
+                        ctx.fillText(`₦${((item.price_jalingo || 0) * item.sale_quantity).toLocaleString()}`, 570, yPos);
                         yPos += 18;
                       });
                       
