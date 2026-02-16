@@ -12,12 +12,12 @@ interface Receipt {
   payment_method: 'cash' | 'pos' | 'transfer';
   items_count: number;
   created_at: string;
+  sold_outside_jalingo?: boolean;
   receipt_items?: Array<{
     id: string;
     item_id: string;
     quantity: number;
-    price_jalingo: number;
-    unit_price?: number;
+    unit_price: number;
     total_price: number;
   }>;
 }
@@ -374,7 +374,7 @@ export default function ReceiptsPage() {
                             {itemNames[item.item_id] || 'Item'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity} x ₦{(item.price_jalingo || 0).toLocaleString()}
+                            Qty: {item.quantity} x ₦{(item.unit_price || 0).toLocaleString()}
                           </p>
                         </div>
                         <div>
