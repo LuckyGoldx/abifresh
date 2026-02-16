@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { api } from '@/lib/api';
 import { FileText, Download, Printer, Search, Filter, Eye } from 'lucide-react';
+import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 
 interface Receipt {
   id: string;
@@ -93,75 +94,68 @@ export default function ReceiptsPage() {
     });
   };
 
-  const downloadReceiptAsImage = (receipt: Receipt) => {
-    const printWindow = window.open('', '_blank', 'width=600,height=800');
-    if (!printWindow) {
-      alert('Please allow pop-ups and try again.');
-      return;
+  const handleDownloadReceipt = async (receipt: Receipt) => {
+    try {
+      const items = receipt.receipt_items?.map((item) => {
+        const itemName = typeof item.item_id === 'object' ? item.item_id.name : itemNames[item.item_id] || 'Item';
+        const correctPrice = (receipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
+          ? item.item_id.price_outside
+          : typeof item.item_id === 'object' && item.item_id?.price_jalingo
+          ? item.item_id.price_jalingo
+          : item.unit_price || 0);
+        return {
+          name: itemName,
+          sale_quantity: item.quantity,
+          price: correctPrice,
+        };
+      }) || [];
+
+      const receiptData = {
+        receipt_number: receipt.receipt_number,
+        timestamp: receipt.created_at,
+        staff_name: 'Staff',
+        payment_method: receipt.payment_method,
+        items,
+        total_amount: receipt.total_amount,
+      };
+
+      await downloadReceiptAsPDF(receiptData);
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+      alert('Failed to download receipt. Please try again.');
     }
-
-    let itemsRow = '';
-    receipt.receipt_items?.forEach((item) => {
-      const itemName = typeof item.item_id === 'object' ? item.item_id.name : itemNames[item.item_id] || 'Item';
-      const correctPrice = (receipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
-        ? item.item_id.price_outside
-        : typeof item.item_id === 'object' && item.item_id?.price_jalingo
-        ? item.item_id.price_jalingo
-        : item.unit_price || 0);
-      const lineTotal = correctPrice * item.quantity;
-      itemsRow = itemsRow + '<tr><td>' + itemName + '</td><td>' + item.quantity + '</td><td>₦' + lineTotal.toLocaleString() + '</td></tr>';
-    });
-
-    const htmlContent =
-      '<html><head><title>Receipt ' +
-      receipt.receipt_number +
-      '</title></head><body style="font-family:Arial;padding:20px;"><h3>ABIFRESH & KIDDIES VENTURES</h3><p>Receipt #' +
-      receipt.receipt_number +
-      '</p><table border="1" width="100%"><tr><th>Item</th><th>Qty</th><th>Total</th></tr>' +
-      itemsRow +
-      '</table><h4>Total: ₦' +
-      receipt.total_amount.toLocaleString() +
-      '</h4></body></html>';
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
   };
 
-  const printReceipt = (receipt: Receipt) => {
-    const printWindow = window.open('', '_blank', 'width=600,height=800');
-    if (!printWindow) {
-      alert('Please allow pop-ups and try again.');
-      return;
+  const handlePrintReceipt = async (receipt: Receipt) => {
+    try {
+      const items = receipt.receipt_items?.map((item) => {
+        const itemName = typeof item.item_id === 'object' ? item.item_id.name : itemNames[item.item_id] || 'Item';
+        const correctPrice = (receipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
+          ? item.item_id.price_outside
+          : typeof item.item_id === 'object' && item.item_id?.price_jalingo
+          ? item.item_id.price_jalingo
+          : item.unit_price || 0);
+        return {
+          name: itemName,
+          sale_quantity: item.quantity,
+          price: correctPrice,
+        };
+      }) || [];
+
+      const receiptData = {
+        receipt_number: receipt.receipt_number,
+        timestamp: receipt.created_at,
+        staff_name: 'Staff',
+        payment_method: receipt.payment_method,
+        items,
+        total_amount: receipt.total_amount,
+      };
+
+      await printReceipt(receiptData);
+    } catch (error) {
+      console.error('Error printing receipt:', error);
+      alert('Failed to print receipt. Please try again.');
     }
-
-    let itemsRow = '';
-    receipt.receipt_items?.forEach((item) => {
-      const itemName = typeof item.item_id === 'object' ? item.item_id.name : itemNames[item.item_id] || 'Item';
-      const correctPrice = (receipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
-        ? item.item_id.price_outside
-        : typeof item.item_id === 'object' && item.item_id?.price_jalingo
-        ? item.item_id.price_jalingo
-        : item.unit_price || 0);
-      const lineTotal = correctPrice * item.quantity;
-      itemsRow = itemsRow + '<tr><td>' + itemName + '</td><td>' + item.quantity + '</td><td>₦' + lineTotal.toLocaleString() + '</td></tr>';
-    });
-
-    const htmlContent =
-      '<html><head><title>Receipt ' +
-      receipt.receipt_number +
-      '</title></head><body style="font-family:Arial;padding:20px;"><h3>ABIFRESH & KIDDIES VENTURES</h3><p>Receipt #' +
-      receipt.receipt_number +
-      '</p><table border="1" width="100%"><tr><th>Item</th><th>Qty</th><th>Total</th></tr>' +
-      itemsRow +
-      '</table><h4>Total: ₦' +
-      receipt.total_amount.toLocaleString() +
-      '</h4></body></html>';
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.onload = () => {
-      setTimeout(() => printWindow.print(), 250);
-    };
   };
 
   if (!mounted) {
@@ -297,14 +291,14 @@ export default function ReceiptsPage() {
                         <Eye size={18} />
                       </button>
                       <button
-                        onClick={() => downloadReceiptAsImage(receipt)}
+                        onClick={() => handleDownloadReceipt(receipt)}
                         className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 flex items-center gap-1"
                         title="Save as image"
                       >
                         <Download size={18} />
                       </button>
                       <button
-                        onClick={() => printReceipt(receipt)}
+                        onClick={() => handlePrintReceipt(receipt)}
                         className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex items-center gap-1"
                         title="Print"
                       >
@@ -436,7 +430,7 @@ export default function ReceiptsPage() {
                 </button>
                 <button
                   onClick={() => {
-                    downloadReceiptAsImage(selectedReceipt);
+                    handleDownloadReceipt(selectedReceipt);
                     setShowDetails(false);
                   }}
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 font-medium transition"
@@ -445,7 +439,7 @@ export default function ReceiptsPage() {
                 </button>
                 <button
                   onClick={() => {
-                    printReceipt(selectedReceipt);
+                    handlePrintReceipt(selectedReceipt);
                     setShowDetails(false);
                   }}
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 font-medium transition"

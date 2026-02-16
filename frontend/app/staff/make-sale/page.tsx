@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { ShoppingCart, Plus, Minus, Trash2, X, Search, Printer, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
@@ -754,15 +755,19 @@ export default function MakeSalePage() {
               </button>
               <button
                 onClick={() => {
-                  const printWindow = window.open('', '', 'width=800,height=600');
-                  if (printWindow) {
-                    const receiptContent = document.getElementById('receipt-content');
-                    if (receiptContent) {
-                      printWindow.document.write(receiptContent.innerHTML);
-                      printWindow.document.close();
-                      printWindow.print();
-                    }
-                  }
+                  const receiptData = {
+                    receipt_number: lastReceipt.receipt_number,
+                    timestamp: lastReceipt.timestamp,
+                    staff_name: lastReceipt.staff_name,
+                    payment_method: lastReceipt.payment_method,
+                    items: lastReceipt.items.map((item: CartItem) => ({
+                      name: item.name,
+                      sale_quantity: item.sale_quantity,
+                      price: getReceiptItemPrice(item),
+                    })),
+                    total_amount: lastReceipt.total_amount,
+                  };
+                  printReceipt(receiptData);
                 }}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
               >
@@ -770,113 +775,19 @@ export default function MakeSalePage() {
               </button>
               <button
                 onClick={() => {
-                  const receiptContent = document.getElementById('receipt-content');
-                  if (receiptContent) {
-                    // Create a canvas from the HTML content
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                      canvas.width = 600;
-                      canvas.height = 850;
-                      
-                      // White background
-                      ctx.fillStyle = '#ffffff';
-                      ctx.fillRect(0, 0, canvas.width, canvas.height);
-                      
-                      // Pink header gradient (simulate with pink background)
-                      const gradient = ctx.createLinearGradient(0, 0, 0, 80);
-                      gradient.addColorStop(0, '#ec4899');
-                      gradient.addColorStop(1, '#be185d');
-                      ctx.fillStyle = gradient;
-                      ctx.fillRect(0, 0, canvas.width, 80);
-                      
-                      // Company name in white on pink
-                      ctx.fillStyle = '#ffffff';
-                      ctx.font = 'bold 22px Arial';
-                      ctx.textAlign = 'center';
-                      ctx.fillText('ABIFRESH & KIDDIES VENTURES', canvas.width / 2, 35);
-                      
-                      // Receipt number in white/light pink on pink
-                      ctx.fillStyle = '#fce7f3';
-                      ctx.font = '13px Arial';
-                      ctx.fillText(`Receipt #${lastReceipt.receipt_number}`, canvas.width / 2, 60);
-                      
-                      // Black text for rest
-                      let yPos = 110;
-                      ctx.textAlign = 'left';
-                      ctx.font = '12px Arial';
-                      ctx.fillStyle = '#000000';
-                      
-                      ctx.fillText(`Date: ${new Date(lastReceipt.timestamp).toLocaleDateString()}`, 30, yPos);
-                      yPos += 22;
-                      ctx.fillText(`Time: ${new Date(lastReceipt.timestamp).toLocaleTimeString()}`, 30, yPos);
-                      yPos += 22;
-                      ctx.fillText(`Staff: ${lastReceipt.staff_name}`, 30, yPos);
-                      yPos += 22;
-                      ctx.fillText(`Payment: ${lastReceipt.payment_method}`, 30, yPos);
-                      yPos += 28;
-                      
-                      // Table header in bold black
-                      ctx.font = 'bold 11px Arial';
-                      ctx.fillText('Item', 30, yPos);
-                      ctx.textAlign = 'center';
-                      ctx.fillText('Qty', 350, yPos);
-                      ctx.textAlign = 'right';
-                      ctx.fillText('Total', 570, yPos);
-                      yPos += 18;
-                      
-                      // Divider line
-                      ctx.strokeStyle = '#000000';
-                      ctx.lineWidth = 1;
-                      ctx.beginPath();
-                      ctx.moveTo(30, yPos);
-                      ctx.lineTo(570, yPos);
-                      ctx.stroke();
-                      yPos += 12;
-                      
-                      // Items in black text
-                      ctx.font = '11px Arial';
-                      ctx.fillStyle = '#000000';
-                      lastReceipt.items.forEach((item: CartItem) => {
-                        ctx.textAlign = 'left';
-                        ctx.fillText(item.name.substring(0, 35), 30, yPos);
-                        ctx.textAlign = 'center';
-                        ctx.fillText(item.sale_quantity.toString(), 350, yPos);
-                        ctx.textAlign = 'right';
-                        ctx.fillText(`₦${(getReceiptItemPrice(item) * item.sale_quantity).toLocaleString()}`, 570, yPos);
-                        yPos += 18;
-                      });
-                      
-                      yPos += 8;
-                      // Divider line
-                      ctx.strokeStyle = '#000000';
-                      ctx.lineWidth = 1;
-                      ctx.beginPath();
-                      ctx.moveTo(30, yPos);
-                      ctx.lineTo(570, yPos);
-                      ctx.stroke();
-                      yPos += 18;
-                      
-                      // Total in bold black
-                      ctx.font = 'bold 13px Arial';
-                      ctx.fillStyle = '#000000';
-                      ctx.textAlign = 'right';
-                      ctx.fillText(`Total: ₦${lastReceipt.total_amount.toLocaleString()}`, 570, yPos);
-                      
-                      yPos += 28;
-                      // Thank you message
-                      ctx.font = '11px Arial';
-                      ctx.fillStyle = '#666666';
-                      ctx.textAlign = 'center';
-                      ctx.fillText('Thank you for your purchase!', canvas.width / 2, yPos);
-                      
-                      // Download
-                      const link = document.createElement('a');
-                      link.href = canvas.toDataURL('image/png');
-                      link.download = `receipt_${lastReceipt.receipt_number}.png`;
-                      link.click();
-                    }
-                  }
+                  const receiptData = {
+                    receipt_number: lastReceipt.receipt_number,
+                    timestamp: lastReceipt.timestamp,
+                    staff_name: lastReceipt.staff_name,
+                    payment_method: lastReceipt.payment_method,
+                    items: lastReceipt.items.map((item: CartItem) => ({
+                      name: item.name,
+                      sale_quantity: item.sale_quantity,
+                      price: getReceiptItemPrice(item),
+                    })),
+                    total_amount: lastReceipt.total_amount,
+                  };
+                  downloadReceiptAsPDF(receiptData);
                 }}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
               >
