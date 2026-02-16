@@ -408,10 +408,10 @@ export class StaffStoreService {
       
       for (const storeItem of storeItems) {
         try {
-          // Get item details
+          // Get item details with all necessary fields for display
           const { data: itemData, error: itemError } = await supabaseAdmin
             .from('items')
-            .select('id, name, sku, category, unit_price, commission')
+            .select('id, name, sku, category, unit_price, commission, price_jalingo, price_outside, image_url, brand, package_type')
             .eq('id', storeItem.item_id)
             .single();
           
@@ -438,6 +438,11 @@ export class StaffStoreService {
             sku: itemData?.sku || 'N/A',
             category: itemData?.category || 'N/A',
             unit_price: itemData?.unit_price || 0,
+            price_jalingo: itemData?.price_jalingo || 0,
+            price_outside: itemData?.price_outside || 0,
+            image_url: itemData?.image_url || null,
+            brand: itemData?.brand || '',
+            package_type: itemData?.package_type || '',
             quantity: storeItem.quantity_available || 0,
             commission: itemData?.commission || 0,
             posted_date: storeItem.posted_date,
