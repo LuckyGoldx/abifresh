@@ -209,6 +209,14 @@ export default function MakeSalePage() {
     return (item.price_jalingo || 0);
   };
 
+  // Helper to get receipt item price based on the receipt's own outside_jalingo flag
+  const getReceiptItemPrice = (item: CartItem): number => {
+    if (lastReceipt?.outside_jalingo) {
+      return (item.price_outside || 0);
+    }
+    return (item.price_jalingo || 0);
+  };
+
   const calculateCartTotal = () => {
     return cart.reduce((sum, item) => {
       let itemTotal = getCartItemPrice(item) * item.sale_quantity;
@@ -269,6 +277,7 @@ export default function MakeSalePage() {
         timestamp: new Date().toISOString(),
         staff_name: user?.full_name || '',
         payment_method: globalPaymentMethod,
+        outside_jalingo: globalOutsideJalingo,
       });
       setShowReceiptModal(true);
 
@@ -821,8 +830,8 @@ export default function MakeSalePage() {
                       <div key={idx} className="flex justify-between text-sm text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0">
                         <span className="flex-1 font-medium">{item.name}</span>
                         <span className="w-16 text-right">{item.sale_quantity}</span>
-                        <span className="w-20 text-right">₦{getCartItemPrice(item).toLocaleString()}</span>
-                        <span className="w-24 text-right font-bold text-gray-900 dark:text-white">₦{(getCartItemPrice(item) * item.sale_quantity).toLocaleString()}</span>
+                        <span className="w-20 text-right">₦{getReceiptItemPrice(item).toLocaleString()}</span>
+                        <span className="w-24 text-right font-bold text-gray-900 dark:text-white">₦{(getReceiptItemPrice(item) * item.sale_quantity).toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -947,7 +956,7 @@ export default function MakeSalePage() {
                         ctx.textAlign = 'center';
                         ctx.fillText(item.sale_quantity.toString(), 350, yPos);
                         ctx.textAlign = 'right';
-                        ctx.fillText(`₦${(getCartItemPrice(item) * item.sale_quantity).toLocaleString()}`, 570, yPos);
+                        ctx.fillText(`₦${(getReceiptItemPrice(item) * item.sale_quantity).toLocaleString()}`, 570, yPos);
                         yPos += 18;
                       });
                       
