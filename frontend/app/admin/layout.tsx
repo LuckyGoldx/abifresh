@@ -49,6 +49,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Staff Stores', href: '/admin/staff-stores', icon: '🏪' },
     { label: 'Inventory', href: '/admin/inventory', icon: '📦' },
     { label: 'Payments', href: '/admin/payments', icon: '💳' },
+    { label: 'Receipts', href: '/admin/receipts', icon: '📄' },
     { label: 'Commissions', href: '/admin/commissions', icon: '💵' },
     { label: 'Expenses', href: '/admin/expenses', icon: '💰' },
     { label: 'Reports', href: '/admin/reports', icon: '📈' },
