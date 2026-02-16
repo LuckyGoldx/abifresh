@@ -18,6 +18,8 @@ interface Receipt {
     item_id: string;
     quantity: number;
     unit_price: number;
+    price_jalingo: number;
+    price_outside_jalingo?: number;
     total_price: number;
   }>;
 }
@@ -374,7 +376,11 @@ export default function ReceiptsPage() {
                             {itemNames[item.item_id] || 'Item'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity} x ₦{(item.unit_price || 0).toLocaleString()}
+                            Qty: {item.quantity} x ₦{(
+                              selectedReceipt.sold_outside_jalingo && item.price_outside_jalingo
+                                ? item.price_outside_jalingo
+                                : item.price_jalingo || 0
+                            ).toLocaleString()}
                           </p>
                         </div>
                         <div>

@@ -4,6 +4,8 @@ interface ReceiptItemData {
   item_id: string;
   quantity: number;
   unit_price: number;
+  price_jalingo: number;
+  price_outside?: number;
   name: string;
   total_price: number;
 }
@@ -47,6 +49,8 @@ export class ReceiptsService {
         item_id: item.item_id,
         quantity: item.quantity,
         unit_price: item.unit_price,
+        price_jalingo: item.price_jalingo,
+        price_outside_jalingo: item.price_outside || null,
         total_price: item.total_price,
       }));
 
@@ -74,7 +78,7 @@ export class ReceiptsService {
         .select(`
           id, receipt_number, total_amount, payment_method, sold_outside_jalingo,
           items_count, created_at,
-          receipt_items(id, item_id, quantity, unit_price, total_price)
+          receipt_items(id, item_id, quantity, unit_price, price_jalingo, price_outside_jalingo, total_price)
         `)
         .eq('staff_id', staffId)
         .order('created_at', { ascending: false })
@@ -98,7 +102,7 @@ export class ReceiptsService {
           id, receipt_number, total_amount, payment_method, sold_outside_jalingo,
           items_count, created_at,
           staff_id,
-          receipt_items(id, item_id, quantity, unit_price, total_price, item_id(name))
+          receipt_items(id, item_id, quantity, unit_price, price_jalingo, price_outside_jalingo, total_price, item_id(name))
         `)
         .order('created_at', { ascending: false });
 
@@ -107,7 +111,7 @@ export class ReceiptsService {
       console.log('📊 Sample receipt:', data?.[0]);
       return data || [];
     } catch (error: any) {
-      throw new Error(`Failed to fetch receipts: ${error.message}`);
+      throw new Error(`Failed to fetch receipts: ${error.message}`, { cause: error });
     }
   }
 
@@ -122,7 +126,7 @@ export class ReceiptsService {
           id, receipt_number, total_amount, payment_method, sold_outside_jalingo,
           items_count, created_at, updated_at,
           staff_id,
-          receipt_items(id, item_id, quantity, unit_price, total_price, item_id(name))
+          receipt_items(id, item_id, quantity, unit_price, price_jalingo, price_outside_jalingo, total_price, item_id(name))
         `)
         .eq('id', receiptId)
         .single();
@@ -130,7 +134,7 @@ export class ReceiptsService {
       if (error) throw error;
       return data;
     } catch (error: any) {
-      throw new Error(`Failed to fetch receipt: ${error.message}`);
+      throw new Error(`Failed to fetch receipt: ${error.message}`, { cause: error });
     }
   }
 

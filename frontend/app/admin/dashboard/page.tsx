@@ -24,6 +24,8 @@ interface ReceiptItem {
   item_id: string | { name: string };
   quantity: number;
   unit_price: number;
+  price_jalingo: number;
+  price_outside_jalingo?: number;
   total_price: number;
 }
 
@@ -678,7 +680,11 @@ export default function AdminDashboard() {
                               : 'Unknown Item'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity} × ₦{(item.unit_price || 0).toLocaleString()}
+                            Qty: {item.quantity} × ₦{(
+                              selectedReceipt.sold_outside_jalingo && item.price_outside_jalingo
+                                ? item.price_outside_jalingo
+                                : item.price_jalingo || 0
+                            ).toLocaleString()}
                           </p>
                         </div>
                         <div className="text-right">

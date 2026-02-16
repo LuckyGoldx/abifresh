@@ -236,11 +236,13 @@ router.post('/create', authMiddleware, async (req: AuthRequest, res: Response) =
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Transform items to include total_price
+    // Transform items to include total_price and selling prices
     const itemsData = items.map((item: any) => ({
       item_id: item.id,
       quantity: item.sale_quantity,
       unit_price: item.unit_price,
+      price_jalingo: item.price_jalingo,
+      price_outside: item.price_outside || null,
       name: item.name,
       total_price: item.unit_price * item.sale_quantity,
     }));
