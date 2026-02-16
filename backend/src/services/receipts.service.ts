@@ -130,7 +130,7 @@ export class ReceiptsService {
       if (error) throw error;
       return data;
     } catch (error: any) {
-      throw new Error(`Failed to fetch receipt: ${error.message}`, { cause: error });
+      throw new Error(`Failed to fetch receipt: ${error.message}`);
     }
   }
 
