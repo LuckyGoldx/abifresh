@@ -102,8 +102,14 @@ export default function ReceiptsPage() {
 
     let itemsRow = '';
     receipt.receipt_items?.forEach((item) => {
-      const itemName = itemNames[item.item_id] || 'Item';
-      itemsRow = itemsRow + '<tr><td>' + itemName + '</td><td>' + item.quantity + '</td><td>₦' + item.total_price.toLocaleString() + '</td></tr>';
+      const itemName = typeof item.item_id === 'object' ? item.item_id.name : itemNames[item.item_id] || 'Item';
+      const correctPrice = (receipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
+        ? item.item_id.price_outside
+        : typeof item.item_id === 'object' && item.item_id?.price_jalingo
+        ? item.item_id.price_jalingo
+        : item.unit_price || 0);
+      const lineTotal = correctPrice * item.quantity;
+      itemsRow = itemsRow + '<tr><td>' + itemName + '</td><td>' + item.quantity + '</td><td>₦' + lineTotal.toLocaleString() + '</td></tr>';
     });
 
     const htmlContent =
@@ -130,8 +136,14 @@ export default function ReceiptsPage() {
 
     let itemsRow = '';
     receipt.receipt_items?.forEach((item) => {
-      const itemName = itemNames[item.item_id] || 'Item';
-      itemsRow = itemsRow + '<tr><td>' + itemName + '</td><td>' + item.quantity + '</td><td>₦' + item.total_price.toLocaleString() + '</td></tr>';
+      const itemName = typeof item.item_id === 'object' ? item.item_id.name : itemNames[item.item_id] || 'Item';
+      const correctPrice = (receipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
+        ? item.item_id.price_outside
+        : typeof item.item_id === 'object' && item.item_id?.price_jalingo
+        ? item.item_id.price_jalingo
+        : item.unit_price || 0);
+      const lineTotal = correctPrice * item.quantity;
+      itemsRow = itemsRow + '<tr><td>' + itemName + '</td><td>' + item.quantity + '</td><td>₦' + lineTotal.toLocaleString() + '</td></tr>';
     });
 
     const htmlContent =
@@ -387,7 +399,13 @@ export default function ReceiptsPage() {
                         </div>
                         <div>
                           <p className="font-bold text-gray-900 dark:text-white">
-                            ₦{item.total_price.toLocaleString()}
+                            ₦{(
+                              (selectedReceipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
+                                ? item.item_id.price_outside
+                                : typeof item.item_id === 'object' && item.item_id?.price_jalingo
+                                ? item.item_id.price_jalingo
+                                : item.unit_price || 0) * item.quantity
+                            ).toLocaleString()}
                           </p>
                         </div>
                       </div>

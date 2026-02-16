@@ -689,7 +689,13 @@ export default function AdminDashboard() {
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-gray-900 dark:text-white">
-                            ₦{item.total_price.toLocaleString()}
+                            ₦{(
+                              (selectedReceipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
+                                ? item.item_id.price_outside
+                                : typeof item.item_id === 'object' && item.item_id?.price_jalingo
+                                ? item.item_id.price_jalingo
+                                : item.unit_price || 0) * item.quantity
+                            ).toLocaleString()}
                           </p>
                         </div>
                       </div>
