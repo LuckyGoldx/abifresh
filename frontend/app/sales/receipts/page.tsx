@@ -16,7 +16,8 @@ interface Receipt {
     id: string;
     item_id: string;
     quantity: number;
-    unit_price: number;
+    price_jalingo: number;
+    unit_price?: number;
     total_price: number;
   }>;
 }
@@ -373,7 +374,7 @@ export default function ReceiptsPage() {
                             {itemNames[item.item_id] || 'Item'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity} x ₦{item.unit_price.toLocaleString()}
+                            Qty: {item.quantity} x ₦{(item.price_jalingo || 0).toLocaleString()}
                           </p>
                         </div>
                         <div>

@@ -38,10 +38,15 @@ interface Item {
   id: string;
   name: string;
   sku: string;
-  unit_price: number;
+  price_jalingo: number;
+  unit_price?: number;
   active_store_quantity: number;
   commission: number;
   category: string;
+  brand?: string;
+  package_type?: string;
+  price_outside?: number;
+  image_url?: string;
 }
 
 interface CartItem extends Item {
@@ -197,7 +202,7 @@ export default function PostItemsPage() {
         items: cart.map(item => ({
           item_id: item.id,
           quantity: item.post_quantity,
-          unit_price: item.unit_price,
+          unit_price: item.price_jalingo || 0,
         })),
         total_items: cart.reduce((sum, item) => sum + item.post_quantity, 0),
       };
@@ -224,7 +229,7 @@ export default function PostItemsPage() {
     return <div className="text-center py-12 text-gray-600 dark:text-gray-400">Loading...</div>;
   }
 
-  const totalValue = cart.reduce((sum, item) => sum + (item.unit_price * item.post_quantity), 0);
+  const totalValue = cart.reduce((sum, item) => sum + ((item.price_jalingo || 0) * item.post_quantity), 0);
 
   return (
     <div className="space-y-6">
@@ -264,7 +269,7 @@ export default function PostItemsPage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400">{item.sku}</p>
                   </div>
                   <p className="text-lg font-bold text-pink-600 dark:text-pink-400 mb-2">
-                    ₦{item.unit_price.toLocaleString()}
+                    ₦{(item.price_jalingo || 0).toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
                     Available: {item.active_store_quantity}
@@ -333,7 +338,7 @@ export default function PostItemsPage() {
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <p className="font-semibold text-gray-900 dark:text-white text-sm">{item.name}</p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">₦{item.unit_price.toLocaleString()}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">₦{(item.price_jalingo || 0).toLocaleString()}</p>
                         </div>
                         <button
                           onClick={() => removeFromCart(item.id)}
@@ -472,7 +477,7 @@ export default function PostItemsPage() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white">{item.name}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">₦{item.unit_price.toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">₦{(item.price_jalingo || 0).toLocaleString()}</p>
                       </div>
                       <button
                         onClick={() => removeFromCart(item.id)}
@@ -572,7 +577,7 @@ export default function PostItemsPage() {
                           {index + 1}. {item.name}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {item.post_quantity} × ₦{item.unit_price.toLocaleString()}
+                          {item.post_quantity} × ₦{(item.price_jalingo || 0).toLocaleString()}
                         </p>
                       </div>
                       <p className="font-bold text-pink-600 dark:text-pink-400 text-lg">

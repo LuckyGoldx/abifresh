@@ -15,9 +15,14 @@ interface Staff {
 interface Item {
   id: string;
   name: string;
-  unit_price: number;
+  price_jalingo: number;
+  unit_price?: number;
   quantity: number;
   category: string;
+  brand?: string;
+  package_type?: string;
+  price_outside?: number;
+  image_url?: string;
 }
 
 interface PostedItem {
@@ -208,7 +213,7 @@ export default function PostItemsPage() {
                   <option value="">Choose an item...</option>
                   {availableItems.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.name} - ₦{item.unit_price.toLocaleString()} (Available: {item.quantity})
+                      {item.name} - ₦{(item.price_jalingo || 0).toLocaleString()} (Available: {item.quantity})
                     </option>
                   ))}
                 </select>
