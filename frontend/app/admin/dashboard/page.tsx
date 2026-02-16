@@ -678,7 +678,9 @@ export default function AdminDashboard() {
                               : 'Unknown Item'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity} × ₦{item.unit_price.toLocaleString()}
+                            Qty: {item.quantity} × ₦{(selectedReceipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside 
+                              ? item.item_id.price_outside 
+                              : item.unit_price).toLocaleString()}
                           </p>
                         </div>
                         <div className="text-right">
