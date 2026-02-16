@@ -15,7 +15,7 @@ interface Receipt {
   sold_outside_jalingo?: boolean;
   receipt_items?: Array<{
     id: string;
-    item_id: string;
+    item_id: string | { name: string; price_jalingo?: number; price_outside?: number };
     quantity: number;
     unit_price: number;
     total_price: number;
@@ -371,10 +371,18 @@ export default function ReceiptsPage() {
                       >
                         <div className="flex-1">
                           <p className="font-semibold text-gray-900 dark:text-white">
-                            {itemNames[item.item_id] || 'Item'}
+                            {typeof item.item_id === 'object' && item.item_id?.name
+                              ? item.item_id.name
+                              : itemNames[typeof item.item_id === 'string' ? item.item_id : ''] || 'Item'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity} x ₦{(item.unit_price || 0).toLocaleString()}
+                            Qty: {item.quantity} x ₦{(
+                              selectedReceipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
+                                ? item.item_id.price_outside
+                                : typeof item.item_id === 'object' && item.item_id?.price_jalingo
+                                ? item.item_id.price_jalingo
+                                : item.unit_price || 0
+                            ).toLocaleString()}
                           </p>
                         </div>
                         <div>

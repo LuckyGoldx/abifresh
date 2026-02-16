@@ -74,7 +74,7 @@ export class ReceiptsService {
         .select(`
           id, receipt_number, total_amount, payment_method, sold_outside_jalingo,
           items_count, created_at,
-          receipt_items(id, item_id, quantity, unit_price, total_price)
+          receipt_items(id, item_id, quantity, unit_price, total_price, item_id(name, price_jalingo, price_outside))
         `)
         .eq('staff_id', staffId)
         .order('created_at', { ascending: false })
@@ -98,7 +98,7 @@ export class ReceiptsService {
           id, receipt_number, total_amount, payment_method, sold_outside_jalingo,
           items_count, created_at,
           staff_id,
-          receipt_items(id, item_id, quantity, unit_price, total_price, item_id(name))
+          receipt_items(id, item_id, quantity, unit_price, total_price, item_id(name, price_jalingo, price_outside))
         `)
         .order('created_at', { ascending: false });
 
@@ -122,7 +122,7 @@ export class ReceiptsService {
           id, receipt_number, total_amount, payment_method, sold_outside_jalingo,
           items_count, created_at, updated_at,
           staff_id,
-          receipt_items(id, item_id, quantity, unit_price, total_price, item_id(name))
+          receipt_items(id, item_id, quantity, unit_price, total_price, item_id(name, price_jalingo, price_outside))
         `)
         .eq('id', receiptId)
         .single();

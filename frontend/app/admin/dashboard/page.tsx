@@ -21,7 +21,7 @@ interface DashboardStats {
 
 interface ReceiptItem {
   id: string;
-  item_id: string | { name: string };
+  item_id: string | { name: string; price_jalingo?: number; price_outside?: number };
   quantity: number;
   unit_price: number;
   total_price: number;
@@ -678,7 +678,13 @@ export default function AdminDashboard() {
                               : 'Unknown Item'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity} × ₦{(item.unit_price || 0).toLocaleString()}
+                            Qty: {item.quantity} × ₦{(
+                              selectedReceipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
+                                ? item.item_id.price_outside
+                                : typeof item.item_id === 'object' && item.item_id?.price_jalingo
+                                ? item.item_id.price_jalingo
+                                : item.unit_price || 0
+                            ).toLocaleString()}
                           </p>
                         </div>
                         <div className="text-right">
