@@ -656,91 +656,79 @@ export class AdminService {
 
       console.log(`✅ Fetched ${expenses?.length || 0} expense records`);
 
-      // Fetch inventory data WITHOUT JOINs (relationships not set up in Supabase)
-      // Will enrich manually with item data below
-      const { data: mainStoreRaw, error: mainStoreError } = await supabaseAdmin
-        .from('inventory_main_store')
-        .select('*');
+      // Fetch inventory data directly from items table like /admin/inventory does
+      // This ensures we get correct item names and prices
+      const { data: allItems, error: allItemsError } = await supabaseAdmin
+        .from('items')
+        .select(`
+          id,
+          name,
+          sku,
+          category,
+          unit_price,
+          main_store_quantity,
+          active_store_quantity,
+          brand,
+          package_type,
+          price_jalingo,
+          price_outside,
+          image_url
+        `)
+        .order('name');
 
-      if (mainStoreError) console.error('Main store inventory error:', mainStoreError);
+      if (allItemsError) console.error('Items fetch error:', allItemsError);
+      console.log(`✅ Fetched ${allItems?.length || 0} items from items table`);
 
-      const { data: activeStoreRaw, error: activeStoreError } = await supabaseAdmin
-        .from('inventory_active_store')
-        .select('*');
+      // Filter items by store quantities - matching the inventory service logic
+      const mainStoreArray = (allItems || [])
+        .filter((item: any) => item.main_store_quantity > 0)
+        .map((item: any) => ({
+          id: item.id,
+          item_id: item.id,
+          item_name: item.name,
+          quantity: item.main_store_quantity || 0,
+          unit_price: item.unit_price || 0,
+          sku: item.sku,
+          category: item.category,
+        }));
 
-      if (activeStoreError) console.error('Active store inventory error:', activeStoreError);
+      const activeStoreArray = (allItems || [])
+        .filter((item: any) => item.active_store_quantity > 0)
+        .map((item: any) => ({
+          id: item.id,
+          item_id: item.id,
+          item_name: item.name,
+          quantity: item.active_store_quantity || 0,
+          unit_price: item.unit_price || 0,
+          sku: item.sku,
+          category: item.category,
+        }));
 
+      // Fetch staff store items from staff_store table
+      // Staff store contains items posted to commission/non-commission staff
       const { data: staffStoreRaw, error: staffStoreError } = await supabaseAdmin
         .from('staff_store')
-        .select('*');
+        .select('*')
+        .order('posted_date', { ascending: false });
 
-      if (staffStoreError) console.error('Staff store inventory error:', staffStoreError);
+      if (staffStoreError) console.error('Staff store fetch error:', staffStoreError);
+      console.log(`✅ Fetched ${staffStoreRaw?.length || 0} staff store items`);
 
-      console.log(`✅ Fetched ${mainStoreRaw?.length || 0} main store items, ${activeStoreRaw?.length || 0} active store items, and ${staffStoreRaw?.length || 0} staff store items`);
-
-      // Get all item IDs and fetch items data to enrich inventory
-      const allItemIds = new Set<string>();
-      (mainStoreRaw || []).forEach((inv: any) => allItemIds.add(inv.item_id));
-      (activeStoreRaw || []).forEach((inv: any) => allItemIds.add(inv.item_id));
-      (staffStoreRaw || []).forEach((inv: any) => allItemIds.add(inv.item_id));
-
-      // Fetch items data for enrichment
-      let itemsDataMap = new Map<string, any>();
-      if (allItemIds.size > 0) {
-        const { data: itemsData, error: itemsDataError } = await supabaseAdmin
-          .from('items')
-          .select('id, name, unit_price')
-          .in('id', Array.from(allItemIds));
-
-        if (!itemsDataError && itemsData) {
-          itemsData.forEach((item: any) => {
-            itemsDataMap.set(item.id, item);
-          });
-        }
-      }
-
-      console.log(`✅ Fetched ${itemsDataMap.size} items for enrichment`);
-
-      // Enrich inventory data with friendly field names AND item data
-      const mainStoreArray = (mainStoreRaw || []).map((inv: any) => {
-        const itemData = itemsDataMap.get(inv.item_id);
+      // Enrich staff store items with item names and prices
+      const staffStoreArray = (staffStoreRaw || []).map((storeItem: any) => {
+        const itemData = (allItems || []).find((item: any) => item.id === storeItem.item_id);
         return {
-          id: inv.id,
-          item_id: inv.item_id,
-          item_name: itemData?.name || `Item ${inv.item_id}`,
-          quantity: inv.quantity_in_stock || 0,
+          id: storeItem.id,
+          staff_id: storeItem.staff_id,
+          item_id: storeItem.item_id,
+          item_name: itemData?.name || `Item ${storeItem.item_id}`,
+          quantity: storeItem.quantity || 0,
+          quantity_available: storeItem.quantity_available || 0,
+          quantity_sold: storeItem.quantity_sold || 0,
           unit_price: itemData?.unit_price || 0,
-          reorder_level: inv.reorder_level || 10,
-          last_restocked: inv.last_restocked,
-          notes: inv.notes,
-        };
-      });
-
-      const activeStoreArray = (activeStoreRaw || []).map((inv: any) => {
-        const itemData = itemsDataMap.get(inv.item_id);
-        return {
-          id: inv.id,
-          item_id: inv.item_id,
-          item_name: itemData?.name || `Item ${inv.item_id}`,
-          quantity: inv.quantity_available || 0,
-          quantity_sold: inv.quantity_sold || 0,
-          unit_price: itemData?.unit_price || 0,
-          last_updated: inv.last_updated,
-        };
-      });
-
-      const staffStoreArray = (staffStoreRaw || []).map((inv: any) => {
-        const itemData = itemsDataMap.get(inv.item_id);
-        return {
-          id: inv.id,
-          staff_id: inv.staff_id,
-          item_id: inv.item_id,
-          item_name: itemData?.name || `Item ${inv.item_id}`,
-          quantity: inv.quantity || 0,
-          quantity_available: inv.quantity_available || 0,
-          quantity_sold: inv.quantity_sold || 0,
-          unit_price: itemData?.unit_price || 0,
-          posted_date: inv.posted_date,
+          sku: itemData?.sku || 'N/A',
+          category: itemData?.category || 'N/A',
+          posted_date: storeItem.posted_date,
         };
       });
 

@@ -44,6 +44,7 @@ export default function StaffDashboard() {
   const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [availableItems, setAvailableItems] = useState({ count: 0, total_quantity: 0 });
+  const [currentSalesPage, setCurrentSalesPage] = useState(1);
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -327,7 +328,7 @@ export default function StaffDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {salesHistoryArray.slice(0, 10).map((sale) => (
+                {salesHistoryArray.slice((currentSalesPage - 1) * 10, currentSalesPage * 10).map((sale) => (
                   <tr key={sale.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                     <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{sale.item_name || sale.items?.name || 'Item'}</td>
                     <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">{sale.quantity}</td>
@@ -351,13 +352,48 @@ export default function StaffDashboard() {
             </table>
           </div>
 
-          {salesHistoryArray.length > 10 && (
-            <div className="mt-4 pt-4 border-t dark:border-gray-700 text-center">
-              <a href="/staff/make-sale" className="text-pink-600 dark:text-pink-400 hover:underline text-sm font-medium">
-                View all sales →
-              </a>
+          {/* Pagination Controls */}
+          <div className="mt-4 pt-4 border-t dark:border-gray-700 flex items-center justify-between">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {(currentSalesPage - 1) * 10 + 1} to {Math.min(currentSalesPage * 10, salesHistoryArray.length)} of {salesHistoryArray.length} sales
             </div>
-          )}
+            {salesHistoryArray.length > 10 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentSalesPage(Math.max(1, currentSalesPage - 1))}
+                  disabled={currentSalesPage === 1}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.ceil(salesHistoryArray.length / 10) }).map((_, idx) => {
+                    const pageNum = idx + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentSalesPage(pageNum)}
+                        className={`px-3 py-1 rounded transition ${
+                          currentSalesPage === pageNum
+                            ? 'bg-pink-600 text-white'
+                            : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setCurrentSalesPage(Math.min(Math.ceil(salesHistoryArray.length / 10), currentSalesPage + 1))}
+                  disabled={currentSalesPage === Math.ceil(salesHistoryArray.length / 10)}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

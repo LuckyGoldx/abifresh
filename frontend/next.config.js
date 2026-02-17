@@ -15,7 +15,7 @@ const nextConfig = {
   },
   optimizeFonts: true,
   images: {
-    domains: [],
+    domains: ['localhost:5000', 'localhost', '127.0.0.1'],
     formats: ['image/avif', 'image/webp'],
   },
   experimental: {

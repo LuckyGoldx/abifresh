@@ -487,6 +487,19 @@ export default function ComprehensiveInventoryPage() {
                   color="amber" 
                   isCurrency={true}
                 />
+                <div className="border rounded-lg p-4 bg-indigo-50 dark:bg-indigo-900 border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-200">
+                  <p className="text-sm font-medium mb-3">Estimated Revenue</p>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-indigo-600 dark:text-indigo-300">Inside Jalingo</p>
+                      <p className="font-bold text-lg">₦{items.reduce((sum, item) => sum + ((item.main_store_quantity + item.active_store_quantity) * (item.price_jalingo || 0)), 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-indigo-600 dark:text-indigo-300">Outside Jalingo</p>
+                      <p className="font-bold text-lg">₦{items.reduce((sum, item) => sum + ((item.main_store_quantity + item.active_store_quantity) * (item.price_outside || 0)), 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
             

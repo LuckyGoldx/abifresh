@@ -110,6 +110,7 @@ export default function SalesDashboard() {
   const [currentReceipt, setCurrentReceipt] = useState<any | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [currentActivityPage, setCurrentActivityPage] = useState(1);
   const [postedItemsStats, setPostedItemsStats] = useState<any | null>(null);
 
   useEffect(() => {
@@ -742,51 +743,96 @@ export default function SalesDashboard() {
           </div>
 
           {activities.length > 0 ? (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start gap-4 pb-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 p-3 rounded transition"
-                >
-                  <div className="mt-1">
-                    {activity.type === 'sale' ? (
-                      <div className="w-5 h-5 text-green-500 font-bold text-lg flex items-center justify-center">₦</div>
-                    ) : activity.type === 'post-items' ? (
-                      <TrendingUp className="w-5 h-5 text-blue-500" />
-                    ) : (
-                      <ArrowUp className="w-5 h-5 text-gray-500" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900 dark:text-white">
-                      {activity.title}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {activity.description}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                      {activity.timestamp.toLocaleTimeString('en-NG', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                      })} • {activity.timestamp.toLocaleDateString('en-NG')}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    {activity.amount && (
-                      <p className="font-bold text-green-600 dark:text-green-400">
-                        ₦{activity.amount.toLocaleString()}
+            <>
+              <div className="space-y-3">
+                {activities.slice((currentActivityPage - 1) * 10, currentActivityPage * 10).map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-4 pb-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 p-3 rounded transition"
+                  >
+                    <div className="mt-1">
+                      {activity.type === 'sale' ? (
+                        <div className="w-5 h-5 text-green-500 font-bold text-lg flex items-center justify-center">₦</div>
+                      ) : activity.type === 'post-items' ? (
+                        <TrendingUp className="w-5 h-5 text-blue-500" />
+                      ) : (
+                        <ArrowUp className="w-5 h-5 text-gray-500" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 dark:text-white">
+                        {activity.title}
                       </p>
-                    )}
-                    {activity.itemCount && (
                       <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {activity.itemCount} item{activity.itemCount !== 1 ? 's' : ''}
+                        {activity.description}
                       </p>
-                    )}
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        {activity.timestamp.toLocaleTimeString('en-NG', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                        })} • {activity.timestamp.toLocaleDateString('en-NG')}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      {activity.amount && (
+                        <p className="font-bold text-green-600 dark:text-green-400">
+                          ₦{activity.amount.toLocaleString()}
+                        </p>
+                      )}
+                      {activity.itemCount && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {activity.itemCount} item{activity.itemCount !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Pagination Controls - Always show for consistency */}
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {(currentActivityPage - 1) * 10 + 1} to {Math.min(currentActivityPage * 10, activities.length)} of {activities.length} activities
                 </div>
-              ))}
-            </div>
+                {activities.length > 10 && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentActivityPage(Math.max(1, currentActivityPage - 1))}
+                      disabled={currentActivityPage === 1}
+                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.ceil(activities.length / 10) }).map((_, idx) => {
+                        const pageNum = idx + 1;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentActivityPage(pageNum)}
+                            className={`px-3 py-1 rounded transition ${
+                              currentActivityPage === pageNum
+                                ? 'bg-pink-600 text-white'
+                                : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <button
+                      onClick={() => setCurrentActivityPage(Math.min(Math.ceil(activities.length / 10), currentActivityPage + 1))}
+                      disabled={currentActivityPage === Math.ceil(activities.length / 10)}
+                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <div className="text-center py-8 text-gray-600 dark:text-gray-400">
               <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />

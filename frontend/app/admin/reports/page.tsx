@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart
@@ -65,6 +67,7 @@ interface ComprehensiveReport {
 const COLORS = ['#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#14b8a6', '#f97316'];
 
 export default function ComprehensiveReportsPage() {
+  const reportRef = useRef<HTMLDivElement>(null);
   const [report, setReport] = useState<ComprehensiveReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'expenses' | 'inventory' | 'performance'>('overview');
@@ -115,8 +118,55 @@ export default function ComprehensiveReportsPage() {
     }
   };
 
-  const handleExportPDF = () => {
-    alert('PDF export feature coming soon!');
+  const handleExportPDF = async () => {
+    if (!reportRef.current) {
+      alert('Report content not found');
+      return;
+    }
+
+    try {
+      const element = reportRef.current;
+      
+      // Create canvas from the report element
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        allowTaint: true,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+
+      // Calculate PDF dimensions
+      const imgWidth = 210; // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Create PDF document
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgData = canvas.toDataURL('image/png');
+
+      // Add pages as needed
+      while (heightLeft >= 0) {
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= 297; // A4 height in mm
+        position -= 297;
+        if (heightLeft > 0) {
+          pdf.addPage();
+        }
+      }
+
+      // Generate filename with timestamp
+      const dateStr = new Date().toLocaleDateString('en-NG');
+      const timeStr = new Date().toLocaleTimeString('en-NG');
+      const filename = `Comprehensive_Report_${dateStr}_${timeStr.replace(/:/g, '-')}.pdf`;
+
+      // Download PDF
+      pdf.save(filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to export PDF. Please try again.');
+    }
   };
 
   const getFilteredLowStockItems = () => {
@@ -890,7 +940,7 @@ export default function ComprehensiveReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div ref={reportRef} className="space-y-6 bg-white dark:bg-gray-900 p-6 rounded-lg">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
