@@ -10,9 +10,11 @@ CREATE TABLE IF NOT EXISTS restock_orders (
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
   show_item_name BOOLEAN NOT NULL DEFAULT true,
   show_sku BOOLEAN NOT NULL DEFAULT false,
+  show_category BOOLEAN NOT NULL DEFAULT false,
   show_brand_name BOOLEAN NOT NULL DEFAULT true,
   show_package_type BOOLEAN NOT NULL DEFAULT true,
-  show_current_stock BOOLEAN NOT NULL DEFAULT true,
+  show_current_stock BOOLEAN NOT NULL DEFAULT false,
+  show_order_quantity BOOLEAN NOT NULL DEFAULT true,
   show_unit_price BOOLEAN NOT NULL DEFAULT true,
   show_subtotal BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -33,6 +35,16 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='restock_orders' AND column_name='show_package_type') THEN
     ALTER TABLE restock_orders ADD COLUMN show_package_type BOOLEAN NOT NULL DEFAULT true;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='restock_orders' AND column_name='show_category') THEN
+    ALTER TABLE restock_orders ADD COLUMN show_category BOOLEAN NOT NULL DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='restock_orders' AND column_name='show_order_quantity') THEN
+    ALTER TABLE restock_orders ADD COLUMN show_order_quantity BOOLEAN NOT NULL DEFAULT true;
+  END IF;
+  -- Update existing show_current_stock default to false for new orders
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='restock_orders' AND column_name='show_current_stock') THEN
+    ALTER TABLE restock_orders ALTER COLUMN show_current_stock SET DEFAULT false;
   END IF;
 END
 $$;

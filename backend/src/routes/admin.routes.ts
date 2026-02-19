@@ -1495,9 +1495,11 @@ router.get('/restock-orders', authMiddleware, roleMiddleware('admin'), async (re
       status: order.status,
       showItemName: order.show_item_name !== false,
       showSku: order.show_sku === true,
+      showCategory: order.show_category === true,
       showBrandName: order.show_brand_name !== false,
       showPackageType: order.show_package_type !== false,
-      showCurrentStock: order.show_current_stock,
+      showCurrentStock: order.show_current_stock === true,
+      showOrderQuantity: order.show_order_quantity !== false,
       showUnitPrice: order.show_unit_price,
       showSubtotal: order.show_subtotal,
     }));
@@ -1514,7 +1516,7 @@ router.get('/restock-orders', authMiddleware, roleMiddleware('admin'), async (re
  */
 router.post('/restock-orders', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    const { orderNumber, items, totalItems, totalQuantity, totalCost, note, showItemName, showSku, showBrandName, showPackageType, showCurrentStock, showUnitPrice, showSubtotal } = req.body;
+    const { orderNumber, items, totalItems, totalQuantity, totalCost, note, showItemName, showSku, showCategory, showBrandName, showPackageType, showCurrentStock, showOrderQuantity, showUnitPrice, showSubtotal } = req.body;
     const userId = req.user?.id;
 
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -1533,9 +1535,11 @@ router.post('/restock-orders', authMiddleware, roleMiddleware('admin'), async (r
         status: 'pending',
         show_item_name: showItemName !== false,
         show_sku: showSku === true,
+        show_category: showCategory === true,
         show_brand_name: showBrandName !== false,
         show_package_type: showPackageType !== false,
-        show_current_stock: showCurrentStock !== false,
+        show_current_stock: showCurrentStock === true,
+        show_order_quantity: showOrderQuantity !== false,
         show_unit_price: showUnitPrice !== false,
         show_subtotal: showSubtotal !== false,
       })
@@ -1576,9 +1580,11 @@ router.post('/restock-orders', authMiddleware, roleMiddleware('admin'), async (r
       status: order.status,
       showItemName: order.show_item_name,
       showSku: order.show_sku,
+      showCategory: order.show_category,
       showBrandName: order.show_brand_name,
       showPackageType: order.show_package_type,
       showCurrentStock: order.show_current_stock,
+      showOrderQuantity: order.show_order_quantity,
       showUnitPrice: order.show_unit_price,
       showSubtotal: order.show_subtotal,
     });

@@ -54,9 +54,11 @@ interface SavedOrder {
   status: 'pending' | 'completed' | 'cancelled';
   showItemName: boolean;
   showSku: boolean;
+  showCategory: boolean;
   showBrandName: boolean;
   showPackageType: boolean;
   showCurrentStock: boolean;
+  showOrderQuantity: boolean;
   showUnitPrice: boolean;
   showSubtotal: boolean;
 }
@@ -64,9 +66,11 @@ interface SavedOrder {
 interface DisplayOptions {
   showItemName: boolean;
   showSku: boolean;
+  showCategory: boolean;
   showBrandName: boolean;
   showPackageType: boolean;
   showCurrentStock: boolean;
+  showOrderQuantity: boolean;
   showUnitPrice: boolean;
   showSubtotal: boolean;
 }
@@ -95,9 +99,11 @@ export default function RestockOrdersPage() {
   const [displayOptions, setDisplayOptions] = useState<DisplayOptions>({
     showItemName: true,
     showSku: false,
+    showCategory: false,
     showBrandName: true,
     showPackageType: true,
-    showCurrentStock: true,
+    showCurrentStock: false,
+    showOrderQuantity: true,
     showUnitPrice: true,
     showSubtotal: true,
   });
@@ -275,25 +281,25 @@ export default function RestockOrdersPage() {
   // Helper: build dynamic table column config from display options
   const buildColumns = (opts: DisplayOptions) => {
     const cols: { key: string; label: string; align: 'left' | 'center' | 'right'; bold?: boolean; getData: (item: OrderItem, idx: number) => string }[] = [];
-    cols.push({ key: '#', label: '#', align: 'center', getData: (_item, idx) => String(idx + 1) });
+    cols.push({ key: '#', label: 'SN', align: 'center', getData: (_item, idx) => String(idx + 1) });
     if (opts.showItemName) cols.push({ key: 'name', label: 'Item Name', align: 'left', getData: (item) => item.name });
     if (opts.showSku) cols.push({ key: 'sku', label: 'SKU', align: 'center', getData: (item) => item.sku || '-' });
-    cols.push({ key: 'category', label: 'Category', align: 'center', getData: (item) => item.category || '-' });
+    if (opts.showCategory) cols.push({ key: 'category', label: 'Category', align: 'center', getData: (item) => item.category || '-' });
     if (opts.showBrandName) cols.push({ key: 'brand', label: 'Brand', align: 'center', getData: (item) => item.brand || '-' });
     if (opts.showPackageType) cols.push({ key: 'packageType', label: 'Pack Type', align: 'center', getData: (item) => item.package_type || '-' });
     if (opts.showCurrentStock) cols.push({ key: 'currentStock', label: 'Current Stock', align: 'center', getData: (item) => item.currentStock.toLocaleString() });
-    cols.push({ key: 'orderQty', label: 'Order Qty', align: 'center', bold: true, getData: (item) => item.orderQuantity.toLocaleString() });
+    if (opts.showOrderQuantity) cols.push({ key: 'orderQty', label: 'Order Quantity', align: 'center', bold: true, getData: (item) => item.orderQuantity.toLocaleString() });
     if (opts.showUnitPrice) cols.push({ key: 'unitPrice', label: 'Unit Price', align: 'right', getData: (item) => `₦${item.unitPrice.toLocaleString()}` });
     if (opts.showSubtotal) cols.push({ key: 'subtotal', label: 'Subtotal', align: 'right', bold: true, getData: (item) => `₦${(item.orderQuantity * item.unitPrice).toLocaleString()}` });
     return cols;
   };
 
-  // Column count before "Order Qty" for footer colspan
+  // Column count before "Order Quantity" for footer colspan
   const getFooterColSpan = (opts: DisplayOptions) => {
     let count = 1; // #
     if (opts.showItemName) count++;
     if (opts.showSku) count++;
-    count++; // category always
+    if (opts.showCategory) count++;
     if (opts.showBrandName) count++;
     if (opts.showPackageType) count++;
     if (opts.showCurrentStock) count++;
@@ -318,9 +324,11 @@ export default function RestockOrdersPage() {
           note: orderNote,
           showItemName: displayOptions.showItemName,
           showSku: displayOptions.showSku,
+          showCategory: displayOptions.showCategory,
           showBrandName: displayOptions.showBrandName,
           showPackageType: displayOptions.showPackageType,
           showCurrentStock: displayOptions.showCurrentStock,
+          showOrderQuantity: displayOptions.showOrderQuantity,
           showUnitPrice: displayOptions.showUnitPrice,
           showSubtotal: displayOptions.showSubtotal,
         }),
@@ -388,9 +396,11 @@ export default function RestockOrdersPage() {
   const resolveOpts = (order: Partial<SavedOrder>): DisplayOptions => ({
     showItemName: order.showItemName !== false,
     showSku: order.showSku === true,
+    showCategory: order.showCategory === true,
     showBrandName: order.showBrandName !== false,
     showPackageType: order.showPackageType !== false,
-    showCurrentStock: order.showCurrentStock !== false,
+    showCurrentStock: order.showCurrentStock === true,
+    showOrderQuantity: order.showOrderQuantity !== false,
     showUnitPrice: order.showUnitPrice !== false,
     showSubtotal: order.showSubtotal !== false,
   });
@@ -405,6 +415,9 @@ export default function RestockOrdersPage() {
     const doc = new jsPDF('landscape');
     const dateStr = formatDate(order.date);
     const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Helper to format currency for PDF (jsPDF has issues with Unicode Naira character)
+    const formatPricePDF = (price: number) => `N${price.toLocaleString()}`;
 
     // Header - Pink theme
     doc.setFillColor(190, 24, 93);
@@ -435,18 +448,25 @@ export default function RestockOrdersPage() {
     doc.text(`Date: ${dateStr}`, 14, 70);
     doc.text(`Total Items: ${order.totalItems}  |  Total Quantity: ${order.totalQuantity.toLocaleString()}`, pageWidth - 14, 64, { align: 'right' });
     if (opts.showSubtotal) {
-      doc.text(`Estimated Cost: \u20A6${order.totalCost.toLocaleString()}`, pageWidth - 14, 70, { align: 'right' });
+      doc.text(`Estimated Cost: ${formatPricePDF(order.totalCost)}`, pageWidth - 14, 70, { align: 'right' });
     }
 
-    // Build table
+    // Build table with price formatting for PDF
     const headCols = cols.map(c => c.label);
-    const tableData = order.items.map((item, i) => cols.map(c => c.getData(item, i)));
+    const tableData = order.items.map((item, i) => cols.map(c => {
+      const data = c.getData(item, i);
+      // Replace Naira sign with N for PDF compatibility
+      if (c.key === 'unitPrice' || c.key === 'subtotal') {
+        return data.replace('₦', 'N');
+      }
+      return data;
+    }));
 
     // Column styles
     const colStyles: Record<number, any> = {};
     cols.forEach((c, idx) => {
       const style: any = { halign: c.align, fontSize: 8 };
-      if (c.key === '#') style.cellWidth = 10;
+      if (c.key === '#') style.cellWidth = 18;
       if (c.key === 'name') style.cellWidth = 44;
       if (c.key === 'sku') style.cellWidth = 22;
       if (c.key === 'category') style.cellWidth = 24;
@@ -454,18 +474,19 @@ export default function RestockOrdersPage() {
       if (c.key === 'packageType') style.cellWidth = 24;
       if (c.key === 'currentStock') style.cellWidth = 22;
       if (c.key === 'orderQty') { style.cellWidth = 20; style.fontStyle = 'bold'; }
-      if (c.key === 'unitPrice') style.cellWidth = 24;
-      if (c.key === 'subtotal') { style.cellWidth = 26; style.fontStyle = 'bold'; }
+      if (c.key === 'unitPrice') style.cellWidth = 28;
+      if (c.key === 'subtotal') { style.cellWidth = 32; style.fontStyle = 'bold'; }
       colStyles[idx] = style;
     });
 
     autoTable(doc, {
       startY: 78,
+      margin: { left: 35, right: 35 },
       head: [headCols],
       body: tableData,
       theme: 'grid',
       headStyles: { fillColor: [190, 24, 93], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'center' },
-      bodyStyles: { fontSize: 8, cellPadding: 3 },
+      bodyStyles: { fontSize: 8, cellPadding: 4 },
       columnStyles: colStyles,
       alternateRowStyles: { fillColor: [253, 242, 248] },
       didDrawPage: () => {
@@ -488,7 +509,7 @@ export default function RestockOrdersPage() {
       doc.setFont('helvetica', 'bold');
       doc.text('TOTAL', pageWidth - 74, finalY + 9);
       doc.setFontSize(12);
-      doc.text(`\u20A6${order.totalCost.toLocaleString()}`, pageWidth - 74, finalY + 19);
+      doc.text(formatPricePDF(order.totalCost), pageWidth - 74, finalY + 19);
     }
 
     if (order.note) {
@@ -513,7 +534,7 @@ export default function RestockOrdersPage() {
     const opts = resolveOpts(order);
     const cols = buildColumns(opts);
     const dateStr = formatDate(order.date);
-    const summaryLine = `Total Items: ${order.totalItems}  |  Total Quantity: ${order.totalQuantity}` + (opts.showSubtotal ? `  |  Estimated Cost: \u20A6${order.totalCost.toLocaleString()}` : '');
+    const summaryLine = `Total Items: ${order.totalItems}  |  Total Quantity: ${order.totalQuantity}` + (opts.showSubtotal ? `  |  Estimated Cost: ₦${order.totalCost.toLocaleString()}` : '');
 
     const headRow = cols.map(c => c.label);
 
@@ -538,8 +559,8 @@ export default function RestockOrdersPage() {
       if (c.key === 'packageType') return item.package_type || '-';
       if (c.key === 'currentStock') return item.currentStock;
       if (c.key === 'orderQty') return item.orderQuantity;
-      if (c.key === 'unitPrice') return item.unitPrice;
-      if (c.key === 'subtotal') return item.orderQuantity * item.unitPrice;
+      if (c.key === 'unitPrice') return `₦${item.unitPrice.toLocaleString()}`;
+      if (c.key === 'subtotal') return `₦${(item.orderQuantity * item.unitPrice).toLocaleString()}`;
       return '';
     }));
 
@@ -555,7 +576,7 @@ export default function RestockOrdersPage() {
       if (subtotalIdx >= 0) {
         const costRow: any[] = Array(cols.length).fill('');
         costRow[subtotalIdx - 1] = 'TOTAL COST:';
-        costRow[subtotalIdx] = order.totalCost;
+        costRow[subtotalIdx] = `₦${order.totalCost.toLocaleString()}`;
         summaryRows.push(costRow);
       }
     }
@@ -563,7 +584,7 @@ export default function RestockOrdersPage() {
     if (order.note) { summaryRows.push(['']); summaryRows.push(['Notes:', order.note]); }
 
     const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows, ...summaryRows]);
-    ws['!cols'] = cols.map(c => ({ wch: c.key === '#' ? 5 : c.key === 'name' ? 35 : c.key === 'brand' ? 20 : c.key === 'packageType' ? 18 : 15 }));
+    ws['!cols'] = cols.map(c => ({ wch: c.key === '#' ? 8 : c.key === 'name' ? 35 : c.key === 'brand' ? 20 : c.key === 'packageType' ? 18 : c.key === 'unitPrice' ? 18 : c.key === 'subtotal' ? 18 : 15 }));
 
     const totalCols = headRow.length;
     ws['!merges'] = [
@@ -598,8 +619,8 @@ export default function RestockOrdersPage() {
     setOrderItems([]); setOrderNote(''); setSearchTerm('');
     setSelectAll(false); setActiveTab('low-stock');
     setDisplayOptions({
-      showItemName: true, showSku: false, showBrandName: true, showPackageType: true,
-      showCurrentStock: true, showUnitPrice: true, showSubtotal: true,
+      showItemName: true, showSku: false, showCategory: false, showBrandName: true, showPackageType: true,
+      showCurrentStock: false, showOrderQuantity: true, showUnitPrice: true, showSubtotal: true,
     });
     setPageView('create');
   };
@@ -879,6 +900,11 @@ export default function RestockOrdersPage() {
                     SKU
                   </label>
                   <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                    <input type="checkbox" checked={displayOptions.showCategory} onChange={(e) => setDisplayOptions(p => ({ ...p, showCategory: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" />
+                    Category
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
                     <input type="checkbox" checked={displayOptions.showBrandName} onChange={(e) => setDisplayOptions(p => ({ ...p, showBrandName: e.target.checked }))}
                       className="w-4 h-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" />
                     Brand Name
@@ -892,6 +918,11 @@ export default function RestockOrdersPage() {
                     <input type="checkbox" checked={displayOptions.showCurrentStock} onChange={(e) => setDisplayOptions(p => ({ ...p, showCurrentStock: e.target.checked }))}
                       className="w-4 h-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" />
                     Current Stock
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                    <input type="checkbox" checked={displayOptions.showOrderQuantity} onChange={(e) => setDisplayOptions(p => ({ ...p, showOrderQuantity: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" />
+                    Order Quantity
                   </label>
                   <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
                     <input type="checkbox" checked={displayOptions.showUnitPrice} onChange={(e) => setDisplayOptions(p => ({ ...p, showUnitPrice: e.target.checked }))}
