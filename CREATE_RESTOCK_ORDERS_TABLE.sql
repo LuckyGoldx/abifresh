@@ -8,12 +8,34 @@ CREATE TABLE IF NOT EXISTS restock_orders (
   total_cost DECIMAL(12, 2) NOT NULL DEFAULT 0,
   note TEXT DEFAULT '',
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
+  show_item_name BOOLEAN NOT NULL DEFAULT true,
+  show_sku BOOLEAN NOT NULL DEFAULT false,
+  show_brand_name BOOLEAN NOT NULL DEFAULT true,
+  show_package_type BOOLEAN NOT NULL DEFAULT true,
   show_current_stock BOOLEAN NOT NULL DEFAULT true,
   show_unit_price BOOLEAN NOT NULL DEFAULT true,
   show_subtotal BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- If tables already exist, add new columns (safe to run multiple times)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='restock_orders' AND column_name='show_item_name') THEN
+    ALTER TABLE restock_orders ADD COLUMN show_item_name BOOLEAN NOT NULL DEFAULT true;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='restock_orders' AND column_name='show_sku') THEN
+    ALTER TABLE restock_orders ADD COLUMN show_sku BOOLEAN NOT NULL DEFAULT false;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='restock_orders' AND column_name='show_brand_name') THEN
+    ALTER TABLE restock_orders ADD COLUMN show_brand_name BOOLEAN NOT NULL DEFAULT true;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='restock_orders' AND column_name='show_package_type') THEN
+    ALTER TABLE restock_orders ADD COLUMN show_package_type BOOLEAN NOT NULL DEFAULT true;
+  END IF;
+END
+$$;
 
 -- Create restock_order_items table to store individual items per order
 CREATE TABLE IF NOT EXISTS restock_order_items (

@@ -1493,6 +1493,10 @@ router.get('/restock-orders', authMiddleware, roleMiddleware('admin'), async (re
       totalCost: parseFloat(order.total_cost),
       note: order.note || '',
       status: order.status,
+      showItemName: order.show_item_name !== false,
+      showSku: order.show_sku === true,
+      showBrandName: order.show_brand_name !== false,
+      showPackageType: order.show_package_type !== false,
       showCurrentStock: order.show_current_stock,
       showUnitPrice: order.show_unit_price,
       showSubtotal: order.show_subtotal,
@@ -1510,7 +1514,7 @@ router.get('/restock-orders', authMiddleware, roleMiddleware('admin'), async (re
  */
 router.post('/restock-orders', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    const { orderNumber, items, totalItems, totalQuantity, totalCost, note, showCurrentStock, showUnitPrice, showSubtotal } = req.body;
+    const { orderNumber, items, totalItems, totalQuantity, totalCost, note, showItemName, showSku, showBrandName, showPackageType, showCurrentStock, showUnitPrice, showSubtotal } = req.body;
     const userId = req.user?.id;
 
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -1527,6 +1531,10 @@ router.post('/restock-orders', authMiddleware, roleMiddleware('admin'), async (r
         total_cost: totalCost,
         note: note || '',
         status: 'pending',
+        show_item_name: showItemName !== false,
+        show_sku: showSku === true,
+        show_brand_name: showBrandName !== false,
+        show_package_type: showPackageType !== false,
         show_current_stock: showCurrentStock !== false,
         show_unit_price: showUnitPrice !== false,
         show_subtotal: showSubtotal !== false,
@@ -1566,6 +1574,10 @@ router.post('/restock-orders', authMiddleware, roleMiddleware('admin'), async (r
       totalCost: parseFloat(order.total_cost),
       note: order.note,
       status: order.status,
+      showItemName: order.show_item_name,
+      showSku: order.show_sku,
+      showBrandName: order.show_brand_name,
+      showPackageType: order.show_package_type,
       showCurrentStock: order.show_current_stock,
       showUnitPrice: order.show_unit_price,
       showSubtotal: order.show_subtotal,

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   FileDown, FileSpreadsheet, Search, Plus, Minus, Trash2,
   Package, AlertTriangle, ShoppingCart, CheckCircle, ClipboardList,
-  Eye, ArrowLeft, History, Settings2
+  Eye, ArrowLeft, History, Settings2, Edit3
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -52,12 +52,20 @@ interface SavedOrder {
   totalCost: number;
   note: string;
   status: 'pending' | 'completed' | 'cancelled';
+  showItemName: boolean;
+  showSku: boolean;
+  showBrandName: boolean;
+  showPackageType: boolean;
   showCurrentStock: boolean;
   showUnitPrice: boolean;
   showSubtotal: boolean;
 }
 
 interface DisplayOptions {
+  showItemName: boolean;
+  showSku: boolean;
+  showBrandName: boolean;
+  showPackageType: boolean;
   showCurrentStock: boolean;
   showUnitPrice: boolean;
   showSubtotal: boolean;
@@ -85,6 +93,10 @@ export default function RestockOrdersPage() {
 
   // Display options for PDF/Excel/Preview
   const [displayOptions, setDisplayOptions] = useState<DisplayOptions>({
+    showItemName: true,
+    showSku: false,
+    showBrandName: true,
+    showPackageType: true,
     showCurrentStock: true,
     showUnitPrice: true,
     showSubtotal: true,
@@ -221,6 +233,11 @@ export default function RestockOrdersPage() {
     setOrderItems(prev => prev.map(o => o.id === itemId ? { ...o, orderQuantity: quantity } : o));
   };
 
+  const updateOrderUnitPrice = (itemId: string, price: number) => {
+    if (price < 0) return;
+    setOrderItems(prev => prev.map(o => o.id === itemId ? { ...o, unitPrice: price } : o));
+  };
+
   const handleSelectAll = (checked: boolean) => {
     setSelectAll(checked);
     if (checked) {
@@ -255,6 +272,34 @@ export default function RestockOrdersPage() {
     return `ORD-${n.getFullYear()}${String(n.getMonth() + 1).padStart(2, '0')}${String(n.getDate()).padStart(2, '0')}-${String(n.getHours()).padStart(2, '0')}${String(n.getMinutes()).padStart(2, '0')}${String(n.getSeconds()).padStart(2, '0')}`;
   };
 
+  // Helper: build dynamic table column config from display options
+  const buildColumns = (opts: DisplayOptions) => {
+    const cols: { key: string; label: string; align: 'left' | 'center' | 'right'; bold?: boolean; getData: (item: OrderItem, idx: number) => string }[] = [];
+    cols.push({ key: '#', label: '#', align: 'center', getData: (_item, idx) => String(idx + 1) });
+    if (opts.showItemName) cols.push({ key: 'name', label: 'Item Name', align: 'left', getData: (item) => item.name });
+    if (opts.showSku) cols.push({ key: 'sku', label: 'SKU', align: 'center', getData: (item) => item.sku || '-' });
+    cols.push({ key: 'category', label: 'Category', align: 'center', getData: (item) => item.category || '-' });
+    if (opts.showBrandName) cols.push({ key: 'brand', label: 'Brand', align: 'center', getData: (item) => item.brand || '-' });
+    if (opts.showPackageType) cols.push({ key: 'packageType', label: 'Pack Type', align: 'center', getData: (item) => item.package_type || '-' });
+    if (opts.showCurrentStock) cols.push({ key: 'currentStock', label: 'Current Stock', align: 'center', getData: (item) => item.currentStock.toLocaleString() });
+    cols.push({ key: 'orderQty', label: 'Order Qty', align: 'center', bold: true, getData: (item) => item.orderQuantity.toLocaleString() });
+    if (opts.showUnitPrice) cols.push({ key: 'unitPrice', label: 'Unit Price', align: 'right', getData: (item) => `₦${item.unitPrice.toLocaleString()}` });
+    if (opts.showSubtotal) cols.push({ key: 'subtotal', label: 'Subtotal', align: 'right', bold: true, getData: (item) => `₦${(item.orderQuantity * item.unitPrice).toLocaleString()}` });
+    return cols;
+  };
+
+  // Column count before "Order Qty" for footer colspan
+  const getFooterColSpan = (opts: DisplayOptions) => {
+    let count = 1; // #
+    if (opts.showItemName) count++;
+    if (opts.showSku) count++;
+    count++; // category always
+    if (opts.showBrandName) count++;
+    if (opts.showPackageType) count++;
+    if (opts.showCurrentStock) count++;
+    return count;
+  };
+
   // ======== Save Order to Supabase ========
   const saveOrderToHistory = async (andThen?: 'pdf' | 'excel') => {
     if (orderItems.length === 0) return;
@@ -271,6 +316,10 @@ export default function RestockOrdersPage() {
           totalQuantity: totalOrderQuantity,
           totalCost: totalEstimatedCost,
           note: orderNote,
+          showItemName: displayOptions.showItemName,
+          showSku: displayOptions.showSku,
+          showBrandName: displayOptions.showBrandName,
+          showPackageType: displayOptions.showPackageType,
           showCurrentStock: displayOptions.showCurrentStock,
           showUnitPrice: displayOptions.showUnitPrice,
           showSubtotal: displayOptions.showSubtotal,
@@ -335,22 +384,30 @@ export default function RestockOrdersPage() {
     }
   };
 
+  // ======== Resolve opts from order or displayOptions ========
+  const resolveOpts = (order: Partial<SavedOrder>): DisplayOptions => ({
+    showItemName: order.showItemName !== false,
+    showSku: order.showSku === true,
+    showBrandName: order.showBrandName !== false,
+    showPackageType: order.showPackageType !== false,
+    showCurrentStock: order.showCurrentStock !== false,
+    showUnitPrice: order.showUnitPrice !== false,
+    showSubtotal: order.showSubtotal !== false,
+  });
+
   // ======== PDF Generation ========
-  const generatePDFForOrder = (order: { items: OrderItem[]; orderNumber: string; date?: string; note: string; totalItems: number; totalQuantity: number; totalCost: number; showCurrentStock?: boolean; showUnitPrice?: boolean; showSubtotal?: boolean }) => {
+  const generatePDFForOrder = (order: { items: OrderItem[]; orderNumber: string; date?: string; note: string; totalItems: number; totalQuantity: number; totalCost: number } & Partial<DisplayOptions>) => {
     if (order.items.length === 0) return;
 
-    const opts = {
-      showCurrentStock: order.showCurrentStock !== false,
-      showUnitPrice: order.showUnitPrice !== false,
-      showSubtotal: order.showSubtotal !== false,
-    };
+    const opts = resolveOpts(order);
+    const cols = buildColumns(opts);
 
-    const doc = new jsPDF();
+    const doc = new jsPDF('landscape');
     const dateStr = formatDate(order.date);
     const pageWidth = doc.internal.pageSize.getWidth();
 
     // Header - Pink theme
-    doc.setFillColor(190, 24, 93); // pink-700
+    doc.setFillColor(190, 24, 93);
     doc.rect(0, 0, pageWidth, 52, 'F');
 
     doc.setTextColor(255, 255, 255);
@@ -364,11 +421,11 @@ export default function RestockOrdersPage() {
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(251, 207, 232); // pink-200
+    doc.setTextColor(251, 207, 232);
     doc.text('PURCHASE / RESTOCK ORDER', pageWidth / 2, 40, { align: 'center' });
 
     // Info bar
-    doc.setFillColor(252, 231, 243); // pink-100
+    doc.setFillColor(252, 231, 243);
     doc.rect(0, 55, pageWidth, 18, 'F');
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(10);
@@ -381,34 +438,26 @@ export default function RestockOrdersPage() {
       doc.text(`Estimated Cost: \u20A6${order.totalCost.toLocaleString()}`, pageWidth - 14, 70, { align: 'right' });
     }
 
-    // Build dynamic columns
-    const headCols: string[] = ['#', 'Item Name', 'SKU', 'Category'];
-    if (opts.showCurrentStock) headCols.push('Current Stock');
-    headCols.push('Order Qty');
-    if (opts.showUnitPrice) headCols.push('Unit Price');
-    if (opts.showSubtotal) headCols.push('Subtotal');
+    // Build table
+    const headCols = cols.map(c => c.label);
+    const tableData = order.items.map((item, i) => cols.map(c => c.getData(item, i)));
 
-    const tableData = order.items.map((item, i) => {
-      const row: (string | number)[] = [i + 1, item.name, item.sku || '-', item.category || '-'];
-      if (opts.showCurrentStock) row.push(item.currentStock.toLocaleString());
-      row.push(item.orderQuantity.toLocaleString());
-      if (opts.showUnitPrice) row.push(`\u20A6${item.unitPrice.toLocaleString()}`);
-      if (opts.showSubtotal) row.push(`\u20A6${(item.orderQuantity * item.unitPrice).toLocaleString()}`);
-      return row;
+    // Column styles
+    const colStyles: Record<number, any> = {};
+    cols.forEach((c, idx) => {
+      const style: any = { halign: c.align, fontSize: 8 };
+      if (c.key === '#') style.cellWidth = 10;
+      if (c.key === 'name') style.cellWidth = 44;
+      if (c.key === 'sku') style.cellWidth = 22;
+      if (c.key === 'category') style.cellWidth = 24;
+      if (c.key === 'brand') style.cellWidth = 26;
+      if (c.key === 'packageType') style.cellWidth = 24;
+      if (c.key === 'currentStock') style.cellWidth = 22;
+      if (c.key === 'orderQty') { style.cellWidth = 20; style.fontStyle = 'bold'; }
+      if (c.key === 'unitPrice') style.cellWidth = 24;
+      if (c.key === 'subtotal') { style.cellWidth = 26; style.fontStyle = 'bold'; }
+      colStyles[idx] = style;
     });
-
-    // Dynamic column styles
-    const colStyles: Record<number, any> = {
-      0: { halign: 'center', cellWidth: 10 },
-      1: { cellWidth: 42 },
-      2: { halign: 'center', cellWidth: 22 },
-      3: { halign: 'center', cellWidth: 24 },
-    };
-    let colIdx = 4;
-    if (opts.showCurrentStock) { colStyles[colIdx] = { halign: 'center', cellWidth: 22 }; colIdx++; }
-    colStyles[colIdx] = { halign: 'center', cellWidth: 20, fontStyle: 'bold' }; colIdx++;
-    if (opts.showUnitPrice) { colStyles[colIdx] = { halign: 'right', cellWidth: 24 }; colIdx++; }
-    if (opts.showSubtotal) { colStyles[colIdx] = { halign: 'right', cellWidth: 24, fontStyle: 'bold' }; colIdx++; }
 
     autoTable(doc, {
       startY: 78,
@@ -418,7 +467,7 @@ export default function RestockOrdersPage() {
       headStyles: { fillColor: [190, 24, 93], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9, halign: 'center' },
       bodyStyles: { fontSize: 8, cellPadding: 3 },
       columnStyles: colStyles,
-      alternateRowStyles: { fillColor: [253, 242, 248] }, // pink-50
+      alternateRowStyles: { fillColor: [253, 242, 248] },
       didDrawPage: () => {
         const ph = doc.internal.pageSize.getHeight();
         doc.setFillColor(190, 24, 93);
@@ -458,23 +507,15 @@ export default function RestockOrdersPage() {
   };
 
   // ======== Excel Generation ========
-  const generateExcelForOrder = (order: { items: OrderItem[]; orderNumber: string; date?: string; note: string; totalItems: number; totalQuantity: number; totalCost: number; showCurrentStock?: boolean; showUnitPrice?: boolean; showSubtotal?: boolean }) => {
+  const generateExcelForOrder = (order: { items: OrderItem[]; orderNumber: string; date?: string; note: string; totalItems: number; totalQuantity: number; totalCost: number } & Partial<DisplayOptions>) => {
     if (order.items.length === 0) return;
 
-    const opts = {
-      showCurrentStock: order.showCurrentStock !== false,
-      showUnitPrice: order.showUnitPrice !== false,
-      showSubtotal: order.showSubtotal !== false,
-    };
-
+    const opts = resolveOpts(order);
+    const cols = buildColumns(opts);
     const dateStr = formatDate(order.date);
     const summaryLine = `Total Items: ${order.totalItems}  |  Total Quantity: ${order.totalQuantity}` + (opts.showSubtotal ? `  |  Estimated Cost: \u20A6${order.totalCost.toLocaleString()}` : '');
 
-    const headRow: string[] = ['#', 'Item Name', 'SKU', 'Category'];
-    if (opts.showCurrentStock) headRow.push('Current Stock');
-    headRow.push('Order Quantity');
-    if (opts.showUnitPrice) headRow.push('Unit Price (\u20A6)');
-    if (opts.showSubtotal) headRow.push('Subtotal (\u20A6)');
+    const headRow = cols.map(c => c.label);
 
     const headerRows = [
       [COMPANY_NAME],
@@ -488,35 +529,41 @@ export default function RestockOrdersPage() {
       headRow,
     ];
 
-    const dataRows = order.items.map((item, i) => {
-      const row: any[] = [i + 1, item.name, item.sku || '-', item.category || '-'];
-      if (opts.showCurrentStock) row.push(item.currentStock);
-      row.push(item.orderQuantity);
-      if (opts.showUnitPrice) row.push(item.unitPrice);
-      if (opts.showSubtotal) row.push(item.orderQuantity * item.unitPrice);
-      return row;
-    });
+    const dataRows = order.items.map((item, i) => cols.map(c => {
+      if (c.key === '#') return i + 1;
+      if (c.key === 'name') return item.name;
+      if (c.key === 'sku') return item.sku || '-';
+      if (c.key === 'category') return item.category || '-';
+      if (c.key === 'brand') return item.brand || '-';
+      if (c.key === 'packageType') return item.package_type || '-';
+      if (c.key === 'currentStock') return item.currentStock;
+      if (c.key === 'orderQty') return item.orderQuantity;
+      if (c.key === 'unitPrice') return item.unitPrice;
+      if (c.key === 'subtotal') return item.orderQuantity * item.unitPrice;
+      return '';
+    }));
 
+    // Find the Order Qty column index for totals
+    const qtyIdx = cols.findIndex(c => c.key === 'orderQty');
     const summaryRows: any[][] = [['']];
-    const qtyColIdx = 4 + (opts.showCurrentStock ? 1 : 0);
-    const totalRow: any[] = Array(qtyColIdx).fill('');
-    totalRow.push('TOTAL QUANTITY:');
-    totalRow.push(order.totalQuantity);
+    const totalRow: any[] = Array(cols.length).fill('');
+    if (qtyIdx > 0) { totalRow[qtyIdx - 1] = 'TOTAL QUANTITY:'; totalRow[qtyIdx] = order.totalQuantity; }
     summaryRows.push(totalRow);
 
     if (opts.showSubtotal) {
-      const costRow: any[] = Array(qtyColIdx).fill('');
-      costRow.push('TOTAL COST:');
-      costRow.push('');
-      if (opts.showUnitPrice) costRow.push('');
-      costRow.push(order.totalCost);
-      summaryRows.push(costRow);
+      const subtotalIdx = cols.findIndex(c => c.key === 'subtotal');
+      if (subtotalIdx >= 0) {
+        const costRow: any[] = Array(cols.length).fill('');
+        costRow[subtotalIdx - 1] = 'TOTAL COST:';
+        costRow[subtotalIdx] = order.totalCost;
+        summaryRows.push(costRow);
+      }
     }
 
     if (order.note) { summaryRows.push(['']); summaryRows.push(['Notes:', order.note]); }
 
     const ws = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows, ...summaryRows]);
-    ws['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 18 }];
+    ws['!cols'] = cols.map(c => ({ wch: c.key === '#' ? 5 : c.key === 'name' ? 35 : c.key === 'brand' ? 20 : c.key === 'packageType' ? 18 : 15 }));
 
     const totalCols = headRow.length;
     ws['!merges'] = [
@@ -550,7 +597,10 @@ export default function RestockOrdersPage() {
   const startNewOrder = () => {
     setOrderItems([]); setOrderNote(''); setSearchTerm('');
     setSelectAll(false); setActiveTab('low-stock');
-    setDisplayOptions({ showCurrentStock: true, showUnitPrice: true, showSubtotal: true });
+    setDisplayOptions({
+      showItemName: true, showSku: false, showBrandName: true, showPackageType: true,
+      showCurrentStock: true, showUnitPrice: true, showSubtotal: true,
+    });
     setPageView('create');
   };
 
@@ -563,6 +613,49 @@ export default function RestockOrdersPage() {
     }
   };
 
+  // Reusable dynamic table renderer
+  const renderOrderTable = (orderItemsList: OrderItem[], opts: DisplayOptions) => {
+    const cols = buildColumns(opts);
+    const footerColSpan = getFooterColSpan(opts);
+    const totalQty = orderItemsList.reduce((s, o) => s + o.orderQuantity, 0);
+    const totalCost = orderItemsList.reduce((s, o) => s + (o.orderQuantity * o.unitPrice), 0);
+
+    return (
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border dark:border-gray-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-pink-700 text-white">
+                {cols.map(c => (
+                  <th key={c.key} className={`py-3 px-4 text-xs font-semibold ${c.align === 'left' ? 'text-left' : c.align === 'right' ? 'text-right' : 'text-center'}`}>{c.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orderItemsList.map((item, i) => (
+                <tr key={item.id + '-' + i} className={`border-b dark:border-gray-800 ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-pink-50/50 dark:bg-gray-800/50'}`}>
+                  {cols.map(c => (
+                    <td key={c.key} className={`py-3 px-4 text-sm ${c.align === 'left' ? 'text-left' : c.align === 'right' ? 'text-right' : 'text-center'} ${c.bold ? 'font-bold text-pink-600' : ''} ${c.key === 'name' ? 'font-medium text-gray-900 dark:text-white' : c.key === '#' ? 'text-gray-500' : ''}`}>
+                      {c.getData(item, i)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-pink-700 text-white font-bold">
+                <td colSpan={footerColSpan} className="py-3 px-4 text-right">TOTAL</td>
+                <td className="py-3 px-4 text-center">{totalQty.toLocaleString()}</td>
+                {opts.showUnitPrice && <td className="py-3 px-4"></td>}
+                {opts.showSubtotal && <td className="py-3 px-4 text-right">₦{totalCost.toLocaleString()}</td>}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   if (!mounted) return null;
 
   // =====================================
@@ -570,8 +663,7 @@ export default function RestockOrdersPage() {
   // =====================================
   if (pageView === 'view-order' && viewingOrder) {
     const vo = viewingOrder;
-    const voOpts = { showCurrentStock: vo.showCurrentStock !== false, showUnitPrice: vo.showUnitPrice !== false, showSubtotal: vo.showSubtotal !== false };
-    const voTotalColSpan = 4 + (voOpts.showCurrentStock ? 1 : 0);
+    const voOpts = resolveOpts(vo);
 
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -624,46 +716,7 @@ export default function RestockOrdersPage() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border dark:border-gray-800 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-pink-700 text-white">
-                    <th className="py-3 px-4 text-left text-xs font-semibold">#</th>
-                    <th className="py-3 px-4 text-left text-xs font-semibold">Item Name</th>
-                    <th className="py-3 px-4 text-center text-xs font-semibold">SKU</th>
-                    <th className="py-3 px-4 text-center text-xs font-semibold">Category</th>
-                    {voOpts.showCurrentStock && <th className="py-3 px-4 text-center text-xs font-semibold">Stock at Order</th>}
-                    <th className="py-3 px-4 text-center text-xs font-semibold">Order Qty</th>
-                    {voOpts.showUnitPrice && <th className="py-3 px-4 text-right text-xs font-semibold">Unit Price</th>}
-                    {voOpts.showSubtotal && <th className="py-3 px-4 text-right text-xs font-semibold">Subtotal</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {vo.items.map((item, i) => (
-                    <tr key={item.id + '-' + i} className={`border-b dark:border-gray-800 ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-pink-50/50 dark:bg-gray-800/50'}`}>
-                      <td className="py-3 px-4 text-sm text-center text-gray-500">{i + 1}</td>
-                      <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{item.name}</td>
-                      <td className="py-3 px-4 text-sm text-center text-gray-500">{item.sku || '-'}</td>
-                      <td className="py-3 px-4 text-sm text-center text-gray-500">{item.category || '-'}</td>
-                      {voOpts.showCurrentStock && <td className="py-3 px-4 text-sm text-center">{item.currentStock.toLocaleString()}</td>}
-                      <td className="py-3 px-4 text-sm text-center font-bold text-pink-600">{item.orderQuantity.toLocaleString()}</td>
-                      {voOpts.showUnitPrice && <td className="py-3 px-4 text-sm text-right">₦{item.unitPrice.toLocaleString()}</td>}
-                      {voOpts.showSubtotal && <td className="py-3 px-4 text-sm text-right font-bold">₦{(item.orderQuantity * item.unitPrice).toLocaleString()}</td>}
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-pink-700 text-white font-bold">
-                    <td colSpan={voTotalColSpan} className="py-3 px-4 text-right">TOTAL</td>
-                    <td className="py-3 px-4 text-center">{vo.totalQuantity.toLocaleString()}</td>
-                    {voOpts.showUnitPrice && <td className="py-3 px-4"></td>}
-                    {voOpts.showSubtotal && <td className="py-3 px-4 text-right">₦{vo.totalCost.toLocaleString()}</td>}
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
+          {renderOrderTable(vo.items, voOpts)}
 
           {vo.note && (
             <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-700">
@@ -680,8 +733,6 @@ export default function RestockOrdersPage() {
   // PREVIEW
   // =====================================
   if (pageView === 'preview') {
-    const pvColSpan = 4 + (displayOptions.showCurrentStock ? 1 : 0);
-
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
         <div className="bg-pink-700 text-white px-6 py-5">
@@ -735,46 +786,7 @@ export default function RestockOrdersPage() {
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border dark:border-gray-800 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-pink-700 text-white">
-                    <th className="py-3 px-4 text-left text-xs font-semibold">#</th>
-                    <th className="py-3 px-4 text-left text-xs font-semibold">Item Name</th>
-                    <th className="py-3 px-4 text-center text-xs font-semibold">SKU</th>
-                    <th className="py-3 px-4 text-center text-xs font-semibold">Category</th>
-                    {displayOptions.showCurrentStock && <th className="py-3 px-4 text-center text-xs font-semibold">Current Stock</th>}
-                    <th className="py-3 px-4 text-center text-xs font-semibold">Order Qty</th>
-                    {displayOptions.showUnitPrice && <th className="py-3 px-4 text-right text-xs font-semibold">Unit Price</th>}
-                    {displayOptions.showSubtotal && <th className="py-3 px-4 text-right text-xs font-semibold">Subtotal</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {orderItems.map((item, i) => (
-                    <tr key={item.id} className={`border-b dark:border-gray-800 ${i % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-pink-50/50 dark:bg-gray-800/50'}`}>
-                      <td className="py-3 px-4 text-sm text-center text-gray-500">{i + 1}</td>
-                      <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{item.name}</td>
-                      <td className="py-3 px-4 text-sm text-center text-gray-500">{item.sku || '-'}</td>
-                      <td className="py-3 px-4 text-sm text-center text-gray-500">{item.category || '-'}</td>
-                      {displayOptions.showCurrentStock && <td className="py-3 px-4 text-sm text-center">{item.currentStock.toLocaleString()}</td>}
-                      <td className="py-3 px-4 text-sm text-center font-bold text-pink-600">{item.orderQuantity.toLocaleString()}</td>
-                      {displayOptions.showUnitPrice && <td className="py-3 px-4 text-sm text-right">₦{item.unitPrice.toLocaleString()}</td>}
-                      {displayOptions.showSubtotal && <td className="py-3 px-4 text-sm text-right font-bold">₦{(item.orderQuantity * item.unitPrice).toLocaleString()}</td>}
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-pink-700 text-white font-bold">
-                    <td colSpan={pvColSpan} className="py-3 px-4 text-right">TOTAL</td>
-                    <td className="py-3 px-4 text-center">{totalOrderQuantity.toLocaleString()}</td>
-                    {displayOptions.showUnitPrice && <td className="py-3 px-4"></td>}
-                    {displayOptions.showSubtotal && <td className="py-3 px-4 text-right">₦{totalEstimatedCost.toLocaleString()}</td>}
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
+          {renderOrderTable(orderItems, displayOptions)}
 
           {orderNote && (
             <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-700">
@@ -855,7 +867,27 @@ export default function RestockOrdersPage() {
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Display Options</h3>
                   <span className="text-xs text-gray-400">(columns to include in preview, PDF & Excel)</span>
                 </div>
-                <div className="flex items-center gap-6 flex-wrap">
+                <div className="flex items-center gap-5 flex-wrap">
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                    <input type="checkbox" checked={displayOptions.showItemName} onChange={(e) => setDisplayOptions(p => ({ ...p, showItemName: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" />
+                    Item Name
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                    <input type="checkbox" checked={displayOptions.showSku} onChange={(e) => setDisplayOptions(p => ({ ...p, showSku: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" />
+                    SKU
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                    <input type="checkbox" checked={displayOptions.showBrandName} onChange={(e) => setDisplayOptions(p => ({ ...p, showBrandName: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" />
+                    Brand Name
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                    <input type="checkbox" checked={displayOptions.showPackageType} onChange={(e) => setDisplayOptions(p => ({ ...p, showPackageType: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" />
+                    Package Type
+                  </label>
                   <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
                     <input type="checkbox" checked={displayOptions.showCurrentStock} onChange={(e) => setDisplayOptions(p => ({ ...p, showCurrentStock: e.target.checked }))}
                       className="w-4 h-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500" />
@@ -927,10 +959,11 @@ export default function RestockOrdersPage() {
                             <p className="font-semibold text-gray-900 dark:text-white truncate">{item.name}</p>
                             {getStockStatusBadge(totalQty, item.is_available)}
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
                             <span>SKU: {item.sku}</span>
                             {item.category && <span>• {item.category}</span>}
                             {item.brand && <span>• {item.brand}</span>}
+                            {item.package_type && <span>• {item.package_type}</span>}
                             <span>• ₦{item.unit_price?.toLocaleString()}/unit</span>
                           </div>
                         </div>
@@ -939,11 +972,21 @@ export default function RestockOrdersPage() {
                           <p className="text-[10px] text-gray-400 uppercase">in stock</p>
                         </div>
                         {inOrder ? (
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => updateOrderQuantity(item.id, (orderItem?.orderQuantity || 1) - 1)} className="p-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"><Minus size={14} /></button>
-                            <input type="number" value={orderItem?.orderQuantity || 0} onChange={(e) => updateOrderQuantity(item.id, parseInt(e.target.value) || 1)}
-                              className="w-20 text-center py-1.5 border border-pink-300 dark:border-pink-600 rounded-lg bg-white dark:bg-gray-800 text-sm font-bold" min="1" />
-                            <button onClick={() => updateOrderQuantity(item.id, (orderItem?.orderQuantity || 0) + 1)} className="p-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"><Plus size={14} /></button>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {/* Quantity controls */}
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => updateOrderQuantity(item.id, (orderItem?.orderQuantity || 1) - 1)} className="p-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"><Minus size={14} /></button>
+                              <input type="number" value={orderItem?.orderQuantity || 0} onChange={(e) => updateOrderQuantity(item.id, parseInt(e.target.value) || 1)}
+                                className="w-20 text-center py-1.5 border border-pink-300 dark:border-pink-600 rounded-lg bg-white dark:bg-gray-800 text-sm font-bold" min="1" />
+                              <button onClick={() => updateOrderQuantity(item.id, (orderItem?.orderQuantity || 0) + 1)} className="p-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"><Plus size={14} /></button>
+                            </div>
+                            {/* Editable unit price */}
+                            <div className="flex items-center gap-1">
+                              <Edit3 size={12} className="text-gray-400" />
+                              <span className="text-xs text-gray-500">₦</span>
+                              <input type="number" value={orderItem?.unitPrice || 0} onChange={(e) => updateOrderUnitPrice(item.id, parseFloat(e.target.value) || 0)}
+                                className="w-24 text-center py-1.5 border border-amber-300 dark:border-amber-600 rounded-lg bg-white dark:bg-gray-800 text-sm font-medium" min="0" step="0.01" />
+                            </div>
                             <button onClick={() => removeFromOrder(item.id)} className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 hover:bg-red-200 dark:hover:bg-red-800 ml-1" title="Remove"><Trash2 size={14} /></button>
                           </div>
                         ) : (
@@ -1007,7 +1050,7 @@ export default function RestockOrdersPage() {
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats — derived from Supabase order history */}
       <div className="max-w-7xl mx-auto px-6 -mt-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border dark:border-gray-800 text-center">
