@@ -1454,4 +1454,176 @@ router.get('/commissions/analytics', authMiddleware, roleMiddleware('admin'), as
   }
 });
 
+// ============================================================
+// RESTOCK ORDERS
+// ============================================================
+
+/**
+ * GET /restock-orders - Get all restock orders with their items
+ */
+router.get('/restock-orders', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { data: orders, error } = await supabaseAdmin
+      .from('restock_orders')
+      .select(`
+        *,
+        restock_order_items (*)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const formatted = (orders || []).map((order: any) => ({
+      id: order.id,
+      orderNumber: order.order_number,
+      date: order.created_at,
+      items: (order.restock_order_items || []).map((item: any) => ({
+        id: item.item_id,
+        name: item.item_name,
+        sku: item.sku || '',
+        category: item.category || '',
+        currentStock: item.current_stock,
+        orderQuantity: item.order_quantity,
+        unitPrice: parseFloat(item.unit_price),
+        brand: item.brand || '',
+        package_type: item.package_type || '',
+      })),
+      totalItems: order.total_items,
+      totalQuantity: order.total_quantity,
+      totalCost: parseFloat(order.total_cost),
+      note: order.note || '',
+      status: order.status,
+      showCurrentStock: order.show_current_stock,
+      showUnitPrice: order.show_unit_price,
+      showSubtotal: order.show_subtotal,
+    }));
+
+    res.json(formatted);
+  } catch (error: any) {
+    console.error('❌ Error fetching restock orders:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /restock-orders - Create a new restock order
+ */
+router.post('/restock-orders', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { orderNumber, items, totalItems, totalQuantity, totalCost, note, showCurrentStock, showUnitPrice, showSubtotal } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    if (!items || items.length === 0) return res.status(400).json({ error: 'Order must have at least one item' });
+
+    // Insert the order
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from('restock_orders')
+      .insert({
+        order_number: orderNumber,
+        created_by: userId,
+        total_items: totalItems,
+        total_quantity: totalQuantity,
+        total_cost: totalCost,
+        note: note || '',
+        status: 'pending',
+        show_current_stock: showCurrentStock !== false,
+        show_unit_price: showUnitPrice !== false,
+        show_subtotal: showSubtotal !== false,
+      })
+      .select()
+      .single();
+
+    if (orderError) throw orderError;
+
+    // Insert order items
+    const orderItems = items.map((item: any) => ({
+      order_id: order.id,
+      item_id: item.id,
+      item_name: item.name,
+      sku: item.sku || '',
+      category: item.category || '',
+      brand: item.brand || '',
+      package_type: item.package_type || '',
+      current_stock: item.currentStock,
+      order_quantity: item.orderQuantity,
+      unit_price: item.unitPrice,
+    }));
+
+    const { error: itemsError } = await supabaseAdmin
+      .from('restock_order_items')
+      .insert(orderItems);
+
+    if (itemsError) throw itemsError;
+
+    res.json({
+      id: order.id,
+      orderNumber: order.order_number,
+      date: order.created_at,
+      items: items,
+      totalItems: order.total_items,
+      totalQuantity: order.total_quantity,
+      totalCost: parseFloat(order.total_cost),
+      note: order.note,
+      status: order.status,
+      showCurrentStock: order.show_current_stock,
+      showUnitPrice: order.show_unit_price,
+      showSubtotal: order.show_subtotal,
+    });
+  } catch (error: any) {
+    console.error('❌ Error creating restock order:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * PATCH /restock-orders/:id/status - Update order status
+ */
+router.patch('/restock-orders/:id/status', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['pending', 'completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('restock_orders')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ id: data.id, status: data.status });
+  } catch (error: any) {
+    console.error('❌ Error updating restock order status:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /restock-orders/:id - Delete a restock order
+ */
+router.delete('/restock-orders/:id', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Items are cascade-deleted
+    const { error } = await supabaseAdmin
+      .from('restock_orders')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('❌ Error deleting restock order:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 export default router;
