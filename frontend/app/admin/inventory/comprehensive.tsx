@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { Plus, Edit2, Trash2, ChevronRight, X, Upload, Image as ImageIcon, ShoppingCart } from 'lucide-react';
+import { Plus, Edit2, Trash2, ChevronRight, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { PRODUCT_CATALOG, getBrandNames, getPackageTypes, getProductVariants, getBrandCategory, isOthersBrand } from '@/lib/productCatalog';
 import type { ProductVariant } from '@/lib/productCatalog';
 import { toast } from 'sonner';
-import GenerateOrderModal from '@/components/GenerateOrderModal';
 
 interface Item {
   id: string;
@@ -108,8 +107,7 @@ export default function ComprehensiveInventoryPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
-  // Generate Order modal state
-  const [showGenerateOrder, setShowGenerateOrder] = useState(false);
+
 
   useEffect(() => {
     setMounted(true);
@@ -639,24 +637,16 @@ export default function ComprehensiveInventoryPage() {
             </button>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => setShowGenerateOrder(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded font-semibold hover:bg-indigo-700 flex items-center gap-2 transition shadow"
-            >
-              <ShoppingCart size={20} /> Generate Order
-            </button>
-            <button
-              onClick={() => {
-                resetForm();
-                setSelectedItem(null);
-                setModalType('add');
-              }}
-              className="px-4 py-2 bg-pink-600 text-white rounded font-semibold hover:bg-pink-700 flex items-center gap-2"
-            >
-              <Plus size={20} /> Add Item
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              resetForm();
+              setSelectedItem(null);
+              setModalType('add');
+            }}
+            className="ml-auto px-4 py-2 bg-pink-600 text-white rounded font-semibold hover:bg-pink-700 flex items-center gap-2"
+          >
+            <Plus size={20} /> Add Item
+          </button>
         </div>
 
         {/* Search Box */}
@@ -867,12 +857,6 @@ export default function ComprehensiveInventoryPage() {
         </div>
       )}
 
-      {/* Generate Order Modal */}
-      <GenerateOrderModal
-        isOpen={showGenerateOrder}
-        onClose={() => setShowGenerateOrder(false)}
-        items={items}
-      />
     </div>
   );
 }
