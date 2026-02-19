@@ -71,6 +71,9 @@ export default function MakeSalePage() {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
   
+  // Check if user is commission staff - only they can use outside Jalingo
+  const isCommissionStaff = ['commission_staff', 'staff_commission'].includes(user?.role || '');
+  
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -396,12 +399,13 @@ export default function MakeSalePage() {
             </select>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className={`flex items-center gap-2 ${isCommissionStaff ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
             <input
               type="checkbox"
               checked={globalOutsideJalingo}
               onChange={(e) => setGlobalOutsideJalingo(e.target.checked)}
-              className="rounded w-4 h-4 cursor-pointer"
+              disabled={!isCommissionStaff}
+              className={`rounded w-4 h-4 ${isCommissionStaff ? 'cursor-pointer' : 'cursor-not-allowed'}`}
             />
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Outside Jalingo

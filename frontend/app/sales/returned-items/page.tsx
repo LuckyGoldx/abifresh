@@ -26,7 +26,9 @@ export default function ReturnedItemsPage() {
   const [returnedItems, setReturnedItems] = useState<ReturnedItem[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [selectedRejectItem, setSelectedRejectItem] = useState<string>('');
+  const [selectedAcceptItem, setSelectedAcceptItem] = useState<ReturnedItem | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -77,15 +79,25 @@ export default function ReturnedItemsPage() {
     }
   };
 
-  const handleAccept = async (itemId: string) => {
-    if (!window.confirm('Accept this returned item to your active store?')) {
-      return;
-    }
+  const handleAcceptClick = (item: ReturnedItem) => {
+    setSelectedAcceptItem(item);
+    setShowAcceptModal(true);
+  };
+
+  const handleAcceptConfirm = async () => {
+    if (!selectedAcceptItem) return;
 
     try {
       setIsSubmitting(true);
-      await api.post(`/api/sales/returned-items/${itemId}/accept`);
+      await api.post(`/api/sales/returned-items/${selectedAcceptItem.id}/accept`);
       toast.success('✅ Returned item accepted and moved to active store');
+      setShowAcceptModal(false);
+      setSelectedAcceptItem(null);
+      // If detail modal was open for this item, close it
+      if (selectedDetailItem?.id === selectedAcceptItem.id) {
+        setShowDetailModal(false);
+        setSelectedDetailItem(null);
+      }
       await fetchData();
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to accept item');
@@ -94,8 +106,8 @@ export default function ReturnedItemsPage() {
     }
   };
 
-  const handleRejectClick = (itemId: string) => {
-    setSelectedRejectItem(itemId);
+  const handleRejectClick = (item: ReturnedItem) => {
+    setSelectedRejectItem(item.id);
     setRejectionReason('');
     setShowRejectModal(true);
   };
@@ -113,6 +125,11 @@ export default function ReturnedItemsPage() {
       });
       toast.success('✅ Item rejected and returned to requester');
       setShowRejectModal(false);
+      // If detail modal was open for this item, close it
+      if (selectedDetailItem?.id === selectedRejectItem) {
+        setShowDetailModal(false);
+        setSelectedDetailItem(null);
+      }
       setSelectedRejectItem('');
       setRejectionReason('');
       await fetchData();
@@ -289,7 +306,7 @@ export default function ReturnedItemsPage() {
                         {item.status === 'pending' && (
                           <>
                             <button
-                              onClick={() => handleAccept(item.id)}
+                              onClick={() => handleAcceptClick(item)}
                               disabled={isSubmitting}
                               className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded font-medium transition flex items-center gap-1"
                               title="Accept to active store"
@@ -298,7 +315,7 @@ export default function ReturnedItemsPage() {
                               Accept
                             </button>
                             <button
-                              onClick={() => handleRejectClick(item.id)}
+                              onClick={() => handleRejectClick(item)}
                               disabled={isSubmitting}
                               className="px-3 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded font-medium transition flex items-center gap-1"
                               title="Reject and return to requester"
@@ -328,9 +345,63 @@ export default function ReturnedItemsPage() {
         </div>
       )}
 
+      {/* Accept Confirmation Modal */}
+      {showAcceptModal && selectedAcceptItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Accept Returned Item
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">
+              Are you sure you want to accept this returned item? It will be moved to the active store.
+            </p>
+
+            <div className="bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg p-4 my-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">Item</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAcceptItem.item_name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">Quantity</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAcceptItem.quantity} units</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">From</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAcceptItem.requester_name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">Total Value</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">₦{(selectedAcceptItem.quantity * selectedAcceptItem.unit_price).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowAcceptModal(false);
+                  setSelectedAcceptItem(null);
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAcceptConfirm}
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium transition flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? 'Accepting...' : <><Check size={18} /> Accept Item</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
               Reject Returned Item
@@ -522,17 +593,37 @@ export default function ReturnedItemsPage() {
               )}
             </div>
 
-            {/* Action Button */}
+            {/* Action Buttons */}
             <div className="flex gap-3">
               <button
                 onClick={() => {
                   setShowDetailModal(false);
                   setSelectedDetailItem(null);
                 }}
-                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium transition"
+                className={`${selectedDetailItem.status === 'pending' ? '' : 'flex-1'} px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 font-medium transition`}
               >
                 Close
               </button>
+              {selectedDetailItem.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => handleAcceptClick(selectedDetailItem)}
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium transition flex items-center justify-center gap-2"
+                  >
+                    <Check size={18} />
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleRejectClick(selectedDetailItem)}
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-medium transition flex items-center justify-center gap-2"
+                  >
+                    <X size={18} />
+                    Reject
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
