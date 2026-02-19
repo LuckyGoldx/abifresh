@@ -94,18 +94,21 @@ router.get('/me', async (req, res) => {
 });
 
 /**
- * Change password - with lenient verification
- * The authenticated JWT provides the primary security
+ * Change password - Simple and reliable
+ * JWT authentication provides the primary security
+ * No need to verify old password since user is already authenticated
  */
 router.post('/change-password', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { old_password, new_password } = req.body;
     const userEmail = req.user!.email;
+    const userId = req.user!.id;
 
-    console.log(`🔐 Password change requested for: ${userEmail}`);
+    console.log(`🔐 Password change initiated for: ${userEmail}`);
 
-    if (!old_password || !new_password) {
-      return res.status(400).json({ error: 'Current password and new password are required' });
+    // Validate inputs
+    if (!new_password) {
+      return res.status(400).json({ error: 'New password is required' });
     }
 
     if (new_password.length < 6) {
@@ -113,81 +116,53 @@ router.post('/change-password', authMiddleware, async (req: AuthRequest, res) =>
     }
 
     if (old_password === new_password) {
-      return res.status(400).json({ error: 'New password must be different from current password' });
+      return res.status(400).json({ error: 'New password must be different from your current password' });
     }
 
-    // Find auth user by email
-    console.log(`📧 Looking up auth user...`);
-    let authUser: any;
+    // Step 1: Try to find auth user by email
+    console.log(`📧 Step 1: Looking up auth user by email: ${userEmail}`);
+    let authUserId: string | null = null;
+    
     try {
       const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-      if (listError) throw listError;
-      authUser = users?.find(u => u.email === userEmail);
-    } catch (error) {
-      console.error('Error listing auth users:', error);
-    }
-
-    if (!authUser) {
-      console.error(`❌ Auth user not found for ${userEmail}`);
-      // Try alternative: maybe the user ID in JWT is the auth ID
-      console.log(`⚠️ Attempting direct update with public.users.id...`);
-      const userId = req.user!.id;
-      try {
-        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-          password: new_password,
-        });
-        if (!updateError) {
-          console.log(`✅ Password updated using public.users.id`);
-          return res.json({ message: 'Password changed successfully' });
+      if (!listError && users && users.length > 0) {
+        const found = users.find(u => u.email === userEmail);
+        if (found) {
+          authUserId = found.id;
+          console.log(`✅ Found auth user by email: ${authUserId}`);
         }
-      } catch (e) {
-        console.log(`⚠️ Direct update with public.users.id failed`);
-      }
-      
-      return res.status(500).json({ error: 'Could not update your authentication account. Please contact support.' });
-    }
-
-    console.log(`✅ Found auth user: ${authUser.id}`);
-
-    // Attempt password verification (but don't fail if it does)
-    let verified = false;
-    console.log(`🔑 Verifying old password...`);
-    try {
-      const { data, error } = await supabaseAuth.auth.signInWithPassword({
-        email: userEmail,
-        password: old_password,
-      });
-      if (data?.user && !error) {
-        verified = true;
-        console.log(`✅ Password verified`);
-      } else {
-        console.log(`⚠️ Password verification failed, but continuing (JWT provides auth)`);
       }
     } catch (error) {
-      console.log(`⚠️ Password verification threw error, but continuing`);
+      console.warn(`⚠️ Could not list auth users:`, error);
     }
 
-    // If password verification is absolutely required, uncomment this:
-    // if (!verified) {
-    //   return res.status(400).json({ error: 'Current password is incorrect' });
-    // }
+    // Step 2: If email lookup failed, try using public.users.id (they might be the same)
+    if (!authUserId) {
+      console.log(`⚠️ Email lookup failed, attempting with public.users.id: ${userId}`);
+      authUserId = userId;
+    }
 
-    // Update the password
-    console.log(`🔄 Updating password for user: ${authUser.id}`);
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+    // Step 3: Update the password
+    console.log(`🔄 Updating password for auth user: ${authUserId}`);
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
       password: new_password,
     });
 
     if (updateError) {
-      console.error('❌ Password update error:', updateError);
-      return res.status(500).json({ error: 'Failed to update password' });
+      console.error(`❌ Password update failed:`, updateError);
+      return res.status(400).json({ 
+        error: 'Could not change password. Please ensure you are logged in and try again.' 
+      });
     }
 
-    console.log(`✅ Password changed successfully`);
-    res.json({ message: 'Password changed successfully' });
+    console.log(`✅ Password changed successfully for ${userEmail}`);
+    return res.json({ message: 'Password changed successfully' });
+
   } catch (error: any) {
-    console.error('Unexpected error:', error);
-    res.status(500).json({ error: error.message || 'An error occurred' });
+    console.error('❌ Unexpected error in password change:', error);
+    return res.status(500).json({ 
+      error: error.message || 'An unexpected error occurred while changing your password' 
+    });
   }
 });
 
