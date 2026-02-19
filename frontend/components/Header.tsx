@@ -1,25 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuthStore, useThemeStore } from '@/store/auth';
 import { useNotifications } from '@/context/NotificationContext';
 import NotificationsDrawer from './NotificationsDrawer';
-import { LogOut, Sun, Moon, Bell } from 'lucide-react';
+import UserProfileDropdown from './UserProfileDropdown';
+import { Sun, Moon, Bell } from 'lucide-react';
 
 export default function Header() {
-  const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
   const theme = useThemeStore((state) => state.theme);
   const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const { unreadCount } = useNotifications();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
-  };
 
   return (
     <>
@@ -32,7 +25,7 @@ export default function Header() {
             </p>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3 sm:space-x-4">
             {/* Notifications */}
             <button 
               onClick={() => setIsNotificationsOpen(true)}
@@ -55,20 +48,8 @@ export default function Header() {
               {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
             </button>
 
-            {/* User Info */}
-            <div className="hidden md:block text-right">
-              <p className="font-semibold text-gray-800 dark:text-white">{user?.full_name}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{user?.email}</p>
-            </div>
-
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-red-500 transition"
-              title="Logout"
-            >
-              <LogOut className="w-6 h-6" />
-            </button>
+            {/* User Profile Dropdown (replaces old user info + logout button) */}
+            <UserProfileDropdown />
           </div>
         </div>
       </header>

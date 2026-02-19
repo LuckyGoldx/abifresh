@@ -5,6 +5,8 @@ interface User {
   id: string;
   email: string;
   full_name: string;
+  username?: string;
+  phone_number?: string;
   role: 'admin' | 'sales' | 'sales_staff' | 'staff_commission' | 'commission_staff' | 'staff_non_commission' | 'non_commission_staff';
   store_location: string;
 }
@@ -15,6 +17,7 @@ interface AuthState {
   isAuthenticated: boolean;
   setUser: (user: User) => void;
   setToken: (token: string) => void;
+  updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -26,6 +29,9 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       setUser: (user) => set({ user, isAuthenticated: true }),
       setToken: (token) => set({ token }),
+      updateUser: (updates) => set((state) => ({
+        user: state.user ? { ...state.user, ...updates } : null,
+      })),
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
     }),
     {
