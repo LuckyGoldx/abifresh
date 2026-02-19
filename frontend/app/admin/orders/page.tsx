@@ -980,36 +980,47 @@ export default function RestockOrdersPage() {
                     const orderItem = orderItems.find(o => o.id === item.id);
 
                     return (
-                      <div key={item.id} className={`flex items-center gap-3 p-4 rounded-xl border transition ${
+                      <div key={item.id} className={`flex flex-col gap-3 p-4 rounded-xl border transition ${
                         inOrder
                           ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-300 dark:border-pink-700 shadow-sm'
                           : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-600'
                       }`}>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-semibold text-gray-900 dark:text-white truncate">{item.name}</p>
-                            {getStockStatusBadge(totalQty, item.is_available)}
+                        {/* Header row: name, badge, stock, and add button (desktop) */}
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold text-gray-900 dark:text-white truncate">{item.name}</p>
+                              {getStockStatusBadge(totalQty, item.is_available)}
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
+                              <span>SKU: {item.sku}</span>
+                              {item.category && <span>• {item.category}</span>}
+                              {item.brand && <span>• {item.brand}</span>}
+                              {item.package_type && <span>• {item.package_type}</span>}
+                              <span>• ₦{item.unit_price?.toLocaleString()}/unit</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
-                            <span>SKU: {item.sku}</span>
-                            {item.category && <span>• {item.category}</span>}
-                            {item.brand && <span>• {item.brand}</span>}
-                            {item.package_type && <span>• {item.package_type}</span>}
-                            <span>• ₦{item.unit_price?.toLocaleString()}/unit</span>
+                          <div className="text-center px-3">
+                            <p className={`text-lg font-bold ${totalQty < 50 ? 'text-red-600' : totalQty < 100 ? 'text-orange-500' : 'text-green-600'}`}>{totalQty}</p>
+                            <p className="text-[10px] text-gray-400 uppercase">in stock</p>
                           </div>
+                          {!inOrder && (
+                            <button onClick={() => addToOrder(item)} className="flex items-center gap-1 px-4 py-2 bg-pink-600 text-white text-sm rounded-lg hover:bg-pink-700 font-semibold transition whitespace-nowrap">
+                              <Plus size={14} /> Add
+                            </button>
+                          )}
                         </div>
-                        <div className="text-center px-3">
-                          <p className={`text-lg font-bold ${totalQty < 50 ? 'text-red-600' : totalQty < 100 ? 'text-orange-500' : 'text-green-600'}`}>{totalQty}</p>
-                          <p className="text-[10px] text-gray-400 uppercase">in stock</p>
-                        </div>
-                        {inOrder ? (
-                          <div className="flex items-center gap-2 flex-wrap">
+
+                        {/* Controls row (quantity and price) - shown below on mobile, same row on desktop */}
+                        {inOrder && (
+                          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-pink-200 dark:border-pink-600 md:border-0">
                             {/* Quantity controls */}
                             <div className="flex items-center gap-1">
                               <button onClick={() => updateOrderQuantity(item.id, (orderItem?.orderQuantity || 1) - 1)} className="p-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"><Minus size={14} /></button>
                               <input type="number" value={orderItem?.orderQuantity || 0} onChange={(e) => updateOrderQuantity(item.id, parseInt(e.target.value) || 1)}
                                 className="w-20 text-center py-1.5 border border-pink-300 dark:border-pink-600 rounded-lg bg-white dark:bg-gray-800 text-sm font-bold" min="1" />
                               <button onClick={() => updateOrderQuantity(item.id, (orderItem?.orderQuantity || 0) + 1)} className="p-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"><Plus size={14} /></button>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">Qty</span>
                             </div>
                             {/* Editable unit price */}
                             <div className="flex items-center gap-1">
@@ -1017,13 +1028,11 @@ export default function RestockOrdersPage() {
                               <span className="text-xs text-gray-500">₦</span>
                               <input type="number" value={orderItem?.unitPrice || 0} onChange={(e) => updateOrderUnitPrice(item.id, parseFloat(e.target.value) || 0)}
                                 className="w-24 text-center py-1.5 border border-amber-300 dark:border-amber-600 rounded-lg bg-white dark:bg-gray-800 text-sm font-medium" min="0" step="0.01" />
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">/unit</span>
                             </div>
-                            <button onClick={() => removeFromOrder(item.id)} className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 hover:bg-red-200 dark:hover:bg-red-800 ml-1" title="Remove"><Trash2 size={14} /></button>
+                            <div className="flex-1" />
+                            <button onClick={() => removeFromOrder(item.id)} className="p-1.5 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 hover:bg-red-200 dark:hover:bg-red-800" title="Remove"><Trash2 size={14} /></button>
                           </div>
-                        ) : (
-                          <button onClick={() => addToOrder(item)} className="flex items-center gap-1 px-4 py-2 bg-pink-600 text-white text-sm rounded-lg hover:bg-pink-700 font-semibold transition">
-                            <Plus size={14} /> Add
-                          </button>
                         )}
                       </div>
                     );
