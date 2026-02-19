@@ -111,7 +111,7 @@ router.post('/change-password', authMiddleware, async (req: AuthRequest, res) =>
     }
 
     // Verify old password by attempting to sign in with Supabase
-    const { error: signInError } = await supabaseAuth.auth.signInWithPassword({
+    const { data: signInData, error: signInError } = await supabaseAuth.auth.signInWithPassword({
       email: userEmail,
       password: old_password,
     });
@@ -121,8 +121,16 @@ router.post('/change-password', authMiddleware, async (req: AuthRequest, res) =>
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
-    // Update password using Supabase admin
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    // Use the auth user ID from the sign-in response (NOT the public.users ID)
+    const authUserId = signInData.user?.id;
+    if (!authUserId) {
+      return res.status(500).json({ error: 'Could not verify authentication identity' });
+    }
+
+    console.log(`🔐 Password change: public.users.id=${userId}, auth.users.id=${authUserId}`);
+
+    // Update password using Supabase admin with the correct auth user ID
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
       password: new_password,
     });
 
@@ -145,11 +153,12 @@ router.post('/change-password', authMiddleware, async (req: AuthRequest, res) =>
 router.put('/profile', authMiddleware, async (req: AuthRequest, res) => {
   try {
     const userId = req.user!.id;
+    const userEmail = req.user!.email;
     const { email, phone_number } = req.body;
 
     const updateData: any = { updated_at: new Date().toISOString() };
 
-    if (email) {
+    if (email && email !== userEmail) {
       // Check if email is already taken by another user
       const { data: existingUser } = await supabaseAdmin
         .from('users')
@@ -164,14 +173,26 @@ router.put('/profile', authMiddleware, async (req: AuthRequest, res) => {
 
       updateData.email = email;
 
-      // Also update email in Supabase auth
-      const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        email: email,
-      });
+      // Find the auth user by current email to get the correct auth user ID
+      const { data: authUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+      
+      if (!listError && authUsers?.users) {
+        const authUser = authUsers.users.find(u => u.email === userEmail);
+        if (authUser) {
+          console.log(`🔐 Profile update: public.users.id=${userId}, auth.users.id=${authUser.id}`);
+          // Update email in Supabase auth using the correct auth user ID
+          const { error: authUpdateError } = await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+            email: email,
+          });
 
-      if (authUpdateError) {
-        console.error('❌ Auth email update error:', authUpdateError);
-        return res.status(500).json({ error: 'Failed to update email in authentication system' });
+          if (authUpdateError) {
+            console.error('❌ Auth email update error:', authUpdateError);
+            // Continue with profile update even if auth email update fails
+            console.warn('⚠️ Auth email update failed, but proceeding with profile table update');
+          }
+        } else {
+          console.warn(`⚠️ Auth user not found for email: ${userEmail}, skipping auth email update`);
+        }
       }
     }
 
