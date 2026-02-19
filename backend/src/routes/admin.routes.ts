@@ -5,6 +5,7 @@ import { authService } from '../services/auth.service';
 import { staffStoreService } from '../services/staff-store.service';
 import { supabaseAdmin } from '../config/supabase';
 import { StorageService } from '../services/storage.service';
+import expensesService from '../services/expenses.service';
 
 const router = Router();
 
@@ -429,6 +430,56 @@ router.delete('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req:
     res.json({ message: 'Staff deleted successfully' });
   } catch (error: any) {
     console.error(`Delete error:`, error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Create admin's own expense
+ */
+router.post('/expenses/create', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { amount, category, description, expense_date } = req.body;
+
+    if (!amount || !category) {
+      return res.status(400).json({ error: 'Amount and category are required' });
+    }
+
+    const expense = await expensesService.createExpense({
+      staff_id: req.user!.id,
+      expense_type: category,
+      amount: parseFloat(amount),
+      description,
+      expense_date,
+    });
+
+    res.status(201).json({
+      expense,
+      message: 'Expense recorded successfully',
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get admin's own expenses
+ */
+router.get('/my-expenses', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const expenses = await expensesService.getExpensesByStaff(req.user!.id);
+
+    const formatted = expenses.map((expense: any) => ({
+      id: expense.id,
+      amount: expense.amount,
+      category: expense.expense_type,
+      description: expense.description,
+      expense_date: expense.expense_date,
+      created_at: expense.created_at,
+    }));
+
+    res.json(formatted);
+  } catch (error: any) {
     res.status(400).json({ error: error.message });
   }
 });
