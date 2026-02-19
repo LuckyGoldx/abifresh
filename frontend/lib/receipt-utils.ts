@@ -167,7 +167,8 @@ export function generateReceiptHTML(receipt: {
           <!-- Header -->
           <div class="receipt-header">
             <h1>ABIFRESH & KIDDIES VENTURES</h1>
-            <p>Receipt #${receipt.receipt_number}</p>
+            <p style="margin-bottom: 6px;">Receipt #${receipt.receipt_number}</p>
+            <p style="font-size: 12px; color: #fce7f3;">Phone: +2349034016120 | Email: abifreshandkiddies@gmail.com</p>
           </div>
 
           <!-- Body -->
@@ -211,7 +212,8 @@ export function generateReceiptHTML(receipt: {
             <!-- Footer -->
             <div class="receipt-footer">
               <div class="thank-you">Thank you for your purchase!</div>
-              <div class="footer-text">Visit us again soon</div>
+              <div class="footer-text" style="margin-top: 6px;">Phone: +2349034016120 | Email: abifreshandkiddies@gmail.com</div>
+              <div class="footer-text" style="margin-top: 4px;">Visit us again soon</div>
             </div>
           </div>
         </div>

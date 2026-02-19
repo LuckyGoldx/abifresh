@@ -861,7 +861,7 @@ export default function RestockOrdersPage() {
               <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
               <div className="flex items-center gap-2">
                 <ClipboardList size={16} className="text-purple-500" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300"><strong className="text-purple-600">{totalOrderQuantity.toLocaleString()}</strong> qty</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300"><strong className="text-purple-600">{totalOrderQuantity.toLocaleString()}</strong> quantity</span>
               </div>
               <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
               <span className="text-sm font-semibold text-amber-600">₦{totalEstimatedCost.toLocaleString()}</span>
@@ -1020,7 +1020,7 @@ export default function RestockOrdersPage() {
                               <input type="number" value={orderItem?.orderQuantity || 0} onChange={(e) => updateOrderQuantity(item.id, parseInt(e.target.value) || 1)}
                                 className="w-20 text-center py-1.5 border border-pink-300 dark:border-pink-600 rounded-lg bg-white dark:bg-gray-800 text-sm font-bold" min="1" />
                               <button onClick={() => updateOrderQuantity(item.id, (orderItem?.orderQuantity || 0) + 1)} className="p-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"><Plus size={14} /></button>
-                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">Qty</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">Quantity</span>
                             </div>
                             {/* Editable unit price */}
                             <div className="flex items-center gap-1">
@@ -1159,7 +1159,7 @@ export default function RestockOrdersPage() {
                     <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Order #</th>
                     <th className="py-3 px-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Date & Time</th>
                     <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Items</th>
-                    <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Total Qty</th>
+                    <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Total Quantity</th>
                     <th className="py-3 px-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Est. Cost</th>
                     <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Status</th>
                     <th className="py-3 px-4 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Actions</th>
