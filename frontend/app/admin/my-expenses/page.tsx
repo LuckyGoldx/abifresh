@@ -14,14 +14,12 @@ interface Expense {
 }
 
 const expenseCategories = [
-  'Transport',
-  'Supplies',
-  'Food & Refreshments',
+  'Rent',
+  'Vehicle License Renewal',
+  'Local Government Levy',
+  'Vehicle Maintenance',
   'Utilities',
-  'Maintenance',
-  'Communication',
-  'Fuel',
-  'Other',
+  'Others',
 ];
 
 export default function AdminExpensesPage() {
