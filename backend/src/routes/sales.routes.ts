@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
 import { salesService } from '../services/sales.service';
 import { staffStoreService } from '../services/staff-store.service';
+import { returnedItemsService } from '../services/returned-items.service';
 import { StorageService } from '../services/storage.service';
 import { supabaseAdmin } from '../config/supabase';
 import expensesService from '../services/expenses.service';
@@ -785,6 +786,65 @@ router.post('/expenses/create', authMiddleware, async (req: AuthRequest, res: Re
       message: 'Expense recorded successfully',
     });
   } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get all returned items for sales staff
+ * GET /api/sales/returned-items
+ */
+router.get('/returned-items', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const returns = await returnedItemsService.getReturnsForReceiver(req.user!.id);
+    res.json(returns);
+  } catch (error: any) {
+    console.error('Error fetching returned items:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Accept returned items
+ * POST /api/sales/returned-items/:id/accept
+ */
+router.post('/returned-items/:id/accept', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await returnedItemsService.acceptReturnedItems(req.user!.id, [id]);
+
+    res.json({
+      returned_items: result,
+      message: 'Returned items accepted successfully',
+    });
+  } catch (error: any) {
+    console.error('Error accepting returned items:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Reject returned items
+ * POST /api/sales/returned-items/:id/reject
+ */
+router.post('/returned-items/:id/reject', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { reject_reason } = req.body;
+
+    if (!reject_reason) {
+      return res.status(400).json({ error: 'reject_reason is required' });
+    }
+
+    const result = await returnedItemsService.rejectReturnedItems(req.user!.id, [id], reject_reason);
+
+    res.json({
+      returned_items: result,
+      message: 'Returned items rejected successfully',
+    });
+  } catch (error: any) {
+    console.error('Error rejecting returned items:', error);
     res.status(400).json({ error: error.message });
   }
 });

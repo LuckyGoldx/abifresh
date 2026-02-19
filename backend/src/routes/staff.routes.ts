@@ -2,10 +2,62 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { supabaseAdmin } from '../config/supabase';
 import { staffStoreService } from '../services/staff-store.service';
+import { returnedItemsService } from '../services/returned-items.service';
 import { StorageService } from '../services/storage.service';
 import expensesService from '../services/expenses.service';
 
 const router = Router();
+
+/**
+ * DEBUG: Check all users and their roles
+ * GET /api/staff/debug/users
+ */
+router.get('/debug/users', async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('🔍 === FETCHING USER DATA ===');
+    
+    const { data: allUsers, error: allError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, full_name, role')
+      .order('role', { ascending: true });
+
+    if (allError) {
+      console.error('❌ Error fetching all users:', allError);
+      throw allError;
+    }
+
+    console.log(`✅ Total users found: ${allUsers?.length || 0}`);
+    allUsers?.forEach(u => {
+      console.log(`   - ${u.email} | Role: "${u.role}" | Name: ${u.full_name}`);
+    });
+
+    // Get unique roles
+    const uniqueRoles = Array.from(new Set(allUsers?.map(u => u.role) || []));
+    console.log(`📋 Unique roles in system: ${JSON.stringify(uniqueRoles)}`);
+
+    const { data: salesUsers, error: salesError } = await supabaseAdmin
+      .from('users')
+      .select('id, email, full_name, role')
+      .in('role', ['sales', 'sales_staff']);
+
+    console.log(`🔍 Query .in(['sales', 'sales_staff']) returned: ${salesUsers?.length || 0} users`);
+    salesUsers?.forEach(u => {
+      console.log(`   - ${u.email} | Role: "${u.role}" | Name: ${u.full_name}`);
+    });
+
+    res.json({
+      total_users: allUsers?.length || 0,
+      all_users: allUsers || [],
+      unique_roles: uniqueRoles,
+      sales_users_found: salesUsers?.length || 0,
+      sales_users: salesUsers || [],
+      query_used: { role_in: ['sales', 'sales_staff'] },
+    });
+  } catch (error: any) {
+    console.error('❌ Debug error:', error);
+    res.status(400).json({ error: error.message, details: error });
+  }
+});
 
 /**
  * Get staff's own sales (items they've sold)
@@ -1095,6 +1147,132 @@ router.get('/commissions/details', authMiddleware, async (req: AuthRequest, res:
   } catch (error: any) {
     console.error('Error fetching commission details:', error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Create a return request
+ * POST /api/staff/returns
+ */
+router.post('/returns', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { receiver_staff_id, items } = req.body;
+
+    if (!receiver_staff_id || !items || items.length === 0) {
+      return res.status(400).json({ error: 'Receiver staff ID and items are required' });
+    }
+
+    const result = await returnedItemsService.createReturnRequest(
+      req.user!.id,
+      receiver_staff_id,
+      items
+    );
+
+    res.status(201).json({
+      returned_items: result,
+      message: 'Return request created successfully',
+    });
+  } catch (error: any) {
+    console.error('Error creating return request:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get all return requests made by the staff
+ * GET /api/staff/returns
+ */
+router.get('/returns', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const returns = await returnedItemsService.getReturnsByRequester(req.user!.id);
+    res.json(returns);
+  } catch (error: any) {
+    console.error('Error fetching returns:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get stats for return requests
+ * GET /api/staff/returns/stats
+ */
+router.get('/returns/stats', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const stats = await returnedItemsService.getReturnStatsForRequester(req.user!.id);
+    res.json(stats);
+  } catch (error: any) {
+    console.error('Error fetching return stats:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get available items in staff store for return
+ * GET /api/staff/available-items-for-return
+ */
+router.get('/available-items-for-return', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const items = await returnedItemsService.getAvailableItemsForReturn(req.user!.id);
+    res.json(items);
+  } catch (error: any) {
+    console.error('Error fetching available items for return:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get all sales staff (for dropdown in return requests)
+ * GET /api/staff/sales-staff
+ */
+router.get('/sales-staff', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('🔍 [/api/staff/sales-staff] Fetching sales staff...');
+    console.log(`   User making request: ${req.user?.email} (${req.user?.role})`);
+    
+    // First, get all unique roles to debug
+    const { data: allUsers, error: allError } = await supabaseAdmin
+      .from('users')
+      .select('role');
+
+    if (allError) {
+      console.error('❌ [/api/staff/sales-staff] Error getting all users:', allError);
+    } else {
+      const uniqueRoles = Array.from(new Set(allUsers?.map((u: any) => u.role) || []));
+      console.log(`   Available roles in system: ${JSON.stringify(uniqueRoles)}`);
+    }
+
+    // Query for sales staff using multiple role variations
+    const { data, error } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, email, role')
+      .in('role', ['sales', 'sales_staff']);
+
+    if (error) {
+      console.error('❌ [/api/staff/sales-staff] Supabase query error:', error);
+      throw error;
+    }
+
+    console.log(`✅ [/api/staff/sales-staff] Query returned ${data?.length || 0} sales staff`);
+    (data || []).forEach((staff: any) => {
+      console.log(`   ✓ ${staff.email} | Role: "${staff.role}" | Name: ${staff.full_name}`);
+    });
+
+    // Map to response format
+    const salesStaff = (data || []).map((staff: any) => ({
+      id: staff.id,
+      full_name: staff.full_name,
+      email: staff.email,
+      role: staff.role,
+    }));
+
+    console.log(`📤 [/api/staff/sales-staff] Returning ${salesStaff.length} staff members`);
+    res.json(salesStaff);
+  } catch (error: any) {
+    console.error('❌ [/api/staff/sales-staff] Caught error:', error.message || error);
+    res.status(400).json({ 
+      error: error.message,
+      details: error.details || 'See server logs'
+    });
   }
 });
 

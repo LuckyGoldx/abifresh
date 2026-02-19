@@ -39,6 +39,14 @@ function getImageUrl(url: string | undefined | null): string | null {
   return url;
 }
 
+// Helper: keep integers as integers, round decimals to 2 places
+function formatPrice(value: number | string): number {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return 0;
+  if (Number.isInteger(num)) return num; // Keep as integer if whole number
+  return Math.round(num * 100) / 100; // Only round to 2 decimals if has decimals
+}
+
 export default function ItemsPage() {
   const token = useAuthStore((state) => state.token);
   const [items, setItems] = useState<Item[]>([]);
@@ -63,6 +71,8 @@ export default function ItemsPage() {
     price_jalingo: 0,
     price_outside: 0,
     image_url: '',
+    main_store_quantity: 0,
+    quantity_mode: 'add' as 'add' | 'update',
   });
 
   // Get available options based on cascade
@@ -129,6 +139,8 @@ export default function ItemsPage() {
       price_jalingo: 0,
       price_outside: 0,
       image_url: '',
+      main_store_quantity: 0,
+      quantity_mode: 'add',
     });
     setSelectedItem(null);
     setModalType(null);
@@ -237,6 +249,8 @@ export default function ItemsPage() {
       price_jalingo: item.price_jalingo || 0,
       price_outside: item.price_outside || 0,
       image_url: item.image_url || '',
+      main_store_quantity: 0,
+      quantity_mode: 'add',
     });
     setImagePreview(getImageUrl(item.image_url) || null);
     setModalType('edit');
@@ -259,12 +273,14 @@ export default function ItemsPage() {
           name: formData.name,
           sku: formData.sku,
           category: formData.category,
-          unit_price: formData.unit_price,
-          commission: formData.commission,
+          unit_price: formatPrice(formData.unit_price),
+          quantity: formData.main_store_quantity,
+          commission: formatPrice(formData.commission || 0),
           brand: formData.brand || undefined,
           package_type: formData.package_type || undefined,
-          price_jalingo: formData.price_jalingo || 0,
-          price_outside: formData.price_outside || 0,
+          price_jalingo: formatPrice(formData.price_jalingo || 0),
+          price_outside: formatPrice(formData.price_outside || 0),
+          image_url: formData.image_url || undefined,
         }),
       });
 
@@ -289,6 +305,21 @@ export default function ItemsPage() {
         return;
       }
 
+      const quantityInput = formData.main_store_quantity || 0;
+      const currentMainQty = selectedItem.main_store_quantity || 0;
+      let newMainQty: number;
+      
+      // Apply mode logic
+      if (formData.quantity_mode === 'add') {
+        // ADD mode: increment existing quantity
+        newMainQty = currentMainQty + quantityInput;
+        console.log('✏️ Edit (ADD mode):', selectedItem.id, 'Old Main:', currentMainQty, 'Adding:', quantityInput, 'New Main:', newMainQty);
+      } else {
+        // UPDATE mode: replace existing quantity
+        newMainQty = quantityInput;
+        console.log('✏️ Edit (UPDATE mode):', selectedItem.id, 'Old Main:', currentMainQty, 'New Main:', newMainQty);
+      }
+
       const res = await fetch(`http://localhost:5000/api/inventory/items/${selectedItem.id}`, {
         method: 'PUT',
         headers: {
@@ -299,12 +330,14 @@ export default function ItemsPage() {
           name: formData.name,
           sku: formData.sku,
           category: formData.category,
-          unit_price: formData.unit_price,
-          commission: formData.commission,
+          unit_price: formatPrice(formData.unit_price),
+          main_store_quantity: newMainQty,
+          commission: formatPrice(formData.commission || 0),
           brand: formData.brand || undefined,
           package_type: formData.package_type || undefined,
-          price_jalingo: formData.price_jalingo || 0,
-          price_outside: formData.price_outside || 0,
+          price_jalingo: formatPrice(formData.price_jalingo || 0),
+          price_outside: formatPrice(formData.price_outside || 0),
+          image_url: formData.image_url || undefined,
         }),
       });
 
@@ -315,6 +348,7 @@ export default function ItemsPage() {
 
       toast.success('✅ Item updated successfully');
       resetForm();
+      setSelectedItem(null);
       fetchItems();
     } catch (error: any) {
       toast.error(error.message || 'Error editing item');
@@ -748,6 +782,61 @@ export default function ItemsPage() {
                   onKeyDown={(e) => { if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault(); }}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
                 />
+              </div>
+
+              {/* Quantity Mode (edit only) */}
+              {modalType === 'edit' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Quantity Mode</label>
+                  <select
+                    value={formData.quantity_mode}
+                    onChange={(e) => setFormData({ ...formData, quantity_mode: e.target.value as 'add' | 'update' })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="add">Add (Increment existing)</option>
+                    <option value="update">Update (Replace existing)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {formData.quantity_mode === 'add' 
+                      ? 'Add: New quantity = Current + Your input' 
+                      : 'Update: New quantity = Your input (replaces current)'}
+                  </p>
+                </div>
+              )}
+
+              {/* Quantity */}
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  {modalType === 'add' ? 'Quantity (Main Store)' : formData.quantity_mode === 'add' ? 'Add Quantity' : 'New Quantity'}
+                </label>
+                <input
+                  type="number"
+                  placeholder={modalType === 'add' ? 'Enter quantity for main store' : formData.quantity_mode === 'add' ? 'Enter quantity to add' : 'Enter new quantity'}
+                  min="0"
+                  step="1"
+                  value={formData.main_store_quantity || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setFormData({ ...formData, main_store_quantity: 0 });
+                    } else {
+                      const num = Number(val);
+                      // Only accept integers (whole numbers)
+                      if (!isNaN(num) && Number.isInteger(num) && num >= 0) {
+                        setFormData({ ...formData, main_store_quantity: num });
+                      }
+                    }
+                  }}
+                  onKeyDown={(e) => { if (['-', '+', 'e', 'E', '.'].includes(e.key)) e.preventDefault(); }}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {modalType === 'add' 
+                    ? 'All quantity goes to Main Store.' 
+                    : formData.quantity_mode === 'add'
+                    ? 'This amount will be added to existing Main Store quantity'
+                    : 'This amount will replace existing Main Store quantity'}
+                </p>
               </div>
 
               {/* Product Image Upload */}

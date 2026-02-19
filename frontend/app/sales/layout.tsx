@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import api from '@/lib/api';
 
 export default function SalesLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
   const [mounted, setMounted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [pendingReturnedItemsCount, setPendingReturnedItemsCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -38,6 +40,25 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
     }
   }, [hydrated, isAuthenticated, user, router]);
 
+  useEffect(() => {
+    if (hydrated && isAuthenticated) {
+      // Fetch pending returned items count
+      const fetchPendingCount = async () => {
+        try {
+          const response = await api.get('/api/sales/returned-items');
+          const pendingCount = response.data.filter((item: any) => item.status === 'pending').length;
+          setPendingReturnedItemsCount(pendingCount);
+        } catch (error) {
+          console.error('Failed to fetch returned items:', error);
+        }
+      };
+      fetchPendingCount();
+      // Refresh every 15 seconds
+      const interval = setInterval(fetchPendingCount, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [hydrated, isAuthenticated]);
+
   if (!mounted || !hydrated || !isAuthenticated || !['sales', 'sales_staff'].includes(user?.role || '')) {
     return null;
   }
@@ -48,6 +69,7 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
     { label: 'Available Items', href: '/sales/items', icon: '✅' },
     { label: 'Unavailable Items', href: '/sales/unavailable', icon: '❌' },
     { label: 'Post Items', href: '/sales/post-items', icon: '📤' },
+    { label: 'Returned Items', href: '/sales/returned-items', icon: '↪️', badge: pendingReturnedItemsCount > 0 ? pendingReturnedItemsCount : undefined },
     { label: 'Make Payment', href: '/sales/payments', icon: '💳' },
     { label: 'Expenses', href: '/sales/expenses', icon: '💸' },
     { label: 'Receipts', href: '/sales/receipts', icon: '🧾' },

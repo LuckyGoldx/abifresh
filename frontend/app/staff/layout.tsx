@@ -22,6 +22,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const [hydrated, setHydrated] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pendingPostedItemsCount, setPendingPostedItemsCount] = useState(0);
+  const [pendingReturnCount, setPendingReturnCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -43,18 +44,22 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (hydrated && isAuthenticated) {
-      // Fetch pending posted items count
-      const fetchPendingCount = async () => {
+      // Fetch pending posted items count and pending returns count
+      const fetchCounts = async () => {
         try {
-          const response = await api.get('/api/staff/posted-items/pending-count');
-          setPendingPostedItemsCount(response.data.count || 0);
+          const [postedRes, returnsRes] = await Promise.all([
+            api.get('/api/staff/posted-items/pending-count'),
+            api.get('/api/staff/returns/stats'),
+          ]);
+          setPendingPostedItemsCount(postedRes.data.count || 0);
+          setPendingReturnCount(returnsRes.data.pending_to_accept || 0);
         } catch (error) {
-          console.error('Failed to fetch pending count:', error);
+          console.error('Failed to fetch counts:', error);
         }
       };
-      fetchPendingCount();
+      fetchCounts();
       // Refresh every 15 seconds
-      const interval = setInterval(fetchPendingCount, 15000);
+      const interval = setInterval(fetchCounts, 15000);
       return () => clearInterval(interval);
     }
   }, [hydrated, isAuthenticated]);
@@ -73,6 +78,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     { label: 'Dashboard', href: '/staff/dashboard', icon: '📊' },
     { label: 'Posted Items', href: '/staff/posted-items', icon: '📥', badge: pendingPostedItemsCount > 0 ? pendingPostedItemsCount : undefined },
     { label: 'Make Sale', href: '/staff/make-sale', icon: '🛒' },
+    { label: 'Return Items', href: '/staff/return-items', icon: '↩️', badge: pendingReturnCount > 0 ? pendingReturnCount : undefined },
     { label: 'Make Payment', href: '/staff/payments', icon: '💳' },
     { label: 'Expenses', href: '/staff/expenses', icon: '💸' },
     // Only show Commissions to commission staff

@@ -374,6 +374,7 @@ export class StaffStoreService {
 
   /**
    * Get staff store items
+   * Accounts for pending and accepted returns - those quantities are locked and unavailable for sale
    */
   async getStaffStore(staffId: string): Promise<any[]> {
     console.log(`\n📊 getStaffStore called for staff: ${staffId}`);
@@ -400,6 +401,29 @@ export class StaffStoreService {
       } else {
         console.log('⚠️  No items found in staff store for this staff member');
         return []; // Return empty array if no items
+      }
+
+      // Get all pending and accepted returns for this staff (they are the requester)
+      console.log(`🔄 Fetching pending and accepted returns for staff...`);
+      const { data: returns, error: returnsError } = await supabaseAdmin
+        .from('returned_items')
+        .select('item_id, quantity, status')
+        .eq('requester_staff_id', staffId)
+        .in('status', ['pending', 'accepted']);
+
+      if (returnsError) {
+        console.warn(`⚠️  Error fetching returns: ${returnsError.message}`);
+      }
+
+      // Build a map of item_id -> total locked quantity (pending + accepted)
+      const lockedQuantities = new Map<string, number>();
+      if (returns && returns.length > 0) {
+        console.log(`📋 Found ${returns.length} pending/accepted returns`);
+        returns.forEach(ret => {
+          const current = lockedQuantities.get(ret.item_id) || 0;
+          lockedQuantities.set(ret.item_id, current + ret.quantity);
+          console.log(`  Item ${ret.item_id}: ${ret.status} with ${ret.quantity} qty (total locked: ${current + ret.quantity})`);
+        });
       }
 
       // Now enrich with item and user details
@@ -431,6 +455,10 @@ export class StaffStoreService {
             console.warn(`  ⚠️ Could not fetch user ${storeItem.posted_from_id}: ${userError.message}`);
           }
 
+          // Calculate actual available quantity (subtract locked returns)
+          const lockedQty = lockedQuantities.get(storeItem.item_id) || 0;
+          const actualAvailable = Math.max(0, (storeItem.quantity_available || 0) - lockedQty);
+
           // Map to frontend format
           const mappedItem = {
             id: storeItem.item_id,
@@ -443,14 +471,18 @@ export class StaffStoreService {
             image_url: itemData?.image_url || null,
             brand: itemData?.brand || '',
             package_type: itemData?.package_type || '',
-            quantity: storeItem.quantity_available || 0,
+            quantity: actualAvailable,
             commission: itemData?.commission || 0,
             posted_date: storeItem.posted_date,
             posted_by: userData?.full_name || 'Unknown',
           };
           
           enrichedItems.push(mappedItem);
-          console.log(`  ✅ Enriched: ${mappedItem.name} (Qty: ${mappedItem.quantity})`);
+          if (lockedQty > 0) {
+            console.log(`  ✅ Enriched: ${mappedItem.name} (Base: ${storeItem.quantity_available}, Locked: ${lockedQty}, Available: ${mappedItem.quantity})`);
+          } else {
+            console.log(`  ✅ Enriched: ${mappedItem.name} (Qty: ${mappedItem.quantity})`);
+          }
         } catch (err) {
           console.error(`  ❌ Error enriching item:`, err);
         }
@@ -477,6 +509,16 @@ export class StaffStoreService {
     quantity: number,
     paymentMethod: 'cash' | 'pos' | 'transfer' = 'cash'
   ): Promise<any> {
+    // Get all pending/accepted returns for this item to calculate locked quantity
+    const { data: pendingReturns } = await supabaseAdmin
+      .from('returned_items')
+      .select('quantity, status')
+      .eq('requester_staff_id', staffId)
+      .eq('item_id', itemId)
+      .in('status', ['pending', 'accepted']);
+
+    const lockedQty = (pendingReturns || []).reduce((sum: number, r: any) => sum + r.quantity, 0);
+
     // Get the staff store entry
     const { data: storeItem, error: storeError } = await supabaseAdmin
       .from('staff_store')
@@ -488,11 +530,18 @@ export class StaffStoreService {
     if (storeError) throw new Error(`Item not in staff store`);
     if (!storeItem) throw new Error(`Item not found in staff store`);
 
-    // Check sufficient quantity
-    if (storeItem.quantity_available < quantity) {
-      throw new Error(
-        `Insufficient quantity in staff store. Available: ${storeItem.quantity_available}, Requested: ${quantity}`
-      );
+    // Check sufficient quantity: quantity_available minus locked returns
+    const actualAvailable = Math.max(0, (storeItem.quantity_available || 0) - lockedQty);
+    if (actualAvailable < quantity) {
+      if (lockedQty > 0) {
+        throw new Error(
+          `Insufficient quantity. Available: ${actualAvailable} (${lockedQty} locked in pending returns). Requested: ${quantity}`
+        );
+      } else {
+        throw new Error(
+          `Insufficient quantity in staff store. Available: ${actualAvailable}, Requested: ${quantity}`
+        );
+      }
     }
 
     // Get item details to get unit_price and commission

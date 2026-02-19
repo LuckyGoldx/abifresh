@@ -60,6 +60,14 @@ function getImageUrl(url: string | undefined | null): string | null {
   return url;
 }
 
+// Helper: keep integers as integers, round decimals to 2 places
+function formatPrice(value: number | string): number {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return 0;
+  if (Number.isInteger(num)) return num; // Keep as integer if whole number
+  return Math.round(num * 100) / 100; // Only round to 2 decimals if has decimals
+}
+
 export default function ComprehensiveInventoryPage() {
   const token = useAuthStore((state) => state.token);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -194,13 +202,13 @@ export default function ComprehensiveInventoryPage() {
           name: formData.name,
           sku: formData.sku,
           category: formData.category,
-          unit_price: formData.unit_price,
+          unit_price: formatPrice(formData.unit_price),
           quantity: quantityToAdd,
-          commission: formData.commission || 0,
+          commission: formatPrice(formData.commission || 0),
           brand: formData.brand || undefined,
           package_type: formData.package_type || undefined,
-          price_jalingo: formData.price_jalingo || 0,
-          price_outside: formData.price_outside || 0,
+          price_jalingo: formatPrice(formData.price_jalingo || 0),
+          price_outside: formatPrice(formData.price_outside || 0),
           image_url: formData.image_url || undefined,
         }),
       });
@@ -264,13 +272,13 @@ export default function ComprehensiveInventoryPage() {
           name: formData.name,
           sku: formData.sku,
           category: formData.category,
-          unit_price: formData.unit_price,
+          unit_price: formatPrice(formData.unit_price),
           main_store_quantity: newMainQty,
-          commission: formData.commission || 0,
+          commission: formatPrice(formData.commission || 0),
           brand: formData.brand || undefined,
           package_type: formData.package_type || undefined,
-          price_jalingo: formData.price_jalingo || 0,
-          price_outside: formData.price_outside || 0,
+          price_jalingo: formatPrice(formData.price_jalingo || 0),
+          price_outside: formatPrice(formData.price_outside || 0),
           image_url: formData.image_url || undefined,
         }),
       });
@@ -1202,8 +1210,14 @@ function AddEditModal({
               value={formData.main_store_quantity || ''}
               onChange={(e) => {
                 const val = e.target.value;
-                if (val === '' || (!isNaN(Number(val)) && Number(val) >= 0)) {
-                  setFormData({ ...formData, main_store_quantity: val ? parseInt(val) : 0 });
+                if (val === '') {
+                  setFormData({ ...formData, main_store_quantity: 0 });
+                } else {
+                  const num = Number(val);
+                  // Only accept integers (whole numbers)
+                  if (!isNaN(num) && Number.isInteger(num) && num >= 0) {
+                    setFormData({ ...formData, main_store_quantity: num });
+                  }
                 }
               }}
               onKeyDown={(e) => { if (['-', '+', 'e', 'E', '.'].includes(e.key)) e.preventDefault(); }}
@@ -1359,8 +1373,14 @@ function TransferModal({
               value={transferData.quantity}
               onChange={(e) => {
                 const val = e.target.value;
-                if (val === '' || (!isNaN(Number(val)) && Number(val) >= 0 && Number(val) <= maxQuantity)) {
-                  setTransferData({ ...transferData, quantity: val ? parseInt(val) : 0 });
+                if (val === '') {
+                  setTransferData({ ...transferData, quantity: 0 });
+                } else {
+                  const num = Number(val);
+                  // Only accept integers (whole numbers)
+                  if (!isNaN(num) && Number.isInteger(num) && num >= 0 && num <= maxQuantity) {
+                    setTransferData({ ...transferData, quantity: num });
+                  }
                 }
               }}
               onKeyDown={(e) => {

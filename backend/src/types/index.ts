@@ -79,12 +79,25 @@ export interface Expense {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'posted_item' | 'payment_approved' | 'payment_rejected' | 'item_request';
+  type: 'posted_item' | 'payment_approved' | 'payment_rejected' | 'item_request' | 'returned_items' | 'return_request_sent' | 'return_accepted' | 'return_rejected';
   title: string;
   message: string;
   related_id?: string;
   is_read: boolean;
   created_at: string;
+}
+
+export interface ReturnedItem {
+  id: string;
+  item_id: string;
+  requester_staff_id: string;
+  receiver_staff_id: string;
+  quantity: number;
+  unit_price: number;
+  status: 'pending' | 'accepted' | 'rejected';
+  reject_reason?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface JWTPayload {
