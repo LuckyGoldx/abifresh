@@ -23,6 +23,27 @@ interface ExpenseItem {
   updated_at: string;
 }
 
+// Combined categories for all expense types
+const STAFF_CATEGORIES = [
+  'Transport',
+  'Supplies',
+  'Food & Refreshments',
+  'Utilities',
+  'Maintenance',
+  'Communication',
+  'Fuel',
+  'Other',
+];
+
+const ADMIN_CATEGORIES = [
+  'Rent',
+  'Vehicle License Renewal',
+  'Local Government Levy',
+  'Vehicle Maintenance',
+  'Utilities',
+  'Others',
+];
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<ExpenseItem[]>([]);
@@ -49,18 +70,30 @@ export default function ExpensesPage() {
   const fetchExpenses = async () => {
     setIsLoading(true);
     try {
-      // Fetch all expenses (already enriched with staff details from backend)
-      const response = await api.get('/api/admin/expenses');
-      console.log('✅ Fetched all expenses:', response.data);
+      // Fetch admin's own expenses
+      const adminResponse = await api.get('/api/admin/my-expenses');
+      const adminExpenses = (adminResponse.data || []).map((expense: any) => ({
+        ...expense,
+        staff_id: 'admin',
+        staff_name: 'Admin',
+        staff_email: 'admin@company.com',
+        staff_role: 'admin',
+        staff_phone: 'N/A',
+      }));
+
+      // Fetch all staff expenses
+      const staffResponse = await api.get('/api/admin/expenses');
+      const staffExpenses = staffResponse.data || [];
+
+      // Combine and merge
+      const allExpenses = [...adminExpenses, ...staffExpenses];
       
-      if (response.data && response.data.length > 0) {
-        console.log('📊 First expense data:', response.data[0]);
-        console.log('📊 Staff name:', response.data[0].staff_name);
-        console.log('📊 Staff email:', response.data[0].staff_email);
-        console.log('📊 Staff role:', response.data[0].staff_role);
+      console.log('✅ Fetched all expenses:', allExpenses);
+      if (allExpenses.length > 0) {
+        console.log('📊 First expense data:', allExpenses[0]);
       }
       
-      setExpenses(response.data);
+      setExpenses(allExpenses);
     } catch (error: any) {
       console.error('Failed to fetch expenses:', error?.response?.data || error?.message);
       // Show user-friendly error
@@ -94,7 +127,9 @@ export default function ExpensesPage() {
       filtered = filtered.filter(e => {
         const role = e.staff_role?.toLowerCase() || '';
         
-        if (filterRole === 'commission') {
+        if (filterRole === 'admin') {
+          return role === 'admin';
+        } else if (filterRole === 'commission') {
           return role === 'commission' || role === 'commission_staff';
         } else if (filterRole === 'non_commission') {
           return role === 'non_commission' || role === 'non-commission' || role === 'non_commission_staff';
@@ -137,24 +172,28 @@ export default function ExpensesPage() {
   };
 
   const getExpenseTypeColor = (type: string) => {
-    switch (type?.toLowerCase()) {
-      case 'travel':
-        return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
-      case 'meal':
-      case 'food':
-        return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
-      case 'supplies':
-      case 'materials':
-        return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200';
-      case 'accommodation':
-        return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
-      case 'utilities':
-        return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
-      case 'other':
-        return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
-      default:
-        return 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200';
-    }
+    const lowerType = type?.toLowerCase() || '';
+    
+    // Admin categories
+    if (lowerType === 'rent') return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+    if (lowerType === 'vehicle license renewal') return 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200';
+    if (lowerType === 'local government levy') return 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200';
+    if (lowerType === 'vehicle maintenance') return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+    
+    // Staff categories
+    if (lowerType === 'transport') return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+    if (lowerType === 'supplies' || lowerType === 'materials') return 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200';
+    if (lowerType === 'food & refreshments' || lowerType === 'meal' || lowerType === 'food') return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+    if (lowerType === 'utilities') return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+    if (lowerType === 'maintenance') return 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200';
+    if (lowerType === 'communication') return 'bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200';
+    if (lowerType === 'fuel') return 'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200';
+    if (lowerType === 'other' || lowerType === 'others') return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+    if (lowerType === 'accommodation') return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+    if (lowerType === 'travel') return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+    
+    // Default
+    return 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200';
   };
 
   const getRoleColor = (role: string) => {
@@ -175,6 +214,8 @@ export default function ExpensesPage() {
   };
 
   // Calculate statistics
+  const getAdminExpenses = () => expenses.filter(e => e.staff_role?.toLowerCase() === 'admin');
+  
   const getCommissionExpenses = () => expenses.filter(e => {
     const role = e.staff_role?.toLowerCase() || '';
     return role === 'commission' || role === 'commission_staff';
@@ -190,10 +231,22 @@ export default function ExpensesPage() {
     return role === 'sales' || role === 'sales_staff';
   });
 
+  // Get all unique actual expense types from all expenses
+  const expenseTypesList = Array.from(
+    new Set(expenses.map(e => e.expense_type).filter(Boolean))
+  ).sort();
+  
+  // Calculate stats by actual expense types found
+  const getExpensesByCategory = (category: string) => {
+    return expenses.filter(e => e.expense_type?.toLowerCase() === category.toLowerCase());
+  };
+
   const stats = {
     total: expenses.length,
     totalAmount: expenses.reduce((sum, e) => sum + (e.amount || 0), 0),
     byRole: {
+      admin: getAdminExpenses().length,
+      admin_amount: getAdminExpenses().reduce((sum, e) => sum + (e.amount || 0), 0),
       commission: getCommissionExpenses().length,
       commission_amount: getCommissionExpenses().reduce((sum, e) => sum + (e.amount || 0), 0),
       non_commission: getNonCommissionExpenses().length,
@@ -201,16 +254,7 @@ export default function ExpensesPage() {
       sales: getSalesExpenses().length,
       sales_amount: getSalesExpenses().reduce((sum, e) => sum + (e.amount || 0), 0),
     },
-    byType: {
-      travel: expenses.filter(e => e.expense_type?.toLowerCase() === 'travel').reduce((sum, e) => sum + e.amount, 0),
-      meal: expenses.filter(e => e.expense_type?.toLowerCase().includes('meal') || e.expense_type?.toLowerCase().includes('food')).reduce((sum, e) => sum + e.amount, 0),
-      supplies: expenses.filter(e => e.expense_type?.toLowerCase().includes('supplies') || e.expense_type?.toLowerCase().includes('materials')).reduce((sum, e) => sum + e.amount, 0),
-    }
   };
-
-  const expenseTypes = Array.from(
-    new Set(expenses.map(e => e.expense_type).filter(Boolean))
-  ).sort();
 
   if (isLoading) {
     return (
@@ -246,33 +290,32 @@ export default function ExpensesPage() {
           </p>
         </div>
 
-        <div className="card border-l-4 border-l-green-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Travel Expenses</p>
-          <p className="text-3xl font-bold text-green-600">₦{stats.byType.travel.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {expenses.filter(e => e.expense_type?.toLowerCase() === 'travel').length} entries
-          </p>
-        </div>
-
-        <div className="card border-l-4 border-l-yellow-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Meal & Food Expenses</p>
-          <p className="text-3xl font-bold text-yellow-600">₦{stats.byType.meal.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {expenses.filter(e => e.expense_type?.toLowerCase().includes('meal') || e.expense_type?.toLowerCase().includes('food')).length} entries
-          </p>
-        </div>
-
-        <div className="card border-l-4 border-l-purple-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Supplies & Materials</p>
-          <p className="text-3xl font-bold text-purple-600">₦{stats.byType.supplies.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {expenses.filter(e => e.expense_type?.toLowerCase().includes('supplies') || e.expense_type?.toLowerCase().includes('materials')).length} entries
-          </p>
-        </div>
+        {expenseTypesList.slice(0, 3).map((type) => {
+          const categoryExpenses = getExpensesByCategory(type);
+          const categoryTotal = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+          return (
+            <div key={type} className="card border-l-4 border-l-green-500">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{type}</p>
+              <p className="text-3xl font-bold text-green-600">₦{categoryTotal.toLocaleString()}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {categoryExpenses.length} entries
+              </p>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Staff Role Breakdown */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      {/* Staff Role Breakdown - Updated to include Admin */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {stats.byRole.admin > 0 && (
+          <div className="card border-l-4 border-l-red-500">
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Admin Expenses</p>
+            <p className="text-2xl font-bold text-red-600">{stats.byRole.admin}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              ₦{stats.byRole.admin_amount.toLocaleString()}
+            </p>
+          </div>
+        )}
         <div className="card border-l-4 border-l-green-500">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Commission Staff</p>
           <p className="text-2xl font-bold text-green-600">{stats.byRole.commission}</p>
@@ -325,18 +368,18 @@ export default function ExpensesPage() {
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
           >
             <option value="all">All Types</option>
-            {expenseTypes.map(type => (
+            {expenseTypesList.map(type => (
               <option key={type} value={type}>{type}</option>
             ))}
           </select>
 
-          {/* Staff Role Filter */}
+          {/* Staff Role Filter - Updated to include Admin */}
           <select
             value={staffRoleFilter}
             onChange={(e) => setStaffRoleFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
           >
-            <option value="all">All Staff Roles</option>
+            <option value="all">All Staff & Admin</option>
             <option value="admin">Admin</option>
             <option value="commission">Commission Staff</option>
             <option value="non_commission">Non-Commission Staff</option>
