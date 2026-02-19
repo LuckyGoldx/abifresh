@@ -70,23 +70,10 @@ export default function ExpensesPage() {
   const fetchExpenses = async () => {
     setIsLoading(true);
     try {
-      // Fetch admin's own expenses
-      const adminResponse = await api.get('/api/admin/my-expenses');
-      const adminExpenses = (adminResponse.data || []).map((expense: any) => ({
-        ...expense,
-        staff_id: 'admin',
-        staff_name: 'Admin',
-        staff_email: 'admin@company.com',
-        staff_role: 'admin',
-        staff_phone: 'N/A',
-      }));
-
-      // Fetch all staff expenses
-      const staffResponse = await api.get('/api/admin/expenses');
-      const staffExpenses = staffResponse.data || [];
-
-      // Combine and merge
-      const allExpenses = [...adminExpenses, ...staffExpenses];
+      // Fetch all expenses (including admin's own and all staff)
+      // /api/admin/expenses already returns both admin and staff expenses
+      const response = await api.get('/api/admin/expenses');
+      const allExpenses = response.data || [];
       
       console.log('✅ Fetched all expenses:', allExpenses);
       if (allExpenses.length > 0) {
