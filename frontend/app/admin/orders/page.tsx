@@ -495,7 +495,7 @@ export default function RestockOrdersPage() {
         doc.rect(0, ph - 16, pageWidth, 16, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(8);
-        doc.text(`${COMPANY_NAME} | ${COMPANY_EMAIL} | ${COMPANY_PHONE}`, pageWidth / 2, ph - 7, { align: 'center' });
+        doc.text(COMPANY_NAME, pageWidth / 2, ph - 7, { align: 'center' });
       }
     });
 

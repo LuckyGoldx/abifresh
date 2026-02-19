@@ -277,7 +277,7 @@ export default function GenerateOrderModal({ isOpen, onClose, items }: GenerateO
         doc.rect(0, pageHeight - 16, pageWidth, 16, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(8);
-        doc.text(`${COMPANY_NAME} | ${COMPANY_EMAIL} | ${COMPANY_PHONE}`, pageWidth / 2, pageHeight - 7, { align: 'center' });
+        doc.text(COMPANY_NAME, pageWidth / 2, pageHeight - 7, { align: 'center' });
       }
     });
 
