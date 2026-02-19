@@ -23,25 +23,24 @@ interface ExpenseItem {
   updated_at: string;
 }
 
-// Combined categories for all expense types
-const STAFF_CATEGORIES = [
-  'Transport',
-  'Supplies',
-  'Food & Refreshments',
-  'Utilities',
-  'Maintenance',
-  'Communication',
-  'Fuel',
-  'Other',
-];
-
-const ADMIN_CATEGORIES = [
+// Combined categories for all expense types (from both admin and staff)
+// Admin categories: Rent, Vehicle License Renewal, Local Government Levy, Vehicle Maintenance, Utilities, Others
+// Staff categories: Transport, Supplies, Food & Refreshments, Utilities, Maintenance, Communication, Fuel, Other
+// All unique (no duplicates): The system will derive these from actual data in expenseTypesList
+const ALL_POSSIBLE_CATEGORIES = [
   'Rent',
   'Vehicle License Renewal',
   'Local Government Levy',
   'Vehicle Maintenance',
   'Utilities',
   'Others',
+  'Transport',
+  'Supplies',
+  'Food & Refreshments',
+  'Maintenance',
+  'Communication',
+  'Fuel',
+  'Other',
 ];
 
 export default function ExpensesPage() {
@@ -228,6 +227,16 @@ export default function ExpensesPage() {
     return expenses.filter(e => e.expense_type?.toLowerCase() === category.toLowerCase());
   };
 
+  // Build category stats for all types that have data (only show if count > 0)
+  const categoryStats = expenseTypesList.map(type => {
+    const categoryExpenses = getExpensesByCategory(type);
+    return {
+      type,
+      count: categoryExpenses.length,
+      total: categoryExpenses.reduce((sum, e) => sum + e.amount, 0),
+    };
+  }).filter(stat => stat.count > 0);
+
   const stats = {
     total: expenses.length,
     totalAmount: expenses.reduce((sum, e) => sum + (e.amount || 0), 0),
@@ -267,7 +276,7 @@ export default function ExpensesPage() {
         </button>
       </div>
 
-      {/* Statistics Dashboard */}
+      {/* Statistics Dashboard - Shows Total plus ALL expense category cards with data */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card border-l-4 border-l-blue-500">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Total Expenses</p>
@@ -277,15 +286,30 @@ export default function ExpensesPage() {
           </p>
         </div>
 
-        {expenseTypesList.slice(0, 3).map((type) => {
-          const categoryExpenses = getExpensesByCategory(type);
-          const categoryTotal = categoryExpenses.reduce((sum, e) => sum + e.amount, 0);
+        {categoryStats.map((stat, index) => {
+          const colors = [
+            { border: 'border-l-green-500', text: 'text-green-600' },
+            { border: 'border-l-orange-500', text: 'text-orange-600' },
+            { border: 'border-l-pink-500', text: 'text-pink-600' },
+            { border: 'border-l-yellow-500', text: 'text-yellow-600' },
+            { border: 'border-l-purple-500', text: 'text-purple-600' },
+            { border: 'border-l-cyan-500', text: 'text-cyan-600' },
+            { border: 'border-l-red-500', text: 'text-red-600' },
+            { border: 'border-l-indigo-500', text: 'text-indigo-600' },
+            { border: 'border-l-amber-500', text: 'text-amber-600' },
+            { border: 'border-l-teal-500', text: 'text-teal-600' },
+            { border: 'border-l-violet-500', text: 'text-violet-600' },
+            { border: 'border-l-rose-500', text: 'text-rose-600' },
+            { border: 'border-l-sky-500', text: 'text-sky-600' },
+          ];
+          const color = colors[index % colors.length];
+          
           return (
-            <div key={type} className="card border-l-4 border-l-green-500">
-              <p className="text-gray-600 dark:text-gray-400 text-sm">{type}</p>
-              <p className="text-3xl font-bold text-green-600">₦{categoryTotal.toLocaleString()}</p>
+            <div key={stat.type} className={`card border-l-4 ${color.border}`}>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{stat.type}</p>
+              <p className={`text-3xl font-bold ${color.text}`}>₦{stat.total.toLocaleString()}</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {categoryExpenses.length} entries
+                {stat.count} {stat.count === 1 ? 'entry' : 'entries'}
               </p>
             </div>
           );
@@ -348,16 +372,19 @@ export default function ExpensesPage() {
             />
           </div>
 
-          {/* Expense Type Filter */}
+          {/* Expense Type Filter - Shows all unique types from actual data without duplicates */}
           <select
             value={expenseTypeFilter}
             onChange={(e) => setExpenseTypeFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
           >
-            <option value="all">All Types</option>
-            {expenseTypesList.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
+            <option value="all">All Types ({expenseTypesList.length})</option>
+            {expenseTypesList.map(type => {
+              const count = getExpensesByCategory(type).length;
+              return (
+                <option key={type} value={type}>{type} ({count})</option>
+              );
+            })}
           </select>
 
           {/* Staff Role Filter - Updated to include Admin */}
