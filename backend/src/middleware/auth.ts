@@ -7,6 +7,7 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: string;
+    full_name?: string;
   };
   files?: any; // Allow any file structure from express-fileupload
 }
@@ -26,7 +27,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     // Check if user is still active in the database
     const { data: user, error } = await supabaseAdmin
       .from('users')
-      .select('is_active')
+      .select('is_active, full_name')
       .eq('id', decoded.sub)
       .single();
 
@@ -42,6 +43,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       id: decoded.sub,
       email: decoded.email,
       role: decoded.role,
+      full_name: user.full_name ?? undefined,
     };
 
     next();

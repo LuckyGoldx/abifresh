@@ -239,7 +239,7 @@ router.post(
         .from('backup_history')
         .insert({
           triggered_by: req.user?.id ?? null,
-          triggered_by_name: req.user?.email ?? 'Admin',
+          triggered_by_name: req.user?.full_name ?? req.user?.email ?? 'Admin',
           tables_count: tablesCount ?? 0,
           total_rows: totalRows ?? 0,
           format: format ?? 'excel-all',
