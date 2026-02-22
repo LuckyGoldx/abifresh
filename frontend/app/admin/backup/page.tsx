@@ -444,13 +444,31 @@ export default function BackupPage() {
 
   useEffect(() => {
     loadRowCounts();
-    // Load history from backend; fall back to localStorage cache
-    loadHistoryFromBackend().then((remoteEntries) => {
+    // Load history from backend; fall back to localStorage, syncing localStorage→DB if needed
+    loadHistoryFromBackend().then(async (remoteEntries) => {
       if (remoteEntries.length > 0) {
+        // DB has data → use it as source of truth
         setHistory(remoteEntries);
         saveHistory(remoteEntries);
       } else {
-        setHistory(loadHistory());
+        // DB is empty → show localStorage entries immediately
+        const localEntries = loadHistory();
+        setHistory(localEntries);
+        // One-time background sync: push localStorage entries to DB so they're
+        // persisted and visible across devices / browser resets.
+        if (localEntries.length > 0) {
+          void (async () => {
+            for (const { id: _id, timestamp: _ts, ...rest } of localEntries.slice(0, 50)) {
+              await saveHistoryToBackend(rest);
+            }
+            // After sync, switch to DB entries (they now have server-assigned IDs)
+            const synced = await loadHistoryFromBackend();
+            if (synced.length > 0) {
+              setHistory(synced);
+              saveHistory(synced);
+            }
+          })();
+        }
       }
     });
   }, [loadRowCounts]);
