@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { supabaseAdmin } from '../config/supabase';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -12,7 +13,7 @@ export interface AuthRequest extends Request {
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
 
@@ -21,6 +22,22 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as any;
+    
+    // Check if user is still active in the database
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .select('is_active')
+      .eq('id', decoded.sub)
+      .single();
+
+    if (error || !user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    if (!user.is_active) {
+      return res.status(403).json({ error: 'Your account has been deactivated. Please contact the administrator.' });
+    }
+
     req.user = {
       id: decoded.sub,
       email: decoded.email,

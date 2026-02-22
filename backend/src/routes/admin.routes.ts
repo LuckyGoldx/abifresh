@@ -42,7 +42,7 @@ router.get('/staff', authMiddleware, roleMiddleware('admin', 'sales', 'sales_sta
  */
 router.post('/staff/create', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    const { email, password, full_name, role, store_location } = req.body;
+    const { email, password, full_name, username, phone_number, role, store_location } = req.body;
 
     if (!email || !password || !full_name || !role) {
       return res.status(400).json({ error: 'Missing required fields' });
@@ -53,7 +53,9 @@ router.post('/staff/create', authMiddleware, roleMiddleware('admin'), async (req
       password,
       full_name,
       role,
-      store_location || 'Jalingo'
+      store_location || 'Jalingo',
+      username || undefined,
+      phone_number || undefined
     );
 
     res.status(201).json({

@@ -42,13 +42,19 @@ router.post('/login', async (req, res) => {
 
     // Authenticate with Supabase
     console.log('Validating credentials with Supabase...');
-    const user = await authService.loginByUsername(username, password);
+    const result = await authService.loginByUsername(username, password);
     
-    if (!user) {
+    if (result.deactivated) {
+      console.log('Login failed - account is deactivated');
+      return res.status(403).json({ error: 'Your account has been deactivated. Please contact the administrator.' });
+    }
+
+    if (!result.user) {
       console.log('Login failed - invalid credentials or user not found');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    const user = result.user;
     const token = generateToken(user.id, user.email, user.role);
     
     console.log(`✅ Login successful for ${username} with role: ${user.role}`);

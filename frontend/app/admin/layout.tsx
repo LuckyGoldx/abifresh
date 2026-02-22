@@ -57,6 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Reports', href: '/admin/reports', icon: '📈' },
     { label: 'Items', href: '/admin/items', icon: '🛍️' },
     { label: 'Notifications', href: '/admin/notifications', icon: '🔔' },
+    { label: 'Backup', href: '/admin/backup', icon: '💾' },
   ];
 
   return (

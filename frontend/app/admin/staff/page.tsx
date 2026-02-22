@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
+import { useToast } from '@/context/ToastContext';
 import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User, Eye, EyeOff, Trash2 } from 'lucide-react';
 
 interface Staff {
@@ -63,6 +64,7 @@ const formatRegistrationDate = (dateString: string): string => {
 };
 
 export default function StaffManagementPage() {
+  const { addToast } = useToast();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -145,7 +147,7 @@ export default function StaffManagementPage() {
     
     // Client-side validation for password
     if (!formData.password || formData.password.trim() === '') {
-      alert('Password is required and cannot be empty');
+      addToast('Password is required and cannot be empty', 'error');
       return;
     }
     
@@ -155,9 +157,9 @@ export default function StaffManagementPage() {
       setFormData({ email: '', password: '', full_name: '', username: '', phone_number: '', role: 'sales_staff', store_location: 'Jalingo' });
       setShowPassword(false);
       fetchStaff();
-      alert('Staff created successfully');
+      addToast('Staff created successfully', 'success');
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to add staff');
+      addToast(error.response?.data?.error || 'Failed to add staff', 'error');
     }
   };
 
@@ -185,10 +187,10 @@ export default function StaffManagementPage() {
       setEditFormData({});
       setShowEditPassword(false);
       fetchStaff();
-      alert('Staff updated successfully');
+      addToast('Staff updated successfully', 'success');
     } catch (error: any) {
       console.error('Save edit error:', error);
-      alert(error.response?.data?.error || 'Failed to update staff');
+      addToast(error.response?.data?.error || 'Failed to update staff', 'error');
     }
   };
 
@@ -210,10 +212,10 @@ export default function StaffManagementPage() {
         await api.put(`/api/admin/staff/${memberId}/activate`, {});
       }
       fetchStaff();
-      alert(`Staff member ${action}d successfully`);
+      addToast(`Staff member ${action}d successfully`, 'success');
     } catch (error: any) {
       console.error(`${action} error:`, error);
-      alert(error.response?.data?.error || `Failed to ${action} staff`);
+      addToast(error.response?.data?.error || `Failed to ${action} staff`, 'error');
     }
   };
 
@@ -236,10 +238,10 @@ export default function StaffManagementPage() {
       await api.delete(`/api/admin/staff/${deleteConfirmation.staffId}`);
       setDeleteConfirmation({ stage: null, staffId: null, staffName: null });
       fetchStaff();
-      alert('Staff member deleted successfully');
+      addToast('Staff member deleted successfully', 'success');
     } catch (error: any) {
       console.error('Delete error:', error);
-      alert(error.response?.data?.error || 'Failed to delete staff');
+      addToast(error.response?.data?.error || 'Failed to delete staff', 'error');
     }
   };
 

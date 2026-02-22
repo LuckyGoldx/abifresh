@@ -11,7 +11,8 @@ export class AuthService {
     fullName: string,
     role: 'admin' | 'sales' | 'sales_staff' | 'staff_commission' | 'commission_staff' | 'staff_non_commission' | 'non_commission_staff',
     storeLocation: string = 'Jalingo',
-    customUsername?: string
+    customUsername?: string,
+    phoneNumber?: string
   ): Promise<User> {
     // Create auth user
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -25,20 +26,26 @@ export class AuthService {
     // Use custom username if provided, otherwise generate from email
     const username = customUsername || this.generateUsernameFromEmail(email);
 
+    // Build insert data
+    const insertData: any = {
+      id: authUser.user.id,
+      email,
+      full_name: fullName,
+      username,
+      role,
+      is_active: true,
+      store_location: storeLocation,
+    };
+
+    // Include phone_number if provided
+    if (phoneNumber) {
+      insertData.phone_number = phoneNumber;
+    }
+
     // Create user profile
     const { data: user, error: profileError } = await supabaseAdmin
       .from('users')
-      .insert([
-        {
-          id: authUser.user.id,
-          email,
-          full_name: fullName,
-          username,
-          role,
-          is_active: true,
-          store_location: storeLocation,
-        },
-      ])
+      .insert([insertData])
       .select()
       .single();
 
@@ -122,7 +129,7 @@ export class AuthService {
   /**
    * Login user by username and password (case-insensitive)
    */
-  async loginByUsername(username: string, password: string): Promise<User | null> {
+  async loginByUsername(username: string, password: string): Promise<{ user: User | null; deactivated?: boolean }> {
     try {
       console.log(`🔐 Login attempt for username: ${username}`);
       
@@ -130,10 +137,16 @@ export class AuthService {
       const user = await this.getUserByUsername(username);
       if (!user) {
         console.log(`❌ User not found: ${username}`);
-        return null;
+        return { user: null };
       }
 
       console.log(`✅ User found: ${user.email}, username: ${user.username}`);
+
+      // Check if user account is deactivated
+      if (!user.is_active) {
+        console.log(`🚫 User account is deactivated: ${username}`);
+        return { user: null, deactivated: true };
+      }
       
       // Authenticate with Supabase using email and password
       console.log('Authenticating with Supabase...');
@@ -144,20 +157,20 @@ export class AuthService {
       
       if (authError) {
         console.log(`❌ Supabase auth failed: ${authError.message}`);
-        return null;
+        return { user: null };
       }
 
       if (!authData.user) {
         console.log('❌ No user data returned from Supabase');
-        return null;
+        return { user: null };
       }
 
       console.log(`✅ Supabase auth successful for user: ${authData.user.id}`);
-      return user;
+      return { user };
       
     } catch (error: any) {
       console.error('❌ Login error:', error.message);
-      return null;
+      return { user: null };
     }
   }
 

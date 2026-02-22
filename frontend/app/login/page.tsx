@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { User, Lock, Eye, EyeOff, Database, CheckCircle, XCircle } from 'lucide-react';
 import api from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setUser = useAuthStore((state) => state.setUser);
   const setToken = useAuthStore((state) => state.setToken);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -18,6 +19,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [supabaseStatus, setSupabaseStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+
+  // Check for deactivated account redirect
+  useEffect(() => {
+    if (searchParams.get('deactivated') === 'true') {
+      setError('Your account has been deactivated. Please contact the administrator.');
+    }
+  }, [searchParams]);
 
   // Check Supabase connection on mount
   useEffect(() => {

@@ -43,7 +43,18 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const url = error.response?.config?.url;
+    const errorMessage = error.response?.data?.error || '';
     
+    // Handle deactivated account - force logout on any 403 with deactivated message
+    if (status === 403 && errorMessage.toLowerCase().includes('deactivated')) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth-storage');
+        // Redirect to login with deactivated message
+        window.location.href = '/login?deactivated=true';
+      }
+      return Promise.reject(error);
+    }
+
     // Only logout on explicit 401 from auth endpoints
     if (status === 401 && url?.includes('/auth')) {
       if (typeof window !== 'undefined') {
