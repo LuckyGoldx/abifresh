@@ -304,12 +304,11 @@ router.post('/upload-image', authMiddleware, roleMiddleware('admin'), async (req
       throw new Error('Failed to get public URL for uploaded image');
     }
 
-    // Return a proxy URL instead of Supabase public URL (bypasses RLS)
-    const proxyUrl = `/api/inventory/images/${fileName}`;
+    // Return the actual Supabase public URL so it is stored in the database
+    // (not a localhost proxy URL, which breaks backups and external access)
     console.log('✅ Image uploaded successfully');
     console.log(`  Supabase URL: ${urlData.publicUrl}`);
-    console.log(`  Proxy URL: ${proxyUrl}`);
-    res.json({ url: proxyUrl, path: filePath, supabaseUrl: urlData.publicUrl });
+    res.json({ url: urlData.publicUrl, path: filePath, supabaseUrl: urlData.publicUrl });
   } catch (error: any) {
     console.error('❌ Image upload error:', {
       message: error.message,

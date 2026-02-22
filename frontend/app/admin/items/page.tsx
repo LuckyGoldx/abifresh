@@ -219,8 +219,10 @@ export default function ItemsPage() {
       }
 
       const { url } = await res.json();
-      const proxyUrl = getImageUrl(url) || url;
-      setFormData({ ...formData, image_url: proxyUrl });
+      // Store the actual Supabase URL in the database (not a localhost proxy URL).
+      // getImageUrl() will still proxy it for display purposes.
+      setFormData({ ...formData, image_url: url });
+      setImagePreview(getImageUrl(url) || url);
       toast.success('✅ Image uploaded successfully');
     } catch (err: any) {
       console.error('Image upload error:', err);
