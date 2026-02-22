@@ -170,56 +170,37 @@ login (auth.service.ts):
 | 7 | `restock_order_items` | `order_id` → `restock_orders.id` ON DELETE CASCADE NOT NULL; `item_id` → `items.id` ON DELETE CASCADE NOT NULL | Position 7 > position 6 ✅ |
 | 9 | `sales_items` | `sale_id` → `sales.id` NOT NULL; `item_id` → `items.id` NOT NULL | Position 9 > position 8 ✅ |
 | 12 | `receipt_items` | `receipt_id` → `receipts.id` ON DELETE CASCADE NOT NULL; `item_id` → `items.id` ON DELETE SET NULL | Position 12 > position 11 ✅ |
-| 14 | `posted_items_mapping` | `posted_item_id` → `posted_items.id` ON DELETE CASCADE NOT NULL; `staff_store_id` → `staff_store.id` ON DELETE SET NULL | Position 14; depends on position 15 ⚠️ **PROBLEM** |
+| 15 | `posted_items_mapping` | `posted_item_id` → `posted_items.id` ON DELETE CASCADE NOT NULL; `staff_store_id` → `staff_store.id` ON DELETE SET NULL | Position 15 > staff_store[14] ✅ |
 
 ---
 
-## 5. The Real FK Restore Problem
+## 5. FK Restore Ordering — All Clear
 
-### ⚠️ `posted_items_mapping` (position 14) references `staff_store` (position 15)
+### Why FK order matters at all
 
-This is the **only** FK ordering violation in the 25-table backup order.
+PostgreSQL checks FK constraints on **every individual `INSERT`**, not at the end of all inserts. If table A inserts a row referencing table B, and table B hasn't been populated yet, the insert fails immediately — it does not wait for you to "finish" restoring all tables.
 
+This is why the order in `ALLOWED_TABLES` matters: parents must appear before children.
+
+### Previous issue — now fixed in code
+
+`posted_items_mapping` has this FK:
 ```sql
--- from COMPLETE_SUPABASE_MIGRATION.sql:
-CREATE TABLE public.posted_items_mapping (
-  ...
-  staff_store_id UUID REFERENCES public.staff_store(id) ON DELETE SET NULL,
-  ...
-);
+staff_store_id UUID REFERENCES public.staff_store(id) ON DELETE SET NULL
 ```
 
-The column is nullable and has `ON DELETE SET NULL`. However, `ON DELETE SET NULL` only affects what happens when you **delete** a referenced row — it has **no effect on INSERT/UPDATE validation**. When inserting a `posted_items_mapping` row where `staff_store_id` is non-null, PostgreSQL will check that the referenced `staff_store` row exists.
+Previously `posted_items_mapping` was at position 14 and `staff_store` at position 15 — a violation. This has been **fixed** by swapping their positions in `ALLOWED_TABLES`:
 
-**Scenario analysis:**
-
-| Scenario | Result |
-|----------|--------|
-| Use backup system's **Replace** mode (deletes + restores one table at a time) | ✅ Safe — `staff_store` has data when `posted_items_mapping` is processed |
-| **Empty all 25 tables first**, then upload backup in **Merge** mode | ⚠️ FK violation at table 14 if any `posted_items_mapping` row has non-null `staff_store_id` (i.e., any posting was accepted) |
-| **Empty all 25 tables first**, then upload backup in **Replace** mode | ✅ Safe — Replace mode does its own delete+insert cycle per table, so `staff_store` gets restored at position 15 before `posted_items_mapping`'s parent check... Wait, problem: Replace mode deletes table 14 data and inserts fresh. Since tables 1-13 are already done and table 15 hasn't been restored yet when Replace inserts table 14, the same violation occurs. |
-
-**Correct analysis:** Whether using Replace or Merge mode after manually emptying all tables, the violation will occur because:
-- Table 14 (`posted_items_mapping`) is always restored before table 15 (`staff_store`)
-- The backup system processes in ALLOWED_TABLES order
-- Any non-null `staff_store_id` values will fail FK check
-
-### ✅ Solution Options:
-
-**Option A (Recommended): Don't empty tables manually — use Replace mode directly**  
-Replace mode in the backup system handles each table individually (delete-then-insert) without clearing the other tables first. When it processes table 14, tables 15-25 still have their original data in the DB, so `staff_store_id` FKs are satisfied.
-
-**Option B: Two-pass restore after manually emptying**  
-1. First pass: upload backup, skip `posted_items_mapping` (let it fail and ignore it)
-2. Second pass: restore only `posted_items_mapping` after `staff_store` is populated
-
-**Option C: Manual SQL**  
-After emptying all 25 tables, run the restore SQL with deferred FK constraints:
-```sql
-SET CONSTRAINTS ALL DEFERRED;
--- insert all data here
-SET CONSTRAINTS ALL IMMEDIATE;
 ```
+OLD: ...posted_items[13], posted_items_mapping[14], staff_store[15]...
+NEW: ...posted_items[13], staff_store[14], posted_items_mapping[15]...
+```
+
+`staff_store` only depends on `users`[1] and `items`[2], so moving it to position 14 is safe. `posted_items_mapping` now comes after both its parents (`posted_items`[13] and `staff_store`[14]).
+
+**All 25 tables are now in correct FK dependency order for every restore scenario — including emptying all tables first.**
+
+> **Note on `ON DELETE SET NULL`:** This only affects what happens when a referenced row is *deleted* after the fact. It has no effect on INSERT validation. A non-null `staff_store_id` value always triggers an immediate FK existence check on insert.
 
 ---
 
@@ -358,7 +339,7 @@ Or use Option B/C from Section 5.
 
 | Risk | Trigger | Recovery |
 |------|---------|----------|
-| FK violation on `posted_items_mapping` | Empty all tables first + restore in Merge mode | Process `posted_items_mapping` in a second pass after `staff_store` is restored |
+| ~~FK violation on `posted_items_mapping`~~ | ~~Fixed: `staff_store` now at position 14, `posted_items_mapping` at 15~~ | ✅ No action needed |
 | User session tokens invalidated | Change `JWT_SECRET` in backend `.env` | All users simply need to log in again |
 | Slight `active_store_quantity` desync | Backup taken mid-operation | Manually correct from Admin inventory screen |
 
@@ -391,8 +372,8 @@ Or use Option B/C from Section 5.
 | 11 | `receipts` | ✅ | staff_id → users[1] (ON DELETE SET NULL) |
 | 12 | `receipt_items` | ✅ | receipt_id → receipts[11], item_id → items[2] (ON DELETE SET NULL) |
 | 13 | `posted_items` | ✅ | item_id → items[2], posted_by_id/posted_to_id/staff_id → users[1] |
-| 14 | `posted_items_mapping` | ⚠️ | posted_item_id → posted_items[13] ✅; staff_store_id → staff_store[15] **ORDER ISSUE** |
-| 15 | `staff_store` | ✅ | staff_id → users[1], item_id → items[2], posted_from_id → users (nullable) |
+| 14 | `staff_store` | ✅ | staff_id → users[1], item_id → items[2], posted_from_id → users (nullable) |
+| 15 | `posted_items_mapping` | ✅ | posted_item_id → posted_items[13] ✅; staff_store_id → staff_store[14] ✅ |
 | 16 | `staff_sales` | ✅ | staff_id → users[1], item_id → items[2], buyer_id → users (nullable) |
 | 17 | `staff_commissions` | ✅ | staff_id → users[1], created_by → users (nullable) |
 | 18 | `staff_payments` | ✅ | staff_id → users[1], approved_by/paid_by → users (nullable) |
@@ -413,7 +394,7 @@ Or use Option B/C from Section 5.
 | Will all data be restored? | ✅ Yes — all 25 tables, all columns, all rows |
 | Will login still work? | ✅ Yes — auth.users (passwords) is untouched |
 | Will product images still show? | ✅ Yes — as long as Storage bucket is untouched |
-| Is there a FK restore ordering issue? | ⚠️ Yes — `posted_items_mapping`[14] → `staff_store`[15]. Use Replace mode, do not pre-empty tables |
+| Is there a FK restore ordering issue? | ✅ No — fixed in code: `staff_store`[14] now comes before `posted_items_mapping`[15] |
 | Will RLS block the restore? | ✅ No — supabaseAdmin bypasses RLS |
 | Will generated columns work? | ✅ Yes — auto-stripped and auto-recomputed |
 | What can permanently break? | Deleting `auth.users` (passwords) or Supabase Storage files |
