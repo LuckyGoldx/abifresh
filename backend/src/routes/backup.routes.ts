@@ -16,6 +16,7 @@ const ALLOWED_TABLES = [
   'restock_orders',
   'restock_order_items',
   'sales',
+  'sales_items',
   'daily_sales_summary',
   'receipts',
   'receipt_items',

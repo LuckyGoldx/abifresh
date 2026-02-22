@@ -123,6 +123,13 @@ const ALL_TABLES: Omit<TableInfo, 'rowCount' | 'columnCount' | 'isCountLoading' 
     icon: '💰',
   },
   {
+    name: 'sales_items',
+    label: 'Sale Line Items',
+    description: 'Individual line items linked to each sales transaction',
+    category: 'Sales',
+    icon: '🧮',
+  },
+  {
     name: 'daily_sales_summary',
     label: 'Daily Sales Summary',
     description: 'Aggregated daily sales totals per salesperson',

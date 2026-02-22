@@ -58,6 +58,36 @@ export class ReceiptsService {
         throw new Error(`Failed to store receipt items: ${itemsError.message}`);
       }
 
+      // Update daily sales summary
+      const today = new Date(receipt.created_at || new Date()).toISOString().split('T')[0];
+      const { data: existing } = await supabaseAdmin
+        .from('daily_sales_summary')
+        .select('id, total_items_sold, total_revenue, number_of_transactions')
+        .eq('salesperson_id', data.staff_id)
+        .eq('sale_date', today)
+        .single();
+
+      if (existing) {
+        await supabaseAdmin
+          .from('daily_sales_summary')
+          .update({
+            total_items_sold: (existing.total_items_sold || 0) + data.items.length,
+            total_revenue: (existing.total_revenue || 0) + data.total_amount,
+            number_of_transactions: (existing.number_of_transactions || 0) + 1,
+          })
+          .eq('id', existing.id);
+      } else {
+        await supabaseAdmin
+          .from('daily_sales_summary')
+          .insert({
+            salesperson_id: data.staff_id,
+            sale_date: today,
+            total_items_sold: data.items.length,
+            total_revenue: data.total_amount,
+            number_of_transactions: 1,
+          });
+      }
+
       return receipt;
     } catch (error: any) {
       throw new Error(`Receipt creation error: ${error.message}`);

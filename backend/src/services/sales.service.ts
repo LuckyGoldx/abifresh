@@ -145,39 +145,19 @@ export class SalesService {
   ): Promise<void> {
     const today = new Date().toISOString().split('T')[0];
 
-    const { data: existing, error: fetchError } = await supabaseAdmin
+    // Upsert: correct column names are salesperson_id, sale_date, total_revenue
+    await supabaseAdmin
       .from('daily_sales_summary')
-      .select('*')
-      .eq('sales_date', today)
-      .eq('sales_person_id', salesPersonId)
-      .single();
-
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
-    }
-
-    if (existing) {
-      // Update existing record
-      await supabaseAdmin
-        .from('daily_sales_summary')
-        .update({
-          total_items_sold: existing.total_items_sold + quantity,
-          total_amount_sold: existing.total_amount_sold + amount,
-        })
-        .eq('id', existing.id);
-    } else {
-      // Create new record
-      await supabaseAdmin
-        .from('daily_sales_summary')
-        .insert([
-          {
-            sales_date: today,
-            sales_person_id: salesPersonId,
-            total_items_sold: quantity,
-            total_amount_sold: amount,
-          },
-        ]);
-    }
+      .upsert(
+        {
+          salesperson_id: salesPersonId,
+          sale_date: today,
+          total_items_sold: quantity,
+          total_revenue: amount,
+          number_of_transactions: 1,
+        },
+        { onConflict: 'salesperson_id,sale_date', ignoreDuplicates: false }
+      );
   }
 
   /**

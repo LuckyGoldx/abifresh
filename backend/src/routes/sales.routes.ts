@@ -212,6 +212,37 @@ router.post('/create-sale', authMiddleware, roleMiddleware('sales', 'sales_staff
       if (updateError) throw updateError;
     }
 
+    // Update daily sales summary
+    const saleDate = new Date().toISOString().split('T')[0];
+    const { data: existingDSS } = await require('../config/supabase').supabaseAdmin
+      .from('daily_sales_summary')
+      .select('id, total_items_sold, total_revenue, number_of_transactions')
+      .eq('salesperson_id', req.user!.id)
+      .eq('sale_date', saleDate)
+      .single();
+
+    const itemsCount = items.reduce((sum: number, i: any) => sum + (i.quantity || 1), 0);
+    if (existingDSS) {
+      await require('../config/supabase').supabaseAdmin
+        .from('daily_sales_summary')
+        .update({
+          total_items_sold: (existingDSS.total_items_sold || 0) + itemsCount,
+          total_revenue: (existingDSS.total_revenue || 0) + total_amount,
+          number_of_transactions: (existingDSS.number_of_transactions || 0) + 1,
+        })
+        .eq('id', existingDSS.id);
+    } else {
+      await require('../config/supabase').supabaseAdmin
+        .from('daily_sales_summary')
+        .insert({
+          salesperson_id: req.user!.id,
+          sale_date: saleDate,
+          total_items_sold: itemsCount,
+          total_revenue: total_amount,
+          number_of_transactions: 1,
+        });
+    }
+
     res.status(201).json({
       sale_id: saleData.id,
       receipt_number: saleData.receipt_number,
