@@ -1019,11 +1019,21 @@ router.post('/store/make-sales', authMiddleware, async (req: AuthRequest, res: R
 
     const sales = [];
     for (const item of items) {
+      // Compute the effective unit price: the actual price the item was sold for
+      // (price_jalingo or price_outside), plus per-unit logistics fee if outside Jalingo.
+      const sentUnitPrice = item.unit_price !== undefined ? parseFloat(item.unit_price) : undefined;
+      const logisticsFee = item.logistics_fee !== undefined ? parseFloat(item.logistics_fee) : 0;
+      const effectiveUnitPrice =
+        sentUnitPrice !== undefined && sentUnitPrice > 0
+          ? sentUnitPrice + logisticsFee
+          : undefined;
+
       const sale = await staffStoreService.recordStaffSale(
         req.user!.id,
         item.item_id,
         item.quantity,
-        item.payment_method || 'cash'
+        item.payment_method || 'cash',
+        effectiveUnitPrice
       );
       sales.push(sale);
     }

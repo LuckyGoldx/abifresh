@@ -507,7 +507,8 @@ export class StaffStoreService {
     staffId: string,
     itemId: string,
     quantity: number,
-    paymentMethod: 'cash' | 'pos' | 'transfer' = 'cash'
+    paymentMethod: 'cash' | 'pos' | 'transfer' = 'cash',
+    overrideUnitPrice?: number
   ): Promise<any> {
     // Get all pending/accepted returns for this item to calculate locked quantity
     const { data: pendingReturns } = await supabaseAdmin
@@ -553,7 +554,11 @@ export class StaffStoreService {
 
     if (itemError) throw new Error(`Item not found in inventory`);
 
-    const unitPrice = itemData?.unit_price || 0;
+    // Use the actual price the item was sold for (price_jalingo or price_outside + logistics),
+    // falling back to the item's base unit_price if not provided.
+    const unitPrice = (overrideUnitPrice !== undefined && overrideUnitPrice > 0)
+      ? overrideUnitPrice
+      : (itemData?.unit_price || 0);
     const totalAmount = unitPrice * quantity;
     const commissionPerUnit = itemData?.commission || 0;
     const totalCommission = commissionPerUnit * quantity;
@@ -683,7 +688,32 @@ export class StaffStoreService {
 
     // Calculate stats
     // Display items = items that are NOT approved and NOT pending (only truly unpaid)
-    const displayItems = allSales.filter((item: any) => !item.isApproved && !item.isPending);
+    const unpaidSales = allSales.filter((item: any) => !item.isApproved && !item.isPending);
+
+    // Group by item_id so the same product sold in multiple transactions
+    // appears as ONE line item in the payment selection list.
+    const groupedMap = new Map<string, any>();
+    unpaidSales.forEach((item: any) => {
+      const key = item.item_id;
+      if (groupedMap.has(key)) {
+        const existing = groupedMap.get(key);
+        existing.quantity += item.quantity;
+        existing.total_amount += item.total_amount;
+        existing.sale_ids.push(item.id);
+      } else {
+        groupedMap.set(key, {
+          id: item.item_id,        // Use item_id as the unique key for frontend checkbox selection
+          item_id: item.item_id,
+          item_name: item.item_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_amount: item.total_amount,
+          sale_date: item.sale_date,
+          sale_ids: [item.id],     // All staff_sales UUIDs grouped under this item
+        });
+      }
+    });
+    const displayItems = Array.from(groupedMap.values());
     const totalQuantity = displayItems.reduce((sum: number, item: any) => sum + item.quantity, 0);
     const totalSalesAmount = displayItems.reduce((sum: number, item: any) => sum + item.total_amount, 0);
     

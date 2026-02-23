@@ -31,6 +31,7 @@ interface Sale {
   unit_price?: number;
   total_amount: number;
   sale_date: string;
+  sale_ids?: string[]; // All staff_sales UUIDs when multiple transactions are grouped
 }
 
 export default function PaymentsPage() {
@@ -100,6 +101,7 @@ export default function PaymentsPage() {
           price_jalingo: parseFloat(sale.price_jalingo || sale.unit_price) || 0,
           total_amount: parseFloat(sale.total_amount) || 0,
           sale_date: sale.sale_date,
+          sale_ids: Array.isArray(sale.sale_ids) ? sale.sale_ids : undefined,
         }));
         stats = salesRes.data.stats || {};
       } else if (Array.isArray(salesRes.data)) {
@@ -112,6 +114,7 @@ export default function PaymentsPage() {
           price_jalingo: parseFloat(sale.price_jalingo || sale.unit_price) || 0,
           total_amount: parseFloat(sale.total_amount) || 0,
           sale_date: sale.sale_date,
+          sale_ids: Array.isArray(sale.sale_ids) ? sale.sale_ids : undefined,
         }));
       }
       
@@ -233,7 +236,7 @@ export default function PaymentsPage() {
     const selectedSalesData = sales
       .filter(s => selectedItems.includes(s.id))
       .map(s => ({
-        sale_ids: [s.id],
+        sale_ids: s.sale_ids && s.sale_ids.length > 0 ? s.sale_ids : [s.id],
         item_id: s.item_id,
         item_name: s.item_name,
         quantity: s.quantity,
