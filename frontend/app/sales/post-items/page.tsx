@@ -3,7 +3,20 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { api } from '@/lib/api';
-import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag, X } from 'lucide-react';
+import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag, X, Search } from 'lucide-react';
+
+/**
+ * Convert any image URL (old Supabase public URL or new proxy path) to a working proxy URL.
+ */
+function getImageUrl(url: string | undefined | null): string | null {
+  if (!url) return null;
+  const API_BASE = 'http://localhost:5000';
+  if (url.startsWith(API_BASE + '/api/inventory/images/')) return url;
+  if (url.startsWith('/api/inventory/images/')) return `${API_BASE}${url}`;
+  const match = url.match(/products\/([^?]+)/);
+  if (match) return `${API_BASE}/api/inventory/images/${match[1]}`;
+  return url;
+}
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
@@ -75,6 +88,7 @@ export default function PostItemsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -245,50 +259,88 @@ export default function PostItemsPage() {
         <div className="lg:col-span-2 space-y-4">
           {/* Search Box */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-            <input
-              type="text"
-              placeholder="Search items by name, SKU or category..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="🔍 Search by item name, SKU, or category..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+            {searchQuery && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                Found {filteredItems.length} item(s)
+              </p>
+            )}
+            {filteredItems.length === 0 && searchQuery && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-2">No items match your search</p>
+            )}
           </div>
 
           {/* Items Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredItems.length > 0 ? (
-              filteredItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 hover:shadow-lg transition cursor-pointer group"
-                >
-                  <div className="mb-3">
-                    <h3 className="font-semibold text-gray-900 dark:text-white text-sm group-hover:text-pink-600 transition">
-                      {item.name}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.sku}</p>
-                  </div>
-                  <p className="text-lg font-bold text-pink-600 dark:text-pink-400 mb-2">
-                    ₦{(item.price_jalingo || 0).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                    Available: {item.active_store_quantity}
-                  </p>
-                  <button
-                    onClick={() => addToCart(item)}
-                    className="w-full bg-pink-500 hover:bg-pink-600 text-white py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add
-                  </button>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {filteredItems.map((item) => (
+              <div key={item.id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition overflow-hidden flex flex-col h-full">
+                {/* Product Image Section */}
+                <div className="relative bg-gray-100 dark:bg-gray-700 h-48 flex items-center justify-center overflow-hidden cursor-pointer group">
+                  {item.image_url ? (
+                    <img 
+                      src={getImageUrl(item.image_url) || ''} 
+                      alt={item.name}
+                      className="w-full h-full object-cover hover:scale-110 transition-transform cursor-pointer"
+                      onClick={() => setFullscreenImage(getImageUrl(item.image_url) || '')}
+                      onError={(e) => {
+                        console.error(`❌ Image failed to load: ${item.image_url}`);
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700">
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-white opacity-80">
+                          {item.name.toUpperCase().substring(0, 2)}
+                        </div>
+                        <p className="text-xs text-white opacity-60 mt-1">No image</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))
-            ) : (
-              <div className="col-span-2 lg:col-span-3 text-center py-12 text-gray-600 dark:text-gray-400">
-                <p>No available items found</p>
+
+                {/* Product Info Section */}
+                <div className="p-4 flex flex-col flex-1">
+                  <h3 className="font-bold text-base text-gray-900 dark:text-white line-clamp-2 mb-2">{item.name}</h3>
+                  
+                  {item.brand && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1">🏷️ {item.brand}</p>
+                  )}
+                  
+                  {item.package_type && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">📦 {item.package_type}</p>
+                  )}
+                  
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{item.category} • {item.sku}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2">📊 Stock: {item.active_store_quantity}</p>
+                  
+                  <p className="text-lg font-bold text-pink-600 mt-auto pt-2">₦{(item.price_jalingo || 0).toLocaleString()}</p>
+                </div>
+
+                <button
+                  onClick={() => addToCart(item)}
+                  disabled={item.active_store_quantity === 0}
+                  className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed rounded-none"
+                >
+                  + Add to Post
+                </button>
               </div>
-            )}
+            ))}
           </div>
+
+          {filteredItems.length === 0 && !searchQuery && (
+            <div className="text-center py-12 text-gray-600 dark:text-gray-400">
+              No available items in stock
+            </div>
+          )}
         </div>
 
         {/* Posting Summary Sidebar */}
@@ -543,6 +595,26 @@ export default function PostItemsPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Fullscreen Image Modal */}
+      {fullscreenImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 z-[60] flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setFullscreenImage(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-[61]"
+            onClick={() => setFullscreenImage(null)}
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <img
+            src={fullscreenImage}
+            alt="Product"
+            className="max-w-full max-h-full object-contain"
+          />
         </div>
       )}
 
