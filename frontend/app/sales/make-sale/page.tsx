@@ -339,9 +339,9 @@ export default function MakeSalePage() {
   }
 
   // Component for cart content (reusable between desktop and mobile)
-  const CartContent = ({ showSettings = true }: { showSettings?: boolean }) => (
+  const CartContent = ({ showSettings = true, desktopLayout = false }: { showSettings?: boolean; desktopLayout?: boolean }) => (
     <>
-      <div className="space-y-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-pink-500 scrollbar-track-gray-200 dark:scrollbar-track-gray-700">
+      <div className={`space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-pink-500 scrollbar-track-gray-200 dark:scrollbar-track-gray-700 ${desktopLayout ? 'flex-1 min-h-0' : 'max-h-96'}`}>
         {cart.map((item) => (
           <div key={item.id} className="border-b dark:border-gray-700 pb-4">
             <div className="flex justify-between items-start mb-2">
@@ -388,7 +388,7 @@ export default function MakeSalePage() {
 
       {/* Global Payment Method and Location Settings */}
       {showSettings && cart.length > 0 && (
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6 space-y-4 border border-gray-200 dark:border-gray-600">
+        <div className={`bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6 space-y-4 border border-gray-200 dark:border-gray-600 ${desktopLayout ? 'flex-shrink-0' : ''}`}>
           <div>
             <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
               Payment Method
@@ -420,7 +420,7 @@ export default function MakeSalePage() {
       )}
 
       {cart.length > 0 ? (
-        <>
+        <div className={desktopLayout ? 'flex-shrink-0' : ''}>
           <div className="border-t dark:border-gray-700 pt-4 mb-4 space-y-3">
             <div className="flex justify-between text-xl font-bold text-gray-900 dark:text-white">
               <span>Total:</span>
@@ -444,7 +444,7 @@ export default function MakeSalePage() {
               <Send size={18} /> Post to Staff
             </button>
           </div>
-        </>
+        </div>
       ) : (
         <p className="text-center text-gray-500 dark:text-gray-400 py-8">Cart is empty</p>
       )}
@@ -555,11 +555,11 @@ export default function MakeSalePage() {
 
         {/* Cart Section - Desktop */}
         <div className="hidden lg:block lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow sticky top-4 p-4 max-h-screen overflow-y-auto scrollbar-thin scrollbar-thumb-pink-500 scrollbar-track-gray-200 dark:scrollbar-track-gray-700 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow sticky top-4 p-4 flex flex-col max-h-[calc(100vh-2rem)] border border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">
               Cart ({cart.length} items)
             </h2>
-            <CartContent showSettings={true} />
+            <CartContent showSettings={true} desktopLayout />
           </div>
         </div>
       </div>
