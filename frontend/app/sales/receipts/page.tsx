@@ -51,6 +51,8 @@ export default function ReceiptsPage() {
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [itemNames, setItemNames] = useState<{ [key: string]: string }>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
 
   useEffect(() => {
     setMounted(true);
@@ -168,6 +170,15 @@ export default function ReceiptsPage() {
 
   const filteredReceipts = handleSearch();
 
+  // Pagination
+  const totalPages = Math.ceil(filteredReceipts.length / pageSize);
+  const startIdx = (currentPage - 1) * pageSize;
+  const endIdx = startIdx + pageSize;
+  const paginatedReceipts = filteredReceipts.slice(startIdx, endIdx);
+
+  // Reset to page 1 when filters change
+  const resetPage = () => { if (currentPage !== 1) setCurrentPage(1); };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
@@ -192,7 +203,7 @@ export default function ReceiptsPage() {
                 type="text"
                 placeholder="Search by receipt number..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
               />
             </div>
@@ -202,7 +213,7 @@ export default function ReceiptsPage() {
             <Filter size={20} className="text-gray-600 dark:text-gray-400" />
             <select
               value={filterPaymentMethod}
-              onChange={(e) => setFilterPaymentMethod(e.target.value as any)}
+                onChange={(e) => { setFilterPaymentMethod(e.target.value as any); setCurrentPage(1); }}
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
             >
               <option value="all">All Payment Methods</option>
@@ -248,7 +259,7 @@ export default function ReceiptsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredReceipts.map((receipt) => (
+              {paginatedReceipts.map((receipt) => (
                 <tr
                   key={receipt.id}
                   className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
@@ -310,6 +321,58 @@ export default function ReceiptsPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 px-6 py-4 flex items-center justify-between">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Showing {startIdx + 1} to {Math.min(endIdx, filteredReceipts.length)} of {filteredReceipts.length} receipts
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-white transition"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }).map((_, idx) => {
+                    let pageNum: number;
+                    if (totalPages <= 5) {
+                      pageNum = idx + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = idx + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + idx;
+                    } else {
+                      pageNum = currentPage - 2 + idx;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1 rounded transition ${
+                          currentPage === pageNum
+                            ? 'bg-pink-600 text-white'
+                            : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-white'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-white transition"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
