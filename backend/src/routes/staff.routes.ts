@@ -1019,10 +1019,13 @@ router.post('/store/make-sales', authMiddleware, async (req: AuthRequest, res: R
 
     const sales = [];
     for (const item of items) {
-      // Compute the effective unit price: the actual price the item was sold for
-      // (price_jalingo or price_outside), plus per-unit logistics fee if outside Jalingo.
+      // Compute the effective unit price: the actual price the item was sold for.
+      // Frontend sends unit_price = price_jalingo OR price_outside (from items table),
+      // plus logistics_fee per unit when sold outside Jalingo.
+      // items.unit_price is the PURCHASE cost — it is never used here.
       const sentUnitPrice = item.unit_price !== undefined ? parseFloat(item.unit_price) : undefined;
       const logisticsFee = item.logistics_fee !== undefined ? parseFloat(item.logistics_fee) : 0;
+      const soldOutsideJalingo: boolean = item.sold_outside_jalingo === true;
       const effectiveUnitPrice =
         sentUnitPrice !== undefined && sentUnitPrice > 0
           ? sentUnitPrice + logisticsFee
@@ -1033,7 +1036,8 @@ router.post('/store/make-sales', authMiddleware, async (req: AuthRequest, res: R
         item.item_id,
         item.quantity,
         item.payment_method || 'cash',
-        effectiveUnitPrice
+        effectiveUnitPrice,
+        soldOutsideJalingo
       );
       sales.push(sale);
     }

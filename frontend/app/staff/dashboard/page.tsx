@@ -30,12 +30,13 @@ interface Sale {
     sku: string;
   };
   quantity: number;
-  price_jalingo: number;
-  unit_price?: number;
+  /** Actual per-unit sold price (price_jalingo OR price_outside+logistics). NOT items.unit_price. */
+  unit_price: number;
   total_amount: number;
   payment_method: string;
   sale_date: string;
   receipt_number: string;
+  sold_outside_jalingo: boolean;
 }
 
 export default function StaffDashboard() {
@@ -57,12 +58,17 @@ export default function StaffDashboard() {
         setDashboard(dashRes.data);
         console.log('📥 Sales History from API:', salesRes.data);
         
-        // The backend returns {allItems: [...], stats: {...}}
-        // Extract the allItems array
-        let historyData = [];
-        if (salesRes.data?.allItems && Array.isArray(salesRes.data.allItems)) {
+        // The backend returns {allItems: [...], recentSales: [...], stats: {...}}.
+        // recentSales = every individual staff_sales row (all statuses, no grouping).
+        // This is what we use for the "Recent Sales" table and today's calculations.
+        let historyData: Sale[] = [];
+        if (salesRes.data?.recentSales && Array.isArray(salesRes.data.recentSales)) {
+          historyData = salesRes.data.recentSales;
+          console.log('✅ Extracted recentSales from response:', historyData.length, 'sales');
+        } else if (salesRes.data?.allItems && Array.isArray(salesRes.data.allItems)) {
+          // Fallback: old format before recentSales was added
           historyData = salesRes.data.allItems;
-          console.log('✅ Extracted allItems from response:', historyData.length, 'sales');
+          console.log('⚠️ recentSales missing, falling back to allItems:', historyData.length);
         } else if (Array.isArray(salesRes.data)) {
           historyData = salesRes.data;
           console.log('✅ Using direct array from response:', historyData.length, 'sales');
@@ -104,40 +110,16 @@ export default function StaffDashboard() {
     </div>
   );
 
-  // Calculate today's stats with proper date comparison
-  const getTodaysDate = () => {
-    const now = new Date();
-    return now.toISOString().split('T')[0]; // YYYY-MM-DD format
-  };
-
+  // salesHistoryArray = recentSales from backend (all individual staff_sales rows, no filtering).
+  // unit_price on each row = actual sold price (price_jalingo OR price_outside + logistics).
+  // total_amount = unit_price × quantity. items.unit_price (purchase cost) is never used here.
   const salesHistoryArray = Array.isArray(salesHistory) ? salesHistory : [];
-  const todayString = getTodaysDate();
-  
-  console.log('� salesHistory state:', salesHistory);
-  console.log('🔍 salesHistoryArray:', salesHistoryArray, 'Type:', typeof salesHistoryArray, 'Length:', salesHistoryArray.length);
-  console.log('📅 Today\'s date (YYYY-MM-DD):', todayString);
-  console.log('📊 Total sales in history:', salesHistoryArray.length);
-  
-  // Log first few sales for debugging
-  if (salesHistoryArray.length > 0) {
-    console.log('First sale date:', salesHistoryArray[0].sale_date);
-    console.log('First sale keys:', Object.keys(salesHistoryArray[0]));
-  }
-  
-  const todaysSales = salesHistoryArray.filter(sale => {
-    const saleDateString = new Date(sale.sale_date).toISOString().split('T')[0];
-    const isToday = saleDateString === todayString;
-    if (isToday) {
-      console.log('✅ Found today\'s sale:', sale.item_name || sale.items?.name, 'Qty:', sale.quantity, 'Amount:', sale.total_amount);
-    }
-    return isToday;
-  });
-  
-  const todaysTotalSales = todaysSales.reduce((sum, sale) => sum + (sale.total_amount || 0), 0);
-  const todaysItemsSold = todaysSales.length;
-  const todaysTotalUnits = todaysSales.reduce((sum, sale) => sum + (sale.quantity || 0), 0);
-  
-  console.log('📊 Today\'s Summary - Items:', todaysItemsSold, 'Units:', todaysTotalUnits, 'Total:', todaysTotalSales);
+  const todayString = new Date().toISOString().split('T')[0];
+
+  const todaysSales     = salesHistoryArray.filter(s => new Date(s.sale_date).toISOString().split('T')[0] === todayString);
+  const todaysTotalSales = todaysSales.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+  const todaysItemsSold  = todaysSales.length;
+  const todaysTotalUnits = todaysSales.reduce((sum, s) => sum + (s.quantity || 0), 0);
 
   const isCommissionStaff = ['commission_staff', 'staff_commission'].includes(user?.role || '');
 
@@ -321,7 +303,7 @@ export default function StaffDashboard() {
                 <tr className="border-b dark:border-gray-700">
                   <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Item</th>
                   <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Qty</th>
-                  <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Unit Price</th>
+                  <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Sold Price</th>
                   <th className="text-right py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Total</th>
                   <th className="text-center py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Payment</th>
                   <th className="text-left py-3 px-4 font-semibold text-gray-600 dark:text-gray-300">Date</th>
@@ -330,9 +312,17 @@ export default function StaffDashboard() {
               <tbody>
                 {salesHistoryArray.slice((currentSalesPage - 1) * 10, currentSalesPage * 10).map((sale) => (
                   <tr key={sale.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                    <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{sale.item_name || sale.items?.name || 'Item'}</td>
+                    <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">
+                      {sale.item_name || sale.items?.name || 'Item'}
+                      {sale.sold_outside_jalingo && (
+                        <span className="ml-2 text-xs bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded">
+                          Outside Jalingo
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">{sale.quantity}</td>
-                    <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">₦{(sale.price_jalingo || 0).toLocaleString()}</td>
+                    {/* unit_price here is the actual sold price: price_jalingo or price_outside+logistics. Not items.unit_price (purchase cost). */}
+                    <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">₦{(sale.unit_price || 0).toLocaleString()}</td>
                     <td className="py-3 px-4 text-right font-bold text-pink-600 dark:text-pink-400">₦{(sale.total_amount || 0).toLocaleString()}</td>
                     <td className="py-3 px-4 text-center">
                       <span className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1 rounded text-xs font-medium capitalize">

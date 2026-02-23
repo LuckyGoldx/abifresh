@@ -508,7 +508,8 @@ export class StaffStoreService {
     itemId: string,
     quantity: number,
     paymentMethod: 'cash' | 'pos' | 'transfer' = 'cash',
-    overrideUnitPrice?: number
+    overrideUnitPrice?: number,
+    soldOutsideJalingo: boolean = false
   ): Promise<any> {
     // Get all pending/accepted returns for this item to calculate locked quantity
     const { data: pendingReturns } = await supabaseAdmin
@@ -563,9 +564,11 @@ export class StaffStoreService {
     const commissionPerUnit = itemData?.commission || 0;
     const totalCommission = commissionPerUnit * quantity;
 
-    // Create staff sale record
-    // NOTE: commission column removed from INSERT because PostgREST schema cache
-    // doesn't see it. Commission is calculated on-the-fly from items.commission instead.
+    // Create staff sale record.
+    // unit_price = actual sold price per unit (price_jalingo OR price_outside + logistics_fee).
+    // sold_outside_jalingo = flag so history/dashboard can label each row correctly.
+    // NOTE: commission column omitted from INSERT because PostgREST schema cache
+    // doesn't see it; commission is calculated on-the-fly from items.commission instead.
     const { data: sale, error: saleError } = await supabaseAdmin
       .from('staff_sales')
       .insert([
@@ -576,6 +579,7 @@ export class StaffStoreService {
           unit_price: unitPrice,
           total_amount: totalAmount,
           payment_method: paymentMethod,
+          sold_outside_jalingo: soldOutsideJalingo,
           receipt_number: `STAFF-${Date.now()}`,
         },
       ])
@@ -672,9 +676,11 @@ export class StaffStoreService {
       });
     }
 
-    // Map to expected format
-    // IMPORTANT: always use sale.unit_price (actual sold price stored in staff_sales),
-    // never fall back to items.unit_price (that is the purchase/base price, not the sold price).
+    // Map to expected format.
+    // IMPORTANT: always use sale.unit_price (actual sold price stored in staff_sales).
+    // Never use items.unit_price — that is the purchase/base cost, not the selling price.
+    //   unit_price in staff_sales = price_jalingo  (when sold_outside_jalingo = false)
+    //                             = price_outside + logistics_fee_per_unit  (when true)
     const allSales = (sales || []).map((sale: any) => ({
       id: sale.id,
       item_id: sale.item_id,
@@ -682,6 +688,9 @@ export class StaffStoreService {
       quantity: sale.quantity,
       unit_price: parseFloat(sale.unit_price) || 0,
       total_amount: parseFloat(sale.total_amount) || (parseFloat(sale.unit_price) * sale.quantity) || 0,
+      payment_method: sale.payment_method || 'cash',
+      receipt_number: sale.receipt_number || '',
+      sold_outside_jalingo: sale.sold_outside_jalingo || false,
       sale_date: sale.sale_date,
       isApproved: approvedSaleIds.has(sale.id),
       isPending: pendingSaleIds.has(sale.id),
@@ -744,7 +753,8 @@ export class StaffStoreService {
     console.log(`   - Outstanding: ₦${outstandingAmount}`);
 
     return {
-      allItems: displayItems, // Only show items NOT in pending or approved state
+      allItems: displayItems,   // Grouped unpaid items — used by the payment selection list
+      recentSales: allSales,   // All individual sales (no filter, no grouping) — used by dashboard Recent Sales table
       stats: {
         // Today's sales
         todaysTotalQuantity: todaysTotalQuantity,
