@@ -566,7 +566,7 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
               title: '📋 New Payment Request',
               message: `${user?.full_name || 'Sales Staff'} has submitted a payment of ₦${parseFloat(amount).toLocaleString()} via ${payment_method}. Click to review.`,
               related_id: data.id,
-              read: false,
+              is_read: false,
             },
           ])
       ));

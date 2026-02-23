@@ -471,7 +471,7 @@ router.post('/payments/request', authMiddleware, async (req: AuthRequest, res: R
               title: '📋 New Payment Request',
               message: `${userInfo?.full_name || 'Staff'} has submitted a payment of ₦${parseFloat(amount).toLocaleString()} via ${payment_method}. Click to review.`,
               related_id: data.id,
-              read: false,
+              is_read: false,
             },
           ])
       ));
@@ -605,12 +605,17 @@ router.get('/dashboard', authMiddleware, async (req: AuthRequest, res: Response)
       .eq('payment_type', 'commission')
       .eq('status', 'approved');
 
-    // Count unread notifications
-    const { count: unreadNotifications } = await supabaseAdmin
+    // Get total expenses from ExpensesService
+    const totalExpenses = await expensesService.getTotalExpenses(req.user!.id);
+
+    // Count unread notifications - fetch and count to ensure accuracy
+    const { data: unreadNotificationsData, error: notifError } = await supabaseAdmin
       .from('notifications')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('user_id', req.user!.id)
       .eq('is_read', false);
+    
+    const unreadNotifications = notifError ? 0 : (unreadNotificationsData?.length || 0);
 
     // Check if user is commission staff
     const isCommissionStaff = ['commission_staff', 'staff_commission'].includes(req.user!.role || '');
@@ -633,7 +638,7 @@ router.get('/dashboard', authMiddleware, async (req: AuthRequest, res: Response)
       pending_posted_items: postedItems?.filter((p) => p.status === 'pending').length || 0,
       pending_payment_amount: pendingPayments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0,
       approved_amount: approvedPayments?.reduce((sum, p) => sum + parseFloat(p.approved_amount || p.amount || 0), 0) || 0,
-      total_expenses: 0,
+      total_expenses: totalExpenses,
       unread_notifications: unreadNotifications || 0,
       total_commission: totalCommission,
       paid_commission: paidCommission,
