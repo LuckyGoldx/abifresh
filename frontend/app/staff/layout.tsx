@@ -81,6 +81,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     { label: 'Return Items', href: '/staff/return-items', icon: '↩️', badge: pendingReturnCount > 0 ? pendingReturnCount : undefined },
     { label: 'Make Payment', href: '/staff/payments', icon: '💳' },
     { label: 'Expenses', href: '/staff/expenses', icon: '💸' },
+    { label: 'Receipts', href: '/staff/receipts', icon: '🧾' },
     // Only show Commissions to commission staff
     ...(['staff_commission', 'commission_staff'].includes(user?.role || '') 
       ? [{ label: 'Commissions', href: '/staff/commissions', icon: '💰' }]
