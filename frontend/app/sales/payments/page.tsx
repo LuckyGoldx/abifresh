@@ -225,12 +225,12 @@ export default function SalesPaymentsPage() {
     return unpaidSales;
   };
 
-  // Group unpaid sales by item to show unique items with aggregated totals
+  // Group unpaid sales by item to show unique items with aggregated totals.
+  // Backend already returns only unpaid items in allItems — group sales directly.
   const getSoldItemsGrouped = () => {
-    const unpaidSales = getUnpaidSales();
     const itemMap = new Map<string, any>();
     
-    unpaidSales.forEach((sale) => {
+    sales.forEach((sale) => {
       if (itemMap.has(sale.item_id)) {
         const existing = itemMap.get(sale.item_id);
         existing.quantity += sale.quantity;

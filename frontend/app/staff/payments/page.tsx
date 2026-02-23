@@ -146,59 +146,8 @@ export default function PaymentsPage() {
     return String(id).toLowerCase().trim();
   };
 
-  // Filter out individual sales that are in pending or approved payments
-  const getAvailableSales = () => {
-    // Track paid sale IDs
-    const paidSaleIds = new Set<string>();
-    
-    // Method 1: Filter by explicit sale_ids (if items_paid_for exists)
-    let paidByItemsData = 0;
-    payments.forEach(payment => {
-      if ((payment.status === 'pending' || payment.status === 'approved') && payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
-        payment.items_paid_for.forEach((item: any) => {
-          if (Array.isArray(item.sale_ids)) {
-            item.sale_ids.forEach((sid: any) => {
-              if (sid) {
-                paidSaleIds.add(normalizeId(sid));
-                paidByItemsData++;
-              }
-            });
-          }
-        });
-      }
-    });
-    
-    // Method 2: Fallback - Filter by matching payment amounts (for old payments without items_paid_for)
-    if (paidByItemsData === 0) {
-      // Get approved and pending payment amounts
-      const approvedAmount = payments
-        .filter(p => p.status === 'approved')
-        .reduce((sum, p) => sum + (parseFloat(p.amount as any) || 0), 0);
-      const pendingAmount = payments
-        .filter(p => p.status === 'pending')
-        .reduce((sum, p) => sum + (parseFloat(p.amount as any) || 0), 0);
-      const totalPaidAmount = approvedAmount + pendingAmount;
-      
-      // Sort sales by amount descending and accumulate
-      let accumulatedAmount = 0;
-      const sortedSales = [...sales].sort((a, b) => (parseFloat(b.total_amount as any) || 0) - (parseFloat(a.total_amount as any) || 0));
-      
-      for (const sale of sortedSales) {
-        const saleAmount = parseFloat(sale.total_amount as any) || 0;
-        if (accumulatedAmount + saleAmount <= totalPaidAmount) {
-          paidSaleIds.add(normalizeId(sale.id));
-          accumulatedAmount += saleAmount;
-          if (accumulatedAmount >= totalPaidAmount) break;
-        }
-      }
-    }
-    
-    // Filter out sales that are in pending or approved payments
-    return sales.filter(sale => {
-      const normalizedSaleId = normalizeId(sale.id);
-      return !paidSaleIds.has(normalizedSaleId);
-    });
-  };
+  // Backend already returns only unpaid items in allItems. Trust that list directly.
+  const getAvailableSales = () => sales;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -284,7 +233,8 @@ export default function PaymentsPage() {
     const selectedSalesData = sales
       .filter(s => selectedItems.includes(s.id))
       .map(s => ({
-        sale_id: s.id,
+        sale_ids: [s.id],
+        item_id: s.item_id,
         item_name: s.item_name,
         quantity: s.quantity,
         amount: s.total_amount

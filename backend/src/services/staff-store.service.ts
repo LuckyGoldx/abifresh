@@ -617,8 +617,7 @@ export class StaffStoreService {
         items:item_id(id, name, sku, unit_price)
       `)
       .eq('staff_id', staffId)
-      .order('sale_date', { ascending: false })
-      .limit(limit);
+      .order('sale_date', { ascending: false });
 
     if (error) throw error;
 
@@ -632,46 +631,38 @@ export class StaffStoreService {
       console.error('⚠️ Error fetching payments:', paymentsError);
     }
 
-    // Build sets for different payment states - track SALE IDs, not item IDs
+    // Build sets of sale IDs in approved/pending payments.
+    // Handle both {sale_ids:[...]} array format and legacy {sale_id:'...'} singular format.
     const approvedSaleIds = new Set<string>();
     const pendingSaleIds = new Set<string>();
     const rejectedSaleIds = new Set<string>();
-    const approvedPaymentIds = new Set<string>();
-    const pendingPaymentIds = new Set<string>();
 
-    if (paymentsData) {
-      paymentsData.forEach((payment: any) => {
-        if (payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
-          // items_paid_for contains objects: {item_id, sale_ids: [...], quantity, amount}
-          payment.items_paid_for.forEach((paidItem: any) => {
-            if (Array.isArray(paidItem.sale_ids)) {
-              paidItem.sale_ids.forEach((saleId: string) => {
-                if (payment.status === 'approved') {
-                  approvedSaleIds.add(saleId);
-                  approvedPaymentIds.add(payment.id);
-                } else if (payment.status === 'pending') {
-                  pendingSaleIds.add(saleId);
-                  pendingPaymentIds.add(payment.id);
-                } else if (payment.status === 'rejected') {
-                  rejectedSaleIds.add(saleId);
-                }
-              });
-            }
-          });
-        }
-      });
-    }
-
-    // Calculate approved and pending amounts (only once per payment, not per sale_id)
+    // Count amounts from ALL payments by status — do NOT require items_paid_for to be present.
     let approvedPaymentAmount = 0;
     let pendingPaymentAmount = 0;
-    
+
     if (paymentsData) {
       paymentsData.forEach((payment: any) => {
-        if (approvedPaymentIds.has(payment.id)) {
-          approvedPaymentAmount += payment.amount || 0;
-        } else if (pendingPaymentIds.has(payment.id)) {
-          pendingPaymentAmount += payment.amount || 0;
+        // Amount totals
+        if (payment.status === 'approved') approvedPaymentAmount += payment.amount || 0;
+        else if (payment.status === 'pending') pendingPaymentAmount += payment.amount || 0;
+
+        // Sale-level filtering
+        if (payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
+          payment.items_paid_for.forEach((paidItem: any) => {
+            // Support both {sale_ids:[...]} and legacy {sale_id:'...'}
+            const saleIds: string[] = Array.isArray(paidItem.sale_ids)
+              ? paidItem.sale_ids
+              : paidItem.sale_id
+              ? [paidItem.sale_id]
+              : [];
+            saleIds.forEach((saleId: string) => {
+              if (!saleId) return;
+              if (payment.status === 'approved') approvedSaleIds.add(saleId);
+              else if (payment.status === 'pending') pendingSaleIds.add(saleId);
+              else if (payment.status === 'rejected') rejectedSaleIds.add(saleId);
+            });
+          });
         }
       });
     }
