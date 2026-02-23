@@ -339,8 +339,10 @@ export default function MakeSalePage() {
   }
 
   // Component for cart content (reusable between desktop and mobile)
-  const CartContent = ({ showSettings = true, desktopLayout = false }: { showSettings?: boolean; desktopLayout?: boolean }) => (
-    <>
+  const CartContent = ({ showSettings = true, desktopLayout = false }: { showSettings?: boolean; desktopLayout?: boolean }) => {
+    const Wrapper = desktopLayout ? ({ children }: { children: React.ReactNode }) => <div className="flex flex-col flex-1 min-h-0">{children}</div> : ({ children }: { children: React.ReactNode }) => <>{children}</>;
+    return (
+    <Wrapper>
       <div className={`space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-pink-500 scrollbar-track-gray-200 dark:scrollbar-track-gray-700 ${desktopLayout ? 'flex-1 min-h-0' : 'max-h-96'}`}>
         {cart.map((item) => (
           <div key={item.id} className="border-b dark:border-gray-700 pb-4">
@@ -448,8 +450,9 @@ export default function MakeSalePage() {
       ) : (
         <p className="text-center text-gray-500 dark:text-gray-400 py-8">Cart is empty</p>
       )}
-    </>
-  );
+    </Wrapper>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -555,7 +558,7 @@ export default function MakeSalePage() {
 
         {/* Cart Section - Desktop */}
         <div className="hidden lg:block lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow sticky top-4 p-4 flex flex-col max-h-[calc(100vh-2rem)] border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow sticky top-4 p-4 flex flex-col max-h-[calc(100vh-10rem)] border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">
               Cart ({cart.length} items)
             </h2>
