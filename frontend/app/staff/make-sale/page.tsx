@@ -84,6 +84,7 @@ export default function MakeSalePage() {
   const [globalOutsideJalingo, setGlobalOutsideJalingo] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -216,6 +217,8 @@ export default function MakeSalePage() {
       setToast({ message: 'Cart is empty', type: 'error' });
       return;
     }
+    if (isProcessing) return;
+    setIsProcessing(true);
 
     try {
       const receiptNumber = `RCP-${Date.now()}`;
@@ -278,6 +281,8 @@ export default function MakeSalePage() {
       console.error('Checkout error:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Failed to complete sale';
       setToast({ message: errorMsg, type: 'error' });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -378,9 +383,10 @@ export default function MakeSalePage() {
           <div className="space-y-2">
             <button 
               onClick={() => setShowCartPreview(true)} 
-              className="btn-primary w-full"
+              disabled={isProcessing}
+              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              ✓ Review & Complete Sale
+              {isProcessing ? '⏳ Processing...' : '✓ Review & Complete Sale'}
             </button>
           </div>
         </>
@@ -642,7 +648,8 @@ export default function MakeSalePage() {
               <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setShowCartPreview(false)}
-                  className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition"
+                  disabled={isProcessing}
+                  className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   ← Back to Edit
                 </button>
@@ -651,10 +658,15 @@ export default function MakeSalePage() {
                     setShowCartPreview(false);
                     handleCheckout();
                   }}
-                  disabled={cart.length === 0}
+                  disabled={cart.length === 0 || isProcessing}
                   className="flex-1 px-4 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  ✓ Generate Receipt
+                  {isProcessing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      Generating Receipt...
+                    </span>
+                  ) : '✓ Generate Receipt'}
                 </button>
               </div>
             </div>
