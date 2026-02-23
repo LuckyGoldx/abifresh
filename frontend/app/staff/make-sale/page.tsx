@@ -186,7 +186,7 @@ export default function MakeSalePage() {
   };
 
   // Helper function to get the correct price based on globalOutsideJalingo flag
-  const getCartItemPrice = (item: Item): number => {
+  const getCartItemPrice = (item: CartItem): number => {
     if (globalOutsideJalingo) {
       return (item.price_outside || 0);
     }
@@ -194,7 +194,7 @@ export default function MakeSalePage() {
   };
 
   // Helper to get receipt item price based on the receipt's own outside_jalingo flag
-  const getReceiptItemPrice = (item: Item): number => {
+  const getReceiptItemPrice = (item: CartItem): number => {
     if (lastReceipt?.outside_jalingo) {
       return (item.price_outside || 0);
     }

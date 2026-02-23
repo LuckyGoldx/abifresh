@@ -206,7 +206,7 @@ export default function MakeSalePage() {
   };
 
   // Helper function to get the correct price based on globalOutsideJalingo flag
-  const getCartItemPrice = (item: Item): number => {
+  const getCartItemPrice = (item: CartItem): number => {
     if (globalOutsideJalingo) {
       return (item.price_outside || 0);
     }

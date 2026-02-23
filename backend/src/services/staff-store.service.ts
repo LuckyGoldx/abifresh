@@ -569,22 +569,43 @@ export class StaffStoreService {
     // sold_outside_jalingo = flag so history/dashboard can label each row correctly.
     // NOTE: commission column omitted from INSERT because PostgREST schema cache
     // doesn't see it; commission is calculated on-the-fly from items.commission instead.
-    const { data: sale, error: saleError } = await supabaseAdmin
+    const receiptNumber = `STAFF-${Date.now()}`;
+    const baseInsertData: any = {
+      staff_id: staffId,
+      item_id: itemId,
+      quantity,
+      unit_price: unitPrice,
+      total_amount: totalAmount,
+      payment_method: paymentMethod,
+      receipt_number: receiptNumber,
+    };
+
+    // Try with sold_outside_jalingo column first; if the column doesn't exist
+    // yet (migration not run), fall back to inserting without it.
+    let sale: any = null;
+    let saleError: any = null;
+
+    const fullInsertData = { ...baseInsertData, sold_outside_jalingo: soldOutsideJalingo };
+    const result1 = await supabaseAdmin
       .from('staff_sales')
-      .insert([
-        {
-          staff_id: staffId,
-          item_id: itemId,
-          quantity,
-          unit_price: unitPrice,
-          total_amount: totalAmount,
-          payment_method: paymentMethod,
-          sold_outside_jalingo: soldOutsideJalingo,
-          receipt_number: `STAFF-${Date.now()}`,
-        },
-      ])
+      .insert([fullInsertData])
       .select()
       .single();
+
+    if (result1.error && result1.error.message?.includes('sold_outside_jalingo')) {
+      // Column doesn't exist yet — retry without it
+      console.warn('sold_outside_jalingo column not found — inserting without it. Run the migration to add it.');
+      const result2 = await supabaseAdmin
+        .from('staff_sales')
+        .insert([baseInsertData])
+        .select()
+        .single();
+      sale = result2.data;
+      saleError = result2.error;
+    } else {
+      sale = result1.data;
+      saleError = result1.error;
+    }
 
     if (saleError) throw saleError;
 

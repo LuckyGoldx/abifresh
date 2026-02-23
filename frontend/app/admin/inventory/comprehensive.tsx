@@ -185,7 +185,7 @@ export default function ComprehensiveInventoryPage() {
       if (existingBySku || existingByName) {
         const duplicateItem = existingBySku || existingByName;
         toast.error(
-          `⚠️ "${duplicateItem?.name}" already exists in inventory! Search for it and edit instead.`,  
+          `⚠️ "${duplicateItem.name}" already exists in inventory! Search for it and edit instead.`,
           { duration: 5000 }
         );
         return;
