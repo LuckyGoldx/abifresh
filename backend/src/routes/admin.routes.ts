@@ -300,22 +300,22 @@ router.put('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req: Au
 
     console.log(`Updated user ${id}:`, updated);
 
-    // Update password in Supabase Auth if provided (non-blocking - don't fail if user not in Auth)
+    // Update password in Supabase Auth if provided
     if (password) {
       console.log(`Updating password for user ${id}`);
-      try {
-        await supabaseAdmin.auth.admin.updateUserById(id, {
-          password,
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+        password,
+      });
+      if (authError) {
+        console.error(`❌ Password update failed for ${id}:`, authError.message);
+        return res.status(400).json({ 
+          error: `Profile updated but password change failed: ${authError.message}` 
         });
-        console.log(`✅ Password updated for user ${id}`);
-      } catch (authError: any) {
-        // Don't fail the whole request if auth password update fails
-        // This can happen if user wasn't created in Supabase Auth
-        console.warn(`⚠️ Could not update Auth password for ${id} (user may not exist in Auth):`, authError.message);
       }
+      console.log(`✅ Password updated successfully for user ${id}`);
     }
 
-    res.json({ message: 'Staff updated successfully' });
+    res.json({ message: password ? 'Staff updated and password changed successfully' : 'Staff updated successfully' });
   } catch (error: any) {
     console.error(`PUT /staff/:id error:`, error);
     res.status(400).json({ error: error.message });
@@ -392,6 +392,7 @@ router.put('/staff/:id/activate', authMiddleware, roleMiddleware('admin'), async
 
 /**
  * Delete staff member
+ * Cleans up all related records across tables before deleting the user
  */
 router.delete('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
@@ -411,7 +412,92 @@ router.delete('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req:
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Delete from users table (Supabase will handle auth user cleanup if configured)
+    console.log(`🧹 Cleaning up related records for staff: ${user.full_name} (${id})...`);
+
+    // Helper: safely delete rows referencing this user (Supabase returns {error}, doesn't throw)
+    const safeDelete = async (table: string, column: string) => {
+      const { error } = await supabaseAdmin.from(table).delete().eq(column, id);
+      if (error) console.warn(`⚠️ Cleanup ${table}.${column}: ${error.message}`);
+    };
+
+    // Helper: safely delete rows matching OR conditions
+    const safeDeleteOr = async (table: string, conditions: string) => {
+      const { error } = await supabaseAdmin.from(table).delete().or(conditions);
+      if (error) console.warn(`⚠️ Cleanup ${table}: ${error.message}`);
+    };
+
+    // Helper: safely set column to null for rows referencing this user
+    const safeNullify = async (table: string, column: string) => {
+      const { error } = await supabaseAdmin.from(table).update({ [column]: null }).eq(column, id);
+      if (error) console.warn(`⚠️ Nullify ${table}.${column}: ${error.message}`);
+    };
+
+    // --- Step 1: Clean up system/operational tables ---
+    await safeDelete('notifications', 'user_id');
+    await safeDelete('activity_logs', 'user_id');
+
+    // --- Step 2: Clean up financial/reporting tables ---
+    await safeDelete('daily_sales_summary', 'salesperson_id');
+
+    // --- Step 3: Clean up receipts (receipt_items depends on receipts) ---
+    const { data: userReceipts } = await supabaseAdmin
+      .from('receipts')
+      .select('id')
+      .eq('staff_id', id);
+    if (userReceipts && userReceipts.length > 0) {
+      const receiptIds = userReceipts.map((r: any) => r.id);
+      await supabaseAdmin.from('receipt_items').delete().in('receipt_id', receiptIds);
+    }
+    await safeDelete('receipts', 'staff_id');
+
+    // --- Step 4: Clean up commissions ---
+    await safeDelete('staff_commissions', 'staff_id');
+    await safeNullify('staff_commissions', 'created_by');
+
+    // --- Step 5: Clean up payments (nullify admin refs first, then delete staff's own) ---
+    await safeNullify('staff_payments', 'approved_by');
+    await safeNullify('staff_payments', 'paid_by');
+    await safeDelete('staff_payments', 'staff_id');
+
+    // --- Step 6: Clean up expenses ---
+    await safeNullify('staff_expenses', 'approved_by');
+    await safeDelete('staff_expenses', 'staff_id');
+
+    // --- Step 7: Clean up posted_items (posted_items_mapping depends on posted_items) ---
+    const { data: userPostedItems } = await supabaseAdmin
+      .from('posted_items')
+      .select('id')
+      .or(`posted_by_id.eq.${id},posted_to_id.eq.${id},staff_id.eq.${id}`);
+    if (userPostedItems && userPostedItems.length > 0) {
+      const postedItemIds = userPostedItems.map((p: any) => p.id);
+      await supabaseAdmin.from('posted_items_mapping').delete().in('posted_item_id', postedItemIds);
+    }
+    await safeDeleteOr('posted_items', `posted_by_id.eq.${id},posted_to_id.eq.${id},staff_id.eq.${id}`);
+
+    // --- Step 8: Clean up staff_store and staff_sales ---
+    await safeNullify('staff_store', 'posted_from_id');
+    await safeDelete('staff_store', 'staff_id');
+    await safeNullify('staff_sales', 'buyer_id');
+    await safeDelete('staff_sales', 'staff_id');
+
+    // --- Step 9: Clean up sales records ---
+    await safeDelete('sales', 'salesperson_id');
+
+    // --- Step 10: Nullify references in shared tables ---
+    await safeNullify('items', 'created_by');
+
+    // --- Step 11: Clean up misc tables ---
+    await safeDelete('inventory_transfers', 'transferred_by');
+    await safeNullify('damage_loss_reports', 'investigated_by');
+    await safeDelete('damage_loss_reports', 'reported_by');
+    await safeDeleteOr('returned_items', `requester_staff_id.eq.${id},receiver_staff_id.eq.${id}`);
+    await safeDelete('restock_orders', 'created_by');
+    await safeNullify('system_settings', 'updated_by');
+    await safeNullify('backup_history', 'triggered_by');
+
+    console.log(`✅ Related records cleaned up for ${id}`);
+
+    // --- Step 12: Delete the user record ---
     const { error: deleteError } = await supabaseAdmin
       .from('users')
       .delete()
@@ -419,16 +505,15 @@ router.delete('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req:
 
     if (deleteError) throw deleteError;
 
-    // Also delete from Supabase Auth if possible
-    try {
-      await supabaseAdmin.auth.admin.deleteUser(id);
-      console.log(`✅ Deleted auth user for ${id}`);
-    } catch (authDeleteError: any) {
+    // --- Step 13: Delete from Supabase Auth ---
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authDeleteError) {
       console.warn(`⚠️ Warning deleting auth user: ${authDeleteError.message}`);
-      // Continue anyway - user profile is already deleted
+    } else {
+      console.log(`✅ Deleted auth user for ${id}`);
     }
 
-    console.log(`✅ Staff deleted successfully: ${user.email}`);
+    console.log(`✅ Staff deleted successfully: ${user.full_name} (${user.email})`);
     res.json({ message: 'Staff deleted successfully' });
   } catch (error: any) {
     console.error(`Delete error:`, error);
