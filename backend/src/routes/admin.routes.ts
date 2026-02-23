@@ -302,17 +302,58 @@ router.put('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req: Au
 
     // Update password in Supabase Auth if provided
     if (password) {
-      console.log(`Updating password for user ${id}`);
-      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
-        password,
-      });
-      if (authError) {
-        console.error(`❌ Password update failed for ${id}:`, authError.message);
-        return res.status(400).json({ 
-          error: `Profile updated but password change failed: ${authError.message}` 
-        });
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
       }
-      console.log(`✅ Password updated successfully for user ${id}`);
+
+      console.log(`🔐 Updating password for user ${id} (email: ${existingUser.email})`);
+      let passwordUpdated = false;
+
+      // Step 1: Try to find the auth user by email (most reliable method)
+      let authUserId: string | null = null;
+      try {
+        const { data: { users: authUsers }, error: listError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+        if (!listError && authUsers) {
+          const found = authUsers.find((u: any) => u.email === existingUser.email);
+          if (found) {
+            authUserId = found.id;
+            console.log(`✅ Found auth user by email: ${authUserId}`);
+          }
+        }
+      } catch (err: any) {
+        console.warn(`⚠️ Could not list auth users: ${err.message}`);
+      }
+
+      // Step 2: If found by email, update their password
+      if (authUserId) {
+        const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(authUserId, { password });
+        if (updateErr) {
+          console.error(`❌ Password update failed for auth user ${authUserId}: ${updateErr.message}`);
+          return res.status(400).json({
+            error: `Profile updated but password change failed: ${updateErr.message}`
+          });
+        }
+        passwordUpdated = true;
+        console.log(`✅ Password updated for auth user ${authUserId}`);
+      }
+
+      // Step 3: If no auth user found by email, create one
+      if (!passwordUpdated) {
+        console.log(`⚠️ No auth user found for email ${existingUser.email}. Creating auth user...`);
+        const { data: newAuth, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+          email: existingUser.email,
+          password,
+          email_confirm: true,
+        });
+        if (createErr) {
+          console.error(`❌ Failed to create auth user: ${createErr.message}`);
+          return res.status(400).json({
+            error: `Profile updated but password change failed: ${createErr.message}`
+          });
+        }
+        passwordUpdated = true;
+        console.log(`✅ Created auth user ${newAuth.user.id} for ${existingUser.email}`);
+      }
     }
 
     res.json({ message: password ? 'Staff updated and password changed successfully' : 'Staff updated successfully' });
