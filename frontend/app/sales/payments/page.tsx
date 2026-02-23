@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, User, Phone, X, Eye, Maximize2, Download } from 'lucide-react';
@@ -142,6 +142,15 @@ export default function SalesPaymentsPage() {
     );
   };
 
+  const toggleSelectAll = () => {
+    const allSelected = soldItems.length > 0 && soldItems.every(item => selectedItems.includes(item.id));
+    if (allSelected) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(soldItems.map(item => item.id));
+    }
+  };
+
   // Normalize item ID for consistent comparison
   const normalizeId = (id: any): string => {
     if (!id) return '';
@@ -225,26 +234,34 @@ export default function SalesPaymentsPage() {
     return unpaidSales;
   };
 
-  // Group unpaid sales by item to show unique items with aggregated totals.
-  // Backend already returns only unpaid items in allItems — group sales directly.
+  // Group unpaid sales by item + actual unit price.
+  // Items of the same product sold at DIFFERENT prices (inside Jalingo vs outside Jalingo)
+  // stay as separate rows so the displayed amount is always the actual sold price.
   const getSoldItemsGrouped = () => {
     const itemMap = new Map<string, any>();
     
     sales.forEach((sale) => {
-      if (itemMap.has(sale.item_id)) {
-        const existing = itemMap.get(sale.item_id);
+      // Derive the actual per-unit price from what is stored on the sale record.
+      // Never use items.unit_price (that is the purchase/base price, not the sold price).
+      const effectiveUnitPrice = sale.unit_price > 0
+        ? sale.unit_price
+        : (sale.total_amount / (sale.quantity || 1));
+      // Key = item_id + actual unit price → preserves inside/outside Jalingo differences
+      const key = `${sale.item_id}_${effectiveUnitPrice}`;
+      if (itemMap.has(key)) {
+        const existing = itemMap.get(key);
         existing.quantity += sale.quantity;
         existing.total_amount += sale.total_amount;
         existing.sale_ids.push(sale.id);
       } else {
-        itemMap.set(sale.item_id, {
-          id: `item_${sale.item_id}`, // Unique ID for grouping
+        itemMap.set(key, {
+          id: `item_${key}`,       // Compound key used by frontend checkbox selection
           item_id: sale.item_id,
           item_name: sale.item_name,
           quantity: sale.quantity,
-          unit_price: sale.price_jalingo,
+          unit_price: effectiveUnitPrice,
           total_amount: sale.total_amount,
-          sale_ids: [sale.id], // Track individual sale IDs
+          sale_ids: [sale.id],     // Track individual sale IDs for payment payload
         });
       }
     });
@@ -598,7 +615,16 @@ export default function SalesPaymentsPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                       <tr>
-                        <th className="text-left py-2 px-3">Select</th>
+                        <th className="py-2 px-3">
+                          <input
+                            type="checkbox"
+                            checked={soldItems.length > 0 && soldItems.every(item => selectedItems.includes(item.id))}
+                            ref={(el) => { if (el) el.indeterminate = soldItems.some(item => selectedItems.includes(item.id)) && !soldItems.every(item => selectedItems.includes(item.id)); }}
+                            onChange={toggleSelectAll}
+                            className="w-4 h-4"
+                            title="Select / deselect all"
+                          />
+                        </th>
                         <th className="text-left py-2 px-3">Item</th>
                         <th className="text-left py-2 px-3">Qty</th>
                         <th className="text-left py-2 px-3">Amount</th>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, User, Phone, X, Eye, Maximize2, Download } from 'lucide-react';
@@ -135,6 +135,16 @@ export default function PaymentsPage() {
         ? prev.filter(id => id !== itemId)
         : [...prev, itemId]
     );
+  };
+
+  const toggleSelectAll = () => {
+    const available = getAvailableSales();
+    const allSelected = available.length > 0 && available.every(s => selectedItems.includes(s.id));
+    if (allSelected) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(available.map(s => s.id));
+    }
   };
 
   const calculateSelectedTotal = () => {
@@ -484,7 +494,16 @@ export default function PaymentsPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                       <tr>
-                        <th className="text-left py-2 px-3">Select</th>
+                        <th className="py-2 px-3">
+                          <input
+                            type="checkbox"
+                            checked={getAvailableSales().length > 0 && getAvailableSales().every(s => selectedItems.includes(s.id))}
+                            ref={(el) => { if (el) el.indeterminate = getAvailableSales().some(s => selectedItems.includes(s.id)) && !getAvailableSales().every(s => selectedItems.includes(s.id)); }}
+                            onChange={toggleSelectAll}
+                            className="w-4 h-4"
+                            title="Select / deselect all"
+                          />
+                        </th>
                         <th className="text-left py-2 px-3">Item</th>
                         <th className="text-left py-2 px-3">Qty</th>
                         <th className="text-left py-2 px-3">Amount</th>

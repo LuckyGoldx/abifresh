@@ -673,13 +673,15 @@ export class StaffStoreService {
     }
 
     // Map to expected format
+    // IMPORTANT: always use sale.unit_price (actual sold price stored in staff_sales),
+    // never fall back to items.unit_price (that is the purchase/base price, not the sold price).
     const allSales = (sales || []).map((sale: any) => ({
       id: sale.id,
       item_id: sale.item_id,
       item_name: sale.items?.name || 'Unknown',
       quantity: sale.quantity,
-      unit_price: sale.unit_price || sale.items?.unit_price || 0,
-      total_amount: sale.total_amount || (sale.unit_price * sale.quantity) || 0,
+      unit_price: parseFloat(sale.unit_price) || 0,
+      total_amount: parseFloat(sale.total_amount) || (parseFloat(sale.unit_price) * sale.quantity) || 0,
       sale_date: sale.sale_date,
       isApproved: approvedSaleIds.has(sale.id),
       isPending: pendingSaleIds.has(sale.id),
@@ -690,11 +692,13 @@ export class StaffStoreService {
     // Display items = items that are NOT approved and NOT pending (only truly unpaid)
     const unpaidSales = allSales.filter((item: any) => !item.isApproved && !item.isPending);
 
-    // Group by item_id so the same product sold in multiple transactions
-    // appears as ONE line item in the payment selection list.
+    // Group unpaid sales: same item sold at the SAME unit price gets combined into one row.
+    // Items sold at different prices (e.g. inside-Jalingo vs outside-Jalingo + logistics)
+    // remain as SEPARATE rows so the displayed amount is always the actual sold price.
     const groupedMap = new Map<string, any>();
     unpaidSales.forEach((item: any) => {
-      const key = item.item_id;
+      // Key = item_id + actual unit price → preserves price differences
+      const key = `${item.item_id}_${item.unit_price}`;
       if (groupedMap.has(key)) {
         const existing = groupedMap.get(key);
         existing.quantity += item.quantity;
@@ -702,14 +706,14 @@ export class StaffStoreService {
         existing.sale_ids.push(item.id);
       } else {
         groupedMap.set(key, {
-          id: item.item_id,        // Use item_id as the unique key for frontend checkbox selection
+          id: key,                 // Compound key used by frontend checkbox selection
           item_id: item.item_id,
           item_name: item.item_name,
           quantity: item.quantity,
           unit_price: item.unit_price,
           total_amount: item.total_amount,
           sale_date: item.sale_date,
-          sale_ids: [item.id],     // All staff_sales UUIDs grouped under this item
+          sale_ids: [item.id],     // All staff_sales UUIDs grouped under this row
         });
       }
     });
