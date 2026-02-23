@@ -141,7 +141,7 @@ router.get('/posted-items', authMiddleware, async (req: AuthRequest, res: Respon
  */
 router.get('/posted-items/pending-count', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { data, error } = await supabaseAdmin
+    const { count, error } = await supabaseAdmin
       .from('posted_items')
       .select('id', { count: 'exact', head: true })
       .eq('staff_id', req.user!.id)
@@ -149,7 +149,7 @@ router.get('/posted-items/pending-count', authMiddleware, async (req: AuthReques
 
     if (error) throw error;
 
-    res.json({ count: data?.length || 0 });
+    res.json({ count: count || 0 });
   } catch (error: any) {
     console.error('Error fetching pending posted items count:', error);
     res.status(400).json({ error: error.message });
