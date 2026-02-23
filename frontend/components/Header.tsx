@@ -17,7 +17,7 @@ export default function Header() {
   return (
     <>
       <header className="bg-white dark:bg-slate-800 shadow">
-        <div className="pl-14 md:pl-4 pr-4 md:px-8 py-4 flex items-center justify-between">
+        <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-pink-600">ABIFRESH & KIDDIES VENTURES</h2>
           </div>
