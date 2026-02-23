@@ -744,6 +744,7 @@ export class StaffStoreService {
           total_amount: item.total_amount,
           sale_date: item.sale_date,
           sale_ids: [item.id],     // All staff_sales UUIDs grouped under this row
+          sold_outside_jalingo: item.sold_outside_jalingo || false,
         });
       }
     });

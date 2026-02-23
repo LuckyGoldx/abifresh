@@ -32,6 +32,7 @@ interface Sale {
   total_amount: number;
   sale_date: string;
   sale_ids?: string[]; // All staff_sales UUIDs when multiple transactions are grouped
+  sold_outside_jalingo?: boolean;
 }
 
 export default function PaymentsPage() {
@@ -102,6 +103,7 @@ export default function PaymentsPage() {
           total_amount: parseFloat(sale.total_amount) || 0,
           sale_date: sale.sale_date,
           sale_ids: Array.isArray(sale.sale_ids) ? sale.sale_ids : undefined,
+          sold_outside_jalingo: sale.sold_outside_jalingo || false,
         }));
         stats = salesRes.data.stats || {};
       } else if (Array.isArray(salesRes.data)) {
@@ -115,6 +117,7 @@ export default function PaymentsPage() {
           total_amount: parseFloat(sale.total_amount) || 0,
           sale_date: sale.sale_date,
           sale_ids: Array.isArray(sale.sale_ids) ? sale.sale_ids : undefined,
+          sold_outside_jalingo: sale.sold_outside_jalingo || false,
         }));
       }
       
@@ -520,7 +523,14 @@ export default function PaymentsPage() {
                               className="w-4 h-4"
                             />
                           </td>
-                          <td className="py-2 px-3">{sale.item_name}</td>
+                          <td className="py-2 px-3">
+                            {sale.item_name}
+                            {sale.sold_outside_jalingo && (
+                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
+                                Outside Jalingo
+                              </span>
+                            )}
+                          </td>
                           <td className="py-2 px-3">{sale.quantity}</td>
                           <td className="py-2 px-3 font-semibold">₦{sale.total_amount.toLocaleString()}</td>
                         </tr>
