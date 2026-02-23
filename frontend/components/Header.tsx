@@ -17,12 +17,9 @@ export default function Header() {
   return (
     <>
       <header className="bg-white dark:bg-slate-800 shadow">
-        <div className="px-4 md:px-8 py-4 flex items-center justify-between">
+        <div className="pl-14 md:pl-4 pr-4 md:px-8 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-pink-600">ABIFRESH & KIDDIES VENTURES</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {user?.role ? user.role.replace(/_/g, ' ').toUpperCase() : 'User'}
-            </p>
           </div>
 
           <div className="flex items-center space-x-3 sm:space-x-4">
