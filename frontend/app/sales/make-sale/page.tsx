@@ -338,11 +338,9 @@ export default function MakeSalePage() {
     return <div className="text-center py-12 text-gray-600 dark:text-gray-400">Loading...</div>;
   }
 
-  // Component for cart content (reusable between desktop and mobile)
-  const CartContent = ({ showSettings = true, desktopLayout = false }: { showSettings?: boolean; desktopLayout?: boolean }) => {
-    const Wrapper = desktopLayout ? ({ children }: { children: React.ReactNode }) => <div className="flex flex-col flex-1 min-h-0">{children}</div> : ({ children }: { children: React.ReactNode }) => <>{children}</>;
-    return (
-    <Wrapper>
+  // Render function for cart content (called as function, not as <Component/>, to preserve scroll position)
+  const renderCartContent = (showSettings: boolean, desktopLayout: boolean) => (
+    <>
       <div className={`space-y-4 overflow-y-auto scrollbar-thin scrollbar-thumb-pink-500 scrollbar-track-gray-200 dark:scrollbar-track-gray-700 ${desktopLayout ? 'flex-1 min-h-0' : 'max-h-96'}`}>
         {cart.map((item) => (
           <div key={item.id} className="border-b dark:border-gray-700 pb-4">
@@ -388,25 +386,20 @@ export default function MakeSalePage() {
         ))}
       </div>
 
-      {/* Global Payment Method and Location Settings */}
+      {/* Compact Payment Method and Location Settings */}
       {showSettings && cart.length > 0 && (
-        <div className={`bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6 space-y-4 border border-gray-200 dark:border-gray-600 ${desktopLayout ? 'flex-shrink-0' : ''}`}>
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
-              Payment Method
-            </label>
-            <select
-              value={globalPaymentMethod}
-              onChange={(e) => setGlobalPaymentMethod(e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-600 dark:text-white focus:ring-2 focus:ring-pink-500"
-            >
-              <option value="cash">💰 Cash</option>
-              <option value="pos">🏦 POS</option>
-              <option value="transfer">📱 Transfer</option>
-            </select>
-          </div>
+        <div className={`flex items-center gap-3 py-2 mt-2 border-t dark:border-gray-700 ${desktopLayout ? 'flex-shrink-0' : ''}`}>
+          <select
+            value={globalPaymentMethod}
+            onChange={(e) => setGlobalPaymentMethod(e.target.value as any)}
+            className="flex-1 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-600 dark:text-white focus:ring-2 focus:ring-pink-500"
+          >
+            <option value="cash">💰 Cash</option>
+            <option value="pos">🏦 POS</option>
+            <option value="transfer">📱 Transfer</option>
+          </select>
 
-          <label className={`flex items-center gap-2 ${isCommissionStaff ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+          <label className={`flex items-center gap-1.5 whitespace-nowrap ${isCommissionStaff ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
             <input
               type="checkbox"
               checked={globalOutsideJalingo}
@@ -414,7 +407,7 @@ export default function MakeSalePage() {
               disabled={!isCommissionStaff}
               className={`rounded w-4 h-4 ${isCommissionStaff ? 'cursor-pointer' : 'cursor-not-allowed'}`}
             />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
               Outside Jalingo
             </span>
           </label>
@@ -423,7 +416,7 @@ export default function MakeSalePage() {
 
       {cart.length > 0 ? (
         <div className={desktopLayout ? 'flex-shrink-0' : ''}>
-          <div className="border-t dark:border-gray-700 pt-4 mb-4 space-y-3">
+          <div className="border-t dark:border-gray-700 pt-3 mb-3">
             <div className="flex justify-between text-xl font-bold text-gray-900 dark:text-white">
               <span>Total:</span>
               <span className="text-pink-600">₦{calculateCartTotal().toLocaleString()}</span>
@@ -450,9 +443,8 @@ export default function MakeSalePage() {
       ) : (
         <p className="text-center text-gray-500 dark:text-gray-400 py-8">Cart is empty</p>
       )}
-    </Wrapper>
-    );
-  };
+    </>
+  );
 
   return (
     <div className="space-y-6">
@@ -562,7 +554,7 @@ export default function MakeSalePage() {
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex-shrink-0">
               Cart ({cart.length} items)
             </h2>
-            <CartContent showSettings={true} desktopLayout />
+            {renderCartContent(true, true)}
           </div>
         </div>
       </div>
@@ -596,7 +588,7 @@ export default function MakeSalePage() {
               </button>
             </div>
             <div className="p-4">
-              <CartContent showSettings={true} />
+              {renderCartContent(true, false)}
             </div>
           </div>
         </div>
