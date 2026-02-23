@@ -99,6 +99,7 @@ export default function MakeSalePage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -196,6 +197,32 @@ export default function MakeSalePage() {
         cartItem.id === id ? { ...cartItem, sale_quantity: qty } : cartItem
       ));
     }
+    // Clear the raw input so it shows the committed value
+    setQuantityInputs(prev => { const next = { ...prev }; delete next[id]; return next; });
+  };
+
+  // Handle raw text input for quantity (allows clearing the box)
+  const handleQuantityInputChange = (id: string, rawValue: string) => {
+    setQuantityInputs(prev => ({ ...prev, [id]: rawValue }));
+  };
+
+  // Commit quantity on blur: validate and apply
+  const handleQuantityBlur = (id: string, maxQty: number) => {
+    const raw = quantityInputs[id];
+    if (raw === undefined) return; // no pending edit
+    const parsed = parseInt(raw);
+    if (!parsed || parsed < 1) {
+      // Reset to 1 if empty or 0
+      setCart(cart.map(cartItem =>
+        cartItem.id === id ? { ...cartItem, sale_quantity: 1 } : cartItem
+      ));
+    } else {
+      const clamped = Math.min(parsed, maxQty);
+      setCart(cart.map(cartItem =>
+        cartItem.id === id ? { ...cartItem, sale_quantity: clamped } : cartItem
+      ));
+    }
+    setQuantityInputs(prev => { const next = { ...prev }; delete next[id]; return next; });
   };
 
   const removeFromCart = (id: string) => {
@@ -235,6 +262,12 @@ export default function MakeSalePage() {
   const handleCheckout = async () => {
     if (cart.length === 0) {
       setToast({ message: 'Cart is empty', type: 'error' });
+      return;
+    }
+    // Check for any invalid quantities (empty inputs or zero)
+    const invalidItem = cart.find(item => !item.sale_quantity || item.sale_quantity < 1);
+    if (invalidItem || Object.keys(quantityInputs).length > 0) {
+      setToast({ message: 'Please enter valid quantities for all items', type: 'error' });
       return;
     }
     if (isProcessing) return;
@@ -306,6 +339,11 @@ export default function MakeSalePage() {
       setToast({ message: 'Please select a staff member and add items', type: 'error' });
       return;
     }
+    const invalidPost = cart.find(item => !item.sale_quantity || item.sale_quantity < 1);
+    if (invalidPost || Object.keys(quantityInputs).length > 0) {
+      setToast({ message: 'Please enter valid quantities for all items', type: 'error' });
+      return;
+    }
 
     try {
       const postData = {
@@ -364,8 +402,9 @@ export default function MakeSalePage() {
               </button>
               <input
                 type="number"
-                value={item.sale_quantity}
-                onChange={(e) => updateQuantity(item.id, e.target.value)}
+                value={quantityInputs[item.id] ?? item.sale_quantity}
+                onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+                onBlur={() => handleQuantityBlur(item.id, item.active_store_quantity)}
                 min="1"
                 max={item.active_store_quantity}
                 className="flex-1 text-center px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
@@ -635,8 +674,9 @@ export default function MakeSalePage() {
                         </button>
                         <input
                           type="number"
-                          value={item.sale_quantity}
-                          onChange={(e) => updateQuantity(item.id, e.target.value)}
+                          value={quantityInputs[item.id] ?? item.sale_quantity}
+                          onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+                          onBlur={() => handleQuantityBlur(item.id, item.active_store_quantity)}
                           min="1"
                           max={item.active_store_quantity}
                           className="w-16 text-center px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-600 dark:text-white"

@@ -89,6 +89,7 @@ export default function PostItemsPage() {
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -197,11 +198,41 @@ export default function PostItemsPage() {
     } else {
       setCart(cart.map(c => c.id === itemId ? { ...c, post_quantity: quantity } : c));
     }
+    // Clear the raw input so it shows the committed value
+    setQuantityInputs(prev => { const next = { ...prev }; delete next[itemId]; return next; });
+  };
+
+  // Handle raw text input for quantity (allows clearing the box)
+  const handleQuantityInputChange = (id: string, rawValue: string) => {
+    setQuantityInputs(prev => ({ ...prev, [id]: rawValue }));
+  };
+
+  // Commit quantity on blur: validate and apply
+  const handleQuantityBlur = (id: string, maxQty: number) => {
+    const raw = quantityInputs[id];
+    if (raw === undefined) return;
+    const parsed = parseInt(raw);
+    if (!parsed || parsed < 1) {
+      setCart(cart.map(c =>
+        c.id === id ? { ...c, post_quantity: 1 } : c
+      ));
+    } else {
+      const clamped = Math.min(parsed, maxQty);
+      setCart(cart.map(c =>
+        c.id === id ? { ...c, post_quantity: clamped } : c
+      ));
+    }
+    setQuantityInputs(prev => { const next = { ...prev }; delete next[id]; return next; });
   };
 
   const handlePostItems = async () => {
     if (!selectedStaff || cart.length === 0) {
       setToast({ message: 'Please select a staff member and add items', type: 'error' });
+      return;
+    }
+    const invalidItem = cart.find(item => !item.post_quantity || item.post_quantity < 1);
+    if (invalidItem || Object.keys(quantityInputs).length > 0) {
+      setToast({ message: 'Please enter valid quantities for all items', type: 'error' });
       return;
     }
 
@@ -408,8 +439,9 @@ export default function PostItemsPage() {
                         </button>
                         <input
                           type="number"
-                          value={item.post_quantity}
-                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                          value={quantityInputs[item.id] ?? item.post_quantity}
+                          onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+                          onBlur={() => handleQuantityBlur(item.id, item.active_store_quantity)}
                           className="w-8 text-center bg-transparent text-gray-900 dark:text-white font-semibold"
                           min="1"
                           max={item.active_store_quantity}
@@ -547,8 +579,9 @@ export default function PostItemsPage() {
                       </button>
                       <input
                         type="number"
-                        value={item.post_quantity}
-                        onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                        value={quantityInputs[item.id] ?? item.post_quantity}
+                        onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
+                        onBlur={() => handleQuantityBlur(item.id, item.active_store_quantity)}
                         className="w-12 text-center bg-transparent text-gray-900 dark:text-white font-semibold text-lg"
                         min="1"
                         max={item.active_store_quantity}
