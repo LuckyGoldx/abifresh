@@ -376,6 +376,14 @@ export default function StaffReceiptsPage() {
                     </p>
                   </div>
                 </div>
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">
+                    Staff
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {user?.full_name || 'Staff'}
+                  </p>
+                </div>
                 {selectedReceipt.sold_outside_jalingo && (
                   <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">

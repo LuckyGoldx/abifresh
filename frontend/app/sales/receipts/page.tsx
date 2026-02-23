@@ -113,7 +113,7 @@ export default function ReceiptsPage() {
       const receiptData = {
         receipt_number: receipt.receipt_number,
         timestamp: receipt.created_at,
-        staff_name: 'Staff',
+        staff_name: user?.full_name || 'Staff',
         payment_method: receipt.payment_method,
         items,
         total_amount: receipt.total_amount,
@@ -145,7 +145,7 @@ export default function ReceiptsPage() {
       const receiptData = {
         receipt_number: receipt.receipt_number,
         timestamp: receipt.created_at,
-        staff_name: 'Staff',
+        staff_name: user?.full_name || 'Staff',
         payment_method: receipt.payment_method,
         items,
         total_amount: receipt.total_amount,
@@ -363,6 +363,14 @@ export default function ReceiptsPage() {
                       {formatReceiptTime(selectedReceipt.created_at)}
                     </p>
                   </div>
+                </div>
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">
+                    Staff
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    {user?.full_name || 'Staff'}
+                  </p>
                 </div>
               </div>
 
