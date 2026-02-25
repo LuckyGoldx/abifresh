@@ -204,7 +204,6 @@ export default function SalesDashboard() {
       
       const allItems = itemsRes.data || [];
       const availableCount = allItems.filter((item: any) => item.active_store_quantity > 0).length;
-      const unavailableCount = allItems.filter((item: any) => item.active_store_quantity === 0).length;
       
       setStats({
         today_items_sold: todayStats.items,
@@ -213,8 +212,6 @@ export default function SalesDashboard() {
         all_time_amount_sold: 0,
         available_items_count: availableCount,
       });
-      
-      setUnavailableItems(allItems.filter((item: any) => item.active_store_quantity === 0));
     } catch (error) {
       console.error('Failed to fetch stats:', error);
     }
