@@ -2,23 +2,40 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/store/auth';
-import { User, Lock, Eye, EyeOff, Database, CheckCircle, XCircle } from 'lucide-react';
+import { useAuthStore, useThemeStore } from '@/store/auth';
+import { User, Lock, Eye, EyeOff, X, Sun, Moon } from 'lucide-react';
 import api from '@/lib/api';
+import styles from './login.module.css';
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const setUser = useAuthStore((state) => state.setUser);
   const setToken = useAuthStore((state) => state.setToken);
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isDarkMode = useThemeStore((state) => state.theme === 'dark');
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [supabaseStatus, setSupabaseStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [supabaseStatus, setSupabaseStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
+
+  // Check Supabase connection
+  useEffect(() => {
+    const checkSupabaseConnection = async () => {
+      try {
+        const response = await api.get('/health');
+        setSupabaseStatus('connected');
+      } catch (error) {
+        setSupabaseStatus('disconnected');
+      }
+    };
+    checkSupabaseConnection();
+  }, []);
+
 
   // Check for deactivated account redirect
   useEffect(() => {
@@ -27,46 +44,20 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  // Check Supabase connection on mount
-  useEffect(() => {
-    checkSupabaseConnection();
-  }, []);
-
-  const checkSupabaseConnection = async () => {
-    try {
-      const response = await api.get('/health');
-      if (response.data.database?.supabase === 'CONNECTED') {
-        setSupabaseStatus('connected');
-      } else {
-        setSupabaseStatus('disconnected');
-      }
-    } catch (error) {
-      setSupabaseStatus('disconnected');
-    }
-  };
-
-  // Removed auto-redirect useEffect - handleLogin already does role-based redirect
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
     try {
-      console.log('Login attempt:', username);
-      
-      // Call backend login endpoint
       const response = await api.post('/api/auth/login', { username, password });
       const { user, token } = response.data;
-
-      console.log('Login successful:', { user, role: user?.role });
 
       setUser(user);
       setToken(token);
 
       // Redirect based on role
       const role = user?.role || 'admin';
-      console.log('Redirecting with role:', role);
       
       switch (role) {
         case 'admin':
@@ -83,136 +74,176 @@ export default function LoginPage() {
           router.push('/staff/dashboard');
           break;
         default:
-          console.warn('Unknown role, redirecting to admin dashboard:', role);
           router.push('/admin/dashboard');
       }
     } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.response?.data?.error || 'Login failed. Please try again.');
+      setError(err.response?.data?.error || 'Invalid credentials. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="w-full max-w-md">
-        {/* Supabase Connection Status */}
-        <div className={`mb-4 flex items-center justify-center gap-2 px-4 py-2 rounded-lg ${
-          supabaseStatus === 'connected' 
-            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' 
-            : supabaseStatus === 'disconnected'
-            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-            : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-        }`}>
-          <Database className="w-4 h-4" />
-          <span className="text-sm font-medium">
-            {supabaseStatus === 'connected' && (
-              <>
-                <CheckCircle className="w-4 h-4 inline mr-1" />
-                Connected to Supabase Database
-              </>
-            )}
-            {supabaseStatus === 'disconnected' && (
-              <>
-                <XCircle className="w-4 h-4 inline mr-1" />
-                Database Connection Failed
-              </>
-            )}
-            {supabaseStatus === 'checking' && 'Checking Database Connection...'}
-          </span>
-        </div>
-
-        {/* Logo Section */}
-        <div className="text-center mb-8">
-          <div className="inline-block bg-pink-500 text-white rounded-full p-4 mb-4">
-            <svg
-              className="w-12 h-12"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
-            ABIFRESH
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">& KIDDIES VENTURES</p>
-        </div>
-
-        {/* Login Card */}
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 text-center">
-            Login to Your Account
-          </h2>
-
-          {error && (
-            <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            {/* Username */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Username
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="your username"
-                  className="input pl-12 w-full"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="input pl-12 pr-12 w-full"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
-            >
-              {isLoading ? 'Logging in...' : 'Sign In'}
-            </button>
-          </form>
-        </div>
-
-        {/* Footer */}
-        <p className="text-center text-gray-600 dark:text-gray-400 text-sm mt-6">
-          © 2026 ABIFRESH & KIDDIES VENTURES. All rights reserved.
-        </p>
+    <div className={styles.body}>
+      <div className={styles.shapesBg}>
+        <div className={styles.shape1}></div>
+        <div className={styles.shape2}></div>
+        <div className={styles.shape3}></div>
       </div>
+
+      {/* Top-Left Logo */}
+      <div className={styles.topLogo}>
+        <svg className={styles.ribbonLogoTop} viewBox="10 28 240 55" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 35h220l-10 12 10 12H20l10-12z" fill="#fce7f3" stroke="#ec4899" strokeWidth="1.5"/>
+          <text x="130" y="52" fontFamily="'Cinzel',serif" fontWeight="800" fontSize="17" fill="#be185d" textAnchor="middle" letterSpacing="3">ABIFRESH</text>
+          <text x="130" y="75" fontFamily="'Plus Jakarta Sans',sans-serif" fontWeight="600" fontSize="10" fill="#ec4899" textAnchor="middle" letterSpacing="3">&amp; KIDDIES VENTURES</text>
+          <circle cx="56" cy="47" r="2" fill="#f472b6"/>
+          <circle cx="204" cy="47" r="2" fill="#f472b6"/>
+        </svg>
+      </div>
+
+      {/* Supabase Status Banner */}
+
+      <div className={styles.container}>
+        <div className={styles.loginWrapper}>
+          {/* Left: Info Section */}
+          <div className={styles.infoSection}>
+            <h2>Your Retail Business, Simplified</h2>
+            <p>Streamline operations, empower your team, and grow faster with ABIFRESH & KIDDIES VENTURES.</p>
+            <div className={styles.features}>
+              <div className={styles.feature}>
+                <div className={styles.featureIcon}>✓</div>
+                <div className={styles.featureText}>
+                  <h4>Sales Analytics</h4>
+                  <p>Real-time dashboards track revenue, inventory, and team performance</p>
+                </div>
+              </div>
+              <div className={styles.feature}>
+                <div className={styles.featureIcon}>✓</div>
+                <div className={styles.featureText}>
+                  <h4>Inventory Control</h4>
+                  <p>Manage stock levels, track transfers, and optimize logistics</p>
+                </div>
+              </div>
+              <div className={styles.feature}>
+                <div className={styles.featureIcon}>✓</div>
+                <div className={styles.featureText}>
+                  <h4>Staff Tracking</h4>
+                  <p>Commission calculations, task assignments, and performance monitoring</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Form Section */}
+          <div className={styles.formSection}>
+            <div className={styles.loginBox}>
+              {/* Status Indicator */}
+              <div className={styles.statusIndicator} title={`Database: ${supabaseStatus}`}>
+                <span className={`${styles.statusDot} ${styles[`status_${supabaseStatus}`]}`}></span>
+              </div>
+
+              <div className={styles.formHeader}>
+                <h3>Welcome! 😊</h3>
+              </div>
+
+              {error && <div className={styles.errorMessage}>{error}</div>}
+
+              <form onSubmit={handleLogin}>
+                <div className={styles.formGroup}>
+                  <label>Username</label>
+                  <input
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={isLoading}
+                    required
+                  />
+                </div>
+
+                <div className={styles.passwordGroup}>
+                  <label>Password</label>
+                  <div className={styles.passwordWrapper}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className={styles.eyeToggle}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowForgotModal(true)}
+                    className={styles.forgotBtnBelow}
+                  >
+                    Forgot?
+                  </button>
+                </div>
+
+                <button type="submit" className={styles.btnLogin} disabled={isLoading}>
+                  {isLoading ? 'Signing in...' : 'Sign In'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Copyright Footer */}
+      <div className={styles.footer}>
+        <p>&copy; {new Date().getFullYear()} ABIFRESH &amp; KIDDIES VENTURES. All rights reserved.</p>
+      </div>
+
+      {/* Dark Mode Toggle */}
+      <button
+        onClick={toggleTheme}
+        className={styles.darkModeToggle}
+      >
+        {isDarkMode ? (
+          <Sun size={20} strokeWidth={1.5} />
+        ) : (
+          <Moon size={20} strokeWidth={1.5} />
+        )}
+      </button>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowForgotModal(false)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Password Reset</h2>
+              <button 
+                onClick={() => setShowForgotModal(false)}
+                className={styles.modalClose}
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className={styles.modalContent}>
+              <p>To reset your password, please contact your administrator for assistance.</p>
+              <p className={styles.contactInfo}>They will help you regain access to your account.</p>
+            </div>
+            <div className={styles.modalButtons}>
+              <button 
+                onClick={() => setShowForgotModal(false)}
+                className={styles.btnClose}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
