@@ -566,7 +566,7 @@ export default function MakeSalePage() {
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{item.category} • {item.sku}</p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2">📊 Stock: {item.active_store_quantity}</p>
                   
-                  <p className="text-lg font-bold text-pink-600 mt-auto pt-2">₦{getCartItemPrice(item).toLocaleString()}</p>
+                  <p className="text-lg font-bold text-pink-600 mt-auto pt-2">₦{getCartItemPrice(item as CartItem).toLocaleString()}</p>
                 </div>
 
                 <button
