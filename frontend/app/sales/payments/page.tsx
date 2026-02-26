@@ -253,8 +253,8 @@ export default function SalesPaymentsPage() {
     sales.forEach((sale) => {
       // Derive the actual per-unit price from what is stored on the sale record.
       // Never use items.unit_price (that is the purchase/base price, not the sold price).
-      const effectiveUnitPrice = sale.unit_price > 0
-        ? sale.unit_price
+      const effectiveUnitPrice = (sale.unit_price ?? 0) > 0
+        ? sale.unit_price!
         : (sale.total_amount / (sale.quantity || 1));
       // Key = item_id + actual unit price → preserves inside/outside Jalingo differences
       const key = `${sale.item_id}_${effectiveUnitPrice}`;
