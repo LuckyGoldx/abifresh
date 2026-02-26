@@ -522,6 +522,16 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
       });
     }
 
+    // Generate reference number if not provided
+    const generateReferenceNumber = () => {
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+      const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
+      return `PYMT-${dateStr}-${randomStr}`;
+    };
+
+    const finalReferenceNumber = reference_number || generateReferenceNumber();
+
     const { data, error } = await supabaseAdmin
       .from('staff_payments')
       .insert([
@@ -534,7 +544,7 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
           payment_type: 'other',
           payment_method: payment_method,
           status: 'pending',
-          reference_number: reference_number || null,
+          reference_number: finalReferenceNumber,
           receipt_url: receipt_url,
           items_paid_for: parsedItems.length > 0 ? parsedItems : null,
           notes: notes || null,
@@ -548,6 +558,7 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
 
     console.log('✅ Payment request created:', {
       id: data.id,
+      reference: data.reference_number,
       amount: data.amount,
       staff: user?.full_name,
       method: payment_method,
