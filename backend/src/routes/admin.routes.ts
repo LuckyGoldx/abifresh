@@ -137,7 +137,7 @@ router.get('/payments/all', authMiddleware, roleMiddleware('admin'), async (req:
     const staffIds = [...new Set(payments.map(p => p.staff_id))];
     const { data: staffMembers, error: staffError } = await supabaseAdmin
       .from('users')
-      .select('id, full_name, email, role')
+      .select('id, full_name, email, role, phone')
       .in('id', staffIds);
 
     if (staffError) {
@@ -159,7 +159,7 @@ router.get('/payments/all', authMiddleware, roleMiddleware('admin'), async (req:
         staff_name: staff?.full_name || 'Unknown',
         staff_email: staff?.email,
         staff_role: staff?.role,
-        staff_phone: payment.staff_phone,
+        staff_phone: payment.staff_phone || staff?.phone || null,
         amount: payment.amount,
         payment_type: payment.payment_type,
         payment_method: payment.payment_method,

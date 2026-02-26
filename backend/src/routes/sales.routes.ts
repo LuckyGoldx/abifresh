@@ -395,28 +395,30 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
 
     if (error) throw error;
 
-    // If we have payments with missing staff info, fetch from users table
-    const needsUserData = (data || []).some((p: any) => !p.staff_name || !p.staff_phone);
-    let userData: any = null;
-    
-    if (needsUserData) {
-      const { data: user, error: userError } = await supabaseAdmin
-        .from('users')
-        .select('full_name, phone, email')
-        .eq('id', req.user!.id)
-        .single();
-      
-      if (!userError && user) {
-        userData = user;
-      }
+    // Always fetch current user's data from users table for reliable fallback
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('full_name, phone, email')
+      .eq('id', req.user!.id)
+      .single();
+
+    if (userError) {
+      console.warn('⚠️ Failed to fetch user data:', userError);
     }
 
+    // Map payments with intelligent fallback chain
     const payments = (data || []).map((payment: any) => {
+      // Fallback chain for staff_name: payment record -> users table -> auth user -> 'Unknown'
+      const staffName = payment.staff_name || userData?.full_name || req.user?.full_name || 'Unknown';
+      
+      // Fallback chain for staff_phone: payment record -> users table -> null
+      const staffPhone = payment.staff_phone || userData?.phone || null;
+      
       return {
         id: payment.id,
         staff_id: payment.staff_id,
-        staff_name: payment.staff_name || userData?.full_name || req.user?.full_name || 'Unknown',
-        staff_phone: payment.staff_phone || userData?.phone || null,
+        staff_name: staffName,
+        staff_phone: staffPhone,
         amount: payment.amount,
         payment_method: payment.payment_method || 'unknown',
         payment_type: payment.payment_type,
@@ -432,6 +434,7 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
     });
 
     console.log(`✅ Fetched ${payments.length} payments for user ${req.user!.id}`);
+    console.log('First payment details:', payments.length > 0 ? JSON.stringify(payments[0], null, 2) : 'No payments');
     res.json(payments);
   } catch (error: any) {
     console.error('Error fetching payments:', error);
