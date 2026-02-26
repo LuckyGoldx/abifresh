@@ -214,6 +214,94 @@ router.post('/payments/:id/reject', authMiddleware, roleMiddleware('admin'), asy
 });
 
 /**
+ * Backfill missing payment data from users table
+ * Updates staff_payments with staff_name, staff_email, staff_phone from users table
+ */
+router.post('/payments/backfill/missing-data', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('🔄 Starting backfill of missing payment data...');
+    
+    // Get all payments
+    const { data: payments, error: paymentsError } = await supabaseAdmin
+      .from('staff_payments')
+      .select('*');
+    
+    if (paymentsError) throw paymentsError;
+    if (!payments || payments.length === 0) {
+      return res.json({ message: 'No payments found', updated: 0 });
+    }
+    
+    // Get all users
+    const { data: users, error: usersError } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, email, phone');
+    
+    if (usersError) throw usersError;
+    
+    // Create user map
+    const userMap: Record<string, any> = {};
+    (users || []).forEach(user => {
+      userMap[user.id] = user;
+    });
+    
+    // Find payments needing updates
+    const updates: Array<{ id: string; updates: Record<string, any> }> = [];
+    
+    for (const payment of payments) {
+      const user = userMap[payment.staff_id];
+      if (!user) continue;
+      
+      const paymentUpdates: Record<string, any> = {};
+      
+      // Backfill staff_name if missing
+      if (!payment.staff_name && user.full_name) {
+        paymentUpdates.staff_name = user.full_name;
+      }
+      
+      // Backfill staff_email if missing
+      if (!payment.staff_email && user.email) {
+        paymentUpdates.staff_email = user.email;
+      }
+      
+      // Backfill staff_phone if missing
+      if (!payment.staff_phone && user.phone) {
+        paymentUpdates.staff_phone = user.phone;
+      }
+      
+      if (Object.keys(paymentUpdates).length > 0) {
+        updates.push({ id: payment.id, updates: paymentUpdates });
+      }
+    }
+    
+    // Apply updates
+    let updatedCount = 0;
+    for (const { id, updates: paymentUpdates } of updates) {
+      try {
+        await supabaseAdmin
+          .from('staff_payments')
+          .update(paymentUpdates)
+          .eq('id', id);
+        updatedCount++;
+        console.log(`✅ Updated payment ${id}:`, paymentUpdates);
+      } catch (err: any) {
+        console.error(`❌ Failed to update payment ${id}:`, err.message);
+      }
+    }
+    
+    console.log(`✅ Backfill complete! Updated ${updatedCount} of ${updates.length} payments`);
+    res.json({ 
+      message: 'Backfill complete',
+      totalPayments: payments.length,
+      paymentsNeedingUpdate: updates.length,
+      updated: updatedCount
+    });
+  } catch (error: any) {
+    console.error('❌ Backfill error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * Get sales report
  */
 router.get('/reports/sales', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
