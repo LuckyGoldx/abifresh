@@ -386,6 +386,7 @@ router.get('/posted-items/stats', authMiddleware, roleMiddleware('sales', 'sales
  */
 router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', 'admin'), async (req: AuthRequest, res: Response) => {
   try {
+    // Fetch all payments for this user
     const { data, error } = await supabaseAdmin
       .from('staff_payments')
       .select('*')
@@ -394,12 +395,28 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
 
     if (error) throw error;
 
+    // If we have payments with missing staff info, fetch from users table
+    const needsUserData = (data || []).some((p: any) => !p.staff_name || !p.staff_phone);
+    let userData: any = null;
+    
+    if (needsUserData) {
+      const { data: user, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('full_name, phone, email')
+        .eq('id', req.user!.id)
+        .single();
+      
+      if (!userError && user) {
+        userData = user;
+      }
+    }
+
     const payments = (data || []).map((payment: any) => {
       return {
         id: payment.id,
         staff_id: payment.staff_id,
-        staff_name: payment.staff_name || 'Unknown',
-        staff_phone: payment.staff_phone || null,
+        staff_name: payment.staff_name || userData?.full_name || req.user?.full_name || 'Unknown',
+        staff_phone: payment.staff_phone || userData?.phone || req.user?.phone || null,
         amount: payment.amount,
         payment_method: payment.payment_method || 'unknown',
         payment_type: payment.payment_type,
@@ -414,10 +431,13 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
       };
     });
 
+    console.log(`✅ Fetched ${payments.length} payments for user ${req.user!.id}`);
     res.json(payments);
   } catch (error: any) {
     console.error('Error fetching payments:', error);
     res.status(400).json({ error: error.message });
+  }
+});
   }
 });
 
