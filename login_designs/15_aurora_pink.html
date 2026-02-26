@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AKV – Aurora Pink</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      background: #0d0118;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; position: relative;
+    }
+
+    /* Aurora layers */
+    .aurora {
+      position: fixed; inset: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .aurora-band {
+      position: absolute; width: 200%; height: 300px;
+      border-radius: 100%;
+      filter: blur(80px);
+      animation: sweep 10s ease-in-out infinite alternate;
+    }
+    @keyframes sweep {
+      0%   { transform: translateX(-20%) translateY(0) rotate(-5deg) scaleX(1); }
+      100% { transform: translateX(10%) translateY(-30px) rotate(5deg) scaleX(1.1); }
+    }
+    .ab1 { background: linear-gradient(90deg, transparent 0%, rgba(236,72,153,.5) 30%, rgba(244,63,142,.6) 50%, rgba(192,38,211,.4) 70%, transparent 100%); top: 5%; animation-duration: 12s; }
+    .ab2 { background: linear-gradient(90deg, transparent 0%, rgba(168,85,247,.3) 30%, rgba(236,72,153,.4) 60%, transparent 100%); top: 20%; animation-duration: 8s; animation-delay: 2s; height: 200px; }
+    .ab3 { background: linear-gradient(90deg, transparent 10%, rgba(244,63,142,.2) 40%, rgba(139,92,246,.3) 65%, transparent 100%); top: 35%; animation-duration: 15s; animation-delay: 1s; height: 250px; }
+
+    /* Stars */
+    .stars {
+      position: fixed; inset: 0; pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(255,255,255,.6) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,200,220,.7) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,255,255,.4) 1px, transparent 1px);
+      background-size: 180px 180px, 220px 220px, 130px 130px;
+      background-position: 20px 40px, 80px 100px, 50px 20px;
+      opacity: .35;
+    }
+
+    .container {
+      position: relative; z-index: 10;
+      width: 100%; max-width: 520px;
+      padding: 20px;
+    }
+
+    .glass-card {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(236,72,153,.25);
+      border-radius: 32px;
+      padding: 50px 46px;
+      backdrop-filter: blur(40px);
+      box-shadow:
+        0 0 80px rgba(236,72,153,.1),
+        0 24px 64px rgba(0,0,0,.5),
+        inset 0 1px 0 rgba(255,255,255,.07);
+    }
+
+    /* Brand */
+    .brand-area {
+      text-align: center; margin-bottom: 36px;
+    }
+    .brand-circle {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: conic-gradient(from 135deg, #f43f8e, #a855f7, #ec4899, #f43f8e);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800; color: white;
+      box-shadow: 0 0 30px rgba(244,63,142,.5);
+      margin-bottom: 16px;
+    }
+    .brand-title {
+      font-size: 14px; font-weight: 700; color: white; letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .brand-dot {
+      width: 4px; height: 4px; background: #f43f8e; border-radius: 50%;
+      display: inline-block; margin: 0 6px;
+    }
+
+    h2 {
+      font-size: 28px; font-weight: 700; color: white;
+      text-align: center; margin-bottom: 6px;
+    }
+    .sub {
+      text-align: center; font-size: 13px; color: rgba(255,255,255,.35);
+      margin-bottom: 30px;
+    }
+
+    /* Role selector */
+    .role-sel {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; margin-bottom: 24px;
+    }
+    .rs-card {
+      padding: 12px 8px; border-radius: 14px;
+      border: 1px solid rgba(244,63,142,.15);
+      background: rgba(255,255,255,.04);
+      text-align: center; cursor: pointer; transition: all .2s;
+    }
+    .rs-card.sel {
+      border-color: #f43f8e;
+      background: rgba(244,63,142,.15);
+      box-shadow: 0 0 20px rgba(244,63,142,.15);
+    }
+    .rs-card:hover:not(.sel) { border-color: rgba(244,63,142,.4); }
+    .rs-icon { font-size: 20px; display: block; margin-bottom: 4px; }
+    .rs-name { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.6); }
+    .rs-card.sel .rs-name { color: #fda4c7; }
+
+    .field {
+      margin-bottom: 14px; position: relative;
+    }
+    .field input {
+      width: 100%; padding: 13px 16px 13px 42px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(244,63,142,.15); border-radius: 12px;
+      font-family: inherit; font-size: 14px; color: white; outline: none;
+      transition: all .2s;
+    }
+    .field input::placeholder { color: rgba(255,255,255,.2); }
+    .field input:focus {
+      border-color: #f43f8e;
+      background: rgba(244,63,142,.08);
+      box-shadow: 0 0 0 3px rgba(244,63,142,.12), 0 0 25px rgba(244,63,142,.1);
+    }
+    .field-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; pointer-events: none;
+    }
+
+    .meta-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 16px 0 22px;
+    }
+    .chk { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,.35); cursor: pointer; }
+    .chk input { accent-color: #f43f8e; }
+    .frgt { font-size: 12px; color: #f472b6; text-decoration: none; }
+
+    .btn-aurora {
+      width: 100%; padding: 14px;
+      border: none; border-radius: 14px; cursor: pointer;
+      font-family: inherit; font-size: 15px; font-weight: 700; color: white;
+      background: linear-gradient(135deg, #f43f8e, #c026d3, #a855f7);
+      box-shadow: 0 8px 32px rgba(244,63,142,.4), 0 0 50px rgba(168,85,247,.15);
+      transition: all .25s; position: relative; overflow: hidden;
+    }
+    .btn-aurora::after {
+      content: '';
+      position: absolute; top: -50%; left: -50%;
+      width: 200%; height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,.12) 0%, transparent 60%);
+      opacity: 0; transition: opacity .3s; pointer-events: none;
+    }
+    .btn-aurora:hover::after { opacity: 1; }
+    .btn-aurora:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(244,63,142,.5); }
+
+    .footer {
+      text-align: center; margin-top: 20px;
+      font-size: 12px; color: rgba(255,255,255,.2);
+    }
+    .footer a { color: #f472b6; text-decoration: none; }
+
+    @media (max-width: 520px) {
+      .glass-card { padding: 36px 22px; border-radius: 22px; }
+      h2 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="aurora">
+    <div class="aurora-band ab1"></div>
+    <div class="aurora-band ab2"></div>
+    <div class="aurora-band ab3"></div>
+  </div>
+
+  <div class="container">
+    <div class="glass-card">
+      <div class="brand-area">
+        <div class="brand-circle">AK</div>
+        <div class="brand-title">Abifresh<span class="brand-dot"></span>Kiddies Ventures</div>
+      </div>
+
+      <h2>Welcome Back ✨</h2>
+      <p class="sub">Choose your role and sign in to your dashboard</p>
+
+      <div class="role-sel">
+        <div class="rs-card sel">
+          <span class="rs-icon">🛡️</span>
+          <div class="rs-name">Admin</div>
+        </div>
+        <div class="rs-card">
+          <span class="rs-icon">💰</span>
+          <div class="rs-name">Sales</div>
+        </div>
+        <div class="rs-card">
+          <span class="rs-icon">📦</span>
+          <div class="rs-name">Staff</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field-icon">📧</span>
+        <input type="email" placeholder="Email address"/>
+      </div>
+      <div class="field">
+        <span class="field-icon">🔒</span>
+        <input type="password" placeholder="Password"/>
+      </div>
+
+      <div class="meta-row">
+        <label class="chk"><input type="checkbox"/> Stay signed in</label>
+        <a href="#" class="frgt">Forgot password?</a>
+      </div>
+
+      <button class="btn-aurora">Sign In to AKV</button>
+
+      <div class="footer">Need help? <a href="#">Contact administrator</a></div>
+    </div>
+  </div>
+</body>
+</html>

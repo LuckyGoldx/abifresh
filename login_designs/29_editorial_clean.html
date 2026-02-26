@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AKV - Editorial Clean</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Inter,sans-serif;min-height:100vh;background:#ffffff;color:#111827}
+.main{max-width:1100px;margin:0 auto;min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr;gap:22px;padding:34px}
+.left{display:flex;flex-direction:column;justify-content:center;padding:20px;border-right:1px solid #f3f4f6}
+.kicker{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#be185d;margin-bottom:10px}
+.left h1{font-family:'Playfair Display',serif;font-size:62px;line-height:1.05;max-width:580px}
+.left h1 span{color:#db2777}
+.left p{margin-top:16px;max-width:540px;color:#374151;line-height:1.8}
+.blocks{display:grid;gap:12px;margin-top:24px;max-width:560px}
+.blocks div{padding:14px;border-left:4px solid #ec4899;background:#fdf2f8;color:#9d174d;border-radius:6px}
+.right{display:flex;align-items:center;justify-content:center}
+.form{width:100%;max-width:430px;padding:30px;border:1px solid #fbcfe8;border-radius:18px;box-shadow:0 16px 40px rgba(236,72,153,.08)}
+.brand{font-size:12px;font-weight:700;color:#9ca3af;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.form h2{font-size:30px;font-family:'Playfair Display',serif}
+.s{font-size:14px;color:#6b7280;margin:8px 0 18px}
+.f{margin-bottom:12px}.f label{font-size:12px;color:#374151;display:block;margin-bottom:6px}.f input{width:100%;padding:12px;border:1px solid #f9a8d4;border-radius:10px;outline:none}
+.f input:focus{border-color:#ec4899;box-shadow:0 0 0 3px rgba(236,72,153,.14)}
+.r{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:14px}.r a{color:#db2777;text-decoration:none}
+.btn{width:100%;padding:13px;border:none;border-radius:10px;background:#ec4899;color:#fff;font-weight:700;cursor:pointer}
+.fine{text-align:center;font-size:12px;color:#9ca3af;margin-top:10px}
+@media (max-width:940px){.main{grid-template-columns:1fr;padding:20px}.left{border-right:none;padding:0}.left h1{font-size:42px}}
+</style>
+</head>
+<body>
+<div class="main">
+  <section class="left">
+    <div class="kicker">AKV Home / Login</div>
+    <h1>Clean systems build <span>strong businesses</span>.</h1>
+    <p>Designed with a modern editorial style: bold headline, clear copy, and focused action. Perfect for a professional login experience across devices.</p>
+    <div class="blocks">
+      <div>Simple interface, less confusion</div>
+      <div>Fast login flow for daily operations</div>
+      <div>Readable and elegant on mobile + desktop</div>
+    </div>
+  </section>
+  <section class="right">
+    <div class="form">
+      <div class="brand">Abifresh & Kiddies Ventures</div>
+      <h2>Sign In</h2>
+      <div class="s">Access your dashboard securely.</div>
+      <div class="f"><label>Email</label><input type="email" placeholder="you@abifresh.com"></div>
+      <div class="f"><label>Password</label><input type="password" placeholder="Password"></div>
+      <div class="r"><label><input type="checkbox"> Remember me</label><a href="#">Forgot password?</a></div>
+      <button class="btn">Continue</button>
+      <div class="fine">Need help? Reach out to your administrator.</div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

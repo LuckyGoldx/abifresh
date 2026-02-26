@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AKV - Auric Home Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Instrument Sans',sans-serif;min-height:100vh;background:#fff8fc;overflow:hidden}
+.rings{position:fixed;inset:0;pointer-events:none}
+.ring{position:absolute;border-radius:50%;border:1px solid rgba(236,72,153,.22)}
+.r1{width:540px;height:540px;top:-160px;left:-140px}
+.r2{width:420px;height:420px;right:-120px;bottom:-100px}
+.r3{width:300px;height:300px;left:45%;top:58%}
+.page{position:relative;z-index:2;max-width:1140px;margin:0 auto;min-height:100vh;display:grid;grid-template-columns:1fr 420px;align-items:center;gap:26px;padding:34px}
+.left .chip{display:inline-block;padding:7px 12px;border-radius:999px;background:#fce7f3;color:#be185d;font-size:12px;margin-bottom:14px}
+.left h1{font-size:56px;line-height:1.05;color:#111827}
+.left h1 span{color:#db2777}
+.left p{margin-top:15px;max-width:560px;color:#374151;line-height:1.75}
+.cards{margin-top:24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:590px}
+.cards div{background:#fff;border:1px solid #fbcfe8;border-radius:12px;padding:12px;font-size:13px;color:#9d174d}
+.form{background:#fff;border:1px solid #fbcfe8;border-radius:22px;padding:26px;box-shadow:0 20px 55px rgba(190,24,93,.12)}
+.brand{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;margin-bottom:7px}
+.form h2{font-size:30px;color:#111827}
+.sub{font-size:14px;color:#6b7280;margin:8px 0 16px}
+.f{margin-bottom:11px}.f label{font-size:12px;display:block;margin-bottom:6px;color:#374151}.f input{width:100%;padding:12px;border:1px solid #f9a8d4;border-radius:11px;outline:none}
+.f input:focus{border-color:#ec4899;box-shadow:0 0 0 3px rgba(236,72,153,.14)}
+.r{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin-bottom:14px}.r a{color:#db2777;text-decoration:none}
+.btn{width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,#ec4899,#db2777);color:#fff;font-weight:700;cursor:pointer}
+.text{font-size:12px;text-align:center;color:#6b7280;margin-top:11px}
+@media (max-width:930px){.page{grid-template-columns:1fr;padding:20px}.left h1{font-size:40px}.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+<div class="page">
+  <section class="left">
+    <div class="chip">AKV Home + Login Theme</div>
+    <h1>Start your day with a <span>clean dashboard entrance</span>.</h1>
+    <p>This concept combines a modern homepage message with a focused login panel so users understand the value first, then sign in quickly.</p>
+    <div class="cards">
+      <div>📦 Inventory overview at a glance</div>
+      <div>💳 Sales performance visibility</div>
+      <div>📈 Better daily decision flow</div>
+      <div>📱 Responsive on every screen</div>
+    </div>
+  </section>
+  <section class="form">
+    <div class="brand">Abifresh & Kiddies Ventures</div>
+    <h2>Welcome Back</h2>
+    <div class="sub">Sign in to continue to your AKV workspace.</div>
+    <div class="f"><label>Email Address</label><input type="email" placeholder="you@abifresh.com"></div>
+    <div class="f"><label>Password</label><input type="password" placeholder="Enter your password"></div>
+    <div class="r"><label><input type="checkbox"> Remember me</label><a href="#">Forgot password?</a></div>
+    <button class="btn">Continue to Dashboard</button>
+    <div class="text">Need access? Contact your administrator.</div>
+  </section>
+</div>
+</body>
+</html>

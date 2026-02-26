@@ -386,7 +386,6 @@ router.get('/posted-items/stats', authMiddleware, roleMiddleware('sales', 'sales
  */
 router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', 'admin'), async (req: AuthRequest, res: Response) => {
   try {
-    // Fetch all payments for this user
     const { data, error } = await supabaseAdmin
       .from('staff_payments')
       .select('*')
@@ -395,30 +394,14 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
 
     if (error) throw error;
 
-    // Always fetch current user's data from users table for reliable fallback
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('full_name, phone, email')
-      .eq('id', req.user!.id)
-      .single();
+    console.log('📥 Raw staff_payments data from DB:', JSON.stringify(data?.[0], null, 2));
 
-    if (userError) {
-      console.warn('⚠️ Failed to fetch user data:', userError);
-    }
-
-    // Map payments with intelligent fallback chain
     const payments = (data || []).map((payment: any) => {
-      // Fallback chain for staff_name: payment record -> users table -> auth user -> 'Unknown'
-      const staffName = payment.staff_name || userData?.full_name || req.user?.full_name || 'Unknown';
-      
-      // Fallback chain for staff_phone: payment record -> users table -> null
-      const staffPhone = payment.staff_phone || userData?.phone || null;
-      
       return {
         id: payment.id,
         staff_id: payment.staff_id,
-        staff_name: staffName,
-        staff_phone: staffPhone,
+        staff_name: payment.staff_name || 'Unknown',
+        staff_phone: payment.staff_phone || null,
         amount: payment.amount,
         payment_method: payment.payment_method || 'unknown',
         payment_type: payment.payment_type,
@@ -433,8 +416,7 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
       };
     });
 
-    console.log(`✅ Fetched ${payments.length} payments for user ${req.user!.id}`);
-    console.log('First payment details:', payments.length > 0 ? JSON.stringify(payments[0], null, 2) : 'No payments');
+    console.log('✅ /api/sales/payments returning:', JSON.stringify(payments?.[0], null, 2));
     res.json(payments);
   } catch (error: any) {
     console.error('Error fetching payments:', error);

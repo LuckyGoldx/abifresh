@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AKV – Crystal Pink</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      background: #1a0828;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+
+    /* Geometric SVG bg */
+    canvas#bg { position: fixed; inset: 0; pointer-events: none; }
+
+    /* glassy orbs */
+    .orb {
+      position: fixed; border-radius: 50%;
+      background: radial-gradient(circle, rgba(244,63,142,.35) 0%, transparent 65%);
+      filter: blur(60px); pointer-events: none;
+      animation: pulse 6s ease-in-out infinite alternate;
+    }
+    @keyframes pulse { from { opacity: .4; } to { opacity: .9; } }
+    .orb1 { width: 600px; height: 600px; top: -200px; right: -150px; animation-duration: 7s; }
+    .orb2 { width: 400px; height: 400px; bottom: -100px; left: -80px; background: radial-gradient(circle, rgba(168,85,247,.3) 0%, transparent 65%); animation-duration: 9s; animation-delay: 2s; }
+
+    .page {
+      position: relative; z-index: 5;
+      width: 100%; max-width: 1100px;
+      display: grid; grid-template-columns: 1.1fr 1fr;
+      gap: 32px; padding: 24px;
+      align-items: center;
+    }
+
+    /* Left – big hero */
+    .hero {
+      padding: 20px;
+    }
+    .crystal-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: 100px;
+      border: 1px solid rgba(244,63,142,.35);
+      background: rgba(244,63,142,.1);
+      font-size: 12px; font-weight: 600; letter-spacing: .5px;
+      color: #fda4c7; margin-bottom: 28px;
+      text-transform: uppercase;
+    }
+    .crystal-badge::before { content: '◆'; font-size: 9px; }
+
+    .hero-title {
+      font-size: 54px; font-weight: 800; line-height: 1.1;
+      color: white; margin-bottom: 20px;
+    }
+    .hero-title .accent { color: #f472b6; }
+
+    .hero-desc {
+      font-size: 16px; color: rgba(255,255,255,.45);
+      line-height: 1.7; max-width: 420px; margin-bottom: 36px;
+    }
+
+    .feature-list {
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .feat {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 14px; color: rgba(255,255,255,.6);
+    }
+    .feat-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: linear-gradient(135deg, #f43f8e, #a855f7);
+      flex-shrink: 0;
+      box-shadow: 0 0 10px #f43f8e;
+    }
+
+    /* Right – form */
+    .form-wrap {
+      position: relative;
+    }
+    .form-wrap::before {
+      content: '';
+      position: absolute; inset: -1px; border-radius: 29px;
+      background: linear-gradient(135deg, rgba(244,63,142,.5), rgba(168,85,247,.3), rgba(244,63,142,.1));
+      padding: 1px;
+      z-index: -1;
+    }
+
+    .form-box {
+      background: rgba(255,255,255,.05);
+      backdrop-filter: blur(30px);
+      border: 1px solid rgba(244,63,142,.2);
+      border-radius: 28px;
+      padding: 44px 40px;
+    }
+
+    .brand-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 28px;
+    }
+    .brand-gem {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, #f472b6, #ec4899, #a855f7);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: white;
+      box-shadow: 0 0 20px rgba(244,63,142,.4);
+    }
+    .brand-name { font-size: 15px; font-weight: 700; color: white; }
+
+    h2 { font-size: 22px; font-weight: 700; color: white; margin-bottom: 5px; }
+    .hint { font-size: 13px; color: rgba(255,255,255,.35); margin-bottom: 24px; }
+
+    .seg {
+      display: flex; background: rgba(255,255,255,.06); border-radius: 10px;
+      padding: 3px; gap: 3px; margin-bottom: 22px;
+    }
+    .seg-item {
+      flex: 1; padding: 8px; text-align: center;
+      border: none; background: transparent;
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,.35); cursor: pointer; border-radius: 7px;
+      transition: all .2s;
+    }
+    .seg-item.act {
+      background: linear-gradient(135deg, #f43f8e, #a855f7);
+      color: white;
+      box-shadow: 0 2px 12px rgba(244,63,142,.4);
+    }
+
+    .f { margin-bottom: 14px; }
+    .f label {
+      font-size: 11px; font-weight: 500; text-transform: uppercase;
+      letter-spacing: .8px; color: rgba(255,255,255,.35);
+      display: block; margin-bottom: 7px;
+    }
+    .f input {
+      width: 100%; padding: 11px 14px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(244,63,142,.15); border-radius: 10px;
+      font-family: inherit; font-size: 14px; color: white; outline: none;
+      transition: all .2s;
+    }
+    .f input::placeholder { color: rgba(255,255,255,.18); }
+    .f input:focus {
+      border-color: rgba(244,63,142,.6);
+      background: rgba(244,63,142,.07);
+      box-shadow: 0 0 0 3px rgba(244,63,142,.1);
+    }
+
+    .row { display: flex; justify-content: space-between; align-items: center; margin: 16px 0 20px; }
+    .chk-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,.3); cursor: pointer; }
+    .chk-row input { accent-color: #f43f8e; }
+    .fp { font-size: 12px; color: #f472b6; text-decoration: none; }
+
+    .go-btn {
+      width: 100%; padding: 13px;
+      border: none; border-radius: 12px; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 700; color: white;
+      background: linear-gradient(135deg, #f43f8e 0%, #ec4899 60%, #a855f7 100%);
+      box-shadow: 0 6px 28px rgba(244,63,142,.4);
+      transition: all .25s; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .go-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(244,63,142,.55);
+    }
+
+    .btm { text-align: center; margin-top: 18px; font-size: 12px; color: rgba(255,255,255,.2); }
+    .btm a { color: #f472b6; text-decoration: none; }
+
+    @media (max-width: 900px) {
+      .page { grid-template-columns: 1fr; }
+      .hero { display: none; }
+    }
+    @media (max-width: 520px) {
+      .form-box { padding: 32px 22px; }
+      .hero-title { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+
+  <!-- Triangular grid canvas -->
+  <canvas id="bg"></canvas>
+  <script>
+    const c = document.getElementById('bg');
+    const ctx = c.getContext('2d');
+    function resize() { c.width = innerWidth; c.height = innerHeight; draw(); }
+    function draw() {
+      ctx.clearRect(0,0,c.width,c.height);
+      const size = 80;
+      for (let y = -size; y < c.height + size; y += size) {
+        for (let x = -size; x < c.width + size; x += size) {
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + size, y);
+          ctx.lineTo(x + size/2, y + size);
+          ctx.closePath();
+          ctx.strokeStyle = `rgba(244,63,142,${Math.random() * 0.06 + 0.02})`;
+          ctx.lineWidth = .6;
+          ctx.stroke();
+        }
+      }
+    }
+    window.addEventListener('resize', resize);
+    resize();
+  </script>
+
+  <div class="page">
+    <div class="hero">
+      <div class="crystal-badge">Business Management Platform</div>
+      <div class="hero-title">
+        Run Your<br/>
+        Business<br/>
+        <span class="accent">with Precision</span>
+      </div>
+      <div class="hero-desc">
+        Abifresh &amp; Kiddies Ventures — manage inventory levels, track sales performance, and gain real-time insights across all your store operations.
+      </div>
+      <div class="feature-list">
+        <div class="feat"><div class="feat-dot"></div>Admin: Full revenue + analytics + user management</div>
+        <div class="feat"><div class="feat-dot"></div>Sales: Quick entry, commissions &amp; performance charts</div>
+        <div class="feat"><div class="feat-dot"></div>Staff: Inventory, restocking &amp; transfer requests</div>
+        <div class="feat"><div class="feat-dot"></div>AI-powered reports &amp; low-stock alerts</div>
+      </div>
+    </div>
+
+    <div class="form-wrap">
+      <div class="form-box">
+        <div class="brand-row">
+          <div class="brand-gem">AK</div>
+          <div class="brand-name">AKV System</div>
+        </div>
+
+        <h2>Access Portal</h2>
+        <p class="hint">Sign in with your account credentials</p>
+
+        <div class="seg">
+          <div class="seg-item act">Admin</div>
+          <div class="seg-item">Sales</div>
+          <div class="seg-item">Staff</div>
+        </div>
+
+        <div class="f">
+          <label>Email</label>
+          <input type="email" placeholder="admin@abifresh.com"/>
+        </div>
+        <div class="f">
+          <label>Password</label>
+          <input type="password" placeholder="••••••••••••"/>
+        </div>
+
+        <div class="row">
+          <label class="chk-row"><input type="checkbox"/> Stay signed in</label>
+          <a href="#" class="fp">Forgot?</a>
+        </div>
+
+        <button class="go-btn">Enter Dashboard</button>
+
+        <div class="btm">Issues? <a href="#">Contact support</a></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

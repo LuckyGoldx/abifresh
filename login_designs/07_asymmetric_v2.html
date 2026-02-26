@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AbiFresh & Kiddies Ventures — Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --pink-50: #fdf2f8;
+            --pink-100: #fce7f3;
+            --pink-200: #fbcfe8;
+            --pink-300: #f9a8d4;
+            --pink-400: #f472b6;
+            --pink-500: #ec4899;
+            --pink-600: #db2777;
+            --pink-700: #be185d;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.04);
+            --shadow-2xl: 0 25px 50px -12px rgba(0,0,0,0.15);
+        }
+
+        html { height: 100%; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--gray-50);
+            min-height: 100vh;
+            display: flex;
+            color: var(--gray-800);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ─── Background Shapes ─── */
+        .bg-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .bg-shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.45;
+        }
+
+        .bg-shape--1 {
+            width: 520px;
+            height: 520px;
+            background: radial-gradient(circle, var(--pink-300), var(--pink-200));
+            top: -120px;
+            right: -80px;
+            animation: drift 14s ease-in-out infinite alternate;
+        }
+
+        .bg-shape--2 {
+            width: 360px;
+            height: 360px;
+            background: radial-gradient(circle, #c084fc, #a78bfa);
+            bottom: -60px;
+            left: -60px;
+            animation: drift 18s ease-in-out infinite alternate-reverse;
+        }
+
+        .bg-shape--3 {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, var(--pink-400), var(--pink-300));
+            top: 55%;
+            left: 48%;
+            animation: drift 10s ease-in-out infinite alternate;
+        }
+
+        @keyframes drift {
+            0%   { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, -20px) scale(1.05); }
+        }
+
+        /* ─── Layout ─── */
+        .page {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        .card-wrapper {
+            width: 100%;
+            max-width: 1020px;
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            background: var(--white);
+            border-radius: 24px;
+            box-shadow: var(--shadow-2xl);
+            overflow: hidden;
+            border: 1px solid rgba(236, 72, 153, 0.08);
+            animation: cardEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes cardEnter {
+            from { opacity: 0; transform: translateY(24px) scale(0.98); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ─── LEFT: Brand / Info Panel ─── */
+        .brand-panel {
+            background: linear-gradient(160deg, var(--pink-600) 0%, var(--pink-500) 40%, #a855f7 100%);
+            padding: 52px 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            color: var(--white);
+        }
+
+        .brand-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(255,255,255,0.12) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 40%);
+            pointer-events: none;
+        }
+
+        /* Decorative circles */
+        .brand-panel::after {
+            content: '';
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            bottom: -80px;
+            right: -80px;
+            pointer-events: none;
+        }
+
+        .deco-ring {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border: 2px solid rgba(255,255,255,0.07);
+            border-radius: 50%;
+            top: -40px;
+            left: -40px;
+            pointer-events: none;
+        }
+
+        .brand-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Logo */
+        .logo-block {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 40px;
+        }
+
+        .logo-icon {
+            width: 52px;
+            height: 52px;
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(8px);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.22);
+            flex-shrink: 0;
+        }
+
+        .logo-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
+        }
+
+        .logo-text .name {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+        }
+
+        .logo-text .sub {
+            font-size: 11.5px;
+            font-weight: 600;
+            letter-spacing: 2.4px;
+            text-transform: uppercase;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+
+        /* Headline */
+        .brand-headline {
+            font-size: 30px;
+            font-weight: 800;
+            line-height: 1.25;
+            margin-bottom: 14px;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-sub {
+            font-size: 15px;
+            line-height: 1.7;
+            opacity: 0.82;
+            margin-bottom: 40px;
+            max-width: 380px;
+        }
+
+        /* Feature pills */
+        .features {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .feature-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .feature-dot {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(6px);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .feature-dot svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--white);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .feature-info h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .feature-info p {
+            font-size: 12.5px;
+            opacity: 0.68;
+            line-height: 1.4;
+        }
+
+        /* ─── RIGHT: Login Form ─── */
+        .form-panel {
+            padding: 52px 44px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: var(--white);
+        }
+
+        /* Mobile-only logo (hidden on desktop) */
+        .mobile-logo {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+            justify-content: center;
+        }
+
+        .mobile-logo .m-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--pink-500), var(--pink-600));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .mobile-logo .m-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .mobile-logo .m-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
+        }
+
+        .mobile-logo .m-name {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--gray-800);
+        }
+
+        .mobile-logo .m-sub {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--pink-500);
+            margin-top: 1px;
+        }
+
+        .form-header {
+            margin-bottom: 32px;
+        }
+
+        .form-header h2 {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 6px;
+            letter-spacing: -0.3px;
+        }
+
+        .form-header p {
+            font-size: 14px;
+            color: var(--gray-400);
+            line-height: 1.5;
+        }
+
+        .field {
+            margin-bottom: 22px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap .icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--gray-300);
+            pointer-events: none;
+            transition: color 0.2s;
+        }
+
+        .input-wrap input {
+            width: 100%;
+            padding: 12px 14px 12px 44px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--gray-50);
+            color: var(--gray-800);
+            transition: all 0.25s ease;
+            outline: none;
+        }
+
+        .input-wrap input::placeholder {
+            color: var(--gray-300);
+        }
+
+        .input-wrap input:focus {
+            border-color: var(--pink-400);
+            background: var(--white);
+            box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.08);
+        }
+
+        .input-wrap input:focus ~ .icon {
+            color: var(--pink-500);
+        }
+
+        /* Password toggle */
+        .pw-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--gray-300);
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .pw-toggle:hover { color: var(--pink-500); }
+
+        .pw-toggle svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Utilities row */
+        .utils-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .remember {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--gray-500);
+            user-select: none;
+        }
+
+        .remember input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 1.5px solid var(--gray-300);
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .remember input[type="checkbox"]:checked {
+            background: var(--pink-500);
+            border-color: var(--pink-500);
+        }
+
+        .remember input[type="checkbox"]:checked::after {
+            content: '';
+            position: absolute;
+            left: 5.5px;
+            top: 2px;
+            width: 5px;
+            height: 9px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .forgot-link {
+            font-size: 13px;
+            color: var(--pink-500);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .forgot-link:hover {
+            color: var(--pink-700);
+        }
+
+        /* Submit */
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--pink-500) 0%, var(--pink-600) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.2px;
+        }
+
+        .btn-submit::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--pink-600) 0%, var(--pink-700) 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(219, 39, 119, 0.3);
+        }
+
+        .btn-submit:hover::before {
+            opacity: 1;
+        }
+
+        .btn-submit span {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-submit span svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.3s;
+        }
+
+        .btn-submit:hover span svg {
+            transform: translateX(3px);
+        }
+
+        /* Help text */
+        .help-text {
+            text-align: center;
+            margin-top: 28px;
+            font-size: 12.5px;
+            color: var(--gray-400);
+            line-height: 1.6;
+        }
+
+        .help-text a {
+            color: var(--pink-500);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        .page-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 11.5px;
+            color: var(--gray-400);
+            animation: cardEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 860px) {
+            .card-wrapper {
+                grid-template-columns: 1fr;
+                max-width: 440px;
+            }
+
+            .brand-panel {
+                display: none;
+            }
+
+            .mobile-logo {
+                display: flex;
+            }
+
+            .form-panel {
+                padding: 40px 28px 36px;
+            }
+
+            .form-header {
+                text-align: center;
+            }
+
+            .form-header h2 {
+                font-size: 22px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .page {
+                padding: 16px;
+            }
+
+            .card-wrapper {
+                border-radius: 20px;
+            }
+
+            .form-panel {
+                padding: 32px 22px 28px;
+            }
+
+            .form-header h2 {
+                font-size: 20px;
+            }
+
+            .input-wrap input {
+                padding: 11px 14px 11px 42px;
+                font-size: 14px;
+            }
+
+            .btn-submit {
+                padding: 13px;
+                font-size: 14px;
+            }
+
+            .mobile-logo .m-name {
+                font-size: 16px;
+            }
+        }
+
+        /* ─── Accessibility ─── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Soft blurred background blobs -->
+    <div class="bg-canvas" aria-hidden="true">
+        <div class="bg-shape bg-shape--1"></div>
+        <div class="bg-shape bg-shape--2"></div>
+        <div class="bg-shape bg-shape--3"></div>
+    </div>
+
+    <div class="page">
+        <div style="width:100%;max-width:1020px;">
+            <div class="card-wrapper">
+
+                <!-- ─── LEFT: Brand Panel ─── -->
+                <div class="brand-panel">
+                    <div class="deco-ring" aria-hidden="true"></div>
+                    <div class="brand-content">
+                        <!-- Logo -->
+                        <div class="logo-block">
+                            <div class="logo-icon">
+                                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <!-- Shopping bag body -->
+                                    <rect x="5" y="12" width="22" height="17" rx="3" stroke="white" stroke-width="2" fill="none"/>
+                                    <!-- Bag handle -->
+                                    <path d="M11 12V9a5 5 0 0 1 10 0v3" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+                                    <!-- Sparkle star -->
+                                    <path d="M16 18l1.2 2.4 2.6.4-1.9 1.8.5 2.6L16 23.8l-2.4 1.4.5-2.6-1.9-1.8 2.6-.4z" fill="white" opacity="0.9"/>
+                                </svg>
+                            </div>
+                            <div class="logo-text">
+                                <span class="name">AbiFresh</span>
+                                <span class="sub">& Kiddies Ventures</span>
+                            </div>
+                        </div>
+
+                        <!-- Headline -->
+                        <h1 class="brand-headline">Your Retail Business,<br>Simplified.</h1>
+                        <p class="brand-sub">
+                            One dashboard to manage sales, track inventory, monitor staff performance, and grow your store — all in real time.
+                        </p>
+
+                        <!-- Features -->
+                        <div class="features">
+                            <div class="feature-row">
+                                <div class="feature-dot">
+                                    <!-- Bar chart icon -->
+                                    <svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="8" width="4" height="13" rx="1"/><rect x="17" y="4" width="4" height="17" rx="1"/></svg>
+                                </div>
+                                <div class="feature-info">
+                                    <h4>Real-Time Sales Analytics</h4>
+                                    <p>Track daily revenue, best sellers, and growth trends at a glance.</p>
+                                </div>
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-dot">
+                                    <!-- Package / Inventory icon -->
+                                    <svg viewBox="0 0 24 24"><path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                                </div>
+                                <div class="feature-info">
+                                    <h4>Smart Inventory Control</h4>
+                                    <p>Stay on top of stock levels with alerts and transfer management.</p>
+                                </div>
+                            </div>
+                            <div class="feature-row">
+                                <div class="feature-dot">
+                                    <!-- Users / Staff icon -->
+                                    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                                </div>
+                                <div class="feature-info">
+                                    <h4>Staff &amp; Commission Tracking</h4>
+                                    <p>Manage teams, assign roles, and automate commission payouts.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ─── RIGHT: Login Form ─── -->
+                <div class="form-panel">
+
+                    <!-- Mobile-only logo -->
+                    <div class="mobile-logo">
+                        <div class="m-icon">
+                            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="5" y="12" width="22" height="17" rx="3" stroke="white" stroke-width="2" fill="none"/>
+                                <path d="M11 12V9a5 5 0 0 1 10 0v3" stroke="white" stroke-width="2" stroke-linecap="round" fill="none"/>
+                                <path d="M16 18l1.2 2.4 2.6.4-1.9 1.8.5 2.6L16 23.8l-2.4 1.4.5-2.6-1.9-1.8 2.6-.4z" fill="white" opacity="0.9"/>
+                            </svg>
+                        </div>
+                        <div class="m-text">
+                            <span class="m-name">AbiFresh</span>
+                            <span class="m-sub">& Kiddies Ventures</span>
+                        </div>
+                    </div>
+
+                    <div class="form-header">
+                        <h2>Welcome back</h2>
+                        <p>Sign in to access your dashboard</p>
+                    </div>
+
+                    <form autocomplete="off" onsubmit="return false;">
+                        <!-- Username -->
+                        <div class="field">
+                            <label for="username">Username</label>
+                            <div class="input-wrap">
+                                <input id="username" type="text" placeholder="Enter your username" autocomplete="username" required>
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Password -->
+                        <div class="field">
+                            <label for="password">Password</label>
+                            <div class="input-wrap">
+                                <input id="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                </svg>
+                                <button type="button" class="pw-toggle" onclick="togglePw()" aria-label="Toggle password visibility">
+                                    <svg id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    <svg id="eyeClosed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                                        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                                        <line x1="1" y1="1" x2="23" y2="23"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Remember / Forgot -->
+                        <div class="utils-row">
+                            <label class="remember">
+                                <input type="checkbox"> Remember me
+                            </label>
+                            <a href="#" class="forgot-link">Forgot password?</a>
+                        </div>
+
+                        <!-- Button -->
+                        <button type="submit" class="btn-submit">
+                            <span>
+                                Sign In
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                    <polyline points="12 5 19 12 12 19"/>
+                                </svg>
+                            </span>
+                        </button>
+                    </form>
+
+                    <p class="help-text">
+                        Need help? Contact your <a href="#">system administrator</a>.
+                    </p>
+                </div>
+
+            </div>
+
+            <p class="page-footer">&copy; 2026 AbiFresh &amp; Kiddies Ventures. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        function togglePw() {
+            const input = document.getElementById('password');
+            const open  = document.getElementById('eyeOpen');
+            const closed = document.getElementById('eyeClosed');
+            if (input.type === 'password') {
+                input.type = 'text';
+                open.style.display = 'none';
+                closed.style.display = 'block';
+            } else {
+                input.type = 'password';
+                open.style.display = 'block';
+                closed.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

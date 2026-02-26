@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AbiFresh - Login Page Design Previews</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #ec4899 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            font-weight: 800;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .designs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .design-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            animation: slideUp 0.6s ease-out;
+            animation-fill-mode: both;
+        }
+
+        .design-card:nth-child(1) { animation-delay: 0.1s; }
+        .design-card:nth-child(2) { animation-delay: 0.15s; }
+        .design-card:nth-child(3) { animation-delay: 0.2s; }
+        .design-card:nth-child(4) { animation-delay: 0.25s; }
+        .design-card:nth-child(5) { animation-delay: 0.3s; }
+        .design-card:nth-child(6) { animation-delay: 0.35s; }
+        .design-card:nth-child(7) { animation-delay: 0.4s; }
+        .design-card:nth-child(8) { animation-delay: 0.45s; }
+        .design-card:nth-child(9) { animation-delay: 0.5s; }
+        .design-card:nth-child(10) { animation-delay: 0.55s; }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .design-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+        }
+
+        .design-preview {
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .design-preview.design-1 {
+            background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+            color: white;
+        }
+
+        .design-preview.design-2 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #ec4899 100%);
+            color: white;
+        }
+
+        .design-preview.design-3 {
+            background: linear-gradient(135deg, #ec4899, #f472b6, #667eea, #764ba2);
+            background-size: 400% 400%;
+            animation: gradientShift 3s ease infinite;
+            color: white;
+        }
+
+        .design-preview.design-4 {
+            background: #0f172a;
+            color: #ec4899;
+        }
+
+        .design-preview.design-5 {
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><defs><linearGradient id="grad" x1="0%25" y1="0%25" x2="100%25" y2="100%25"><stop offset="0%25" style="stop-color:rgb(34,197,94);stop-opacity:1" /><stop offset="50%25" style="stop-color:rgb(59,130,246);stop-opacity:1" /><stop offset="100%25" style="stop-color:rgb(236,72,153);stop-opacity:1" /></linearGradient></defs><rect width="1200" height="600" fill="url(%23grad)"/></svg>') center/cover;
+            color: white;
+        }
+
+        .design-preview.design-6 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .design-preview.design-7 {
+            background: #f8f9fa;
+            color: #ec4899;
+        }
+
+        .design-preview.design-8 {
+            background: linear-gradient(135deg, #f5f1e8 0%, #e8f4f8 100%);
+            color: #2d3748;
+        }
+
+        .design-preview.design-9 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #ec4899 50%, #f472b6 75%, #fbbf24 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 3s ease infinite;
+            color: white;
+        }
+
+        .design-preview.design-10 {
+            background: #ffffff;
+            color: #000000;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .design-info {
+            padding: 24px;
+        }
+
+        .design-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .design-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+            color: white;
+            border-radius: 50%;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .design-description {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .design-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #f3f4f6;
+            color: #374151;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .tag.modern {
+            background: #fce7f3;
+            color: #ec4899;
+        }
+
+        .tag.animated {
+            background: #e0e7ff;
+            color: #667eea;
+        }
+
+        .tag.glassmorphism {
+            background: #ccfbf1;
+            color: #0d9488;
+        }
+
+        .tag.dark {
+            background: #1f2937;
+            color: #f3f4f6;
+        }
+
+        .design-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            width: 100%;
+        }
+
+        .design-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(236, 72, 153, 0.3);
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid rgba(255, 255, 255, 0.2);
+            font-size: 14px;
+        }
+
+        .footer p {
+            margin-bottom: 10px;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            color: white;
+            margin-bottom: 40px;
+            animation: slideDown 0.7s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .instructions h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .instructions p {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .designs-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>� AbiFresh Login Designs</h1>
+            <p>31 Modern, Responsive Login/Home Page Concepts — Pink Theme Edition</p>
+        </div>
+
+        <div class="instructions">
+            <h3>✨ Choose Your Favourite Design</h3>
+            <p>Click any preview to open full design. Designs 22–31 are newly added clean, no-role login/home concepts with cool backgrounds for mobile and desktop.</p>
+        </div>
+
+        <div class="designs-grid">
+            <!-- Design 1: Gradient Split -->
+            <div class="design-card">
+                <div class="design-preview design-1">🎨</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">1</span>
+                        Gradient Split
+                    </h3>
+                    <p class="design-description">Classic split-screen with pink gradient sidebar and clean form layout.</p>
+                    <div class="design-tags">
+                        <span class="tag modern">Modern</span>
+                        <span class="tag">Classic</span>
+                    </div>
+                    <a href="01_gradient_split.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 2: Glassmorphism -->
+            <div class="design-card">
+                <div class="design-preview design-2">🔮</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">2</span>
+                        Glassmorphism
+                    </h3>
+                    <p class="design-description">Floating glass card with blur backdrop and floating animations.</p>
+                    <div class="design-tags">
+                        <span class="tag glassmorphism">Glass</span>
+                        <span class="tag animated">Animated</span>
+                    </div>
+                    <a href="02_glassmorphism.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 3: Animated Gradient -->
+            <div class="design-card">
+                <div class="design-preview design-3">✨</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">3</span>
+                        Animated Gradient
+                    </h3>
+                    <p class="design-description">Lively animated gradient background with bouncing logo effects.</p>
+                    <div class="design-tags">
+                        <span class="tag animated">Animated</span>
+                        <span class="tag modern">Vibrant</span>
+                    </div>
+                    <a href="03_animated_gradient.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 4: Dark Neon -->
+            <div class="design-card">
+                <div class="design-preview design-4">⚡</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">4</span>
+                        Dark Neon
+                    </h3>
+                    <p class="design-description">Cyberpunk vibes with dark navy theme and neon pink accents.</p>
+                    <div class="design-tags">
+                        <span class="tag dark">Dark Mode</span>
+                        <span class="tag animated">Glow Effects</span>
+                    </div>
+                    <a href="04_dark_neon.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 5: Hero Overlay -->
+            <div class="design-card">
+                <div class="design-preview design-5">🏞️</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">5</span>
+                        Hero Overlay
+                    </h3>
+                    <p class="design-description">Premium feel with SVG hero background and branded badge.</p>
+                    <div class="design-tags">
+                        <span class="tag modern">Premium</span>
+                        <span class="tag">Professional</span>
+                    </div>
+                    <a href="05_hero_overlay.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 6: 3D Shadow -->
+            <div class="design-card">
+                <div class="design-preview design-6">🎯</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">6</span>
+                        3D Shadow
+                    </h3>
+                    <p class="design-description">Depth effect with multi-layered shadows and rotating logo.</p>
+                    <div class="design-tags">
+                        <span class="tag animated">3D Effect</span>
+                        <span class="tag">Rotating</span>
+                    </div>
+                    <a href="06_3d_shadow.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 7: Asymmetric -->
+            <div class="design-card">
+                <div class="design-preview design-7">📐</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">7</span>
+                        Asymmetric
+                    </h3>
+                    <p class="design-description">Side-by-side design with features list and creative shapes.</p>
+                    <div class="design-tags">
+                        <span class="tag modern">Creative</span>
+                        <span class="tag">Info-Rich</span>
+                    </div>
+                    <a href="07_asymmetric.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 7v2: Asymmetric V2 (Improved) -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(160deg,#db2777 0%,#ec4899 40%,#a855f7 100%);">🛍️</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">7v2</span>
+                        Asymmetric V2
+                    </h3>
+                    <p class="design-description">Improved split layout with branded panel, custom logo, retail-focused copy, and no social auth.</p>
+                    <div class="design-tags">
+                        <span class="tag modern">Branded</span>
+                        <span class="tag">Clean</span>
+                        <span class="tag">Polished</span>
+                    </div>
+                    <a href="07_asymmetric_v2.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 8: Neumorphism -->
+            <div class="design-card">
+                <div class="design-preview design-8">🎨</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">8</span>
+                        Neumorphism
+                    </h3>
+                    <p class="design-description">Soft elegant UI with subtle shadows and light beige tones.</p>
+                    <div class="design-tags">
+                        <span class="tag">Soft UI</span>
+                        <span class="tag">Elegant</span>
+                    </div>
+                    <a href="08_neumorphism.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 9: Vibrant Mesh -->
+            <div class="design-card">
+                <div class="design-preview design-9">🌈</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">9</span>
+                        Vibrant Mesh
+                    </h3>
+                    <p class="design-description">Bold animated gradient mesh with premium feel and color play.</p>
+                    <div class="design-tags">
+                        <span class="tag modern">Bold</span>
+                        <span class="tag animated">Colorful</span>
+                    </div>
+                    <a href="09_vibrant_mesh.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 10: Minimalist -->
+            <div class="design-card">
+                <div class="design-preview design-10">⚫</div>
+                <div class="design-info">
+                    <h3 class="design-title">
+                        <span class="design-number">10</span>
+                        Minimalist
+                    </h3>
+                    <p class="design-description">Apple-style minimalism with clean black/white and dark mode support.</p>
+                    <div class="design-tags">
+                        <span class="tag">Minimal</span>
+                        <span class="tag dark">Dark Mode</span>
+                    </div>
+                    <a href="10_minimalist.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+        </div>
+
+            <!-- ===== NEW PINK DESIGNS 11–21 ===== -->
+
+            <!-- Design 11: Pink Blossom -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#fce7f3,#ec4899)">🌸</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">11</span>Pink Blossom</h3>
+                    <p class="design-description">Elegant split-screen with animated falling sakura petals and a beautiful gradient brand panel.</p>
+                    <div class="design-tags"><span class="tag modern">Animated</span><span class="tag">Split Screen</span></div>
+                    <a href="11_pink_blossom.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 12: Neon Dark -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#0a0010,#3d0030)">💜</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">12</span>Neon Dark</h3>
+                    <p class="design-description">Ultra-dark background with vibrant pink neon glows, grid lines, and glassmorphism card.</p>
+                    <div class="design-tags"><span class="tag dark">Dark Mode</span><span class="tag animated">Neon Glow</span></div>
+                    <a href="12_neon_dark.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 13: Pastel Dream -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#fce7f3,#fbcfe8,#fde68a 90%)">☁️</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">13</span>Pastel Dream</h3>
+                    <p class="design-description">Soft animated pastel blobs with elegant Cormorant serif typography and frosted-glass form.</p>
+                    <div class="design-tags"><span class="tag modern">Soft Pink</span><span class="tag animated">Blobs</span></div>
+                    <a href="13_pastel_dream.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 14: Crystal Pink -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#1a0828,#6b0050)">💎</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">14</span>Crystal Pink</h3>
+                    <p class="design-description">Dark canvas with animated triangular geometric grid, gradient orbs, and a hero bold text panel.</p>
+                    <div class="design-tags"><span class="tag dark">Dark</span><span class="tag animated">Geometric</span></div>
+                    <a href="14_crystal_pink.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 15: Aurora Pink -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#0d0118,#4a0040)">🌌</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">15</span>Aurora Pink</h3>
+                    <p class="design-description">Stunning aurora borealis bands + starfield background with a role-card selector inside glass form.</p>
+                    <div class="design-tags"><span class="tag dark">Cosmic</span><span class="tag animated">Aurora</span></div>
+                    <a href="15_aurora_pink.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 16: Rose Minimal -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#ffffff,#fdf2f8)">🥀</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">16</span>Rose Minimal</h3>
+                    <p class="design-description">Ultra-clean white split layout with a thin pink accent bar, stat cards, and bold serif hero text.</p>
+                    <div class="design-tags"><span class="tag">Minimal</span><span class="tag modern">Clean</span></div>
+                    <a href="16_rose_minimal.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 17: Luxury Gold Pink -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#0c0008,#3d0020)">👑</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">17</span>Luxury Gold &amp; Pink</h3>
+                    <p class="design-description">Premium luxury aesthetic — animated gold text shimmer, Cinzel serif, gold border accents and crown icon.</p>
+                    <div class="design-tags"><span class="tag dark">Luxury</span><span class="tag modern">Gold</span></div>
+                    <a href="17_luxury_gold_pink.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 18: Wave Flow -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#fff1f8,#fce7f3)">🌊</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">18</span>Wave Flow</h3>
+                    <p class="design-description">Playful animated SVG waves top and bottom with a split info+form layout and bright, cheerful stats.</p>
+                    <div class="design-tags"><span class="tag animated">Waves</span><span class="tag modern">Playful</span></div>
+                    <a href="18_wave_flow.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 19: Particle Pink -->
+            <div class="design-card">
+                <div class="design-preview" style="background:radial-gradient(ellipse,#2d0022,#0a0008)">✨</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">19</span>Particle Pink</h3>
+                    <p class="design-description">Live canvas particle system with rising pink particles, gradient glow card and an animated pulsing status dot.</p>
+                    <div class="design-tags"><span class="tag dark">Particles</span><span class="tag animated">Canvas</span></div>
+                    <a href="19_particle_pink.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 20: Dashboard Preview -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#be185d,#ec4899,#f9a8d4)">📊</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">20</span>Dashboard Preview</h3>
+                    <p class="design-description">Left panel shows live dashboard mockup cards (revenue, stock, sales chart) while the clean form is on the right.</p>
+                    <div class="design-tags"><span class="tag modern">Dashboard</span><span class="tag">Data-Rich</span></div>
+                    <a href="20_dashboard_preview.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 21: Morphism Pro -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#fdf2f8,#fbcfe8,#f9a8d4)">🌷</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">21</span>Morphism Pro</h3>
+                    <p class="design-description">Animated morphing pink blob shapes + dot pattern with a gorgeous frosted-glass card featuring role icon grid.</p>
+                    <div class="design-tags"><span class="tag glassmorphism">Glassmorphism</span><span class="tag animated">Morphing</span></div>
+                    <a href="21_morphism_pro.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 22: Gradient Orbital -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#12041d,#ec4899,#a855f7)">🪐</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">22</span>Gradient Orbital</h3>
+                    <p class="design-description">Vibrant orbital glow background with clean split layout and no role-based login.</p>
+                    <div class="design-tags"><span class="tag modern">No Roles</span><span class="tag animated">Orb Glow</span></div>
+                    <a href="22_gradient_orbital.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 23: Sunset Mesh -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#fff1f2,#ffe4e6,#fdf2f8)">🌅</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">23</span>Sunset Mesh</h3>
+                    <p class="design-description">Soft mesh gradients, clean typography, and focused single-login panel.</p>
+                    <div class="design-tags"><span class="tag modern">Clean</span><span class="tag">Pastel Mesh</span></div>
+                    <a href="23_sunset_mesh.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 24: Paper Cut Layers -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#fff7fb,#fbcfe8)">📄</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">24</span>Paper Cut Layers</h3>
+                    <p class="design-description">Layered abstract background shapes with elegant clean home/login layout.</p>
+                    <div class="design-tags"><span class="tag">Layered</span><span class="tag modern">No Roles</span></div>
+                    <a href="24_paper_cut.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 25: Night Sky Glass -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#14001f,#3b0a3b)">🌙</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">25</span>Night Sky Glass</h3>
+                    <p class="design-description">Dark starry background with premium glass card and simple sign-in flow.</p>
+                    <div class="design-tags"><span class="tag dark">Dark</span><span class="tag glassmorphism">Glass</span></div>
+                    <a href="25_night_sky_glass.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 26: Soft Card Stack -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#fff7fb,#fce7f3)">🗂️</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">26</span>Soft Card Stack</h3>
+                    <p class="design-description">Modern stacked-card illusion with cozy pink aesthetic and clean login form.</p>
+                    <div class="design-tags"><span class="tag modern">Soft UI</span><span class="tag">Minimal</span></div>
+                    <a href="26_soft_card_stack.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 27: Cyber Pink Light -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#ffffff,#ffe4e6,#fbcfe8)">🧬</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">27</span>Cyber Pink Light</h3>
+                    <p class="design-description">Futuristic grid + scanline background in a bright clean palette, no role selectors.</p>
+                    <div class="design-tags"><span class="tag animated">Motion</span><span class="tag modern">No Roles</span></div>
+                    <a href="27_cyber_pink_light.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 28: Fluid Blobs -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#fff1f7,#ec4899,#a855f7)">🫧</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">28</span>Fluid Blobs</h3>
+                    <p class="design-description">Animated fluid blob background with smooth card and concise onboarding write-up.</p>
+                    <div class="design-tags"><span class="tag animated">Fluid</span><span class="tag">Clean Copy</span></div>
+                    <a href="28_fluid_blobs.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 29: Editorial Clean -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#ffffff,#fdf2f8)">📰</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">29</span>Editorial Clean</h3>
+                    <p class="design-description">Magazine-inspired typography and minimalist structure for premium clarity.</p>
+                    <div class="design-tags"><span class="tag">Editorial</span><span class="tag modern">Minimal</span></div>
+                    <a href="29_editorial_clean.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 30: Glow Border Minimal -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#0f0818,#ec4899,#a855f7)">💠</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">30</span>Glow Border Minimal</h3>
+                    <p class="design-description">Dark minimal concept with animated glowing border around the login panel.</p>
+                    <div class="design-tags"><span class="tag dark">Dark</span><span class="tag animated">Glow Border</span></div>
+                    <a href="30_glow_border_minimal.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+            <!-- Design 31: Auric Home Login -->
+            <div class="design-card">
+                <div class="design-preview" style="background:linear-gradient(135deg,#fff8fc,#fce7f3,#db2777)">🏠</div>
+                <div class="design-info">
+                    <h3 class="design-title"><span class="design-number">31</span>Auric Home Login</h3>
+                    <p class="design-description">Balanced home-message + login card layout with elegant ring background and clean UX.</p>
+                    <div class="design-tags"><span class="tag modern">Home+Login</span><span class="tag">Responsive</span></div>
+                    <a href="31_auric_home_login.html" class="design-button" target="_blank">Preview Design</a>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <p>💡 All 31 designs are fully responsive — optimized for mobile, tablet, and desktop.</p>
+            <p>🌸 Designs 22–31 are clean no-role login/home themes with cool pink-first modern backgrounds.</p>
+        </div>
+    </div>
+</body>
+</html>

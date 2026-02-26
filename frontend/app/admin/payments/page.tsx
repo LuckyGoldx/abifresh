@@ -91,6 +91,16 @@ export default function PaymentsPage() {
     filterPayments();
   }, [payments, searchTerm, statusFilter, paymentTypeFilter, dateRange, sortBy, sortOrder]);
 
+  useEffect(() => {
+    if (showDetailsModal && selectedPayment) {
+      console.log('📋 Admin Payment Details Modal opened with data:', selectedPayment);
+      console.log('  - staff_phone:', selectedPayment.staff_phone);
+      console.log('  - reference_number:', selectedPayment.reference_number);
+      console.log('  - receipt_url:', selectedPayment.receipt_url);
+      console.log('  - items_paid_for:', selectedPayment.items_paid_for);
+    }
+  }, [showDetailsModal, selectedPayment]);
+
   const fetchPayments = async () => {
     try {
       setIsLoading(true);

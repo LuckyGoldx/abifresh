@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AKV – Pink Particle</title>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Manrope', sans-serif;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at center, #2d0022 0%, #0a0008 70%);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    canvas#p { position: fixed; inset: 0; pointer-events: none; }
+
+    .page {
+      position: relative; z-index: 5;
+      width: 100%; max-width: 500px;
+      padding: 20px;
+    }
+
+    /* Brand ribbon up top */
+    .brand-ribbon {
+      text-align: center; margin-bottom: 24px;
+    }
+    .ribbon-inner {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 24px; border-radius: 50px;
+      border: 1px solid rgba(244,63,142,.3);
+      background: rgba(244,63,142,.1);
+      backdrop-filter: blur(10px);
+    }
+    .ribbon-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #f43f8e;
+      animation: pulse-dot 2s ease-in-out infinite;
+      box-shadow: 0 0 8px #f43f8e;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: .7; }
+    }
+    .ribbon-text {
+      font-size: 12px; font-weight: 600; color: #fda4c7;
+      letter-spacing: 1px;
+    }
+
+    .main-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(244,63,142,.18);
+      border-radius: 30px;
+      backdrop-filter: blur(36px);
+      box-shadow: 0 0 100px rgba(244,63,142,.08), 0 40px 80px rgba(0,0,0,.5);
+      overflow: hidden;
+    }
+
+    /* Pink gradient header */
+    .card-top {
+      padding: 36px 44px 32px;
+      background: linear-gradient(135deg, rgba(244,63,142,.2), rgba(168,85,247,.12));
+      border-bottom: 1px solid rgba(244,63,142,.1);
+      text-align: center;
+    }
+
+    .brand-logo-text {
+      font-size: 13px; font-weight: 600; letter-spacing: 3px;
+      text-transform: uppercase; color: rgba(255,255,255,.5);
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 30px; font-weight: 800; color: white;
+      margin-bottom: 6px;
+    }
+    .sub { font-size: 13px; color: rgba(255,255,255,.35); }
+
+    /* Role bubbles */
+    .roles {
+      display: flex; justify-content: center; gap: 10px; margin-top: 20px;
+    }
+    .rb {
+      padding: 7px 18px; border-radius: 50px;
+      border: 1px solid rgba(244,63,142,.2); background: transparent;
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,.4); cursor: pointer; transition: all .2s;
+    }
+    .rb.on {
+      background: rgba(244,63,142,.3); border-color: #f43f8e; color: #fda4c7;
+      box-shadow: 0 0 16px rgba(244,63,142,.2);
+    }
+    .rb:hover:not(.on) { border-color: rgba(244,63,142,.5); color: rgba(255,255,255,.7); }
+
+    .card-body {
+      padding: 32px 44px 42px;
+    }
+
+    .f { margin-bottom: 14px; }
+    .f label {
+      font-size: 11px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: rgba(255,255,255,.3);
+      display: block; margin-bottom: 7px;
+    }
+    .f-inner { position: relative; }
+    .f-inner input {
+      width: 100%; padding: 12px 44px 12px 42px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(244,63,142,.15); border-radius: 12px;
+      font-family: inherit; font-size: 14px; color: white; outline: none;
+      transition: all .2s;
+    }
+    .f-inner input::placeholder { color: rgba(255,255,255,.18); }
+    .f-inner input:focus {
+      border-color: rgba(244,63,142,.6);
+      background: rgba(244,63,142,.07);
+      box-shadow: 0 0 0 3px rgba(244,63,142,.1), 0 0 30px rgba(244,63,142,.08);
+    }
+    .fi {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      font-size: 16px; pointer-events: none;
+    }
+    .fi.l { left: 13px; }
+    .fi.r { right: 13px; cursor: pointer; pointer-events: auto; }
+
+    .meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 16px 0 24px;
+    }
+    .chk { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,.3); cursor: pointer; }
+    .chk input { accent-color: #f43f8e; }
+    .fp { font-size: 12px; color: #f472b6; text-decoration: none; }
+
+    .particle-btn {
+      width: 100%; padding: 14px;
+      border: none; border-radius: 14px; cursor: pointer;
+      font-family: inherit; font-size: 15px; font-weight: 700; color: white;
+      background: linear-gradient(135deg, #f43f8e, #ec4899, #db2777);
+      position: relative; overflow: hidden;
+      box-shadow: 0 8px 30px rgba(244,63,142,.45);
+      transition: all .25s;
+    }
+    .particle-btn::before {
+      content: '';
+      position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
+      background: linear-gradient(135deg, #f43f8e, #a855f7, #f43f8e);
+      background-size: 200% 200%;
+      border-radius: inherit;
+      animation: border-spin 3s linear infinite;
+      z-index: -1;
+    }
+    @keyframes border-spin {
+      to { background-position: 200% 200%; }
+    }
+    .particle-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 40px rgba(244,63,142,.55);
+    }
+
+    .footnote {
+      text-align: center; margin-top: 20px;
+      font-size: 12px; color: rgba(255,255,255,.2);
+    }
+    .footnote a { color: #f472b6; text-decoration: none; }
+
+    @media (max-width: 520px) {
+      .card-top, .card-body { padding-left: 24px; padding-right: 24px; }
+      h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="p"></canvas>
+  <script>
+    const canvas = document.getElementById('p');
+    const ctx = canvas.getContext('2d');
+    let W, H, particles = [];
+
+    function resize() {
+      W = canvas.width = innerWidth;
+      H = canvas.height = innerHeight;
+    }
+
+    class Particle {
+      constructor() { this.reset(true); }
+      reset(init) {
+        this.x = Math.random() * W;
+        this.y = init ? Math.random() * H : H + 10;
+        this.r = Math.random() * 2 + .5;
+        this.vy = -(Math.random() * .6 + .2);
+        this.vx = (Math.random() - .5) * .3;
+        this.alpha = Math.random() * .5 + .1;
+        this.hue = 330 + Math.random() * 50;
+      }
+      update() {
+        this.x += this.vx; this.y += this.vy;
+        if (this.y < -10) this.reset(false);
+      }
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = `hsl(${this.hue}, 90%, 70%)`;
+        ctx.shadowBlur = 8; ctx.shadowColor = `hsl(${this.hue}, 90%, 70%)`;
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+    function animate() {
+      ctx.clearRect(0, 0, W, H);
+      particles.forEach(p => { p.update(); p.draw(); });
+      requestAnimationFrame(animate);
+    }
+    animate();
+  </script>
+
+  <div class="page">
+    <div class="brand-ribbon">
+      <div class="ribbon-inner">
+        <div class="ribbon-dot"></div>
+        <div class="ribbon-text">Abifresh &amp; Kiddies Ventures — Live</div>
+      </div>
+    </div>
+
+    <div class="main-card">
+      <div class="card-top">
+        <div class="brand-logo-text">Business Management System</div>
+        <h1>Sign In to AKV</h1>
+        <p class="sub">Access your personalized dashboard</p>
+        <div class="roles">
+          <button class="rb on">Admin</button>
+          <button class="rb">Sales</button>
+          <button class="rb">Staff</button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="f">
+          <label>Email Address</label>
+          <div class="f-inner">
+            <span class="fi l">📧</span>
+            <input type="email" placeholder="your@email.com"/>
+          </div>
+        </div>
+        <div class="f">
+          <label>Password</label>
+          <div class="f-inner">
+            <span class="fi l">🔐</span>
+            <input type="password" placeholder="••••••••••"/>
+            <span class="fi r">👁</span>
+          </div>
+        </div>
+
+        <div class="meta">
+          <label class="chk"><input type="checkbox"/> Remember me</label>
+          <a href="#" class="fp">Forgot password?</a>
+        </div>
+
+        <button class="particle-btn">Access My Dashboard</button>
+        <div class="footnote">New user? <a href="#">Request access</a></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

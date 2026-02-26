@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AKV - Sunset Mesh</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;background:linear-gradient(135deg,#fff1f2,#ffe4e6,#fdf2f8);color:#111827}
+.mesh{position:fixed;inset:0;background:
+radial-gradient(circle at 20% 15%,rgba(244,63,94,.28),transparent 30%),
+radial-gradient(circle at 80% 25%,rgba(236,72,153,.24),transparent 35%),
+radial-gradient(circle at 35% 75%,rgba(251,113,133,.25),transparent 35%),
+radial-gradient(circle at 85% 85%,rgba(217,70,239,.2),transparent 30%);
+pointer-events:none}
+.page{position:relative;z-index:2;max-width:1140px;margin:0 auto;min-height:100vh;display:grid;grid-template-columns:1fr 430px;align-items:center;gap:30px;padding:34px}
+.left h1{font-size:58px;line-height:1.08;letter-spacing:-1px}
+.left h1 span{color:#e11d48}
+.left p{margin-top:16px;max-width:560px;line-height:1.7;color:#374151}
+.grid{margin-top:24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:620px}
+.grid .item{padding:14px;border-radius:14px;background:rgba(255,255,255,.7);border:1px solid rgba(236,72,153,.18);font-size:14px}
+.form{background:rgba(255,255,255,.78);backdrop-filter:blur(16px);border:1px solid rgba(236,72,153,.22);border-radius:24px;padding:28px;box-shadow:0 20px 60px rgba(190,24,93,.15)}
+.brand{font-size:12px;font-weight:700;letter-spacing:2px;color:#9f1239;text-transform:uppercase;margin-bottom:8px}
+.form h2{font-size:30px}
+.form .desc{font-size:14px;color:#6b7280;margin:8px 0 18px}
+.input{margin-bottom:12px}
+.input label{font-size:12px;color:#374151;display:block;margin-bottom:6px}
+.input input{width:100%;padding:12px;border-radius:12px;border:1px solid #fbcfe8;background:#fff;outline:none}
+.input input:focus{border-color:#ec4899;box-shadow:0 0 0 3px rgba(236,72,153,.15)}
+.meta{display:flex;justify-content:space-between;font-size:12px;margin-bottom:14px;color:#6b7280}
+.meta a{color:#db2777;text-decoration:none}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#ec4899,#e11d48);color:#fff;font-weight:700;cursor:pointer}
+.foot{margin-top:12px;text-align:center;font-size:12px;color:#6b7280}
+@media (max-width:930px){.page{grid-template-columns:1fr;padding:20px}.left h1{font-size:40px}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="mesh"></div>
+<div class="page">
+  <section class="left">
+    <h1>A cleaner way to <span>manage</span> your business day.</h1>
+    <p>AKV gives you one calm workspace for sales, stock, and operations, so your team can focus on what matters most: serving customers better.</p>
+    <div class="grid">
+      <div class="item">✅ Fast sales tracking</div>
+      <div class="item">✅ Low-stock visibility</div>
+      <div class="item">✅ Better team coordination</div>
+      <div class="item">✅ Reliable daily insights</div>
+    </div>
+  </section>
+  <section class="form">
+    <div class="brand">Abifresh & Kiddies Ventures</div>
+    <h2>Sign In</h2>
+    <div class="desc">Welcome back — your dashboard is ready.</div>
+    <div class="input"><label>Email</label><input type="email" placeholder="you@company.com"></div>
+    <div class="input"><label>Password</label><input type="password" placeholder="Enter your password"></div>
+    <div class="meta"><label><input type="checkbox"> Keep me signed in</label><a href="#">Forgot?</a></div>
+    <button class="btn">Continue</button>
+    <div class="foot">Need help? Contact your admin team.</div>
+  </section>
+</div>
+</body>
+</html>

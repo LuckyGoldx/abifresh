@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AKV - Soft Card Stack</title>
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Urbanist,sans-serif;min-height:100vh;background:linear-gradient(135deg,#fff7fb,#fdf2f8,#fce7f3);display:grid;place-items:center;padding:20px}
+.wrap{position:relative;max-width:430px;width:100%}
+.stack{position:absolute;inset:0;border-radius:26px;transform:translate(10px,10px);background:rgba(236,72,153,.16)}
+.stack2{position:absolute;inset:0;border-radius:26px;transform:translate(18px,18px);background:rgba(190,24,93,.1)}
+.card{position:relative;background:#fff;border:1px solid #fbcfe8;border-radius:26px;padding:30px;box-shadow:0 22px 60px rgba(190,24,93,.16)}
+.brand{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#be185d;margin-bottom:6px}
+h1{font-size:28px;color:#111827;margin-bottom:6px}
+.p{font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:16px}
+.blurb{padding:10px 12px;border-radius:10px;background:#fff1f8;color:#9d174d;font-size:13px;line-height:1.5;margin-bottom:15px}
+.f{margin-bottom:11px}
+.f label{font-size:12px;color:#374151;display:block;margin-bottom:5px}
+.f input{width:100%;padding:12px;border:1px solid #fbcfe8;border-radius:11px;outline:none}
+.f input:focus{border-color:#ec4899;box-shadow:0 0 0 3px rgba(236,72,153,.15)}
+.row{display:flex;justify-content:space-between;font-size:12px;color:#6b7280;margin:4px 0 14px}
+.row a{color:#db2777;text-decoration:none}
+.btn{width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;font-weight:800;cursor:pointer}
+.hint{text-align:center;margin-top:12px;font-size:12px;color:#6b7280}
+.home{margin-top:16px;padding:12px;border:1px dashed #f9a8d4;border-radius:12px;font-size:13px;color:#9d174d;background:#fff9fc}
+@media (max-width:520px){.card{padding:24px}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="stack2"></div>
+    <div class="stack"></div>
+    <div class="card">
+      <div class="brand">Abifresh & Kiddies Ventures</div>
+      <h1>Welcome Home</h1>
+      <p class="p">A simple, modern space to access your AKV dashboard and keep business operations smooth all day.</p>
+      <div class="blurb">“Small daily improvements create strong business results.”</div>
+      <div class="f"><label>Email Address</label><input type="email" placeholder="you@abifresh.com"></div>
+      <div class="f"><label>Password</label><input type="password" placeholder="Enter password"></div>
+      <div class="row"><label><input type="checkbox"> Remember this device</label><a href="#">Forgot?</a></div>
+      <button class="btn">Sign In</button>
+      <div class="hint">Need a new account? Contact admin.</div>
+      <div class="home">🏠 Home tip: Check today’s sales and low-stock alerts first after login.</div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AKV - Paper Cut Layers</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Outfit,sans-serif;min-height:100vh;background:#fff7fb;display:grid;place-items:center;overflow:hidden}
+.layer{position:fixed;border-radius:40% 60% 58% 42% / 42% 49% 51% 58%;pointer-events:none}
+.l1{width:620px;height:620px;background:#fce7f3;top:-230px;left:-160px}
+.l2{width:520px;height:520px;background:#fbcfe8;right:-180px;top:-140px}
+.l3{width:540px;height:540px;background:#f9a8d4;opacity:.4;bottom:-220px;right:20%}
+.wrap{position:relative;z-index:2;max-width:980px;width:100%;padding:24px}
+.panel{background:#fff;border:1px solid #fbcfe8;border-radius:30px;box-shadow:0 24px 70px rgba(190,24,93,.14);overflow:hidden;display:grid;grid-template-columns:1fr 390px}
+.info{padding:44px 40px;background:linear-gradient(155deg,#fff,#fff1f8)}
+.info .tag{display:inline-block;padding:6px 12px;border-radius:999px;background:#fce7f3;color:#be185d;font-size:12px;margin-bottom:14px}
+.info h1{font-size:48px;line-height:1.1;color:#111827}
+.info p{margin-top:14px;line-height:1.7;color:#4b5563;max-width:500px}
+.line{margin-top:18px;display:grid;gap:10px}
+.line div{font-size:14px;color:#9d174d}
+.form{padding:34px;background:#fff}
+.brand{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9ca3af;margin-bottom:8px}
+.form h2{font-size:28px;color:#111827}
+.small{font-size:14px;color:#6b7280;margin:8px 0 16px}
+.f{margin-bottom:12px}
+.f label{font-size:12px;display:block;margin-bottom:5px;color:#374151}
+.f input{width:100%;padding:12px;border-radius:11px;border:1px solid #fbcfe8;outline:none}
+.f input:focus{border-color:#ec4899;box-shadow:0 0 0 3px rgba(236,72,153,.16)}
+.r{display:flex;justify-content:space-between;font-size:12px;margin:4px 0 14px;color:#6b7280}
+.r a{color:#db2777;text-decoration:none}
+.btn{width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,#ec4899,#be185d);color:#fff;font-weight:700;cursor:pointer}
+.note{font-size:12px;text-align:center;color:#6b7280;margin-top:12px}
+@media (max-width:900px){.panel{grid-template-columns:1fr}.info h1{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="layer l1"></div><div class="layer l2"></div><div class="layer l3"></div>
+<div class="wrap">
+  <div class="panel">
+    <section class="info">
+      <div class="tag">AKV Workspace</div>
+      <h1>Organize every business move from one home page.</h1>
+      <p>From inventory checks to daily sales monitoring, AKV helps you keep operations clear, simple, and on track every single day.</p>
+      <div class="line">
+        <div>• Cleaner workflows for your team</div>
+        <div>• Faster access to key data</div>
+        <div>• Better decisions with less stress</div>
+      </div>
+    </section>
+    <section class="form">
+      <div class="brand">Abifresh & Kiddies Ventures</div>
+      <h2>Login</h2>
+      <div class="small">Use your account details to continue.</div>
+      <div class="f"><label>Email address</label><input type="email" placeholder="name@abifresh.com"></div>
+      <div class="f"><label>Password</label><input type="password" placeholder="Your password"></div>
+      <div class="r"><label><input type="checkbox"> Remember me</label><a href="#">Forgot password?</a></div>
+      <button class="btn">Open Dashboard</button>
+      <div class="note">Need access? Contact system administrator.</div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

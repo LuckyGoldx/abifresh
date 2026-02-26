@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AKV - Night Sky Glass</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Manrope,sans-serif;min-height:100vh;background:radial-gradient(circle at 20% 20%,#3b0a3b,#14001f 55%,#09000f);color:#fff;display:grid;place-items:center;overflow:hidden}
+.stars{position:fixed;inset:0;background-image:radial-gradient(#fff 1px,transparent 1px);background-size:3px 3px;opacity:.15}
+.glow{position:fixed;width:500px;height:500px;border-radius:50%;filter:blur(70px);background:#ec4899;right:-180px;top:-120px;opacity:.35}
+.shell{position:relative;z-index:2;max-width:1020px;width:100%;padding:22px;display:grid;grid-template-columns:1fr 410px;gap:26px;align-items:center}
+.left h1{font-size:54px;line-height:1.08;letter-spacing:-1px}
+.left h1 span{color:#f9a8d4}
+.left p{margin-top:14px;max-width:540px;line-height:1.72;color:rgba(255,255,255,.84)}
+.kpis{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap}
+.kpi{padding:10px 14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;font-size:13px}
+.form{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.24);border-radius:24px;padding:26px;backdrop-filter:blur(18px)}
+.form .name{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#fbcfe8;margin-bottom:8px}
+.form h2{font-size:31px}
+.form .x{font-size:14px;color:rgba(255,255,255,.84);margin:8px 0 16px}
+.f{margin-bottom:11px}
+.f label{font-size:12px;display:block;margin-bottom:6px;color:#fbcfe8}
+.f input{width:100%;padding:12px;border-radius:11px;border:1px solid rgba(255,255,255,.24);background:rgba(9,0,15,.35);color:#fff;outline:none}
+.f input:focus{border-color:#f9a8d4;box-shadow:0 0 0 3px rgba(249,168,212,.2)}
+.r{display:flex;justify-content:space-between;font-size:12px;margin:4px 0 14px;color:#e5e7eb}
+.r a{color:#f9a8d4;text-decoration:none}
+.b{width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,#ec4899,#db2777,#a855f7);color:white;font-weight:800;cursor:pointer}
+.t{text-align:center;font-size:12px;color:#f3f4f6;margin-top:12px;opacity:.85}
+@media (max-width:900px){.shell{grid-template-columns:1fr}.left h1{font-size:38px}}
+</style>
+</head>
+<body>
+<div class="stars"></div><div class="glow"></div>
+<div class="shell">
+  <section class="left">
+    <h1>Business control that feels <span>effortless</span>.</h1>
+    <p>One elegant homepage for your team to manage stock, sales, and operations with speed — on desktop in the office and mobile on the move.</p>
+    <div class="kpis">
+      <div class="kpi">📊 Daily Snapshot</div>
+      <div class="kpi">🧾 Transaction Tracking</div>
+      <div class="kpi">📦 Inventory Health</div>
+    </div>
+  </section>
+  <section class="form">
+    <div class="name">Abifresh & Kiddies Ventures</div>
+    <h2>Sign in</h2>
+    <div class="x">Welcome back — let’s continue where you left off.</div>
+    <div class="f"><label>Email</label><input type="email" placeholder="email@example.com"></div>
+    <div class="f"><label>Password</label><input type="password" placeholder="••••••••"></div>
+    <div class="r"><label><input type="checkbox"> Keep me logged in</label><a href="#">Forgot password?</a></div>
+    <button class="b">Login Securely</button>
+    <div class="t">Problems signing in? Contact support.</div>
+  </section>
+</div>
+</body>
+</html>

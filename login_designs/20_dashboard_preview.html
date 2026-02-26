@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AKV – Dashboard Preview Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background: #fcf2f8;
+      display: flex; align-items: stretch;
+    }
+
+    /* Left: big dashboard mockup / showcase */
+    .showcase {
+      flex: 1.1;
+      background: linear-gradient(150deg, #be185d 0%, #ec4899 40%, #f9a8d4 100%);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 60px 50px;
+      position: relative; overflow: hidden;
+    }
+
+    /* BG circles */
+    .sc-circle {
+      position: absolute; border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.12);
+      pointer-events: none;
+    }
+    .sc-c1 { width: 500px; height: 500px; top: -150px; right: -150px; }
+    .sc-c2 { width: 300px; height: 300px; bottom: -100px; left: -80px; }
+
+    .sc-title {
+      position: relative; z-index: 2; text-align: center; margin-bottom: 36px;
+    }
+    .sc-title h2 {
+      font-size: 38px; font-weight: 800; color: white; line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .sc-title p {
+      font-size: 14px; color: rgba(255,255,255,.7); max-width: 360px; line-height: 1.6;
+    }
+
+    /* Dashboard mockup cards */
+    .mockup-grid {
+      position: relative; z-index: 2;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; width: 100%; max-width: 440px;
+    }
+    .m-card {
+      background: rgba(255,255,255,.15);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 16px; padding: 18px;
+    }
+    .m-card.wide { grid-column: span 2; }
+    .m-card-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: rgba(255,255,255,.6); margin-bottom: 8px;
+    }
+    .m-card-val {
+      font-size: 24px; font-weight: 800; color: white;
+    }
+    .m-card-sub { font-size: 11px; color: rgba(255,255,255,.5); margin-top: 2px; }
+
+    /* Mini bar chart */
+    .mini-bars {
+      display: flex; align-items: flex-end; gap: 5px; height: 40px;
+      margin-top: 8px;
+    }
+    .bar {
+      flex: 1; background: rgba(255,255,255,.25); border-radius: 3px 3px 0 0;
+      transition: all .3s;
+    }
+    .bar:hover { background: rgba(255,255,255,.5); }
+    .bar.hi { background: rgba(255,255,255,.65); }
+
+    /* Mini line */
+    .mini-trend {
+      display: flex; align-items: flex-end; gap: 3px; height: 30px;
+      margin-top: 6px;
+    }
+    .dot-line { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.7); }
+
+    /* Right: form */
+    .form-side {
+      width: 430px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 36px;
+    }
+
+    .login-panel {
+      width: 100%;
+    }
+
+    .top-logo {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 36px;
+    }
+    .top-logo .sq {
+      width: 40px; height: 40px; border-radius: 11px;
+      background: linear-gradient(135deg, #f43f8e, #be185d);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px; font-weight: 800; color: white;
+      box-shadow: 0 6px 18px rgba(244,63,142,.35);
+    }
+    .top-logo .wrd { font-size: 14px; font-weight: 700; color: #1f2937; }
+    .top-logo .sm  { font-size: 11px; color: #9ca3af; }
+
+    h2 { font-size: 26px; font-weight: 800; color: #111827; margin-bottom: 4px; }
+    .fsub { font-size: 13px; color: #9ca3af; margin-bottom: 28px; }
+
+    /* Tab strip */
+    .strip {
+      display: flex; border: 1.5px solid #fce7f3; border-radius: 12px;
+      overflow: hidden; margin-bottom: 22px;
+    }
+    .strip-tab {
+      flex: 1; padding: 10px 6px; text-align: center;
+      border: none; background: transparent;
+      font-family: inherit; font-size: 12px; font-weight: 600;
+      color: #c026d3; cursor: pointer; transition: all .14s;
+      border-right: 1px solid #fce7f3;
+    }
+    .strip-tab:last-child { border-right: none; }
+    .strip-tab.act { background: #fce7f3; color: #be185d; }
+
+    .fi { margin-bottom: 14px; }
+    .fi label { font-size: 12px; font-weight: 600; color: #374151; display: block; margin-bottom: 7px; }
+    .fi-w { position: relative; }
+    .fi-w input {
+      width: 100%; padding: 11px 14px 11px 40px;
+      border: 1.5px solid #f3f4f6; border-radius: 10px;
+      font-family: inherit; font-size: 13px; color: #111827;
+      background: white; outline: none; transition: all .2s;
+    }
+    .fi-w input:focus { border-color: #ec4899; box-shadow: 0 0 0 3px rgba(236,72,153,.08); }
+    .fi-w input::placeholder { color: #d1d5db; }
+    .fi-w .ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; }
+
+    .flex-row { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 20px; }
+    .ck { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; cursor: pointer; }
+    .ck input { accent-color: #ec4899; }
+    .fgt { font-size: 12px; color: #ec4899; text-decoration: none; font-weight: 600; }
+
+    .go {
+      width: 100%; padding: 13px;
+      border: none; border-radius: 11px; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 700; color: white;
+      background: linear-gradient(135deg, #f43f8e, #ec4899);
+      box-shadow: 0 6px 20px rgba(244,63,142,.35); transition: all .22s;
+    }
+    .go:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(244,63,142,.45); }
+
+    .footnote { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 18px; }
+    .footnote a { color: #ec4899; text-decoration: none; }
+
+    /* Secure badge */
+    .secure-badge {
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      margin-top: 24px; font-size: 11px; color: #d1d5db;
+    }
+    .lock { font-size: 13px; }
+
+    @media (max-width: 960px) { .showcase { display: none; } }
+    @media (max-width: 480px) { .form-side { padding: 24px 20px; } h2 { font-size: 22px; } }
+  </style>
+</head>
+<body>
+  <!-- Left showcase -->
+  <div class="showcase">
+    <div class="sc-circle sc-c1"></div>
+    <div class="sc-circle sc-c2"></div>
+
+    <div class="sc-title">
+      <h2>Your Business<br/>Command Center</h2>
+      <p>Real-time data at your fingertips — revenue, inventory, and team performance all unified.</p>
+    </div>
+
+    <div class="mockup-grid">
+      <div class="m-card">
+        <div class="m-card-label">Today's Revenue</div>
+        <div class="m-card-val">₦245,800</div>
+        <div class="m-card-sub">↑ 12% from yesterday</div>
+      </div>
+      <div class="m-card">
+        <div class="m-card-label">Items in Stock</div>
+        <div class="m-card-val">1,432</div>
+        <div class="m-card-sub">3 low stock alerts</div>
+      </div>
+      <div class="m-card wide">
+        <div class="m-card-label">Weekly Sales Overview</div>
+        <div class="mini-bars">
+          <div class="bar" style="height:30%"></div>
+          <div class="bar" style="height:55%"></div>
+          <div class="bar" style="height:40%"></div>
+          <div class="bar hi" style="height:80%"></div>
+          <div class="bar" style="height:65%"></div>
+          <div class="bar" style="height:50%"></div>
+          <div class="bar hi" style="height:90%"></div>
+        </div>
+      </div>
+      <div class="m-card">
+        <div class="m-card-label">Sales Team</div>
+        <div class="m-card-val">8</div>
+        <div class="m-card-sub">Active agents</div>
+      </div>
+      <div class="m-card">
+        <div class="m-card-label">Transactions</div>
+        <div class="m-card-val">127</div>
+        <div class="m-card-sub">Today</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right form -->
+  <div class="form-side">
+    <div class="login-panel">
+      <div class="top-logo">
+        <div class="sq">AK</div>
+        <div>
+          <div class="wrd">Abifresh &amp; Kiddies Ventures</div>
+          <div class="sm">Management System</div>
+        </div>
+      </div>
+
+      <h2>Sign in to your account</h2>
+      <p class="fsub">Select your role below</p>
+
+      <div class="strip">
+        <button class="strip-tab act">Admin</button>
+        <button class="strip-tab">Sales</button>
+        <button class="strip-tab">Staff</button>
+      </div>
+
+      <div class="fi">
+        <label>Email address</label>
+        <div class="fi-w">
+          <span class="ic">✉️</span>
+          <input type="email" placeholder="name@abifresh.com"/>
+        </div>
+      </div>
+      <div class="fi">
+        <label>Password</label>
+        <div class="fi-w">
+          <span class="ic">🔒</span>
+          <input type="password" placeholder="Your password"/>
+        </div>
+      </div>
+
+      <div class="flex-row">
+        <label class="ck"><input type="checkbox"/> Keep me signed in</label>
+        <a href="#" class="fgt">Reset password</a>
+      </div>
+
+      <button class="go">Access Dashboard</button>
+      <div class="footnote">Don't have an account? <a href="#">Request access</a></div>
+
+      <div class="secure-badge">
+        <span class="lock">🔐</span> Secured with JWT &amp; Supabase
+      </div>
+    </div>
+  </div>
+</body>
+</html>

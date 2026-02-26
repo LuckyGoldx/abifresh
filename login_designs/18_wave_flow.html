@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AKV – Wave Flow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      min-height: 100vh;
+      background: #fff1f8;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; position: relative;
+    }
+
+    /* Wave SVG */
+    .waves-bg {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      pointer-events: none; overflow: hidden;
+      height: 60%;
+    }
+    .wave {
+      position: absolute; bottom: 0; left: 0;
+      width: 200%; height: 100%;
+      animation: wave-anim 8s linear infinite;
+    }
+    .wave2 { animation-duration: 10s; animation-delay: -3s; opacity: .6; }
+    .wave3 { animation-duration: 12s; animation-delay: -6s; opacity: .4; }
+    @keyframes wave-anim {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+    .wave path { fill: rgba(244,63,142,.08); }
+    .wave2 path { fill: rgba(251,113,184,.1); }
+    .wave3 path { fill: rgba(253,164,199,.07); }
+
+    /* Top wave decoration */
+    .top-wave {
+      position: fixed; top: 0; left: 0; right: 0;
+      pointer-events: none;
+    }
+    .top-wave path { fill: rgba(244,63,142,.07); }
+
+    .page {
+      position: relative; z-index: 5;
+      display: grid; grid-template-columns: 1fr 1fr;
+      max-width: 1000px; width: 100%;
+      gap: 0;
+      min-height: 100vh;
+    }
+
+    /* Info side */
+    .info-side {
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 60px 56px;
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 48px;
+    }
+    .logo-icon {
+      width: 46px; height: 46px; border-radius: 14px;
+      background: linear-gradient(135deg, #f9a8d4, #ec4899);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 18px; color: white;
+      box-shadow: 0 8px 20px rgba(236,72,153,.35);
+    }
+    .logo-words .top { font-size: 15px; font-weight: 800; color: #1f2937; }
+    .logo-words .bot { font-size: 11px; color: #9ca3af; }
+
+    .big-text {
+      font-size: 42px; font-weight: 800; color: #1f2937; line-height: 1.2;
+      margin-bottom: 18px;
+    }
+    .big-text .pink { color: #ec4899; }
+
+    .tag {
+      font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 40px;
+    }
+
+    .stat-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .stat-box {
+      background: white;
+      border: 1px solid rgba(236,72,153,.12);
+      border-radius: 16px; padding: 16px 18px;
+      box-shadow: 0 4px 16px rgba(236,72,153,.06);
+    }
+    .stat-val { font-size: 24px; font-weight: 800; color: #ec4899; }
+    .stat-lbl { font-size: 12px; color: #9ca3af; margin-top: 3px; }
+
+    /* Form side */
+    .form-side {
+      display: flex; align-items: center; justify-content: center;
+      padding: 40px 40px 40px 20px;
+    }
+
+    .form-card {
+      background: white;
+      border-radius: 28px;
+      padding: 44px 40px;
+      width: 100%; max-width: 390px;
+      box-shadow: 0 20px 60px rgba(236,72,153,.12), 0 4px 12px rgba(0,0,0,.04);
+      border: 1px solid rgba(236,72,153,.08);
+    }
+
+    .wave-title {
+      font-size: 26px; font-weight: 800; color: #1f2937; margin-bottom: 4px;
+    }
+    .wave-sub { font-size: 13px; color: #9ca3af; margin-bottom: 26px; }
+
+    .tabs-row {
+      display: flex; background: #fdf2f8; border-radius: 12px;
+      padding: 3px; gap: 2px; margin-bottom: 24px;
+    }
+    .tab {
+      flex: 1; padding: 9px 4px; text-align: center;
+      border: none; background: transparent;
+      font-family: inherit; font-size: 12px; font-weight: 700; color: #be185d;
+      cursor: pointer; border-radius: 9px; transition: all .2s;
+    }
+    .tab.a {
+      background: white; color: #ec4899;
+      box-shadow: 0 2px 10px rgba(236,72,153,.2);
+    }
+
+    .inp { margin-bottom: 14px; }
+    .inp label { font-size: 12px; font-weight: 700; color: #374151; display: block; margin-bottom: 6px; }
+    .inp input {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid #f3f4f6; border-radius: 11px;
+      font-family: inherit; font-size: 13px; color: #1f2937;
+      background: #fafafa; outline: none; transition: all .2s;
+    }
+    .inp input:focus {
+      border-color: #ec4899; background: white;
+      box-shadow: 0 0 0 3px rgba(236,72,153,.08);
+    }
+    .inp input::placeholder { color: #d1d5db; }
+
+    .row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 14px 0 20px;
+    }
+    .rem { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; cursor: pointer; }
+    .rem input { accent-color: #ec4899; }
+    .frg { font-size: 12px; color: #ec4899; text-decoration: none; font-weight: 600; }
+
+    .signin-btn {
+      width: 100%; padding: 13px;
+      border: none; border-radius: 13px; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 800; color: white;
+      background: linear-gradient(135deg, #f9a8d4, #ec4899, #db2777);
+      box-shadow: 0 8px 20px rgba(236,72,153,.3); transition: all .25s;
+    }
+    .signin-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px rgba(236,72,153,.45);
+    }
+
+    .bottom-note {
+      text-align: center; font-size: 12px; color: #9ca3af; margin-top: 18px;
+    }
+    .bottom-note a { color: #ec4899; text-decoration: none; }
+
+    @media (max-width: 800px) {
+      .page { grid-template-columns: 1fr; }
+      .info-side { display: none; }
+      .form-side { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Top wave -->
+  <svg class="top-wave" viewBox="0 0 1440 120" preserveAspectRatio="none" height="120">
+    <path d="M0,80 C360,120 720,20 1080,80 C1260,110 1380,70 1440,50 L1440,0 L0,0Z"/>
+  </svg>
+
+  <!-- Bottom waves -->
+  <div class="waves-bg">
+    <svg class="wave" viewBox="0 0 1440 200" preserveAspectRatio="none">
+      <path d="M0,140 C240,80 480,180 720,120 C960,60 1200,160 1440,100 L1440,200 L0,200Z"/>
+    </svg>
+    <svg class="wave wave2" viewBox="0 0 1440 200" preserveAspectRatio="none">
+      <path d="M0,100 C300,160 540,60 780,120 C1020,180 1260,80 1440,130 L1440,200 L0,200Z"/>
+    </svg>
+    <svg class="wave wave3" viewBox="0 0 1440 200" preserveAspectRatio="none">
+      <path d="M0,150 C200,100 500,170 750,110 C1000,50 1200,140 1440,90 L1440,200 L0,200Z"/>
+    </svg>
+  </div>
+
+  <div class="page">
+    <div class="info-side">
+      <div class="logo">
+        <div class="logo-icon">AK</div>
+        <div class="logo-words">
+          <div class="top">Abifresh &amp; Kiddies Ventures</div>
+          <div class="bot">Business Management System</div>
+        </div>
+      </div>
+
+      <div class="big-text">
+        Everything your<br/>
+        business needs,<br/>
+        <span class="pink">in one place.</span>
+      </div>
+      <div class="tag">
+        Track inventory, manage sales, monitor performance and get insights — all from one beautiful dashboard.
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-val">Admin</div>
+          <div class="stat-lbl">Full Control Panel</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">Sales</div>
+          <div class="stat-lbl">Performance Dashboard</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">Staff</div>
+          <div class="stat-lbl">Inventory Portal</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">Live</div>
+          <div class="stat-lbl">Real-time Sync</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-side">
+      <div class="form-card">
+        <div class="wave-title">Hello there! 👋</div>
+        <div class="wave-sub">Sign in to continue</div>
+
+        <div class="tabs-row">
+          <button class="tab">Admin</button>
+          <button class="tab a">Sales</button>
+          <button class="tab">Staff</button>
+        </div>
+
+        <div class="inp">
+          <label>Email Address</label>
+          <input type="email" placeholder="you@abifresh.com"/>
+        </div>
+        <div class="inp">
+          <label>Password</label>
+          <input type="password" placeholder="Enter password"/>
+        </div>
+
+        <div class="row">
+          <label class="rem"><input type="checkbox"/> Remember me</label>
+          <a class="frg" href="#">Forgot?</a>
+        </div>
+
+        <button class="signin-btn">Sign In</button>
+        <div class="bottom-note">New user? <a href="#">Request access</a></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

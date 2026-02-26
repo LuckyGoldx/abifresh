@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AKV – Luxury Pink Gold</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;700&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Raleway', sans-serif;
+      min-height: 100vh;
+      background: #0c0008;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    /* bg texture */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(244,63,142,.12) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 30%, rgba(180,120,0,.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 90%, rgba(244,63,142,.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    /* Gold shimmer lines */
+    .shimmer-line {
+      position: fixed; pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(255,215,0,.06), transparent);
+      height: 1px; left: 0; right: 0;
+      animation: shimmer 5s linear infinite;
+    }
+    @keyframes shimmer {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(100%); }
+    }
+    .sl1 { top: 25%; animation-duration: 6s; }
+    .sl2 { top: 55%; animation-duration: 8s; animation-delay: 2s; }
+    .sl3 { top: 75%; animation-duration: 5s; animation-delay: 4s; }
+
+    .page {
+      position: relative; z-index: 2;
+      width: 100%; max-width: 440px;
+      padding: 20px;
+    }
+
+    /* Crown icon */
+    .crown-wrap {
+      text-align: center; margin-bottom: 28px;
+    }
+    .crown-circle {
+      width: 70px; height: 70px; border-radius: 50%;
+      background: linear-gradient(135deg, #3d0014, #6b0026);
+      border: 1px solid;
+      border-color: transparent;
+      background-clip: padding-box;
+      display: inline-flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .crown-circle::before {
+      content: '';
+      position: absolute; inset: -1px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,215,0,.6), rgba(244,63,142,.6), rgba(255,215,0,.3));
+      z-index: -1;
+    }
+    .crown-emoji { font-size: 28px; }
+
+    .card {
+      background: linear-gradient(145deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.02) 100%);
+      border: 1px solid rgba(255,215,0,.15);
+      border-radius: 4px;
+      box-shadow:
+        0 0 60px rgba(244,63,142,.08),
+        0 0 0 1px rgba(255,255,255,.03),
+        0 40px 80px rgba(0,0,0,.6);
+      overflow: hidden;
+    }
+
+    /* Gold header bar */
+    .card-header {
+      padding: 32px 40px 28px;
+      border-bottom: 1px solid rgba(255,215,0,.1);
+      background: linear-gradient(135deg, rgba(255,215,0,.05), rgba(244,63,142,.05));
+      text-align: center;
+    }
+    .brand-name {
+      font-family: 'Cinzel', serif;
+      font-size: 22px; font-weight: 700;
+      background: linear-gradient(90deg, #ffd700, #f9a8d4, #ffd700);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gold-text 4s linear infinite;
+      letter-spacing: 2px;
+    }
+    @keyframes gold-text {
+      to { background-position: 200% center; }
+    }
+    .brand-tagline {
+      font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+      color: rgba(255,215,0,.4); margin-top: 6px;
+    }
+
+    /* Form body */
+    .card-body {
+      padding: 32px 40px 40px;
+    }
+
+    h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 18px; font-weight: 400;
+      color: rgba(255,255,255,.9);
+      text-align: center; margin-bottom: 6px; letter-spacing: 1px;
+    }
+    .welcome-dot {
+      text-align: center; font-size: 11px; letter-spacing: 2px;
+      color: rgba(255,215,0,.35); text-transform: uppercase; margin-bottom: 26px;
+    }
+
+    /* Role tabs – elegant */
+    .rtabs {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 6px; margin-bottom: 24px;
+      border: 1px solid rgba(255,215,0,.1); border-radius: 3px; padding: 4px;
+    }
+    .rtab {
+      padding: 9px; text-align: center;
+      border: none; background: transparent;
+      font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px;
+      color: rgba(255,215,0,.4); cursor: pointer; transition: all .2s;
+      border-radius: 2px;
+    }
+    .rtab.on {
+      background: linear-gradient(135deg, rgba(244,63,142,.25), rgba(255,215,0,.1));
+      color: #ffd700;
+      border: 1px solid rgba(255,215,0,.25);
+    }
+
+    .lux-field { margin-bottom: 16px; }
+    .lux-field label {
+      font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,215,0,.4); display: block; margin-bottom: 7px;
+    }
+    .lux-field input {
+      width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,215,0,.1); border-radius: 3px;
+      font-family: 'Raleway', sans-serif; font-size: 13px; color: rgba(255,255,255,.8);
+      outline: none; transition: all .2s;
+    }
+    .lux-field input::placeholder { color: rgba(255,255,255,.15); font-size: 12px; }
+    .lux-field input:focus {
+      border-color: rgba(244,63,142,.5);
+      background: rgba(244,63,142,.05);
+      box-shadow: 0 0 0 2px rgba(244,63,142,.1);
+    }
+
+    .row { display: flex; justify-content: space-between; margin: 14px 0 22px; }
+    .chk { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,.25); cursor: pointer; }
+    .chk input { accent-color: #f43f8e; }
+    .fp { font-size: 11px; color: rgba(255,215,0,.5); text-decoration: none; letter-spacing: .5px; }
+
+    .lux-btn {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid rgba(244,63,142,.4); border-radius: 3px; cursor: pointer;
+      font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 3px;
+      text-transform: uppercase;
+      color: white;
+      background: linear-gradient(135deg, rgba(244,63,142,.3), rgba(180,0,80,.4));
+      position: relative; overflow: hidden;
+      transition: all .3s;
+    }
+    .lux-btn::before {
+      content: '';
+      position: absolute; top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,215,0,.1), transparent);
+      transition: left .5s;
+    }
+    .lux-btn:hover::before { left: 100%; }
+    .lux-btn:hover {
+      background: linear-gradient(135deg, rgba(244,63,142,.5), rgba(180,0,80,.6));
+      border-color: rgba(255,215,0,.4);
+      box-shadow: 0 0 30px rgba(244,63,142,.25);
+    }
+
+    .card-footer {
+      padding: 16px 40px;
+      border-top: 1px solid rgba(255,215,0,.06);
+      text-align: center;
+    }
+    .card-footer span { font-size: 11px; color: rgba(255,255,255,.2); }
+    .card-footer a { color: rgba(244,63,142,.7); text-decoration: none; }
+
+    @media (max-width: 480px) {
+      .card-header, .card-body { padding-left: 24px; padding-right: 24px; }
+      .card-footer { padding-left: 24px; padding-right: 24px; }
+      .brand-name { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shimmer-line sl1"></div>
+  <div class="shimmer-line sl2"></div>
+  <div class="shimmer-line sl3"></div>
+
+  <div class="page">
+    <div class="crown-wrap">
+      <div class="crown-circle"><span class="crown-emoji">👑</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="brand-name">ABIFRESH &amp; KIDDIES VENTURES</div>
+        <div class="brand-tagline">Premium Business Management System</div>
+      </div>
+
+      <div class="card-body">
+        <h2>Portal Access</h2>
+        <div class="welcome-dot">◆ Authorized Personnel Only ◆</div>
+
+        <div class="rtabs">
+          <button class="rtab on">Administrator</button>
+          <button class="rtab">Sales Agent</button>
+          <button class="rtab">Staff Member</button>
+        </div>
+
+        <div class="lux-field">
+          <label>Email Address</label>
+          <input type="email" placeholder="your.email@abifresh.com"/>
+        </div>
+        <div class="lux-field">
+          <label>Access Code</label>
+          <input type="password" placeholder="Enter secure password"/>
+        </div>
+
+        <div class="row">
+          <label class="chk"><input type="checkbox"/> Keep session active</label>
+          <a href="#" class="fp">Reset access</a>
+        </div>
+
+        <button class="lux-btn">Enter the System</button>
+      </div>
+
+      <div class="card-footer">
+        <span>System access issues? <a href="#">Contact Administrator</a></span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

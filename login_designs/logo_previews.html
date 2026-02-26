@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABIFRESH & KIDDIES VENTURES — Logo Concepts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&family=Cinzel:wght@700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #fdf2f8;
+            min-height: 100vh;
+            color: #1f2937;
+        }
+
+        /* ── Header ── */
+        .hero {
+            background: linear-gradient(160deg, #be185d 0%, #ec4899 50%, #a855f7 100%);
+            color: white;
+            padding: 60px 24px 48px;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: clamp(26px, 4vw, 42px);
+            font-weight: 800;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+        .hero p {
+            font-size: clamp(14px, 2vw, 17px);
+            opacity: 0.85;
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* ── Grid ── */
+        .grid {
+            max-width: 1280px;
+            margin: -28px auto 60px;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(190,24,93,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1.5px solid transparent;
+            cursor: pointer;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(190,24,93,0.15);
+            border-color: #f9a8d4;
+        }
+        .card .num {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            width: 30px;
+            height: 30px;
+            background: rgba(236,72,153,0.12);
+            color: #be185d;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+        }
+
+        /* Preview area */
+        .preview {
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 28px;
+            position: relative;
+        }
+        .preview.light { background: #fff5f8; }
+        .preview.dark  { background: linear-gradient(135deg, #1f2937, #111827); }
+        .preview.grad1 { background: linear-gradient(160deg, #be185d, #ec4899, #a855f7); }
+        .preview.grad2 { background: linear-gradient(135deg, #fce7f3, #fdf2f8); }
+        .preview.grad3 { background: linear-gradient(135deg, #fdf2f8, #ede9fe); }
+
+        .preview svg {
+            max-width: 220px;
+            max-height: 140px;
+            width: 100%;
+            height: auto;
+        }
+
+        /* Info */
+        .info {
+            padding: 18px 20px 20px;
+            border-top: 1px solid #fce7f3;
+        }
+        .info h3 {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: #be185d;
+        }
+        .info p {
+            font-size: 12.5px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .tag {
+            font-size: 10.5px;
+            font-weight: 600;
+            padding: 3px 9px;
+            border-radius: 20px;
+            background: #fce7f3;
+            color: #be185d;
+        }
+
+        @media (max-width: 640px) {
+            .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+            .hero { padding: 40px 20px 36px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>Logo Concepts — Pick Your Favourite</h1>
+    <p>20 pink-themed logo designs for <strong>ABIFRESH &amp; KIDDIES VENTURES</strong>. Click to zoom. Scroll to explore all options.</p>
+</div>
+
+<div class="grid">
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 1: Shopping Bag + Sparkle              -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">1</span>
+    <div class="preview light">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Bag icon -->
+            <rect x="10" y="30" width="38" height="34" rx="6" fill="none" stroke="#ec4899" stroke-width="3"/>
+            <path d="M18 30v-6a11 11 0 0 1 22 0v6" fill="none" stroke="#ec4899" stroke-width="3" stroke-linecap="round"/>
+            <path d="M29 42l2 4 4.5.7-3.3 3.1.8 4.5L29 52l-4 2.3.8-4.5-3.3-3.1 4.5-.7z" fill="#f472b6"/>
+            <!-- Text -->
+            <text x="60" y="44" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="22" fill="#be185d" letter-spacing="1">ABIFRESH</text>
+            <text x="60" y="62" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="10" fill="#9ca3af" letter-spacing="3">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Shopping Bag Sparkle</h3>
+        <p>Classic shopping bag with a sparkle star. Clean retail identity.</p>
+        <div class="tags"><span class="tag">Retail</span><span class="tag">Clean</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 2: Stacked Bold Monogram              -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">2</span>
+    <div class="preview grad2">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="14" width="50" height="50" rx="14" fill="url(#g2a)"/>
+            <defs><linearGradient id="g2a" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ec4899"/><stop offset="100%" stop-color="#be185d"/></linearGradient></defs>
+            <text x="20" y="48" font-family="'Cinzel',serif" font-weight="800" font-size="26" fill="white">AK</text>
+            <text x="72" y="36" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="18" fill="#be185d" letter-spacing="0.5">ABIFRESH</text>
+            <text x="72" y="53" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9.5" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+            <rect x="72" y="58" width="40" height="2" rx="1" fill="#f9a8d4"/>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>AK Monogram Block</h3>
+        <p>Bold rounded-square monogram with gradient fill.</p>
+        <div class="tags"><span class="tag">Monogram</span><span class="tag">Bold</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 3: Leaf + Heart (Fresh Kiddies)        -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">3</span>
+    <div class="preview light">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Leaf-heart combo -->
+            <path d="M29 20c12-3 22 8 22 20s-10 24-22 30C17 64 7 52 7 40S17 17 29 20z" fill="#fce7f3" stroke="#ec4899" stroke-width="2.5"/>
+            <path d="M29 28c0 0-8 8-8 14s4 10 8 14c4-4 8-8 8-14s-8-14-8-14z" fill="#f9a8d4"/>
+            <!-- Leaf veins -->
+            <line x1="29" y1="30" x2="29" y2="54" stroke="#ec4899" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="29" y1="38" x2="23" y2="34" stroke="#ec4899" stroke-width="1" stroke-linecap="round"/>
+            <line x1="29" y1="44" x2="35" y2="40" stroke="#ec4899" stroke-width="1" stroke-linecap="round"/>
+            <text x="58" y="42" font-family="'Playfair Display',serif" font-weight="800" font-size="20" fill="#be185d">AbiFresh</text>
+            <text x="58" y="59" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Fresh Leaf Heart</h3>
+        <p>Nature-inspired leaf with heart shape. Freshness meets care.</p>
+        <div class="tags"><span class="tag">Organic</span><span class="tag">Caring</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 4: Circle Badge                        -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">4</span>
+    <div class="preview dark">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="36" fill="none" stroke="#ec4899" stroke-width="2.5"/>
+            <circle cx="50" cy="50" r="30" fill="none" stroke="#f9a8d4" stroke-width="1" stroke-dasharray="3,3"/>
+            <text x="50" y="46" font-family="'Cinzel',serif" font-weight="800" font-size="16" fill="#f472b6" text-anchor="middle">ABI</text>
+            <text x="50" y="60" font-family="'Cinzel',serif" font-weight="700" font-size="10" fill="#f9a8d4" text-anchor="middle">FRESH</text>
+            <text x="145" y="42" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="18" fill="white" letter-spacing="0.5">ABIFRESH</text>
+            <text x="145" y="59" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Circle Badge</h3>
+        <p>Vintage-inspired circle badge. Elegant on dark backgrounds.</p>
+        <div class="tags"><span class="tag">Badge</span><span class="tag">Elegant</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 5: Lightning Bolt (current style)      -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">5</span>
+    <div class="preview grad1">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="50" r="28" fill="rgba(255,255,255,0.2)"/>
+            <path d="M43 24L30 52h10l-5 24 18-30H42z" fill="white"/>
+            <text x="78" y="42" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="20" fill="white" letter-spacing="1">ABIFRESH</text>
+            <text x="78" y="60" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9.5" fill="rgba(255,255,255,0.75)" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Lightning Bolt</h3>
+        <p>Energetic bolt icon — matches the current app's login style.</p>
+        <div class="tags"><span class="tag">Current</span><span class="tag">Energetic</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 6: Crown + Star                        -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">6</span>
+    <div class="preview light">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Crown -->
+            <path d="M15 55L22 32l10 12 10-18 10 18 10-12 7 23z" fill="#fce7f3" stroke="#ec4899" stroke-width="2" stroke-linejoin="round"/>
+            <rect x="15" y="55" width="54" height="8" rx="2" fill="#ec4899"/>
+            <!-- Star on top -->
+            <path d="M42 15l2 4 4.5.7-3.3 3-0.8 4.5L42 25l-2.4 2.2.8-4.5-3.3-3L41.6 19z" fill="#f472b6"/>
+            <text x="82" y="42" font-family="'Outfit',sans-serif" font-weight="800" font-size="20" fill="#be185d" letter-spacing="0.5">ABIFRESH</text>
+            <text x="82" y="59" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Crown Royale</h3>
+        <p>Royal crown with star accent. Premium retail feel.</p>
+        <div class="tags"><span class="tag">Premium</span><span class="tag">Royal</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 7: Storefront                          -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">7</span>
+    <div class="preview grad2">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Store building -->
+            <rect x="12" y="38" width="48" height="32" rx="3" fill="none" stroke="#ec4899" stroke-width="2.5"/>
+            <!-- Awning -->
+            <path d="M8 38 Q20 26 36 38 Q52 26 64 38" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Door -->
+            <rect x="28" y="52" width="16" height="18" rx="2" fill="#fce7f3" stroke="#ec4899" stroke-width="1.5"/>
+            <circle cx="40" cy="62" r="1.5" fill="#ec4899"/>
+            <!-- Window -->
+            <rect x="16" y="44" width="8" height="8" rx="1" fill="#f9a8d4"/>
+            <text x="74" y="44" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="19" fill="#be185d" letter-spacing="0.5">ABIFRESH</text>
+            <text x="74" y="60" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Storefront</h3>
+        <p>Cute storefront icon with awning. Retail shop identity.</p>
+        <div class="tags"><span class="tag">Retail</span><span class="tag">Friendly</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 8: Stacked Wordmark                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">8</span>
+    <div class="preview dark">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <text x="130" y="38" font-family="'Outfit',sans-serif" font-weight="800" font-size="28" fill="#ec4899" text-anchor="middle" letter-spacing="4">ABIFRESH</text>
+            <rect x="50" y="46" width="160" height="1.5" rx="1" fill="#374151"/>
+            <text x="130" y="64" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="11" fill="#9ca3af" text-anchor="middle" letter-spacing="5">&amp; KIDDIES VENTURES</text>
+            <circle cx="47" cy="51" r="2.5" fill="#ec4899"/>
+            <circle cx="213" cy="51" r="2.5" fill="#ec4899"/>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Stacked Wordmark</h3>
+        <p>Pure typography — bold name over elegant sub-line with accents.</p>
+        <div class="tags"><span class="tag">Minimal</span><span class="tag">Typography</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 9: Diamond / Gem                       -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">9</span>
+    <div class="preview light">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Diamond shape -->
+            <polygon points="36,16 52,16 60,30 36,68 12,30 20,16" fill="url(#g9)" stroke="#be185d" stroke-width="2"/>
+            <defs><linearGradient id="g9" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f9a8d4"/><stop offset="100%" stop-color="#ec4899"/></linearGradient></defs>
+            <!-- Facet lines -->
+            <line x1="36" y1="16" x2="36" y2="68" stroke="#be185d" stroke-width="1" opacity="0.3"/>
+            <line x1="12" y1="30" x2="60" y2="30" stroke="#be185d" stroke-width="1" opacity="0.3"/>
+            <line x1="20" y1="16" x2="36" y2="68" stroke="#be185d" stroke-width="0.7" opacity="0.2"/>
+            <line x1="52" y1="16" x2="36" y2="68" stroke="#be185d" stroke-width="0.7" opacity="0.2"/>
+            <text x="72" y="42" font-family="'Cinzel',serif" font-weight="800" font-size="19" fill="#be185d">ABIFRESH</text>
+            <text x="72" y="58" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Diamond Gem</h3>
+        <p>Precious gem icon suggesting value and premium quality.</p>
+        <div class="tags"><span class="tag">Luxury</span><span class="tag">Premium</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 10: Child Star                         -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">10</span>
+    <div class="preview grad3">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Stylized child figure with star -->
+            <circle cx="36" cy="28" r="10" fill="#fce7f3" stroke="#ec4899" stroke-width="2"/>
+            <!-- Smile -->
+            <path d="M32 30q4 4 8 0" fill="none" stroke="#ec4899" stroke-width="1.5" stroke-linecap="round"/>
+            <!-- Eyes -->
+            <circle cx="33" cy="26" r="1.5" fill="#ec4899"/>
+            <circle cx="39" cy="26" r="1.5" fill="#ec4899"/>
+            <!-- Body -->
+            <path d="M36 38v18M28 48h16M30 68l6-12 6 12" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Star -->
+            <path d="M54 20l2.5 5 5.5.8-4 3.8 1 5.4-5-2.6-5 2.6 1-5.4-4-3.8 5.5-.8z" fill="#f472b6"/>
+            <text x="72" y="42" font-family="'Outfit',sans-serif" font-weight="800" font-size="18" fill="#be185d">ABIFRESH</text>
+            <text x="72" y="58" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Kid Star</h3>
+        <p>Cheerful child icon with star — kiddies-focused identity.</p>
+        <div class="tags"><span class="tag">Playful</span><span class="tag">Kids</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 11: Shield Crest                       -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">11</span>
+    <div class="preview dark">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <path d="M36 14L12 24v20c0 14 10 24 24 30 14-6 24-16 24-30V24z" fill="url(#g11)" stroke="#f472b6" stroke-width="2"/>
+            <defs><linearGradient id="g11" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ec4899"/><stop offset="100%" stop-color="#be185d"/></linearGradient></defs>
+            <text x="36" y="48" font-family="'Cinzel',serif" font-weight="800" font-size="18" fill="white" text-anchor="middle">AK</text>
+            <text x="80" y="40" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="18" fill="white" letter-spacing="1">ABIFRESH</text>
+            <text x="80" y="57" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Shield Crest</h3>
+        <p>Protective shield with AK monogram — trust and security.</p>
+        <div class="tags"><span class="tag">Trust</span><span class="tag">Crest</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 12: Hexagon Modern                     -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">12</span>
+    <div class="preview light">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="36,12 60,24 60,48 36,60 12,48 12,24" fill="none" stroke="#ec4899" stroke-width="2.5"/>
+            <polygon points="36,20 52,28 52,44 36,52 20,44 20,28" fill="#fce7f3"/>
+            <text x="36" y="40" font-family="'Outfit',sans-serif" font-weight="800" font-size="15" fill="#be185d" text-anchor="middle">AK</text>
+            <text x="74" y="36" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="18" fill="#be185d" letter-spacing="1">ABIFRESH</text>
+            <text x="74" y="52" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Hexagon Modern</h3>
+        <p>Tech-forward hexagon frame. Modern and structured.</p>
+        <div class="tags"><span class="tag">Modern</span><span class="tag">Tech</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 13: Ribbon Banner                      -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">13</span>
+    <div class="preview grad2">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Ribbon -->
+            <path d="M20 35h220l-10 12 10 12H20l10-12z" fill="#fce7f3" stroke="#ec4899" stroke-width="1.5"/>
+            <text x="130" y="52" font-family="'Cinzel',serif" font-weight="800" font-size="17" fill="#be185d" text-anchor="middle" letter-spacing="3">ABIFRESH</text>
+            <text x="130" y="75" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="10" fill="#9ca3af" text-anchor="middle" letter-spacing="3">&amp; KIDDIES VENTURES</text>
+            <!-- Small decorative stars -->
+            <circle cx="56" cy="47" r="2" fill="#f472b6"/>
+            <circle cx="204" cy="47" r="2" fill="#f472b6"/>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Ribbon Banner</h3>
+        <p>Classic ribbon banner — timeless and professional.</p>
+        <div class="tags"><span class="tag">Classic</span><span class="tag">Professional</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 14: Cart + Heart                       -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">14</span>
+    <div class="preview light">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Shopping cart -->
+            <path d="M10 25h6l8 30h30l6-20H22" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="28" cy="62" r="3.5" fill="none" stroke="#ec4899" stroke-width="2"/>
+            <circle cx="50" cy="62" r="3.5" fill="none" stroke="#ec4899" stroke-width="2"/>
+            <!-- Heart in cart -->
+            <path d="M35 32c-3-4-8-4-10 0s0 10 10 16c10-6 12-12 10-16s-7-4-10 0z" fill="#f9a8d4" opacity="0.7"/>
+            <text x="74" y="42" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="19" fill="#be185d" letter-spacing="0.5">ABIFRESH</text>
+            <text x="74" y="58" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Cart Love</h3>
+        <p>Shopping cart with heart — retail with passion.</p>
+        <div class="tags"><span class="tag">Retail</span><span class="tag">Warm</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 15: Letter A Stylized                  -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">15</span>
+    <div class="preview dark">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Stylized A -->
+            <path d="M36 68L18 68 36 14 54 68 36 68" fill="none" stroke="#ec4899" stroke-width="3" stroke-linejoin="round"/>
+            <line x1="24" y1="50" x2="48" y2="50" stroke="#f472b6" stroke-width="2.5"/>
+            <!-- Dot accent -->
+            <circle cx="36" cy="8" r="3.5" fill="#f472b6"/>
+            <text x="72" y="42" font-family="'Outfit',sans-serif" font-weight="800" font-size="20" fill="white" letter-spacing="1">ABIFRESH</text>
+            <text x="72" y="59" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Letter A Mark</h3>
+        <p>Stylized "A" lettermark with dot accent. Strong identity.</p>
+        <div class="tags"><span class="tag">Lettermark</span><span class="tag">Modern</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 16: Rounded Pill Badge                 -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">16</span>
+    <div class="preview grad1">
+        <svg viewBox="0 0 260 90" xmlns="http://www.w3.org/2000/svg">
+            <rect x="16" y="18" width="228" height="54" rx="27" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+            <!-- Inner pill -->
+            <rect x="24" y="26" width="44" height="38" rx="12" fill="rgba(255,255,255,0.25)"/>
+            <text x="46" y="50" font-family="'Outfit',sans-serif" font-weight="800" font-size="16" fill="white" text-anchor="middle">AK</text>
+            <text x="82" y="42" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="17" fill="white" letter-spacing="1">ABIFRESH</text>
+            <text x="82" y="58" font-family="'Plus Jakarta Sans',sans-serif" font-weight="500" font-size="8.5" fill="rgba(255,255,255,0.7)" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Pill Badge</h3>
+        <p>Smooth pill container with monogram — app-icon ready.</p>
+        <div class="tags"><span class="tag">App Icon</span><span class="tag">Smooth</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 17: Starburst Seal                     -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">17</span>
+    <div class="preview light">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Starburst -->
+            <g transform="translate(36,50)">
+                <polygon points="0,-28 6,-12 22,-18 12,-4 28,4 12,8 16,24 4,14 -4,28 -6,12 -22,20 -12,4 -28,-2 -12,-8 -16,-24 -4,-12" fill="#fce7f3" stroke="#ec4899" stroke-width="1.5"/>
+                <circle r="16" fill="#ec4899"/>
+                <text y="5" font-family="'Outfit',sans-serif" font-weight="800" font-size="12" fill="white" text-anchor="middle">AK</text>
+            </g>
+            <text x="76" y="42" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="19" fill="#be185d" letter-spacing="0.5">ABIFRESH</text>
+            <text x="76" y="58" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Starburst Seal</h3>
+        <p>Eye-catching starburst seal. Great for stamps and labels.</p>
+        <div class="tags"><span class="tag">Seal</span><span class="tag">Eye-catching</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 18: Infinity Loop                      -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">18</span>
+    <div class="preview grad3">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Infinity symbol / figure-8 -->
+            <path d="M36 38c-10-14-28-14-28 0s18 24 28 12c10 12 28 14 28 0s-18-14-28-12z" fill="none" stroke="url(#g18)" stroke-width="3.5" stroke-linecap="round"/>
+            <defs><linearGradient id="g18" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ec4899"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs>
+            <circle cx="36" cy="42" r="4" fill="#ec4899"/>
+            <text x="78" y="42" font-family="'Plus Jakarta Sans',sans-serif" font-weight="800" font-size="19" fill="#be185d" letter-spacing="0.5">ABIFRESH</text>
+            <text x="78" y="58" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Infinity Loop</h3>
+        <p>Continuous loop — growth, connection, and endless retail success.</p>
+        <div class="tags"><span class="tag">Growth</span><span class="tag">Fluid</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 19: Basket Weave                       -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">19</span>
+    <div class="preview dark">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Basket -->
+            <path d="M14 40h44l-6 28H20z" fill="none" stroke="#f472b6" stroke-width="2.5" stroke-linejoin="round"/>
+            <!-- Handle -->
+            <path d="M24 40c0-16 24-16 24 0" fill="none" stroke="#ec4899" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Weave lines -->
+            <line x1="20" y1="48" x2="52" y2="48" stroke="#f472b6" stroke-width="1.2"/>
+            <line x1="19" y1="56" x2="53" y2="56" stroke="#f472b6" stroke-width="1.2"/>
+            <!-- Items peeking -->
+            <circle cx="30" cy="36" r="4" fill="#f9a8d4"/>
+            <circle cx="42" cy="36" r="3" fill="#fbbf24"/>
+            <text x="72" y="42" font-family="'Playfair Display',serif" font-weight="800" font-size="19" fill="#f472b6">AbiFresh</text>
+            <text x="72" y="58" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Basket Weave</h3>
+        <p>Market basket with goods — authentic retail and fresh produce feel.</p>
+        <div class="tags"><span class="tag">Market</span><span class="tag">Authentic</span></div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════ -->
+<!-- LOGO 20: Butterfly Wings                    -->
+<!-- ════════════════════════════════════════════ -->
+<div class="card">
+    <span class="num">20</span>
+    <div class="preview light">
+        <svg viewBox="0 0 260 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Butterfly -->
+            <g transform="translate(36,46)">
+                <!-- Left wing -->
+                <path d="M0 0c-6-18-24-20-24-8s10 18 24 8z" fill="#fce7f3" stroke="#ec4899" stroke-width="1.8"/>
+                <path d="M0 0c-4 16-20 22-20 12s8-16 20-12z" fill="#f9a8d4" stroke="#ec4899" stroke-width="1.8"/>
+                <!-- Right wing -->
+                <path d="M0 0c6-18 24-20 24-8s-10 18-24 8z" fill="#fce7f3" stroke="#ec4899" stroke-width="1.8"/>
+                <path d="M0 0c4 16 20 22 20 12s-8-16-20-12z" fill="#f9a8d4" stroke="#ec4899" stroke-width="1.8"/>
+                <!-- Body -->
+                <ellipse cx="0" cy="0" rx="2" ry="8" fill="#ec4899"/>
+                <!-- Antennae -->
+                <path d="M-1-8c-2-6-6-8-8-6" fill="none" stroke="#ec4899" stroke-width="1.2" stroke-linecap="round"/>
+                <path d="M1-8c2-6 6-8 8-6" fill="none" stroke="#ec4899" stroke-width="1.2" stroke-linecap="round"/>
+            </g>
+            <text x="74" y="40" font-family="'Playfair Display',serif" font-weight="800" font-size="19" fill="#be185d">AbiFresh</text>
+            <text x="74" y="57" font-family="'Plus Jakarta Sans',sans-serif" font-weight="600" font-size="9" fill="#9ca3af" letter-spacing="2.5">&amp; KIDDIES VENTURES</text>
+        </svg>
+    </div>
+    <div class="info">
+        <h3>Butterfly Wings</h3>
+        <p>Delicate butterfly — beauty, transformation, and kids-friendly appeal.</p>
+        <div class="tags"><span class="tag">Elegant</span><span class="tag">Kids</span></div>
+    </div>
+</div>
+
+</div><!-- /grid -->
+
+</body>
+</html>

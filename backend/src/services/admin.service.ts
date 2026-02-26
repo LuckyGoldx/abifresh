@@ -110,6 +110,7 @@ export class AdminService {
     }
     
     console.log(`✅ Supabase returned ${(payments || []).length} pending payments`);
+    console.log('📥 Raw payment data:', JSON.stringify(payments?.[0], null, 2));
     
     if (!payments || payments.length === 0) {
       console.log('⚠️ No pending payments found in database');
@@ -161,8 +162,8 @@ export class AdminService {
       };
     });
     
-    console.log(`✅ First pending payment:`, JSON.stringify(mappedPayments[0], null, 2));
-    console.log(`✅ Returning ${mappedPayments.length} mapped pending payments`);
+    console.log(`✅ Returning ${mappedPayments.length} mapped payments`);
+    console.log('✅ First mapped payment:', JSON.stringify(mappedPayments[0], null, 2));
     return mappedPayments;
   }
 

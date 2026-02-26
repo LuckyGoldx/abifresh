@@ -78,6 +78,16 @@ export default function SalesPaymentsPage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (showPaymentDetailsModal && selectedPaymentDetails) {
+      console.log('📋 Payment Details Modal opened with data:', selectedPaymentDetails);
+      console.log('  - staff_phone:', selectedPaymentDetails.staff_phone);
+      console.log('  - reference_number:', selectedPaymentDetails.reference_number);
+      console.log('  - receipt_url:', selectedPaymentDetails.receipt_url);
+      console.log('  - items_paid_for:', selectedPaymentDetails.items_paid_for);
+    }
+  }, [showPaymentDetailsModal, selectedPaymentDetails]);
+
   const fetchData = async () => {
     try {
       const [paymentsRes, salesRes] = await Promise.all([

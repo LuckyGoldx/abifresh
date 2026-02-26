@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AKV – Morphism Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 30%, #fbcfe8 70%, #f9a8d4 100%);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; position: relative;
+    }
+
+    /* Large pink morphing blobs */
+    .morph {
+      position: fixed; border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%;
+      filter: blur(50px); pointer-events: none;
+      animation: morph-anim 10s ease-in-out infinite alternate;
+    }
+    @keyframes morph-anim {
+      0%   { border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%; }
+      33%  { border-radius: 30% 70% 40% 60% / 60% 40% 50% 50%; }
+      66%  { border-radius: 50% 50% 30% 70% / 40% 60% 60% 40%; }
+      100% { border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%; }
+    }
+    .m1 {
+      width: 600px; height: 600px;
+      background: rgba(244,63,142,.25);
+      top: -200px; right: -100px; animation-duration: 12s;
+    }
+    .m2 {
+      width: 500px; height: 500px;
+      background: rgba(253,164,199,.3);
+      bottom: -150px; left: -80px; animation-duration: 15s; animation-delay: 3s;
+    }
+    .m3 {
+      width: 350px; height: 350px;
+      background: rgba(251,207,232,.4);
+      top: 40%; left: 30%; animation-duration: 9s; animation-delay: 1s;
+    }
+
+    /* Dot pattern */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(rgba(244,63,142,.12) 1.5px, transparent 1.5px);
+      background-size: 28px 28px; pointer-events: none;
+    }
+
+    .main {
+      position: relative; z-index: 10;
+      width: 100%; max-width: 420px;
+      padding: 20px;
+    }
+
+    .top-badge {
+      display: flex; justify-content: center; margin-bottom: 20px;
+    }
+    .badge-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 20px; border-radius: 50px;
+      background: rgba(255,255,255,.7);
+      border: 1px solid rgba(244,63,142,.2);
+      backdrop-filter: blur(12px);
+      font-size: 12px; font-weight: 600; color: #be185d;
+      box-shadow: 0 4px 16px rgba(244,63,142,.12);
+    }
+    .badge-logo {
+      width: 20px; height: 20px; border-radius: 6px;
+      background: linear-gradient(135deg, #f43f8e, #db2777);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800; color: white;
+    }
+
+    .glass-form {
+      background: rgba(255,255,255,.6);
+      backdrop-filter: blur(40px);
+      border: 1px solid rgba(255,255,255,.8);
+      border-radius: 32px;
+      box-shadow:
+        0 30px 70px rgba(244,63,142,.12),
+        0 8px 24px rgba(0,0,0,.04),
+        inset 0 1px 0 rgba(255,255,255,.9);
+      overflow: hidden;
+    }
+
+    /* Top image/header area */
+    .form-header {
+      padding: 36px 40px 30px;
+      background: linear-gradient(135deg, rgba(244,63,142,.1), rgba(251,182,206,.05));
+      border-bottom: 1px solid rgba(244,63,142,.08);
+    }
+
+    .akv-circle {
+      width: 56px; height: 56px; border-radius: 18px;
+      background: linear-gradient(135deg, #f43f8e, #ec4899, #be185d);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800; color: white;
+      box-shadow: 0 10px 28px rgba(244,63,142,.4), 0 2px 6px rgba(244,63,142,.2);
+      margin-bottom: 18px;
+    }
+    .form-header h1 {
+      font-size: 24px; font-weight: 700; color: #1f2937; margin-bottom: 4px;
+    }
+    .form-header p { font-size: 13px; color: #9d174d; opacity: .7; }
+
+    /* Role selector – card style */
+    .role-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; margin-top: 18px;
+    }
+    .rg-item {
+      padding: 12px 6px; border-radius: 14px;
+      border: 1.5px solid rgba(244,63,142,.15);
+      background: rgba(255,255,255,.6);
+      text-align: center; cursor: pointer; transition: all .2s;
+    }
+    .rg-item.sel {
+      border-color: #f43f8e;
+      background: linear-gradient(135deg, rgba(244,63,142,.12), rgba(253,164,199,.08));
+      box-shadow: 0 4px 16px rgba(244,63,142,.15);
+    }
+    .rg-icon { font-size: 22px; display: block; margin-bottom: 5px; }
+    .rg-lbl { font-size: 11px; font-weight: 600; color: #6b7280; }
+    .rg-item.sel .rg-lbl { color: #db2777; }
+
+    /* Inputs */
+    .form-body { padding: 28px 40px 36px; }
+
+    .input-field { margin-bottom: 15px; }
+    .input-field label {
+      font-size: 12px; font-weight: 600; color: #374151;
+      display: block; margin-bottom: 7px;
+    }
+    .inp-con { position: relative; }
+    .inp-con input {
+      width: 100%; padding: 12px 16px 12px 44px;
+      background: rgba(255,255,255,.8);
+      border: 1.5px solid rgba(244,63,142,.15); border-radius: 13px;
+      font-family: inherit; font-size: 13px; color: #111827;
+      outline: none; transition: all .2s;
+      box-shadow: 0 2px 8px rgba(244,63,142,.04);
+    }
+    .inp-con input:focus {
+      border-color: #f43f8e; background: white;
+      box-shadow: 0 0 0 4px rgba(244,63,142,.08), 0 4px 12px rgba(244,63,142,.06);
+    }
+    .inp-con input::placeholder { color: #d1d5db; font-size: 13px; }
+    .inp-icon-l {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; pointer-events: none;
+    }
+
+    .row-opts {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 14px 0 22px;
+    }
+    .chk-opt { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; cursor: pointer; }
+    .chk-opt input { accent-color: #f43f8e; }
+    .frg-link { font-size: 12px; color: #f43f8e; text-decoration: none; font-weight: 600; }
+    .frg-link:hover { color: #db2777; }
+
+    .sign-btn {
+      width: 100%; padding: 14px;
+      border: none; border-radius: 14px; cursor: pointer;
+      font-family: inherit; font-size: 14px; font-weight: 700; color: white;
+      background: linear-gradient(135deg, #f43f8e 0%, #ec4899 50%, #db2777 100%);
+      box-shadow: 0 10px 28px rgba(244,63,142,.4);
+      transition: all .25s; position: relative; overflow: hidden;
+    }
+    .sign-btn::before {
+      content: '';
+      position: absolute; inset: 0; opacity: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.15), transparent);
+      transition: opacity .3s;
+    }
+    .sign-btn:hover::before { opacity: 1; }
+    .sign-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 40px rgba(244,63,142,.5);
+    }
+
+    .form-foot {
+      padding: 18px 40px;
+      border-top: 1px solid rgba(244,63,142,.07);
+      text-align: center;
+      background: rgba(253,242,248,.5);
+    }
+    .form-foot span { font-size: 12px; color: #9ca3af; }
+    .form-foot a { color: #f43f8e; text-decoration: none; font-weight: 600; }
+
+    @media (max-width: 480px) {
+      .form-header, .form-body { padding-left: 24px; padding-right: 24px; }
+      .form-foot { padding-left: 24px; padding-right: 24px; }
+      .glass-form { border-radius: 24px; }
+      .form-header h1 { font-size: 21px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="morph m1"></div>
+  <div class="morph m2"></div>
+  <div class="morph m3"></div>
+
+  <div class="main">
+    <div class="top-badge">
+      <div class="badge-pill">
+        <div class="badge-logo">AK</div>
+        Abifresh &amp; Kiddies Ventures
+      </div>
+    </div>
+
+    <div class="glass-form">
+      <div class="form-header">
+        <div class="akv-circle">AKV</div>
+        <h1>Welcome back 💗</h1>
+        <p>Sign in to access your dashboard</p>
+
+        <div class="role-grid">
+          <div class="rg-item sel">
+            <span class="rg-icon">🧑‍💼</span>
+            <div class="rg-lbl">Admin</div>
+          </div>
+          <div class="rg-item">
+            <span class="rg-icon">💰</span>
+            <div class="rg-lbl">Sales</div>
+          </div>
+          <div class="rg-item">
+            <span class="rg-icon">🏪</span>
+            <div class="rg-lbl">Staff</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-body">
+        <div class="input-field">
+          <label>Email address</label>
+          <div class="inp-con">
+            <span class="inp-icon-l">📧</span>
+            <input type="email" placeholder="your@email.com"/>
+          </div>
+        </div>
+        <div class="input-field">
+          <label>Password</label>
+          <div class="inp-con">
+            <span class="inp-icon-l">🔑</span>
+            <input type="password" placeholder="Enter password"/>
+          </div>
+        </div>
+
+        <div class="row-opts">
+          <label class="chk-opt"><input type="checkbox"/> Remember me</label>
+          <a href="#" class="frg-link">Forgot password?</a>
+        </div>
+
+        <button class="sign-btn">Continue to Dashboard →</button>
+      </div>
+
+      <div class="form-foot">
+        <span>Need access? <a href="#">Contact your administrator</a></span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
