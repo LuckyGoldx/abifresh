@@ -396,12 +396,19 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
 
     console.log('📥 Raw staff_payments data from DB:', JSON.stringify(data?.[0], null, 2));
 
+    // Get user info for staff_name and staff_phone lookup
+    const { data: staffMember } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, email, phone_number, username')
+      .eq('id', req.user!.id)
+      .single();
+
     const payments = (data || []).map((payment: any) => {
       return {
         id: payment.id,
         staff_id: payment.staff_id,
-        staff_name: payment.staff_name || 'Unknown',
-        staff_phone: payment.staff_phone || null,
+        staff_name: payment.staff_name || staffMember?.full_name || 'Unknown',
+        staff_phone: payment.staff_phone || staffMember?.phone_number || null,
         amount: payment.amount,
         payment_method: payment.payment_method || 'unknown',
         payment_type: payment.payment_type,
@@ -460,7 +467,7 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
     // Get user info for enhanced payment details
     const { data: user } = await supabaseAdmin
       .from('users')
-      .select('full_name, email, phone')
+      .select('full_name, email, phone_number')
       .eq('id', req.user!.id)
       .single();
 
@@ -522,7 +529,7 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
           staff_id: req.user!.id,
           staff_name: user?.full_name,
           staff_email: user?.email,
-          staff_phone: user?.phone,
+          staff_phone: user?.phone_number,
           amount: parseFloat(amount),
           payment_type: 'other',
           payment_method: payment_method,
