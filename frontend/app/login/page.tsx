@@ -84,7 +84,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={styles.body}>
+    <div className={`${styles.body} ${isDarkMode ? styles.darkMode : ''}`}>
       <div className={styles.shapesBg}>
         <div className={styles.shape1}></div>
         <div className={styles.shape2}></div>
