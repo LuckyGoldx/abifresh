@@ -613,12 +613,10 @@ export default function PaymentsPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">Payment Method</p>
                     <p className="font-semibold text-gray-800 dark:text-white capitalize">{selectedPayment.payment_method || 'Not specified'}</p>
                   </div>
-                  {selectedPayment.reference_number && (
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Reference Number</p>
-                      <p className="font-semibold text-gray-800 dark:text-white">{selectedPayment.reference_number}</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Reference Number</p>
+                    <p className="font-semibold text-gray-800 dark:text-white">{selectedPayment.reference_number || 'N/A'}</p>
+                  </div>
                 </div>
               </div>
 
