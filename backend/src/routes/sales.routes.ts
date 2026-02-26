@@ -416,7 +416,7 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
         id: payment.id,
         staff_id: payment.staff_id,
         staff_name: payment.staff_name || userData?.full_name || req.user?.full_name || 'Unknown',
-        staff_phone: payment.staff_phone || userData?.phone || req.user?.phone || null,
+        staff_phone: payment.staff_phone || userData?.phone || null,
         amount: payment.amount,
         payment_method: payment.payment_method || 'unknown',
         payment_type: payment.payment_type,
@@ -436,8 +436,6 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
   } catch (error: any) {
     console.error('Error fetching payments:', error);
     res.status(400).json({ error: error.message });
-  }
-});
   }
 });
 
