@@ -265,7 +265,7 @@ export default function ItemsPage() {
         return;
       }
 
-      const res = await fetch('http://localhost:5000/api/inventory/items', {
+      const res = await fetch(`${API_BASE}/api/inventory/items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -322,7 +322,7 @@ export default function ItemsPage() {
         console.log('✏️ Edit (UPDATE mode):', selectedItem.id, 'Old Main:', currentMainQty, 'New Main:', newMainQty);
       }
 
-      const res = await fetch(`http://localhost:5000/api/inventory/items/${selectedItem.id}`, {
+      const res = await fetch(`${API_BASE}/api/inventory/items/${selectedItem.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -366,7 +366,7 @@ export default function ItemsPage() {
     if (!deleteItemId) return;
     
     try {
-      const res = await fetch(`http://localhost:5000/api/inventory/items/${deleteItemId}`, {
+      const res = await fetch(`${API_BASE}/api/inventory/items/${deleteItemId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

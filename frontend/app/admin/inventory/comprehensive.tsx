@@ -39,7 +39,7 @@ interface StoreStats {
 type StoreView = 'all' | 'main' | 'active' | 'unavailable' | 'low-stocks' | 'out-of-stock';
 type ModalType = 'add' | 'edit' | 'transfer' | null;
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 /**
  * Convert any image URL (old Supabase public URL or new proxy path) to a working proxy URL.
@@ -314,7 +314,7 @@ export default function ComprehensiveInventoryPage() {
         ? '/api/inventory/transfer/main-to-active'
         : '/api/inventory/transfer/active-to-main';
 
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -15,7 +15,7 @@ const nextConfig = {
   },
   optimizeFonts: true,
   images: {
-    domains: ['localhost:5000', 'localhost', '127.0.0.1'],
+    domains: ['localhost:5000', 'localhost', '127.0.0.1', 'abifresh-production.up.railway.app'],
     formats: ['image/avif', 'image/webp'],
   },
   experimental: {
