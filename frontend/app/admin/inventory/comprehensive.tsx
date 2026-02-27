@@ -125,7 +125,7 @@ export default function ComprehensiveInventoryPage() {
       setError(null);
 
       // Fetch stats based on view
-      const statsUrl = `http://localhost:5000/api/inventory/summary?view=${storeView}`;
+      const statsUrl = `${API_BASE}/api/inventory/summary?view=${storeView}`;
       const statsRes = await fetch(statsUrl, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -138,13 +138,13 @@ export default function ComprehensiveInventoryPage() {
       }
 
       // Fetch items based on view
-      let url = 'http://localhost:5000/api/inventory/items';
+      let url = `${API_BASE}/api/inventory/items`;
       if (storeView === 'main') {
-        url = 'http://localhost:5000/api/inventory/main-store';
+        url = `${API_BASE}/api/inventory/main-store`;
       } else if (storeView === 'active') {
-        url = 'http://localhost:5000/api/inventory/active-store';
+        url = `${API_BASE}/api/inventory/active-store`;
       } else if (storeView === 'unavailable') {
-        url = 'http://localhost:5000/api/inventory/unavailable';
+        url = `${API_BASE}/api/inventory/unavailable`;
       }
 
       console.log('📍 Fetching from:', url);
@@ -194,7 +194,7 @@ export default function ComprehensiveInventoryPage() {
       const quantityToAdd = formData.main_store_quantity || 0;
       console.log('📝 Adding item with quantity:', quantityToAdd, '(all goes to main store)');
 
-      const res = await fetch('http://localhost:5000/api/inventory/items', {
+      const res = await fetch(`${API_BASE}/api/inventory/items`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
