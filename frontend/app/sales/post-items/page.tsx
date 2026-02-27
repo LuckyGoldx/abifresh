@@ -10,7 +10,7 @@ import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag
  */
 function getImageUrl(url: string | undefined | null): string | null {
   if (!url) return null;
-  const API_BASE = 'http://localhost:5000';
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   if (url.startsWith(API_BASE + '/api/inventory/images/')) return url;
   if (url.startsWith('/api/inventory/images/')) return `${API_BASE}${url}`;
   const match = url.match(/products\/([^?]+)/);

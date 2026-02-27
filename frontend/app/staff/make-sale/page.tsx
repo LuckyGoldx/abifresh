@@ -48,7 +48,7 @@ interface CartItem extends Item {
  */
 function getImageUrl(url: string | undefined | null): string | null {
   if (!url) return null;
-  const API_BASE = 'http://localhost:5000';
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   // Already a full proxy URL
   if (url.startsWith(API_BASE + '/api/inventory/images/')) return url;
   // Relative proxy path from upload endpoint

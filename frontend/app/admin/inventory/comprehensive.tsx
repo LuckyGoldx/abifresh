@@ -264,7 +264,7 @@ export default function ComprehensiveInventoryPage() {
         console.log('✏️ Edit (UPDATE mode):', selectedItem.id, 'Old Main:', currentMainQty, 'New Main:', newMainQty);
       }
 
-      const res = await fetch(`http://localhost:5000/api/inventory/items/${selectedItem.id}`, {
+      const res = await fetch(`${API_BASE}/api/inventory/items/${selectedItem.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -346,7 +346,7 @@ export default function ComprehensiveInventoryPage() {
   const handleDeleteItem = async (itemId: string) => {
     if (!confirm('Are you sure you want to delete this item?')) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/inventory/items/${itemId}`, {
+      const res = await fetch(`${API_BASE}/api/inventory/items/${itemId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -978,7 +978,7 @@ function AddEditModal({
       const fd = new FormData();
       fd.append('image', file);
 
-      const res = await fetch('http://localhost:5000/api/inventory/upload-image', {
+      const res = await fetch(`${API_BASE}/api/inventory/upload-image`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: fd,
