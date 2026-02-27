@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
+import api from '@/lib/api';
 import { Plus, Edit2, Trash2, ChevronRight, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { PRODUCT_CATALOG, getBrandNames, getPackageTypes, getProductVariants, getBrandCategory, isOthersBrand } from '@/lib/productCatalog';
 import type { ProductVariant } from '@/lib/productCatalog';
@@ -124,40 +125,26 @@ export default function ComprehensiveInventoryPage() {
       setLoading(true);
       setError(null);
 
-      // Fetch stats based on view
-      const statsUrl = `${API_BASE}/api/inventory/summary?view=${storeView}`;
-      const statsRes = await fetch(statsUrl, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (statsRes.ok) {
-        const stats = await statsRes.json();
-        console.log(`📊 Stats loaded (${storeView}):`, stats);
-        setStats(stats);
-      } else {
-        console.warn('⚠️ Stats fetch failed:', statsRes.status);
+      // Fetch stats based on view (using api module for reliable auth)
+      try {
+        const statsRes = await api.get(`/api/inventory/summary`, { params: { view: storeView } });
+        setStats(statsRes.data);
+      } catch (statsErr: any) {
+        console.warn('⚠️ Stats fetch failed:', statsErr.response?.status || statsErr.message);
       }
 
-      // Fetch items based on view
-      let url = `${API_BASE}/api/inventory/items`;
+      // Fetch items based on view (using api module for reliable auth)
+      let itemsPath = '/api/inventory/items';
       if (storeView === 'main') {
-        url = `${API_BASE}/api/inventory/main-store`;
+        itemsPath = '/api/inventory/main-store';
       } else if (storeView === 'active') {
-        url = `${API_BASE}/api/inventory/active-store`;
+        itemsPath = '/api/inventory/active-store';
       } else if (storeView === 'unavailable') {
-        url = `${API_BASE}/api/inventory/unavailable`;
+        itemsPath = '/api/inventory/unavailable';
       }
 
-      console.log('📍 Fetching from:', url);
-      const itemsRes = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      if (!itemsRes.ok) {
-        const errText = await itemsRes.text();
-        console.error('❌ Items fetch failed:', itemsRes.status, errText);
-        throw new Error(`Failed to fetch items: ${itemsRes.status}`);
-      }
-      const itemsData = await itemsRes.json();
+      const itemsRes = await api.get(itemsPath);
+      const itemsData = itemsRes.data;
       console.log('📦 Items loaded:', itemsData.length, 'items');
       console.log('📊 First item RAW:', JSON.stringify(itemsData[0], null, 2));
       console.log('🔍 Image & Field check:', {
@@ -170,7 +157,8 @@ export default function ComprehensiveInventoryPage() {
       setItems(itemsData);
     } catch (err: any) {
       console.error('❌ fetchData error:', err);
-      setError(err.message);
+      const errorMsg = err.response?.data?.error || err.message || 'Failed to fetch inventory data';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -194,40 +182,26 @@ export default function ComprehensiveInventoryPage() {
       const quantityToAdd = formData.main_store_quantity || 0;
       console.log('📝 Adding item with quantity:', quantityToAdd, '(all goes to main store)');
 
-      const res = await fetch(`${API_BASE}/api/inventory/items`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          sku: formData.sku,
-          category: formData.category,
-          unit_price: formatPrice(formData.unit_price),
-          quantity: quantityToAdd,
-          commission: formatPrice(formData.commission || 0),
-          brand: formData.brand || undefined,
-          package_type: formData.package_type || undefined,
-          price_jalingo: formatPrice(formData.price_jalingo || 0),
-          price_outside: formatPrice(formData.price_outside || 0),
-          image_url: formData.image_url || undefined,
-        }),
+      await api.post('/api/inventory/items', {
+        name: formData.name,
+        sku: formData.sku,
+        category: formData.category,
+        unit_price: formatPrice(formData.unit_price),
+        quantity: quantityToAdd,
+        commission: formatPrice(formData.commission || 0),
+        brand: formData.brand || undefined,
+        package_type: formData.package_type || undefined,
+        price_jalingo: formatPrice(formData.price_jalingo || 0),
+        price_outside: formatPrice(formData.price_outside || 0),
+        image_url: formData.image_url || undefined,
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        const errorMsg = errData.error || 'Failed to add item';
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-      console.log('✅ Item added successfully');
       toast.success('✅ Item added successfully');
       setModalType(null);
       resetForm();
       await fetchData();
     } catch (err: any) {
-      const errorMsg = err.message || 'Error adding item';
+      const errorMsg = err.response?.data?.error || err.message || 'Error adding item';
       setError(errorMsg);
       if (!errorMsg.includes('SKU')) {
         toast.error(errorMsg);
@@ -264,41 +238,27 @@ export default function ComprehensiveInventoryPage() {
         console.log('✏️ Edit (UPDATE mode):', selectedItem.id, 'Old Main:', currentMainQty, 'New Main:', newMainQty);
       }
 
-      const res = await fetch(`${API_BASE}/api/inventory/items/${selectedItem.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          sku: formData.sku,
-          category: formData.category,
-          unit_price: formatPrice(formData.unit_price),
-          main_store_quantity: newMainQty,
-          commission: formatPrice(formData.commission || 0),
-          brand: formData.brand || undefined,
-          package_type: formData.package_type || undefined,
-          price_jalingo: formatPrice(formData.price_jalingo || 0),
-          price_outside: formatPrice(formData.price_outside || 0),
-          image_url: formData.image_url || undefined,
-        }),
+      await api.put(`/api/inventory/items/${selectedItem.id}`, {
+        name: formData.name,
+        sku: formData.sku,
+        category: formData.category,
+        unit_price: formatPrice(formData.unit_price),
+        main_store_quantity: newMainQty,
+        commission: formatPrice(formData.commission || 0),
+        brand: formData.brand || undefined,
+        package_type: formData.package_type || undefined,
+        price_jalingo: formatPrice(formData.price_jalingo || 0),
+        price_outside: formatPrice(formData.price_outside || 0),
+        image_url: formData.image_url || undefined,
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        const errorMsg = errData.error || 'Failed to edit item';
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-      console.log('✅ Item edited successfully');
       toast.success('✅ Item updated successfully');
       setModalType(null);
       resetForm();
       setSelectedItem(null);
       await fetchData();
     } catch (err: any) {
-      const errorMsg = err.message || 'Error editing item';
+      const errorMsg = err.response?.data?.error || err.message || 'Error editing item';
       setError(errorMsg);
       if (!errorMsg.includes('SKU')) {
         toast.error(errorMsg);
@@ -314,30 +274,18 @@ export default function ComprehensiveInventoryPage() {
         ? '/api/inventory/transfer/main-to-active'
         : '/api/inventory/transfer/active-to-main';
 
-      const res = await fetch(`${API_BASE}${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          item_id: selectedItem.id,
-          quantity: transferData.quantity,
-        }),
+      await api.post(endpoint, {
+        item_id: selectedItem.id,
+        quantity: transferData.quantity,
       });
 
-      if (!res.ok) {
-        const errorMsg = 'Failed to transfer item';
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
       toast.success(`✅ Transferred ${transferData.quantity} units ${transferData.direction === 'main-to-active' ? 'to Active Store' : 'to Main Store'}`);
       setModalType(null);
       setTransferData({ quantity: 0, direction: 'main-to-active' });
       setSelectedItem(null);
       fetchData();
     } catch (err: any) {
-      const errorMsg = err.message || 'Error transferring item';
+      const errorMsg = err.response?.data?.error || err.message || 'Error transferring item';
       setError(errorMsg);
       toast.error(errorMsg);
     }
@@ -346,20 +294,12 @@ export default function ComprehensiveInventoryPage() {
   const handleDeleteItem = async (itemId: string) => {
     if (!confirm('Are you sure you want to delete this item?')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/inventory/items/${itemId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
+      await api.delete(`/api/inventory/items/${itemId}`);
 
-      if (!res.ok) {
-        const errorMsg = 'Failed to delete item';
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
       toast.success('✅ Item deleted successfully');
       fetchData();
     } catch (err: any) {
-      const errorMsg = err.message || 'Error deleting item';
+      const errorMsg = err.response?.data?.error || err.message || 'Error deleting item';
       setError(errorMsg);
       toast.error(errorMsg);
     }
@@ -978,29 +918,18 @@ function AddEditModal({
       const fd = new FormData();
       fd.append('image', file);
 
-      const res = await fetch(`${API_BASE}/api/inventory/upload-image`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: fd,
+      const res = await api.post('/api/inventory/upload-image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        const errorMsg = err.error || 'Upload failed';
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      const { url } = await res.json();
+      const { url } = res.data;
       const proxyUrl = getImageUrl(url) || url;
       setFormData({ ...formData, image_url: proxyUrl });
-      console.log('📸 Image uploaded successfully:', proxyUrl);
-      console.log('📷 Image preview set to:', proxyUrl);
       toast.success('✅ Image uploaded successfully');
     } catch (err: any) {
       console.error('Image upload error:', err);
-      const errorMsg = 'Failed to upload image: ' + err.message;
-      toast.error(errorMsg);
+      const errorMsg = err.response?.data?.error || err.message || 'Upload failed';
+      toast.error('Failed to upload image: ' + errorMsg);
       setImagePreview(null);
     } finally {
       setUploading(false);
