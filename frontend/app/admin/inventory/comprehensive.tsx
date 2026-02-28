@@ -426,16 +426,48 @@ export default function ComprehensiveInventoryPage() {
           <div className="mb-8">
             {storeView === 'all' && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard title="Total Items" value={stats.total_items} color="blue" />
-                <StatCard title="Main Store" value={stats.total_main_store} color="purple" />
-                <StatCard title="Active Store" value={stats.total_active_store} color="green" />
-                <StatCard title="Available" value={stats.available_items} color="indigo" />
-                <StatCard title="Unavailable" value={stats.unavailable_items} color="red" />
+                <StatCard 
+                  title="Total Items" 
+                  items={stats.total_items} 
+                  quantity={stats.total_quantity}
+                  color="blue" 
+                  onClick={() => setStoreView('all')}
+                  isActive={storeView === 'all'}
+                />
+                <StatCard 
+                  title="Main Store" 
+                  items={items.filter(item => item.main_store_quantity > 0).length}
+                  quantity={stats.total_main_store} 
+                  color="purple" 
+                  onClick={() => setStoreView('main')}
+                />
+                <StatCard 
+                  title="Active Store" 
+                  items={items.filter(item => item.active_store_quantity > 0).length}
+                  quantity={stats.total_active_store} 
+                  color="green" 
+                  onClick={() => setStoreView('active')}
+                />
+                <StatCard 
+                  title="Available" 
+                  items={stats.available_items}
+                  quantity={items.filter(item => item.is_available === true && (item.active_store_quantity || 0) > 0).reduce((sum, item) => sum + (item.main_store_quantity || 0) + (item.active_store_quantity || 0), 0)}
+                  color="indigo"
+                />
+                <StatCard 
+                  title="Unavailable" 
+                  items={stats.unavailable_items}
+                  quantity={items.filter(item => item.is_available === false || (item.active_store_quantity || 0) === 0).reduce((sum, item) => sum + (item.main_store_quantity || 0) + (item.active_store_quantity || 0), 0)}
+                  color="red"
+                  onClick={() => setStoreView('unavailable')}
+                />
                 <StatCard 
                   title="Total Value" 
-                  value={stats.total_value} 
+                  quantity={stats.total_value} 
                   color="amber" 
                   isCurrency={true}
+                  valueOnly={true}
+                  totalQuantity={stats.total_quantity}
                 />
                 <div className="border rounded-lg p-4 bg-indigo-50 dark:bg-indigo-900 border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-200">
                   <p className="text-sm font-medium mb-3">Estimated Revenue</p>
@@ -455,50 +487,94 @@ export default function ComprehensiveInventoryPage() {
             
             {storeView === 'main' && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <StatCard title="Items in Main Store" value={stats.total_items} color="blue" />
-                <StatCard title="Main Store Qty" value={stats.total_main_store} color="purple" />
+                <StatCard 
+                  title="Items in Main Store" 
+                  items={stats.total_items} 
+                  quantity={stats.total_main_store}
+                  color="blue" 
+                  onClick={() => setStoreView('all')}
+                  isActive={storeView === 'main'}
+                />
+                <StatCard 
+                  title="Total Qty" 
+                  items={items.filter(item => item.main_store_quantity > 0).length}
+                  quantity={stats.total_main_store}
+                  color="purple"
+                />
                 <StatCard 
                   title="Main Store Value" 
-                  value={stats.total_value} 
+                  quantity={stats.total_value} 
                   color="amber" 
                   isCurrency={true}
+                  valueOnly={true}
+                  totalQuantity={stats.total_main_store}
                 />
               </div>
             )}
             
             {storeView === 'active' && (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <StatCard title="Items in Active Store" value={stats.total_items} color="blue" />
-                <StatCard title="Active Store Quantity" value={stats.total_active_store} color="green" />
+                <StatCard 
+                  title="Items in Active Store" 
+                  items={stats.total_items}
+                  quantity={items.filter(item => item.active_store_quantity > 0).reduce((sum, item) => sum + (item.active_store_quantity || 0), 0)}
+                  color="blue"
+                  onClick={() => setStoreView('all')}
+                  isActive={storeView === 'active'}
+                />
+                <StatCard 
+                  title="Active Store Qty" 
+                  items={items.filter(item => item.active_store_quantity > 0).length}
+                  quantity={stats.total_active_store} 
+                  color="green"
+                />
                 <StatCard 
                   title="Active Store Value" 
-                  value={stats.total_value} 
+                  quantity={stats.total_value} 
                   color="amber" 
                   isCurrency={true}
+                  valueOnly={true}
+                  totalQuantity={stats.total_active_store}
                 />
               </div>
             )}
             
             {storeView === 'unavailable' && (
               <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-                <StatCard title="Unavailable Items" value={stats.unavailable_items} color="red" />
+                <StatCard 
+                  title="Unavailable Items" 
+                  items={stats.unavailable_items}
+                  quantity={items.filter(item => item.is_available === false || (item.active_store_quantity || 0) === 0).reduce((sum, item) => sum + (item.main_store_quantity || 0) + (item.active_store_quantity || 0), 0)}
+                  color="red"
+                  onClick={() => setStoreView('all')}
+                  isActive={storeView === 'unavailable'}
+                />
                 <StatCard 
                   title="Unavailable Value" 
-                  value={filteredItems.reduce((sum, item) => sum + ((item.main_store_quantity + item.active_store_quantity) * item.unit_price), 0)} 
+                  quantity={filteredItems.reduce((sum, item) => sum + ((item.main_store_quantity + item.active_store_quantity) * (item.unit_price || 0)), 0)} 
                   color="red" 
                   isCurrency={true}
+                  valueOnly={true}
+                  totalQuantity={filteredItems.reduce((sum, item) => sum + (item.main_store_quantity || 0) + (item.active_store_quantity || 0), 0)}
                 />
               </div>
             )}
             
             {storeView === 'out-of-stock' && (
               <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
-                <StatCard title="Out of Stock Items" value={filteredItems.length} color="red" />
+                <StatCard 
+                  title="Out of Stock Items" 
+                  items={filteredItems.length}
+                  quantity={0}
+                  color="red"
+                />
                 <StatCard 
                   title="Out of Stock Value" 
-                  value={0} 
+                  quantity={0} 
                   color="red" 
                   isCurrency={true}
+                  valueOnly={true}
+                  totalQuantity={0}
                 />
               </div>
             )}
@@ -801,7 +877,7 @@ export default function ComprehensiveInventoryPage() {
   );
 }
 
-function StatCard({ title, value, color, isCurrency }: { title: string; value: number; color: string; isCurrency?: boolean }) {
+function StatCard({ title, items, quantity, color, isCurrency, onClick, isActive, valueOnly, totalQuantity }: { title: string; items?: number; quantity: number; color: string; isCurrency?: boolean; onClick?: () => void; isActive?: boolean; valueOnly?: boolean; totalQuantity?: number }) {
   const colorClasses = {
     blue: 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-200',
     purple: 'bg-purple-50 dark:bg-purple-900 border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-200',
@@ -811,16 +887,41 @@ function StatCard({ title, value, color, isCurrency }: { title: string; value: n
     amber: 'bg-amber-50 dark:bg-amber-900 border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-200',
   };
 
-  const displayValue = isCurrency 
-    ? `₦${value.toLocaleString()}` 
-    : value.toLocaleString();
+  const displayQuantity = isCurrency 
+    ? `₦${quantity.toLocaleString()}` 
+    : quantity.toLocaleString();
 
   return (
-    <div className={`border rounded-lg p-4 ${colorClasses[color as keyof typeof colorClasses]}`}>
+    <div 
+      onClick={onClick}
+      className={`border rounded-lg p-4 cursor-pointer transition-all ${
+        isActive ? 'ring-2 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-900' : ''
+      } ${colorClasses[color as keyof typeof colorClasses]} ${
+        onClick ? 'hover:shadow-lg hover:scale-105' : ''
+      }`}
+    >
       <p className="text-sm font-medium">{title}</p>
-      <p className={`font-bold mt-2 ${isCurrency ? 'text-xl md:text-2xl' : 'text-3xl'} break-words`}>
-        {displayValue}
-      </p>
+      {valueOnly ? (
+        <div className="mt-6 space-y-4">
+          <p className={`font-bold text-center ${isCurrency ? 'text-3xl md:text-4xl' : 'text-3xl'} break-words`}>
+            {displayQuantity}
+          </p>
+          {totalQuantity !== undefined && (
+            <p className="text-sm font-semibold text-center">{totalQuantity.toLocaleString()} Units</p>
+          )}
+        </div>
+      ) : (
+        <div className="mt-3 space-y-1">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-semibold opacity-75">Items</span>
+            <span className="text-2xl font-bold">{items?.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-semibold opacity-75">Quantity</span>
+            <span className="text-xl font-bold">{displayQuantity}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

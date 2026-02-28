@@ -276,13 +276,18 @@ export class InventoryService {
     const totalMainStore = items.reduce((sum, item) => sum + (item.main_store_quantity || 0), 0);
     const totalActiveStore = items.reduce((sum, item) => sum + (item.active_store_quantity || 0), 0);
     const totalQuantity = totalMainStore + totalActiveStore;
-    const availableItems = items.filter(item => item.active_store_quantity > 0).length;
-    const unavailableItems = items.filter(item => item.active_store_quantity === 0).length;
     
-    // Calculate total value
+    // Available items: marked as available AND has stock in active store
+    const availableItems = items.filter(item => item.is_available === true && (item.active_store_quantity || 0) > 0).length;
+    
+    // Unavailable items: either marked unavailable OR has no stock in active store
+    const unavailableItems = items.filter(item => item.is_available === false || (item.active_store_quantity || 0) === 0).length;
+    
+    // Calculate total value (with null-safety for unit_price)
     const totalValue = items.reduce((sum, item) => {
       const qty = (item.main_store_quantity || 0) + (item.active_store_quantity || 0);
-      return sum + (qty * item.unit_price);
+      const price = item.unit_price || 0;
+      return sum + (qty * price);
     }, 0);
 
     return {
@@ -303,7 +308,8 @@ export class InventoryService {
     const items = await this.getMainStoreItems();
     
     const totalMainStore = items.reduce((sum, item) => sum + (item.main_store_quantity || 0), 0);
-    const totalValue = items.reduce((sum, item) => sum + ((item.main_store_quantity || 0) * item.unit_price), 0);
+    // Calculate value with null-safety for unit_price
+    const totalValue = items.reduce((sum, item) => sum + ((item.main_store_quantity || 0) * (item.unit_price || 0)), 0);
 
     return {
       total_items: items.length,
@@ -324,7 +330,8 @@ export class InventoryService {
     const items = await this.getActiveStoreItems();
     
     const totalActiveStore = items.reduce((sum, item) => sum + (item.active_store_quantity || 0), 0);
-    const totalValue = items.reduce((sum, item) => sum + ((item.active_store_quantity || 0) * item.unit_price), 0);
+    // Calculate value with null-safety for unit_price
+    const totalValue = items.reduce((sum, item) => sum + ((item.active_store_quantity || 0) * (item.unit_price || 0)), 0);
 
     return {
       total_items: items.length,
@@ -373,11 +380,11 @@ export class InventoryService {
   }
 
   /**
-   * Get unavailable items (not in active store)
+   * Get unavailable items (either marked unavailable OR not in active store)
    */
   async getUnavailableItems(): Promise<any[]> {
     const items = await this.getAllItems();
-    return items.filter(item => item.active_store_quantity === 0);
+    return items.filter(item => item.is_available === false || (item.active_store_quantity || 0) === 0);
   }
 }
 
