@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="leafGrad" cx="30%" cy="30%">
+      <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  <path d="M32 10 Q50 20, 48 40 Q46 55, 32 58 Q18 55, 16 40 Q14 20, 32 10 Z" fill="url(#leafGrad)"/>
+  <path d="M32 15 Q40 25, 40 38 Q38 50, 32 52 Q26 50, 24 38 Q24 25, 32 15 Z" fill="#fff" opacity="0.3"/>
+</svg>

@@ -95,6 +95,45 @@ export class LocalhostAuthService {
   }
 
   /**
+   * Get user by username (case-insensitive)
+   */
+  async getUserByUsername(username: string): Promise<User | null> {
+    const user = Object.values(DEMO_USERS).find(
+      (u) => u.username.toLowerCase() === username.toLowerCase()
+    );
+
+    if (!user) {
+      return null;
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword as User;
+  }
+
+  /**
+   * Login user by username and password (case-insensitive)
+   */
+  async loginByUsername(username: string, password: string): Promise<{ user: User | null; deactivated?: boolean }> {
+    // Find user by username (case-insensitive) and password
+    const user = Object.values(DEMO_USERS).find(
+      (u) => u.username.toLowerCase() === username.toLowerCase() && u.password === password
+    );
+
+    if (!user) {
+      return { user: null };
+    }
+
+    // Check if user account is deactivated
+    if (!user.is_active) {
+      return { user: null, deactivated: true };
+    }
+
+    // Return user without password
+    const { password: _, ...userWithoutPassword } = user;
+    return { user: userWithoutPassword as User };
+  }
+
+  /**
    * Get user by email
    */
   async getUserByEmail(email: string): Promise<User | null> {

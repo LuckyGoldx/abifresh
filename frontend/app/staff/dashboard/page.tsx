@@ -98,9 +98,9 @@ export default function StaffDashboard() {
   }
 
   const StatCard = ({ icon: Icon, title, value, color, subtitle }: any) => (
-    <div className="card flex items-center space-x-4">
-      <div className={`${color} p-3 rounded-lg`}>
-        <Icon className="w-6 h-6 text-white" />
+    <div className="card flex flex-row-reverse md:flex-row items-center space-x-2 md:space-x-4">
+      <div className={`${color} p-2 md:p-3 rounded-lg`}>
+        <Icon className="w-5 md:w-6 h-5 md:h-6 text-white" />
       </div>
       <div>
         <p className="text-gray-600 dark:text-gray-400 text-sm">{title}</p>
@@ -125,16 +125,6 @@ export default function StaffDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Staff Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Welcome, {user?.full_name} ({isCommissionStaff ? 'Commission Staff' : 'Non-Commission Staff'})
-        </p>
-        {user?.store_location && (
-          <p className="text-sm text-gray-500">Store: {user.store_location}</p>
-        )}
-      </div>
-
       {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Today's Stats - First Row */}
@@ -145,9 +135,9 @@ export default function StaffDashboard() {
           color="bg-green-500"
           subtitle="Today's revenue"
         />
-        <div className="card flex items-center space-x-4">
-          <div className="bg-blue-500 p-3 rounded-lg">
-            <ShoppingBag className="w-6 h-6 text-white" />
+        <div className="card flex flex-row-reverse md:flex-row items-center space-x-2 md:space-x-4">
+          <div className="bg-blue-500 p-2 md:p-3 rounded-lg">
+            <ShoppingBag className="w-5 md:w-6 h-5 md:h-6 text-white" />
           </div>
           <div>
             <p className="text-gray-600 dark:text-gray-400 text-sm">Today's Sales</p>
@@ -164,9 +154,9 @@ export default function StaffDashboard() {
           color="bg-purple-500"
           subtitle="From items sold"
         />
-        <div className="card flex items-center space-x-4">
-          <div className="bg-cyan-500 p-3 rounded-lg">
-            <Package className="w-6 h-6 text-white" />
+        <div className="card flex flex-row-reverse md:flex-row items-center space-x-2 md:space-x-4">
+          <div className="bg-cyan-500 p-2 md:p-3 rounded-lg">
+            <Package className="w-5 md:w-6 h-5 md:h-6 text-white" />
           </div>
           <div>
             <p className="text-gray-600 dark:text-gray-400 text-sm">Total Items Sold</p>

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #be185d;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #be185d;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .favicon-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(190, 24, 93, 0.15);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .favicon-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 48px rgba(190, 24, 93, 0.25);
+        }
+        
+        .favicon-display {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #ff69b4;
+        }
+        
+        .favicon-display svg {
+            width: 100px;
+            height: 100px;
+        }
+        
+        .favicon-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #be185d;
+            margin-bottom: 8px;
+        }
+        
+        .favicon-filename {
+            font-size: 0.9em;
+            color: #999;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(190, 24, 93, 0.15);
+        }
+        
+        .info-section h2 {
+            color: #be185d;
+            margin-bottom: 15px;
+        }
+        
+        .info-section ul {
+            list-style: none;
+            color: #666;
+            line-height: 1.8;
+        }
+        
+        .info-section li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .info-section li:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Favicon Preview</h1>
+        <p class="subtitle">30 Pink-Themed Favicon Options</p>
+        
+        <div class="grid">
+            <!-- Favicon 1 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <radialGradient id="grad1" cx="35%" cy="35%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </radialGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="30" fill="url(#grad1)"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Circle</div>
+                <div class="favicon-filename">favicon-1-circle.svg</div>
+            </div>
+            
+            <!-- Favicon 2 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <path d="M32 54 C15 42, 10 32, 10 24 C10 16, 16 10, 20 10 C24 10, 28 13, 32 18 C36 13, 40 10, 44 10 C48 10, 54 16, 54 24 C54 32, 49 42, 32 54 Z" fill="#ff1493"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Heart</div>
+                <div class="favicon-filename">favicon-2-heart.svg</div>
+            </div>
+            
+            <!-- Favicon 3 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <polygon points="32,10 39,28 58,28 44,40 50,58 32,46 14,58 20,40 6,28 25,28" fill="url(#starGrad)"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Star</div>
+                <div class="favicon-filename">favicon-3-star.svg</div>
+            </div>
+            
+            <!-- Favicon 4 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <g fill="#e91e63">
+                            <path d="M18 22 C18 16, 22 12, 28 12 L36 12 C42 12, 46 16, 46 22 L44 22 C44 17, 40 14, 36 14 L28 14 C24 14, 20 17, 20 22 Z"/>
+                            <path d="M20 24 L20 50 C20 54, 23 57, 27 57 L37 57 C41 57, 44 54, 44 50 L44 24 Z"/>
+                            <circle cx="28" cy="38" r="2"/>
+                            <circle cx="36" cy="38" r="2"/>
+                        </g>
+                    </svg>
+                </div>
+                <div class="favicon-name">Shopping Bag</div>
+                <div class="favicon-filename">favicon-4-shopping-bag.svg</div>
+            </div>
+            
+            <!-- Favicon 5 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="diamondGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#ff1493;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <polygon points="32,8 52,32 32,56 12,32" fill="url(#diamondGrad)"/>
+                        <polygon points="32,16 44,32 32,48 20,32" fill="#fff" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Diamond</div>
+                <div class="favicon-filename">favicon-5-diamond.svg</div>
+            </div>
+            
+            <!-- Favicon 6 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <pattern id="hexPattern" patternUnits="userSpaceOnUse" width="8" height="8">
+                                <circle cx="4" cy="4" r="2" fill="#ff69b4" opacity="0.8"/>
+                            </pattern>
+                        </defs>
+                        <polygon points="32,8 50,17 50,47 32,56 14,47 14,17" fill="#e91e63"/>
+                        <polygon points="32,12 46,19 46,45 32,52 18,45 18,19" fill="url(#hexPattern)"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Hexagon</div>
+                <div class="favicon-filename">favicon-6-hexagon.svg</div>
+            </div>
+            
+            <!-- Favicon 7 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="waveGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M0 30 Q16 10, 32 30 T64 30 L64 64 L0 64 Z" fill="url(#waveGrad)"/>
+                        <path d="M0 40 Q16 25, 32 40 T64 40 L64 64 L0 64 Z" fill="#ff69b4" opacity="0.6"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Wave</div>
+                <div class="favicon-filename">favicon-7-wave.svg</div>
+            </div>
+            
+            <!-- Favicon 8 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <g>
+                            <circle cx="32" cy="16" r="8" fill="#ff69b4"/>
+                            <circle cx="46" cy="22" r="8" fill="#ff1493"/>
+                            <circle cx="50" cy="36" r="8" fill="#ff69b4"/>
+                            <circle cx="46" cy="50" r="8" fill="#ff1493"/>
+                            <circle cx="32" cy="56" r="8" fill="#ff69b4"/>
+                            <circle cx="18" cy="50" r="8" fill="#ff1493"/>
+                            <circle cx="14" cy="36" r="8" fill="#ff69b4"/>
+                            <circle cx="18" cy="22" r="8" fill="#ff1493"/>
+                            <circle cx="32" cy="36" r="10" fill="#ffb6d9"/>
+                        </g>
+                    </svg>
+                </div>
+                <div class="favicon-name">Flower</div>
+                <div class="favicon-filename">favicon-8-flower.svg</div>
+            </div>
+            
+            <!-- Favicon 9 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <radialGradient id="leafGrad" cx="30%" cy="30%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+                            </radialGradient>
+                        </defs>
+                        <path d="M32 10 Q50 20, 48 40 Q46 55, 32 58 Q18 55, 16 40 Q14 20, 32 10 Z" fill="url(#leafGrad)"/>
+                        <path d="M32 15 Q40 25, 40 38 Q38 50, 32 52 Q26 50, 24 38 Q24 25, 32 15 Z" fill="#fff" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Leaf</div>
+                <div class="favicon-filename">favicon-9-leaf.svg</div>
+            </div>
+            
+            <!-- Favicon 10 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="geoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#ff1493;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="8" y="8" width="48" height="48" fill="url(#geoGrad)" rx="8"/>
+                        <circle cx="32" cy="32" r="16" fill="#fff" opacity="0.15"/>
+                        <circle cx="32" cy="32" r="10" fill="none" stroke="#fff" stroke-width="2" opacity="0.4"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Geometric</div>
+                <div class="favicon-filename">favicon-10-geometric.svg</div>
+            </div>
+            
+            <!-- Favicon 11 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad11" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ff1493;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M32 8 C32 8, 56 16, 54 32 C52 48, 32 56, 32 56 C32 56, 12 48, 10 32 C8 16, 32 8, 32 8 Z" fill="url(#grad11)"/>
+                        <path d="M32 14 C32 14, 48 20, 47 32 C46 44, 32 50, 32 50 C32 50, 18 44, 17 32 C16 20, 32 14, 32 14 Z" fill="#fff" opacity="0.2"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Water Drop</div>
+                <div class="favicon-filename">favicon-11-water-drop.svg</div>
+            </div>
+            
+            <!-- Favicon 12 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad12" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#ff1493;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="28" fill="none" stroke="url(#grad12)" stroke-width="3"/>
+                        <circle cx="32" cy="32" r="20" fill="none" stroke="url(#grad12)" stroke-width="2" opacity="0.5"/>
+                        <circle cx="32" cy="32" r="12" fill="none" stroke="url(#grad12)" stroke-width="1" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Ripple</div>
+                <div class="favicon-filename">favicon-12-ripple.svg</div>
+            </div>
+            
+            <!-- Favicon 13 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <radialGradient id="grad13" cx="40%" cy="40%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+                            </radialGradient>
+                        </defs>
+                        <rect x="10" y="10" width="20" height="20" fill="url(#grad13)"/>
+                        <rect x="34" y="10" width="20" height="20" fill="#ff1493"/>
+                        <rect x="10" y="34" width="20" height="20" fill="#ff1493"/>
+                        <rect x="34" y="34" width="20" height="20" fill="url(#grad13)"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Checkerboard</div>
+                <div class="favicon-filename">favicon-13-checkerboard.svg</div>
+            </div>
+            
+            <!-- Favicon 14 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad14" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M32 8 L52 20 L52 44 L32 56 L12 44 L12 20 Z" fill="url(#grad14)"/>
+                        <circle cx="32" cy="32" r="10" fill="#fff" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Cube 3D</div>
+                <div class="favicon-filename">favicon-14-cube.svg</div>
+            </div>
+            
+            <!-- Favicon 15 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad15" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ff1493;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="16" cy="20" r="6" fill="url(#grad15)"/>
+                        <circle cx="32" cy="14" r="8" fill="#ff1493" opacity="0.8"/>
+                        <circle cx="48" cy="20" r="6" fill="url(#grad15)"/>
+                        <circle cx="24" cy="38" r="7" fill="url(#grad15)"/>
+                        <circle cx="40" cy="38" r="7" fill="#ff1493" opacity="0.8"/>
+                        <circle cx="32" cy="50" r="6" fill="url(#grad15)"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Bubbles</div>
+                <div class="favicon-filename">favicon-15-bubbles.svg</div>
+            </div>
+            
+            <!-- Favicon 16 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad16" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M8 32 Q20 16, 32 12 Q44 16, 56 32 Q44 48, 32 52 Q20 48, 8 32 Z" fill="url(#grad16)"/>
+                        <path d="M32 20 L28 35 L35 30 Z" fill="#fff" opacity="0.4"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Spark</div>
+                <div class="favicon-filename">favicon-16-spark.svg</div>
+            </div>
+            
+            <!-- Favicon 17 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad17" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#ff1493;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="26" fill="url(#grad17)"/>
+                        <path d="M32 14 L36 28 L50 28 L39 37 L43 51 L32 42 L21 51 L25 37 L14 28 L28 28 Z" fill="#fff" opacity="0.25"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Glowing Star</div>
+                <div class="favicon-filename">favicon-17-glowing-star.svg</div>
+            </div>
+            
+            <!-- Favicon 18 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad18" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="12" y="20" width="40" height="24" rx="4" fill="url(#grad18)"/>
+                        <circle cx="20" cy="32" r="3" fill="#fff"/>
+                        <circle cx="32" cy="32" r="3" fill="#fff"/>
+                        <circle cx="44" cy="32" r="3" fill="#fff"/>
+                        <path d="M18 42 Q32 48, 46 42" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Smiley</div>
+                <div class="favicon-filename">favicon-18-smiley.svg</div>
+            </div>
+            
+            <!-- Favicon 19 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad19" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M32 8 L56 28 L50 56 L14 56 L8 28 Z" fill="url(#grad19)"/>
+                        <polygon points="32,18 42,35 22,35" fill="#fff" opacity="0.35"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Shield</div>
+                <div class="favicon-filename">favicon-19-shield.svg</div>
+            </div>
+            
+            <!-- Favicon 20 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <radialGradient id="grad20" cx="35%" cy="35%">
+                                <stop offset="0%" style="stop-color:#ffb6d9;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ff1493;stop-opacity:1" />
+                            </radialGradient>
+                        </defs>
+                        <g fill="url(#grad20)">
+                            <path d="M20 32 C20 20, 26 12, 32 12 C38 12, 44 20, 44 32 C44 40, 40 48, 32 52 C24 48, 20 40, 20 32 Z"/>
+                            <circle cx="32" cy="28" r="3" fill="#fff"/>
+                            <path d="M28 36 Q32 40, 36 36" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+                        </g>
+                    </svg>
+                </div>
+                <div class="favicon-name">Ghost</div>
+                <div class="favicon-filename">favicon-20-ghost.svg</div>
+            </div>
+            
+            <!-- Favicon 21 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad21" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="10" y="14" width="44" height="38" rx="3" fill="url(#grad21)"/>
+                        <rect x="14" y="18" width="36" height="26" fill="#fff" opacity="0.2"/>
+                        <circle cx="20" cy="32" r="2" fill="#fff"/>
+                        <circle cx="44" cy="32" r="2" fill="#fff"/>
+                        <path d="M24 48 L40 48" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Payment Card</div>
+                <div class="favicon-filename">favicon-21-payment-card.svg</div>
+            </div>
+            
+            <!-- Favicon 22 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad22" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ff1493;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 22 L32 10 L52 22 L52 50 C52 53, 49 56, 46 56 L18 56 C15 56, 12 53, 12 50 Z" fill="url(#grad22)"/>
+                        <rect x="20" y="32" width="24" height="20" fill="#fff" opacity="0.2"/>
+                        <path d="M26 42 L32 38 L38 42" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Dashboard</div>
+                <div class="favicon-filename">favicon-22-dashboard.svg</div>
+            </div>
+            
+            <!-- Favicon 23 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad23" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="24" fill="url(#grad23)"/>
+                        <path d="M32 12 L32 32 L44 40" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="32" cy="32" r="2" fill="#fff"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Timer</div>
+                <div class="favicon-filename">favicon-23-timer.svg</div>
+            </div>
+            
+            <!-- Favicon 24 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad24" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ff1493;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <g fill="url(#grad24)">
+                            <rect x="12" y="18" width="10" height="28" rx="2"/>
+                            <rect x="27" y="12" width="10" height="34" rx="2"/>
+                            <rect x="42" y="24" width="10" height="22" rx="2"/>
+                        </g>
+                        <line x1="12" y1="50" x2="52" y2="50" stroke="#fff" stroke-width="1.5" opacity="0.4"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Analytics</div>
+                <div class="favicon-filename">favicon-24-analytics.svg</div>
+            </div>
+            
+            <!-- Favicon 25 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad25" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="28" cy="28" r="12" fill="url(#grad25)"/>
+                        <circle cx="40" cy="40" r="12" fill="#ff1493"/>
+                        <circle cx="32" cy="34" r="6" fill="#fff" opacity="0.3"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Users</div>
+                <div class="favicon-filename">favicon-25-users.svg</div>
+            </div>
+            
+            <!-- Favicon 26 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad26" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M32 10 C38 10, 43 14, 43 20 C43 26, 38 30, 32 30 C26 30, 21 26, 21 20 C21 14, 26 10, 32 10 Z" fill="url(#grad26)"/>
+                        <path d="M14 45 C14 35, 22 28, 32 28 C42 28, 50 35, 50 45 L50 54 C50 56, 48 56, 46 56 L18 56 C16 56, 14 56, 14 54 Z" fill="url(#grad26)" opacity="0.8"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Profile</div>
+                <div class="favicon-filename">favicon-26-profile.svg</div>
+            </div>
+            
+            <!-- Favicon 27 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad27" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ff1493;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 20 L52 20 L52 48 C52 52, 49 54, 45 54 L19 54 C15 54, 12 52, 12 48 Z" fill="url(#grad27)"/>
+                        <line x1="16" y1="28" x2="48" y2="28" stroke="#fff" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="16" y1="36" x2="48" y2="36" stroke="#fff" stroke-width="1.5" opacity="0.5"/>
+                        <line x1="16" y1="44" x2="35" y2="44" stroke="#fff" stroke-width="1.5" opacity="0.5"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Inventory</div>
+                <div class="favicon-filename">favicon-27-inventory.svg</div>
+            </div>
+            
+            <!-- Favicon 28 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad28" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#c2185b;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="22" fill="url(#grad28)"/>
+                        <g stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round">
+                            <path d="M22 32 L28 38 L42 24"/>
+                        </g>
+                    </svg>
+                </div>
+                <div class="favicon-name">Checkmark</div>
+                <div class="favicon-filename">favicon-28-checkmark.svg</div>
+            </div>
+            
+            <!-- Favicon 29 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad29" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#e91e63;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="26" fill="url(#grad29)"/>
+                        <g stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round">
+                            <circle cx="32" cy="24" r="3"/>
+                            <path d="M32 30 L32 38"/>
+                            <path d="M26 32 L38 32"/>
+                        </g>
+                    </svg>
+                </div>
+                <div class="favicon-name">Settings</div>
+                <div class="favicon-filename">favicon-29-settings.svg</div>
+            </div>
+            
+            <!-- Favicon 30 -->
+            <div class="favicon-card">
+                <div class="favicon-display">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+                        <defs>
+                            <linearGradient id="grad30" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#ff69b4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#ff1493;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <rect x="10" y="12" width="44" height="40" rx="4" fill="url(#grad30)"/>
+                        <circle cx="20" cy="20" r="4" fill="#fff"/>
+                        <circle cx="32" cy="20" r="4" fill="#fff"/>
+                        <circle cx="44" cy="20" r="4" fill="#fff"/>
+                        <rect x="14" y="30" width="36" height="2" fill="#fff" opacity="0.6"/>
+                        <rect x="14" y="36" width="36" height="2" fill="#fff" opacity="0.6"/>
+                        <rect x="14" y="42" width="26" height="2" fill="#fff" opacity="0.6"/>
+                    </svg>
+                </div>
+                <div class="favicon-name">Reports</div>
+                <div class="favicon-filename">favicon-30-reports.svg</div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h2>📋 How to Use</h2>
+            <ul>
+                <li><strong>Add to HTML:</strong> &lt;link rel="icon" type="image/svg+xml" href="favicon-name.svg"&gt;</li>
+                <li><strong>In &lt;head&gt;:</strong> Place the link tag in your HTML head section</li>
+                <li><strong>Convert to ICO:</strong> Use online converters like favicon.io or convertio.co</li>
+                <li><strong>Multiple Formats:</strong> Generate .ico, .png, and other formats for better browser support</li>
+                <li><strong>Cache Busting:</strong> Add ?v=1.0 to force refresh: href="favicon.svg?v=1.0"</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

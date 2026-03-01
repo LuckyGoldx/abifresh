@@ -187,11 +187,11 @@ export default function AdminDashboard() {
 
   const StatCard = ({ icon: Icon, title, value, color, onClick, additionalInfo }: any) => (
     <div 
-      className={`card flex items-center space-x-4 ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+      className={`card flex flex-row-reverse md:flex-row items-center space-x-2 md:space-x-4 ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
       onClick={onClick}
     >
-      <div className={`${color} p-3 rounded-lg`}>
-        <Icon className="w-6 h-6 text-white" />
+      <div className={`${color} p-2 md:p-3 rounded-lg`}>
+        <Icon className="w-5 md:w-6 h-5 md:h-6 text-white" />
       </div>
       <div>
         <p className="text-gray-600 dark:text-gray-400 text-sm">{title}</p>
@@ -277,8 +277,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Admin Dashboard</h1>
-
       {/* Today's Stats */}
       <div>
         <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">Today's Sales</h2>

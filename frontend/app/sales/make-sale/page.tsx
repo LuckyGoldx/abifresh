@@ -320,6 +320,7 @@ export default function MakeSalePage() {
         outside_jalingo: globalOutsideJalingo,
       });
       setShowReceiptModal(true);
+      setShowMobileCartModal(false);
 
       setCart([]);
       setGlobalOutsideJalingo(false);

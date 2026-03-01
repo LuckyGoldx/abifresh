@@ -583,13 +583,6 @@ export default function SalesDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center flex-wrap gap-4">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Sales Portal</h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Staff: <span className="font-semibold">{user?.full_name}</span> ({user?.role.replace(/_/g, ' ')})
-        </p>
-      </div>
-
       {/* Dashboard Stats - Only show on dashboard tab */}
       {/* Dashboard Stats - Only show on dashboard tab */}
       {activeTab === 'dashboard' && (

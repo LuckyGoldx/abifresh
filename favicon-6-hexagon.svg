@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <pattern id="hexPattern" patternUnits="userSpaceOnUse" width="8" height="8">
+      <circle cx="4" cy="4" r="2" fill="#ff69b4" opacity="0.8"/>
+    </pattern>
+  </defs>
+  <polygon points="32,8 50,17 50,47 32,56 14,47 14,17" fill="#e91e63"/>
+  <polygon points="32,12 46,19 46,45 32,52 18,45 18,19" fill="url(#hexPattern)"/>
+</svg>

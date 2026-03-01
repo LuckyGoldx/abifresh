@@ -156,7 +156,7 @@ export default function LoginPage() {
                     type="text"
                     placeholder="Enter your username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
                     disabled={isLoading}
                     required
                   />
