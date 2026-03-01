@@ -187,16 +187,16 @@ export default function AdminDashboard() {
 
   const StatCard = ({ icon: Icon, title, value, color, onClick, additionalInfo }: any) => (
     <div 
-      className={`card flex flex-row-reverse md:flex-row items-center space-x-2 md:space-x-4 ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
+      className={`card flex flex-col md:flex-row items-center md:space-x-4 text-center md:text-left ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
       onClick={onClick}
     >
-      <div className={`${color} p-2 md:p-3 rounded-lg`}>
+      <div className={`${color} p-2 md:p-3 rounded-lg flex-shrink-0`}>
         <Icon className="w-5 md:w-6 h-5 md:h-6 text-white" />
       </div>
-      <div>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">{title}</p>
-        <p className="text-2xl font-bold text-gray-800 dark:text-white">{value}</p>
-        {additionalInfo && <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">{additionalInfo}</p>}
+      <div className="flex-1 min-w-0">
+        <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">{title}</p>
+        <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">{value}</p>
+        {additionalInfo && <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">{additionalInfo}</p>}
       </div>
     </div>
   );

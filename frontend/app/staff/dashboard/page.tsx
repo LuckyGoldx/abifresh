@@ -98,14 +98,14 @@ export default function StaffDashboard() {
   }
 
   const StatCard = ({ icon: Icon, title, value, color, subtitle }: any) => (
-    <div className="card flex flex-row-reverse md:flex-row items-center space-x-2 md:space-x-4">
-      <div className={`${color} p-2 md:p-3 rounded-lg`}>
+    <div className="card flex flex-col md:flex-row items-center md:space-x-4 text-center md:text-left">
+      <div className={`${color} p-2 md:p-3 rounded-lg flex-shrink-0`}>
         <Icon className="w-5 md:w-6 h-5 md:h-6 text-white" />
       </div>
-      <div>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">{title}</p>
-        <p className="text-2xl font-bold text-gray-800 dark:text-white">{value}</p>
-        {subtitle && <p className="text-xs text-gray-500 dark:text-gray-500">{subtitle}</p>}
+      <div className="flex-1 min-w-0">
+        <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">{title}</p>
+        <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">{value}</p>
+        {subtitle && <p className="text-xs text-gray-500 dark:text-gray-500 truncate">{subtitle}</p>}
       </div>
     </div>
   );
@@ -135,14 +135,14 @@ export default function StaffDashboard() {
           color="bg-green-500"
           subtitle="Today's revenue"
         />
-        <div className="card flex flex-row-reverse md:flex-row items-center space-x-2 md:space-x-4">
-          <div className="bg-blue-500 p-2 md:p-3 rounded-lg">
+        <div className="card flex flex-col md:flex-row items-center md:space-x-4 text-center md:text-left">
+          <div className="bg-blue-500 p-2 md:p-3 rounded-lg flex-shrink-0">
             <ShoppingBag className="w-5 md:w-6 h-5 md:h-6 text-white" />
           </div>
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Today's Sales</p>
-            <p className="text-2xl font-bold text-gray-800 dark:text-white">{todaysItemsSold}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-500">{todaysTotalUnits} units</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">Today's Sales</p>
+            <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">{todaysItemsSold}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 truncate">{todaysTotalUnits} units</p>
           </div>
         </div>
         
@@ -154,14 +154,14 @@ export default function StaffDashboard() {
           color="bg-purple-500"
           subtitle="From items sold"
         />
-        <div className="card flex flex-row-reverse md:flex-row items-center space-x-2 md:space-x-4">
-          <div className="bg-cyan-500 p-2 md:p-3 rounded-lg">
+        <div className="card flex flex-col md:flex-row items-center md:space-x-4 text-center md:text-left">
+          <div className="bg-cyan-500 p-2 md:p-3 rounded-lg flex-shrink-0">
             <Package className="w-5 md:w-6 h-5 md:h-6 text-white" />
           </div>
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Items Sold</p>
-            <p className="text-2xl font-bold text-gray-800 dark:text-white">{dashboard?.total_items_sold || 0}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-500">Total units sold</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">Total Items Sold</p>
+            <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">{dashboard?.total_items_sold || 0}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 truncate">Total units sold</p>
           </div>
         </div>
         <StatCard
