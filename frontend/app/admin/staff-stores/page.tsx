@@ -450,7 +450,7 @@ export default function AdminStaffStorePage() {
                   <th className="text-left py-2 px-3">Item</th>
                   <th className="text-left py-2 px-3">SKU</th>
                   <th className="text-left py-2 px-3">Category</th>
-                  <th className="text-right py-2 px-3">Unit Price</th>
+                  <th className="text-right py-2 px-3">Price</th>
                   <th className="text-right py-2 px-3">Qty</th>
                   <th className="text-right py-2 px-3">Sold</th>
                   <th className="text-right py-2 px-3">Available</th>
@@ -462,7 +462,20 @@ export default function AdminStaffStorePage() {
                     <td className="py-2 px-3 font-medium">{item.items?.name || 'N/A'}</td>
                     <td className="py-2 px-3">{item.items?.sku || 'N/A'}</td>
                     <td className="py-2 px-3">{item.items?.category || 'N/A'}</td>
-                    <td className="py-2 px-3 text-right">₦{(item.items?.unit_price || item.items?.base_price || 0).toLocaleString()}</td>
+                    <td className="py-2 px-3 text-right">
+                      {/* For non-commission staff: show price_jalingo only */}
+                      {item.users?.role !== 'commission_staff' ? (
+                        <div>₦{(item.items?.price_jalingo || 0).toLocaleString()}</div>
+                      ) : (
+                        /* For commission staff: show both prices */
+                        <div className="space-y-1">
+                          <div className="text-xs text-gray-600 dark:text-gray-400">In Jalingo:</div>
+                          <div>₦{(item.items?.price_jalingo || 0).toLocaleString()}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">Outside Jalingo:</div>
+                          <div>₦{(item.items?.price_outside || 0).toLocaleString()}</div>
+                        </div>
+                      )}
+                    </td>
                     <td className="py-2 px-3 text-right font-semibold">{item.quantity || 0}</td>
                     <td className="py-2 px-3 text-right text-green-600 dark:text-green-400">{item.quantity_sold || 0}</td>
                     <td className="py-2 px-3 text-right text-orange-600 dark:text-orange-400 font-semibold">{item.quantity_available || 0}</td>

@@ -47,6 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
     { label: 'Staff Management', href: '/admin/staff', icon: '👥' },
     { label: 'Staff Stores', href: '/admin/staff-stores', icon: '🏪' },
+    { label: 'Post Items', href: '/admin/post-items', icon: '📮' },
     { label: 'Inventory', href: '/admin/inventory', icon: '📦' },
     { label: 'Restock Orders', href: '/admin/orders', icon: '🛒' },
     { label: 'Payments', href: '/admin/payments', icon: '💳' },

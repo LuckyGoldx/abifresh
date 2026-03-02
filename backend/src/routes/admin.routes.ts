@@ -962,16 +962,17 @@ router.get('/staff-stores/:staffId', authMiddleware, roleMiddleware('admin'), as
       users: usersMap[item.staff_id] || null,
     }));
 
-    // Calculate amount sold for each item
+    // Calculate amount sold for each item using actual selling prices
     const itemsWithAmount = enrichedItems.map(item => ({
       ...item,
-      amount_sold: ((item.quantity_sold || 0) * (item.items?.unit_price || item.items?.base_price || 0)),
+      amount_sold: ((item.quantity_sold || 0) * (item.items?.price_jalingo || 0)),
     }));
 
-    // Fetch receipts for this staff to calculate actual commission earned
+    // Fetch receipts for this staff to get actual amount sold
+    // Use receipts.total_amount - same method as the staff-stores-stats endpoint (table)
     const { data: receipts, error: receiptError } = await supabaseAdmin
       .from('receipts')
-      .select('id, total_amount, created_at')
+      .select('id, staff_id, total_amount, created_at')
       .eq('staff_id', staffId)
       .order('created_at', { ascending: false });
 
@@ -979,19 +980,23 @@ router.get('/staff-stores/:staffId', authMiddleware, roleMiddleware('admin'), as
       console.error('⚠️  Error fetching receipts:', receiptError);
     }
 
-    // Calculate actual commission earned from receipts
-    // For commission staff, commission = sum of (item commission value × quantity sold)
+    // Sum total_amount from all receipts (same calculation as staff-stores-stats table)
+    const totalAmountSold = (receipts || []).reduce((sum: number, receipt: any) => {
+      return sum + parseFloat(receipt.total_amount || 0);
+    }, 0);
+
+    console.log(`💵 Staff ${staffId} total amount sold from receipts.total_amount: ₦${totalAmountSold}`);
+
+    // Calculate commission from items in store
     let totalCommissionEarned = 0;
-    
-    if (receipts && receipts.length > 0) {
-      // Sum commission from all sold items
+    if (enrichedItems.length > 0) {
       totalCommissionEarned = itemsWithAmount.reduce((sum, item) => {
         const commissionPerUnit = item.items?.commission || 0;
         const commissionFromItem = commissionPerUnit * (item.quantity_sold || 0);
         return sum + commissionFromItem;
       }, 0);
       
-      console.log(`💰 Staff ${staffId} has ${receipts.length} receipts, total commission earned: ₦${totalCommissionEarned}`);
+      console.log(`💰 Staff ${staffId} total commission earned: ₦${totalCommissionEarned}`);
     }
 
     // Calculate summary
@@ -1001,7 +1006,7 @@ router.get('/staff-stores/:staffId', authMiddleware, roleMiddleware('admin'), as
       total_quantity: itemsWithAmount.reduce((sum, item) => sum + (item.quantity || 0), 0),
       total_sold: itemsWithAmount.reduce((sum, item) => sum + (item.quantity_sold || 0), 0),
       total_available: itemsWithAmount.reduce((sum, item) => sum + (item.quantity_available || 0), 0),
-      total_amount_sold: itemsWithAmount.reduce((sum, item) => sum + (item.amount_sold || 0), 0),
+      total_amount_sold: totalAmountSold, // Sum of (quantity_sold × price_jalingo) for all items
       total_commission_earned: totalCommissionEarned,
       receipts_count: receipts?.length || 0,
       items: itemsWithAmount,
