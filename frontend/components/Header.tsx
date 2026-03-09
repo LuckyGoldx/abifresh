@@ -5,6 +5,7 @@ import { useAuthStore, useThemeStore } from '@/store/auth';
 import { useNotifications } from '@/context/NotificationContext';
 import NotificationsDrawer from './NotificationsDrawer';
 import UserProfileDropdown from './UserProfileDropdown';
+import Logo from './Logo';
 import { Sun, Moon, Bell } from 'lucide-react';
 
 export default function Header() {
@@ -17,9 +18,9 @@ export default function Header() {
   return (
     <>
       <header className="bg-white dark:bg-slate-800 shadow">
-        <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-pink-600">ABIFRESH & KIDDIES VENTURES</h2>
+        <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-2 flex items-center justify-between">
+          <div className="flex-shrink-0">
+            <Logo />
           </div>
 
           <div className="flex items-center space-x-3 sm:space-x-4">
