@@ -101,11 +101,13 @@ export default function InstallButton() {
       <style>{`
         @keyframes blinkingColor {
           0% { color: #ec4899; }
-          20% { color: #f472b6; }
-          40% { color: #be185d; }
-          50% { color: #8b5cf6; }
-          70% { color: #10b981; }
-          90% { color: #ec4899; }
+          12% { color: #3b82f6; }
+          24% { color: #fbbf24; }
+          36% { color: #10b981; }
+          48% { color: #8b5cf6; }
+          60% { color: #f97316; }
+          72% { color: #0ea5e9; }
+          84% { color: #ef4444; }
           100% { color: #ec4899; }
         }
         @keyframes bounce {
