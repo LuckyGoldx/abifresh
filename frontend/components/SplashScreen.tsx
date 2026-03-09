@@ -5,8 +5,11 @@ import { useEffect, useState } from 'react';
 export default function SplashScreen() {
   const [showSplash, setShowSplash] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    
     // Check if app is running in standalone/PWA mode
     const checkStandalone = () => {
       // Check for display-mode: standalone
@@ -19,15 +22,15 @@ export default function SplashScreen() {
       // Only show splash if in PWA/standalone mode
       if (isStandaloneMode) {
         setShowSplash(true);
-        // Auto-dismiss after 2.5 seconds
+        // Auto-dismiss after 2 seconds (reduced from 2.5)
         const timer = setTimeout(() => {
           setShowSplash(false);
-        }, 2500);
+        }, 2000);
         return () => clearTimeout(timer);
       }
     };
 
-    // Run check immediately and on visibility change
+    // Run check immediately
     checkStandalone();
     
     // Listen for display mode changes
@@ -39,6 +42,9 @@ export default function SplashScreen() {
     };
   }, []);
 
+  // Don't render anything until mounted to avoid hydration mismatch
+  if (!mounted) return null;
+  
   // Only render if in standalone mode and splash should show
   if (!isStandalone || !showSplash) return null;
 

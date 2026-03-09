@@ -9,6 +9,22 @@
   "background_color": "#ffffff",
   "theme_color": "#ec4899",
   "prefer_related_applications": false,
+  "splash_screens": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow",
+      "purpose": "splash"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "form_factor": "wide",
+      "purpose": "splash"
+    }
+  ],
   "icons": [
     {
       "src": "/favicon.svg",

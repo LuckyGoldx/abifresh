@@ -16,6 +16,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-title" content="ABIFRESH" />
         <meta name="description" content="ABIFRESH & KIDDIES VENTURES Sales Management PWA" />
         <title>ABIFRESH & KIDDIES VENTURES</title>
+        
+        {/* Preload critical resources */}
+        <link rel="preload" href="/manifest.json" as="fetch" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
