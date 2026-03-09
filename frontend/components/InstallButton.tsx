@@ -1,0 +1,111 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Download } from 'lucide-react';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+export default function InstallButton() {
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(false);
+
+  useEffect(() => {
+    // Check if in development/localhost mode
+    const isDev = typeof window !== 'undefined' && 
+                  (window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1');
+    setIsDevMode(isDev);
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setShowInstallButton(true);
+    };
+
+    const handleAppInstalled = () => {
+      setShowInstallButton(false);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    // Hide button if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstallButton(false);
+    }
+
+    // Show button in dev mode if no deferredPrompt received
+    if (isDev) {
+      setTimeout(() => {
+        if (!deferredPrompt) {
+          setShowInstallButton(true);
+        }
+      }, 1000);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, [deferredPrompt]);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      setIsLoading(true);
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          setShowInstallButton(false);
+          setDeferredPrompt(null);
+        }
+      } catch (error) {
+        console.error('Installation prompt error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (isDevMode) {
+      // In dev mode, show alert
+      alert('Install button clicked!\n\nOn production/HTTPS, this will trigger the browser\'s install prompt.');
+    }
+  };
+
+  if (!showInstallButton) return null;
+
+  return (
+    <button
+      onClick={handleInstallClick}
+      disabled={isLoading}
+      className="p-2 text-pink-600 hover:text-pink-700 dark:text-pink-400 dark:hover:text-pink-300 hover:bg-pink-50 dark:hover:bg-slate-700 rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+      title="Install app to home screen"
+      aria-label="Install app"
+      style={{
+        animation: 'blinkingColor 1.5s infinite, bounce 1s infinite',
+      }}
+    >
+      <style>{`
+        @keyframes blinkingColor {
+          0% { color: #ec4899; }
+          20% { color: #f472b6; }
+          40% { color: #be185d; }
+          50% { color: #8b5cf6; }
+          70% { color: #10b981; }
+          90% { color: #ec4899; }
+          100% { color: #ec4899; }
+        }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+      `}</style>
+      <Download className="w-6 h-6" />
+    </button>
+  );
+}

@@ -6,6 +6,7 @@ import { useAuthStore, useThemeStore } from '@/store/auth';
 import { User, Lock, Eye, EyeOff, X, Sun, Moon } from 'lucide-react';
 import api from '@/lib/api';
 import styles from './login.module.css';
+import InstallButton from '@/components/InstallButton';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -215,6 +216,11 @@ export default function LoginPage() {
           <Moon size={20} strokeWidth={1.5} />
         )}
       </button>
+
+      {/* Install Button */}
+      <div className={styles.installButtonContainer}>
+        <InstallButton />
+      </div>
 
       {/* Forgot Password Modal */}
       {showForgotModal && (

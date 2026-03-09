@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Install Icon Preview</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ec4899;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+
+        .icons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .icon-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .icon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .icon-display {
+            font-size: 48px;
+            color: #ec4899;
+            margin-bottom: 15px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-card.blinking .icon-display {
+            animation: blinkingColor 1.5s infinite;
+        }
+
+        @keyframes blinkingColor {
+            0% { color: #ec4899; }
+            25% { color: #f472b6; }
+            50% { color: #ec4899; }
+            75% { color: #be185d; }
+            100% { color: #ec4899; }
+        }
+
+        .icon-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .icon-desc {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .copy-btn {
+            background: #ec4899;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #db2777;
+        }
+
+        .animation-section {
+            margin-top: 60px;
+            padding: 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .animation-section h2 {
+            color: #ec4899;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .animation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .animation-card {
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 8px;
+        }
+
+        .animation-card h3 {
+            font-size: 12px;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+
+        .animation-icon {
+            font-size: 40px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            color: #ec4899;
+        }
+
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .bounce {
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .rotate {
+            animation: rotate 2s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .swing {
+            animation: swing 1s ease-in-out infinite;
+            transform-origin: top center;
+        }
+
+        @keyframes swing {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(15deg); }
+        }
+
+        .glow {
+            animation: glow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { 
+                color: #ec4899;
+                text-shadow: 0 0 5px rgba(236, 72, 153, 0.3);
+            }
+            50% { 
+                color: #f472b6;
+                text-shadow: 0 0 20px rgba(236, 72, 153, 0.8);
+            }
+        }
+
+        .fade {
+            animation: fade 1.5s ease-in-out infinite;
+        }
+
+        @keyframes fade {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            .icons-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 15px;
+            }
+
+            .animation-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📥 Install Icon Preview</h1>
+        <p class="subtitle">Select your favorite icon from 25 options for the PWA install button</p>
+
+        <div class="icons-grid">
+            <!-- 1. Download -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-download"></i>
+                </div>
+                <div class="icon-name">Download</div>
+                <div class="icon-desc">Classic download icon. Clean & professional.</div>
+                <button class="copy-btn" onclick="copy('fa-download')">Use This</button>
+            </div>
+
+            <!-- 2. Download (Heavy) -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-cloud-download-alt"></i>
+                </div>
+                <div class="icon-name">Cloud Download</div>
+                <div class="icon-desc">Cloud with download arrow. Great for cloud apps.</div>
+                <button class="copy-btn" onclick="copy('fa-cloud-download-alt')">Use This</button>
+            </div>
+
+            <!-- 3. Arrow Down -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="icon-name">Arrow Down</div>
+                <div class="icon-desc">Simple downward arrow. Minimalist approach.</div>
+                <button class="copy-btn" onclick="copy('fa-arrow-down')">Use This</button>
+            </div>
+
+            <!-- 4. Plus Circle -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <div class="icon-name">Plus Circle</div>
+                <div class="icon-desc">Add/install concept. intuitive for installation.</div>
+                <button class="copy-btn" onclick="copy('fa-plus-circle')">Use This</button>
+            </div>
+
+            <!-- 5. Inbox -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <div class="icon-name">Inbox</div>
+                <div class="icon-desc">Inbox symbol. Suggests receiving/importing.</div>
+                <button class="copy-btn" onclick="copy('fa-inbox')">Use This</button>
+            </div>
+
+            <!-- 6. Mobile -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <div class="icon-name">Mobile Phone</div>
+                <div class="icon-desc">Mobile device. Perfect for app installation.</div>
+                <button class="copy-btn" onclick="copy('fa-mobile-alt')">Use This</button>
+            </div>
+
+            <!-- 7. Smartphone with Arrow -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-arrow-down"></i><br>
+                    <i class="fas fa-mobile-alt" style="position: absolute; margin-left: 20px; margin-top: 10px; font-size: 32px;"></i>
+                </div>
+                <div class="icon-name">Mobile + Arrow</div>
+                <div class="icon-desc">Phone with download arrow. Very specific.</div>
+                <button class="copy-btn" onclick="copy('mobile+arrow')">Use This</button>
+            </div>
+
+            <!-- 8. Star -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div class="icon-name">Star</div>
+                <div class="icon-desc">Star icon. "Add to favorites" style.</div>
+                <button class="copy-btn" onclick="copy('fa-star')">Use This</button>
+            </div>
+
+            <!-- 9. Box -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-box"></i>
+                </div>
+                <div class="icon-name">Box</div>
+                <div class="icon-desc">Package/box. Suggests app delivery.</div>
+                <button class="copy-btn" onclick="copy('fa-box')">Use This</button>
+            </div>
+
+            <!-- 10. Install -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="icon-name">Settings/Gear</div>
+                <div class="icon-desc">Configuration. Setup/install context.</div>
+                <button class="copy-btn" onclick="copy('fa-cog')">Use This</button>
+            </div>
+
+            <!-- 11. Rocket -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <div class="icon-name">Rocket</div>
+                <div class="icon-desc">Launch/rocket. Fun & energetic.</div>
+                <button class="copy-btn" onclick="copy('fa-rocket')">Use This</button>
+            </div>
+
+            <!-- 12. Arrow Direction Down Box -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-square-arrow-down"></i>
+                </div>
+                <div class="icon-name">Square Arrow Down</div>
+                <div class="icon-desc">Modern arrow in square. Contemporary look.</div>
+                <button class="copy-btn" onclick="copy('fa-square-arrow-down')">Use This</button>
+            </div>
+
+            <!-- 13. House -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="icon-name">Home/House</div>
+                <div class="icon-desc">Home icon. Add to home screen concept.</div>
+                <button class="copy-btn" onclick="copy('fa-home')">Use This</button>
+            </div>
+
+            <!-- 14. Bookmark -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-bookmark"></i>
+                </div>
+                <div class="icon-name">Bookmark</div>
+                <div class="icon-desc">Bookmark. Save/remember the app.</div>
+                <button class="copy-btn" onclick="copy('fa-bookmark')">Use This</button>
+            </div>
+
+            <!-- 15. Disc -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-compact-disc"></i>
+                </div>
+                <div class="icon-name">App/Disc</div>
+                <div class="icon-desc">Compact disc. Traditional app representation.</div>
+                <button class="copy-btn" onclick="copy('fa-compact-disc')">Use This</button>
+            </div>
+
+            <!-- 16. Save -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-save"></i>
+                </div>
+                <div class="icon-name">Save</div>
+                <div class="icon-desc">Floppy disk. Save/store the app locally.</div>
+                <button class="copy-btn" onclick="copy('fa-save')">Use This</button>
+            </div>
+
+            <!-- 17. Check Circle -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="icon-name">Check Circle</div>
+                <div class="icon-desc">Checkmark. All set/ready to install.</div>
+                <button class="copy-btn" onclick="copy('fa-check-circle')">Use This</button>
+            </div>
+
+            <!-- 18. Heart -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <div class="icon-name">Heart</div>
+                <div class="icon-desc">Heart. Add to favorites/wishlist.</div>
+                <button class="copy-btn" onclick="copy('fa-heart')">Use This</button>
+            </div>
+
+            <!-- 19. Share -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-share-alt"></i>
+                </div>
+                <div class="icon-name">Share</div>
+                <div class="icon-desc">Share icon. Install and share the app.</div>
+                <button class="copy-btn" onclick="copy('fa-share-alt')">Use This</button>
+            </div>
+
+            <!-- 20. Link -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-link"></i>
+                </div>
+                <div class="icon-name">Link</div>
+                <div class="icon-desc">Chain link. Connect/add to device.</div>
+                <button class="copy-btn" onclick="copy('fa-link')">Use This</button>
+            </div>
+
+            <!-- 21. Shield -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="icon-name">Shield</div>
+                <div class="icon-desc">Security shield. Safe & secure app.</div>
+                <button class="copy-btn" onclick="copy('fa-shield-alt')">Use This</button>
+            </div>
+
+            <!-- 22. Bell -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <div class="icon-name">Bell</div>
+                <div class="icon-desc">Notification bell. Get app alerts.</div>
+                <button class="copy-btn" onclick="copy('fa-bell')">Use This</button>
+            </div>
+
+            <!-- 23. Lightning Bolt -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="icon-name">Lightning Bolt</div>
+                <div class="icon-desc">Flash/Zap. Fast & instant installation.</div>
+                <button class="copy-btn" onclick="copy('fa-bolt')">Use This</button>
+            </div>
+
+            <!-- 24. Gift -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-gift"></i>
+                </div>
+                <div class="icon-name">Gift</div>
+                <div class="icon-desc">Present. Free app for you to enjoy.</div>
+                <button class="copy-btn" onclick="copy('fa-gift')">Use This</button>
+            </div>
+
+            <!-- 25. Lock -->
+            <div class="icon-card blinking">
+                <div class="icon-display">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="icon-name">Lock</div>
+                <div class="icon-desc">Padlock. Secure installation process.</div>
+                <button class="copy-btn" onclick="copy('fa-lock')">Use This</button>
+            </div>
+        </div>
+
+        <!-- Animation Variations -->
+        <div class="animation-section">
+            <h2>✨ Animation Options (with Download Icon)</h2>
+            <div class="animation-grid">
+                <div class="animation-card">
+                    <h3>Blinking Color</h3>
+                    <div class="animation-icon blinking">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+
+                <div class="animation-card">
+                    <h3>Pulse (Opacity)</h3>
+                    <div class="animation-icon pulse">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+
+                <div class="animation-card">
+                    <h3>Bounce</h3>
+                    <div class="animation-icon bounce">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+
+                <div class="animation-card">
+                    <h3>Rotate</h3>
+                    <div class="animation-icon rotate">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+
+                <div class="animation-card">
+                    <h3>Swing</h3>
+                    <div class="animation-icon swing">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+
+                <div class="animation-card">
+                    <h3>Glow</h3>
+                    <div class="animation-icon glow">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+
+                <div class="animation-card">
+                    <h3>Fade</h3>
+                    <div class="animation-icon fade">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+
+                <div class="animation-card">
+                    <h3>None (Static)</h3>
+                    <div class="animation-icon" style="animation: none;">
+                        <i class="fas fa-download"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>💡 Tip: The current setup uses "Blinking Color" animation. Click "Use This" to copy icon names.</p>
+        </div>
+    </div>
+
+    <script>
+        function copy(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert(`Icon "${text}" copied to clipboard!`);
+            });
+        }
+    </script>
+</body>
+</html>
