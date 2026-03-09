@@ -38,22 +38,22 @@ export default function InstallButton() {
     // Hide button if already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setShowInstallButton(false);
+      return;
     }
 
-    // Show button in dev mode if no deferredPrompt received
+    // Show button in dev mode if no deferredPrompt received after delay
     if (isDev) {
-      setTimeout(() => {
-        if (!deferredPrompt) {
-          setShowInstallButton(true);
-        }
+      const timer = setTimeout(() => {
+        setShowInstallButton(true);
       }, 1000);
+      return () => clearTimeout(timer);
     }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [deferredPrompt]);
+  }, []);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -65,15 +65,23 @@ export default function InstallButton() {
         if (outcome === 'accepted') {
           setShowInstallButton(false);
           setDeferredPrompt(null);
+        } else {
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Installation prompt error:', error);
-      } finally {
         setIsLoading(false);
       }
     } else if (isDevMode) {
-      // In dev mode, show alert
-      alert('Install button clicked!\n\nOn production/HTTPS, this will trigger the browser\'s install prompt.');
+      // In dev mode on localhost, show instructions
+      alert('📱 Mobile Install Instructions:\n\n' +
+            'Since you\'re on localhost, the browser\'s install prompt won\'t work.\n\n' +
+            '✅ To test on mobile:\n' +
+            '1. Deploy to HTTPS (Vercel, Netlify, etc.)\n' +
+            '2. Open on your phone\n' +
+            '3. iOS: Tap Share > Add to Home Screen\n' +
+            '4. Android: Browser menu > Install app\n\n' +
+            '💻 Desktop: The app can be installed directly');
     }
   };
 
