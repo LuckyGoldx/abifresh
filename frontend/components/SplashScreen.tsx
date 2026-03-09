@@ -3,18 +3,44 @@
 import { useEffect, useState } from 'react';
 
 export default function SplashScreen() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    // Show splash screen for 2.5 seconds
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2500);
+    // Check if app is running in standalone/PWA mode
+    const checkStandalone = () => {
+      // Check for display-mode: standalone
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches 
+        || (window.navigator as any).standalone === true 
+        || document.referrer.includes('android-app://');
+      
+      setIsStandalone(isStandaloneMode);
+      
+      // Only show splash if in PWA/standalone mode
+      if (isStandaloneMode) {
+        setShowSplash(true);
+        // Auto-dismiss after 2.5 seconds
+        const timer = setTimeout(() => {
+          setShowSplash(false);
+        }, 2500);
+        return () => clearTimeout(timer);
+      }
+    };
 
-    return () => clearTimeout(timer);
+    // Run check immediately and on visibility change
+    checkStandalone();
+    
+    // Listen for display mode changes
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    mediaQuery.addEventListener('change', () => checkStandalone());
+
+    return () => {
+      mediaQuery.removeEventListener('change', () => checkStandalone());
+    };
   }, []);
 
-  if (!showSplash) return null;
+  // Only render if in standalone mode and splash should show
+  if (!isStandalone || !showSplash) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 to-purple-100 overflow-hidden">
