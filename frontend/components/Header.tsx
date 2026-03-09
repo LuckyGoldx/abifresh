@@ -18,9 +18,17 @@ export default function Header() {
   return (
     <>
       <header className="bg-white dark:bg-slate-800 shadow">
-        <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-0 flex items-center justify-between">
+        <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-3 md:py-4 flex items-center justify-between">
           <div className="flex-shrink-0 flex items-center">
-            <Logo />
+            {/* Logo on mobile and tablet */}
+            <div className="lg:hidden">
+              <Logo />
+            </div>
+            
+            {/* Text on desktop */}
+            <div className="hidden lg:block">
+              <h1 className="text-2xl font-bold text-pink-600">ABIFRESH & KIDDIES VENTURES</h1>
+            </div>
           </div>
 
           <div className="flex items-center space-x-3 sm:space-x-4">
