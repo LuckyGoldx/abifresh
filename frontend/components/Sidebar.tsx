@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNotifications } from '@/context/NotificationContext';
+import Logo from './Logo';
 
 interface MenuItem {
   label: string;
@@ -79,7 +80,9 @@ export default function Sidebar({ menuItems, role, isOpen = true, setIsOpen }: S
         )}
 
         <div className="p-6 border-b border-gray-200 dark:border-slate-700 mt-12 md:mt-0">
-          <h1 className="text-xl font-bold text-pink-600 whitespace-nowrap">ABIFRESH</h1>
+          <div className="flex-shrink-0 mb-3">
+            <Logo />
+          </div>
           <p className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
             {role === 'admin' ? 'Admin Portal' :
              role === 'sales' || role === 'sales_staff' ? 'Sales Portal' :
