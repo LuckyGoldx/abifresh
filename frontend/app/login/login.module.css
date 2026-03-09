@@ -825,14 +825,14 @@
 }
 
 .darkMode .eyeToggle {
-  color: #d1d5db;
-  background: #374151;
-  border-left: 1px solid #6b7280;
+  color: #9ca3af;
+  background: none;
+  border: none;
 }
 
 .darkMode .eyeToggle:hover {
   color: #ec4899;
-  background: #2d3748;
+  background: none;
 }
 
 .darkMode .forgotBtnBelow {
