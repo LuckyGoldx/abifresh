@@ -1,7 +1,7 @@
 {
   "name": "ABIFRESH & KIDDIES VENTURES",
   "short_name": "ABIFRESH",
-  "description": "Sales Management PWA for ABIFRESH & KIDDIES VENTURES",
+  "description": "Sales Management System for ABIFRESH & KIDDIES VENTURES",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -17,6 +17,14 @@
     }
   ],
   "categories": ["business", "productivity"],
+  "screenshots": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Dashboard",

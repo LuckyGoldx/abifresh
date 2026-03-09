@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface User {
   id: string;
@@ -19,11 +19,12 @@ interface AuthState {
   setToken: (token: string) => void;
   updateUser: (updates: Partial<User>) => void;
   logout: () => void;
+  hydrateFromStorage: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
       isAuthenticated: false,
@@ -33,9 +34,29 @@ export const useAuthStore = create<AuthState>()(
         user: state.user ? { ...state.user, ...updates } : null,
       })),
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      hydrateFromStorage: () => {
+        // Manually hydrate from localStorage to ensure persistence across app restarts
+        if (typeof window !== 'undefined') {
+          const stored = localStorage.getItem('auth-storage');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              set(parsed.state);
+            } catch (error) {
+              console.error('Failed to hydrate auth store:', error);
+            }
+          }
+        }
+      },
     }),
     {
       name: 'auth-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );
@@ -55,6 +76,7 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'theme-storage',
+      storage: createJSONStorage(() => localStorage),
     }
   )
 );
