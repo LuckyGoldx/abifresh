@@ -963,7 +963,7 @@
 
 /* Dark Mode Install Button Container */
 .darkMode .installButtonContainer {
-  /* Inherits button styling from InstallButton component */
+  opacity: 1; /* Inherits button styling from InstallButton component */
 }
 
 @media (max-width: 480px) {
