@@ -108,8 +108,8 @@ export default function LoginPage() {
         <div className={styles.loginWrapper}>
           {/* Left: Info Section */}
           <div className={styles.infoSection}>
-            <h2>Your Retail Business, Simplified</h2>
-            <p>Streamline operations, empower your team, and grow faster with ABIFRESH & KIDDIES VENTURES.</p>
+            <h2>Manage Your Business Effortlessly.</h2>
+            <p>A unified system for tracking inventory, processing sales, and monitoring business performance for Abifresh & Kiddies Ventures!</p>
             <div className={styles.features}>
               <div className={styles.feature}>
                 <div className={styles.featureIcon}>✓</div>
@@ -122,7 +122,7 @@ export default function LoginPage() {
                 <div className={styles.featureIcon}>✓</div>
                 <div className={styles.featureText}>
                   <h4>Inventory Control</h4>
-                  <p>Manage stock levels, track transfers, and optimize logistics</p>
+                  <p>Manage stock levels, track transfers, and real-time inventory visibility.</p>
                 </div>
               </div>
               <div className={styles.feature}>
