@@ -43,7 +43,7 @@ export default function SplashScreen() {
   if (!isStandalone || !showSplash) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 to-purple-100 overflow-hidden">
+    <div className="fixed inset-0 top-0 left-0 w-screen h-screen z-[9999] flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 to-purple-100 overflow-hidden" style={{ height: '100vh', width: '100vw' }}>
       {/* Blinking Logo */}
       <div className="animate-pulse mb-8">
         <svg

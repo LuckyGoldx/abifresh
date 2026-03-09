@@ -8,7 +8,7 @@
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#ec4899",
-  "splash_pages": null,
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.svg",
