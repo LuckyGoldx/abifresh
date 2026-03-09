@@ -5,6 +5,7 @@ import { staffStoreService } from '../services/staff-store.service';
 import { returnedItemsService } from '../services/returned-items.service';
 import { StorageService } from '../services/storage.service';
 import expensesService from '../services/expenses.service';
+import { validatePostItem, validateAcceptPostedItem, validateRejectPostedItem } from '../middleware/validation';
 
 const router = Router();
 
@@ -159,13 +160,9 @@ router.get('/posted-items/pending-count', authMiddleware, async (req: AuthReques
 /**
  * Post an item (for sales staff)
  */
-router.post('/post-item', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/post-item', authMiddleware, validatePostItem, async (req: AuthRequest, res: Response) => {
   try {
     const { item_id, quantity } = req.body;
-
-    if (!item_id || !quantity) {
-      return res.status(400).json({ error: 'Item ID and quantity are required' });
-    }
 
     const { data, error } = await supabaseAdmin
       .from('posted_items')
@@ -195,7 +192,7 @@ router.post('/post-item', authMiddleware, async (req: AuthRequest, res: Response
 /**
  * Accept posted items with optional comment
  */
-router.post('/posted-items/:id/accept', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/posted-items/:id/accept', authMiddleware, validateAcceptPostedItem, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { comment } = req.body;
@@ -236,7 +233,7 @@ router.post('/posted-items/:id/accept', authMiddleware, async (req: AuthRequest,
 /**
  * Reject posted items
  */
-router.post('/posted-items/:id/reject', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/posted-items/:id/reject', authMiddleware, validateRejectPostedItem, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { comment } = req.body;

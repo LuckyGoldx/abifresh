@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import fileUpload from 'express-fileupload';
@@ -19,24 +19,30 @@ import backupRoutes from './routes/backup.routes';
 import { supabaseAdmin } from './config/supabase';
 import { initializeStorageBuckets } from './config/storage-init';
 
+// Security middleware
+import { securityHeaders } from './config/security';
+import { generalLimiter, authLimiter, paymentLimiter, uploadLimiter, passwordChangeLimiter } from './middleware/rateLimit';
+import { csrfProtection } from './middleware/csrf';
+import logger, { logRequest } from './config/logger';
+
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
 const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:3001').split(',');
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ============ SECURITY MIDDLEWARE ============
+
+// Helmet security headers (CSP, HSTS, X-Frame-Options, etc.)
+app.use(securityHeaders);
+
+// Body parsers
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(fileUpload({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  useTempFiles: false, // Keep files in memory instead of /tmp/ (Windows compatibility)
+  useTempFiles: false,
+  abortOnLimit: true,
 }));
-
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`📍 ${req.method} ${req.path} | Auth: ${req.headers.authorization ? 'YES' : 'NO'}`);
-  next();
-});
 
 // CORS Configuration
 app.use(
@@ -47,6 +53,24 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+
+// CSRF origin validation (for state-changing requests)
+app.use(csrfProtection);
+
+// Global rate limiter
+app.use(generalLimiter);
+
+// Structured request logging
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    logRequest(req.method, req.path, res.statusCode, Date.now() - start, {
+      ip: req.ip,
+      auth: !!req.headers.authorization,
+    });
+  });
+  next();
+});
 
 // Health check
 app.get('/health', async (req: Request, res: Response) => {
@@ -81,7 +105,14 @@ app.get('/health', async (req: Request, res: Response) => {
   }
 });
 
-// API Routes
+// API Routes (with per-route rate limiting)
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/change-password', passwordChangeLimiter);
+app.use('/api/admin/payments', paymentLimiter);
+app.use('/api/sales/payments', paymentLimiter);
+app.use('/api/receipts', uploadLimiter);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/inventory', inventoryRoutes);
@@ -94,46 +125,35 @@ app.use('/api', notificationsRoutes);
 
 // 404 Handler
 app.use((req: Request, res: Response) => {
-  console.error(`❌ 404 Not Found: ${req.method} ${req.path}`);
-  console.error(`   Available routes:`);
-  console.error(`   /api/auth - Authentication`);
-  console.error(`   /api/inventory - Inventory management`);
-  console.error(`   /api/sales - Sales operations`);
-  console.error(`   /api/admin - Admin dashboard`);
-  console.error(`   /api/staff - Staff management`);
+  logger.warn(`404 Not Found: ${req.method} ${req.path}`, { ip: req.ip });
   res.status(404).json({ error: 'Route not found' });
 });
 
 // Global error handler
-app.use((err: any, req: Request, res: Response) => {
-  console.error('❌ Global Error Handler:', err);
-  
-  // Handle multer errors
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  logger.error('Unhandled error', { error: err.message, stack: err.stack, path: req.path, method: req.method });
+
+  // Handle file upload errors
   if (err.name === 'MulterError') {
-    console.error('MulterError:', err.message);
     return res.status(400).json({ error: `File upload error: ${err.message}` });
   }
-  
-  // Handle file upload validation errors
+
   if (err.message && err.message.includes('Only')) {
-    console.error('File filter error:', err.message);
     return res.status(400).json({ error: err.message });
   }
-  
-  // Generic error
-  console.error('Error:', err);
+
+  // Never expose internal details in production
   res.status(500).json({
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    ...(process.env.NODE_ENV === 'development' && { message: err.message }),
   });
 });
 
 // Start server with error handling
 const server = app.listen(PORT, async () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-  
+  logger.info(`Server running on port ${PORT}`, { env: process.env.NODE_ENV || 'development' });
+  logger.info(`Health check: http://localhost:${PORT}/health`);
+
   // Initialize storage buckets
   await initializeStorageBuckets();
 });
@@ -141,20 +161,19 @@ const server = app.listen(PORT, async () => {
 // Handle server errors
 server.on('error', (err: any) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`❌ ERROR: Port ${PORT} is already in use!`);
-    console.error(`Try killing the process: lsof -i :${PORT} | grep LISTEN | awk '{print $2}' | xargs kill -9`);
+    logger.error(`Port ${PORT} is already in use!`);
     process.exit(1);
   } else {
-    console.error('Server error:', err);
+    logger.error('Server error', { error: err.message });
     process.exit(1);
   }
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, closing server gracefully...');
+  logger.info('SIGTERM received, closing server gracefully...');
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });

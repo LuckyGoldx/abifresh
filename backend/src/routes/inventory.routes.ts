@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware, roleMiddleware, AuthRequest } from '../middleware/auth';
 import { inventoryService } from '../services/inventory.service';
 import { supabaseAdmin } from '../config/supabase';
+import { validateAddItem, validateUpdateItem } from '../middleware/validation';
 
 const router = Router();
 
@@ -51,15 +52,11 @@ router.get('/items/:id', authMiddleware, async (req: AuthRequest, res: Response)
 /**
  * Add new item (admin only)
  */
-router.post('/items', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+router.post('/items', authMiddleware, roleMiddleware('admin'), validateAddItem, async (req: AuthRequest, res: Response) => {
   try {
     const { name, category, unit_price, sku, quantity, commission, brand, package_type, price_jalingo, price_outside, image_url } = req.body;
     
     console.log('📝 POST /items - Adding new item:', { name, sku, quantity, commission, brand, package_type });
-
-    if (!name || !category || unit_price === undefined || !sku) {
-      return res.status(400).json({ error: 'Missing required fields: name, category, unit_price, sku' });
-    }
 
     const item = await inventoryService.addItem(
       name,
@@ -82,7 +79,7 @@ router.post('/items', authMiddleware, roleMiddleware('admin'), async (req: AuthR
 /**
  * Edit item (admin only)
  */
-router.put('/items/:id', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+router.put('/items/:id', authMiddleware, roleMiddleware('admin'), validateUpdateItem, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, category, unit_price, sku, main_store_quantity, commission } = req.body;

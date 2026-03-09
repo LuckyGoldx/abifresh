@@ -6,6 +6,8 @@ import { staffStoreService } from '../services/staff-store.service';
 import { supabaseAdmin } from '../config/supabase';
 import { StorageService } from '../services/storage.service';
 import expensesService from '../services/expenses.service';
+import { validateCreateStaff, validateSetCommission, validateApproveRejectPayment, validateRejectPaymentWithReason, validateUpdateStaff } from '../middleware/validation';
+import logger, { logSecurity } from '../config/logger';
 
 const router = Router();
 
@@ -40,13 +42,9 @@ router.get('/staff', authMiddleware, roleMiddleware('admin', 'sales', 'sales_sta
 /**
  * Create new staff
  */
-router.post('/staff/create', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+router.post('/staff/create', authMiddleware, roleMiddleware('admin'), validateCreateStaff, async (req: AuthRequest, res: Response) => {
   try {
     const { email, password, full_name, username, phone_number, role, store_location } = req.body;
-
-    if (!email || !password || !full_name || !role) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
 
     const user = await authService.registerUser(
       email,
@@ -82,13 +80,9 @@ router.get('/commissions', authMiddleware, roleMiddleware('admin'), async (req: 
 /**
  * Set commission for staff
  */
-router.post('/commissions/set', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+router.post('/commissions/set', authMiddleware, roleMiddleware('admin'), validateSetCommission, async (req: AuthRequest, res: Response) => {
   try {
     const { staff_id, item_id, commission_percentage } = req.body;
-
-    if (!staff_id || !item_id || commission_percentage === undefined) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
 
     await adminService.setCommission(staff_id, item_id, commission_percentage);
     res.json({ message: 'Commission set successfully' });
@@ -189,10 +183,11 @@ router.get('/payments/all', authMiddleware, roleMiddleware('admin'), async (req:
 /**
  * Approve payment
  */
-router.post('/payments/:id/approve', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+router.post('/payments/:id/approve', authMiddleware, roleMiddleware('admin'), validateApproveRejectPayment, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     await adminService.approvePayment(id);
+    logSecurity('Payment approved', { paymentId: id, adminId: req.user?.id });
     res.json({ message: 'Payment approved' });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -202,11 +197,12 @@ router.post('/payments/:id/approve', authMiddleware, roleMiddleware('admin'), as
 /**
  * Reject payment
  */
-router.post('/payments/:id/reject', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+router.post('/payments/:id/reject', authMiddleware, roleMiddleware('admin'), validateRejectPaymentWithReason, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
     await adminService.rejectPayment(id, reason);
+    logSecurity('Payment rejected', { paymentId: id, reason, adminId: req.user?.id });
     res.json({ message: 'Payment rejected' });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -256,7 +252,7 @@ router.get('/reports/comprehensive', authMiddleware, roleMiddleware('admin'), as
 /**
  * Update staff - can edit name, username, email, phone, role, location, and password
  */
-router.put('/staff/:id', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+router.put('/staff/:id', authMiddleware, roleMiddleware('admin'), validateUpdateStaff, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { full_name, username, email, phone_number, role, store_location, password } = req.body;

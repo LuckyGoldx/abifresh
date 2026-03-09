@@ -1,20 +1,18 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authService } from '../services/auth.service';
 import { generateToken, authMiddleware, AuthRequest } from '../middleware/auth';
 import { supabaseAdmin, supabaseAuth } from '../config/supabase';
+import { validateRegister, validateLogin, validateChangePassword, validateUpdateProfile } from '../middleware/validation';
+import logger, { logSecurity } from '../config/logger';
 
 const router = Router();
 
 /**
  * Register new user
  */
-router.post('/register', async (req, res) => {
+router.post('/register', validateRegister, async (req: Request, res: Response) => {
   try {
     const { email, password, full_name, role, store_location } = req.body;
-
-    if (!email || !password || !full_name || !role) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
 
     const user = await authService.registerUser(email, password, full_name, role, store_location);
 
@@ -30,34 +28,29 @@ router.post('/register', async (req, res) => {
 /**
  * Login user - use Supabase authentication only
  */
-router.post('/login', async (req, res) => {
+router.post('/login', validateLogin, async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
-    }
-
-    console.log('Login attempt:', { username });
+    logSecurity('Login attempt', { username, ip: req.ip });
 
     // Authenticate with Supabase
-    console.log('Validating credentials with Supabase...');
     const result = await authService.loginByUsername(username, password);
     
     if (result.deactivated) {
-      console.log('Login failed - account is deactivated');
+      logSecurity('Login failed - deactivated account', { username, ip: req.ip });
       return res.status(403).json({ error: 'Your account has been deactivated. Please contact the administrator.' });
     }
 
     if (!result.user) {
-      console.log('Login failed - invalid credentials or user not found');
+      logSecurity('Login failed - invalid credentials', { username, ip: req.ip });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const user = result.user;
     const token = generateToken(user.id, user.email, user.role);
     
-    console.log(`✅ Login successful for ${username} with role: ${user.role}`);
+    logSecurity('Login successful', { userId: user.id, username, role: user.role, ip: req.ip });
     
     res.json({
       user,
@@ -65,7 +58,7 @@ router.post('/login', async (req, res) => {
       message: 'Login successful',
     });
   } catch (error: any) {
-    console.error('Login error:', error);
+    logger.error('Login error', { error: error.message, ip: req.ip });
     res.status(400).json({ error: error.message || 'Login failed' });
   }
 });
@@ -104,7 +97,7 @@ router.get('/me', async (req, res) => {
  * JWT authentication provides the primary security
  * No need to verify old password since user is already authenticated
  */
-router.post('/change-password', authMiddleware, async (req: AuthRequest, res) => {
+router.post('/change-password', authMiddleware, validateChangePassword, async (req: AuthRequest, res: Response) => {
   try {
     const { old_password, new_password } = req.body;
     const userEmail = req.user!.email;
@@ -175,7 +168,7 @@ router.post('/change-password', authMiddleware, async (req: AuthRequest, res) =>
 /**
  * Update user profile (email, phone_number)
  */
-router.put('/profile', authMiddleware, async (req: AuthRequest, res) => {
+router.put('/profile', authMiddleware, validateUpdateProfile, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const userEmail = req.user!.email;

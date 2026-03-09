@@ -1,4 +1,5 @@
-﻿# Backfill daily_sales_summary from receipts + sales data
+﻿
+# Backfill daily_sales_summary from receipts + sales data
 param()
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $env_content = Get-Content "$ScriptDir\backend\.env"

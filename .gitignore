@@ -112,3 +112,12 @@ dist-ssr/
 *.egg-info/
 .pytest_cache/
 .eslintignore
+
+# ============================================================================
+# CREDENTIALS & SENSITIVE FILES (SECURITY - NEVER COMMIT)
+# ============================================================================
+*_CREDENTIALS.md
+DEMO_*.txt
+*_PASSWORD.md
+*_SECRETS.md
+logs/

@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { supabaseAdmin } from '../config/supabase';
+import logger, { logSecurity } from '../config/logger';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -58,7 +59,7 @@ export const roleMiddleware = (...allowedRoles: string[]) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    console.log('🔐 Role Check:', {
+    logger.debug('Role check', {
       userRole: req.user.role,
       allowedRoles: allowedRoles,
       userEmail: req.user.email
@@ -79,18 +80,18 @@ export const roleMiddleware = (...allowedRoles: string[]) => {
     const normalizedUserRole = roleMap[req.user.role] || req.user.role;
     const normalizedAllowedRoles = allowedRoles.map(role => roleMap[role] || role);
 
-    console.log('🔐 Normalized:', {
-      normalizedUserRole,
-      normalizedAllowedRoles,
-      isAllowed: normalizedAllowedRoles.includes(normalizedUserRole)
-    });
-
     if (!normalizedAllowedRoles.includes(normalizedUserRole)) {
-      console.log('❌ Access denied for role:', req.user.role);
+      logSecurity('access_denied', {
+        userId: req.user.id,
+        email: req.user.email,
+        role: req.user.role,
+        requiredRoles: allowedRoles,
+        path: req.path
+      });
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
-    console.log('✅ Access granted');
+    logger.debug('Access granted', { userId: req.user.id, role: req.user.role, path: req.path });
     next();
   };
 };

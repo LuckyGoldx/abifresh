@@ -10,6 +10,7 @@ export const DEMO_USERS = {
   admin: {
     id: 'admin-001',
     email: 'admin@abifresh.com',
+    username: 'admin',
     password: 'admin123',
     full_name: 'Admin User',
     role: 'admin' as const,
@@ -21,6 +22,7 @@ export const DEMO_USERS = {
   salesperson_1: {
     id: 'sales-001',
     email: 'sales@abifresh.com',
+    username: 'sales',
     password: 'sales123',
     full_name: 'John Salesman',
     role: 'sales' as const,
@@ -32,6 +34,7 @@ export const DEMO_USERS = {
   salesperson_2: {
     id: 'sales-002',
     email: 'seller@abifresh.com',
+    username: 'seller',
     password: 'seller123',
     full_name: 'Mary Seller',
     role: 'sales' as const,
@@ -43,6 +46,7 @@ export const DEMO_USERS = {
   commission_staff: {
     id: 'staff-001',
     email: 'staff.comm@abifresh.com',
+    username: 'staffcomm',
     password: 'staffcomm123',
     full_name: 'David Staff (Commission)',
     role: 'commission_staff' as const,
@@ -54,6 +58,7 @@ export const DEMO_USERS = {
   non_commission_staff: {
     id: 'staff-002',
     email: 'staff@abifresh.com',
+    username: 'staff',
     password: 'staff123',
     full_name: 'Sarah Staff (No Commission)',
     role: 'non_commission_staff' as const,
@@ -65,6 +70,7 @@ export const DEMO_USERS = {
   finance: {
     id: 'finance-001',
     email: 'finance@abifresh.com',
+    username: 'finance',
     password: 'finance123',
     full_name: 'Finance User',
     role: 'admin' as const,

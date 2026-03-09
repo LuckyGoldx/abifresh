@@ -6,6 +6,7 @@ import { returnedItemsService } from '../services/returned-items.service';
 import { StorageService } from '../services/storage.service';
 import { supabaseAdmin } from '../config/supabase';
 import expensesService from '../services/expenses.service';
+import { validateRecordSale, validatePostItems, validateCreateSale, validatePaymentRequest, validateExpense, validateReturnedItemAction, validateRejectReturn } from '../middleware/validation';
 
 const router = Router();
 
@@ -36,13 +37,9 @@ router.get('/items/unavailable', authMiddleware, async (req: AuthRequest, res: R
 /**
  * Record a sale
  */
-router.post('/record', authMiddleware, roleMiddleware('sales', 'sales_staff', 'admin'), async (req: AuthRequest, res: Response) => {
+router.post('/record', authMiddleware, roleMiddleware('sales', 'sales_staff', 'admin'), validateRecordSale, async (req: AuthRequest, res: Response) => {
   try {
     const { item_id, quantity, payment_method, buyer_type, buyer_id, store_location } = req.body;
-
-    if (!item_id || !quantity || !payment_method || !buyer_type) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
 
     const sale = await salesService.recordSale(
       req.user!.id,
@@ -66,26 +63,9 @@ router.post('/record', authMiddleware, roleMiddleware('sales', 'sales_staff', 'a
 /**
  * Post items to staff (batch) - NEW ENDPOINT
  */
-router.post('/post-items', authMiddleware, roleMiddleware('sales', 'sales_staff', 'admin'), async (req: AuthRequest, res: Response) => {
+router.post('/post-items', authMiddleware, roleMiddleware('sales', 'sales_staff', 'admin'), validatePostItems, async (req: AuthRequest, res: Response) => {
   try {
     const { staff_id, items } = req.body;
-
-    if (!staff_id) {
-      return res.status(400).json({ error: 'staff_id is required' });
-    }
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'items array is required and must not be empty' });
-    }
-
-    // Validate each item has required fields
-    for (const item of items) {
-      if (!item.item_id || !item.quantity || item.unit_price === undefined) {
-        return res.status(400).json({ 
-          error: 'Each item must have item_id, quantity, and unit_price' 
-        });
-      }
-    }
 
     const postedItems = await staffStoreService.postItemsToStaff(
       req.user!.id,
@@ -434,17 +414,9 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
 /**
  * Request payment with receipt upload (for sales person)
  */
-router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_staff', 'admin'), async (req: AuthRequest, res: Response) => {
+router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_staff', 'admin'), validatePaymentRequest, async (req: AuthRequest, res: Response) => {
   try {
     const { amount, items_paid_for, reference_number, payment_method, notes } = req.body;
-
-    if (!amount) {
-      return res.status(400).json({ error: 'Amount is required' });
-    }
-
-    if (!payment_method || !['cash', 'online', 'bank_deposit', 'pos'].includes(payment_method)) {
-      return res.status(400).json({ error: 'Valid payment method (cash/online/bank_deposit/pos) is required' });
-    }
 
     let receipt_url = null;
     
@@ -805,13 +777,9 @@ router.get('/expenses', authMiddleware, async (req: AuthRequest, res: Response) 
 /**
  * Create expense
  */
-router.post('/expenses/create', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/expenses/create', authMiddleware, validateExpense, async (req: AuthRequest, res: Response) => {
   try {
     const { amount, category, description, expense_date } = req.body;
-
-    if (!amount || !category) {
-      return res.status(400).json({ error: 'Amount and category are required' });
-    }
 
     const expense = await expensesService.createExpense({
       staff_id: req.user!.id,
@@ -848,7 +816,7 @@ router.get('/returned-items', authMiddleware, async (req: AuthRequest, res: Resp
  * Accept returned items
  * POST /api/sales/returned-items/:id/accept
  */
-router.post('/returned-items/:id/accept', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/returned-items/:id/accept', authMiddleware, validateReturnedItemAction, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -868,14 +836,10 @@ router.post('/returned-items/:id/accept', authMiddleware, async (req: AuthReques
  * Reject returned items
  * POST /api/sales/returned-items/:id/reject
  */
-router.post('/returned-items/:id/reject', authMiddleware, async (req: AuthRequest, res: Response) => {
+router.post('/returned-items/:id/reject', authMiddleware, validateRejectReturn, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { reject_reason } = req.body;
-
-    if (!reject_reason) {
-      return res.status(400).json({ error: 'reject_reason is required' });
-    }
 
     const result = await returnedItemsService.rejectReturnedItems(req.user!.id, [id], reject_reason);
 
