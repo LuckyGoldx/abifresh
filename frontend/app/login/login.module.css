@@ -751,8 +751,8 @@
 }
 
 .darkMode .infoSection {
-  background-color: rgba(17, 24, 39, 0.8);
-  border-right: 1px solid #374151;
+  background-color: transparent;
+  border-right: none;
 }
 
 .darkMode .infoSection h2 {
