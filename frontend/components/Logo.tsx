@@ -3,12 +3,19 @@
 import { useThemeStore } from '@/store/auth';
 
 /**
- * Logo component used in header
+ * Logo component used in header and sidebar
  * Displays the ABIFRESH & KIDDIES VENTURES ribbon logo
  */
-export default function Logo() {
+interface LogoProps {
+  context?: 'header' | 'sidebar';
+}
+
+export default function Logo({ context = 'sidebar' }: LogoProps) {
   const theme = useThemeStore((state) => state.theme);
   const isDarkMode = theme === 'dark';
+  
+  // In header context (mobile), use pink for & KIDDIES VENTURES in light mode
+  const subtextColor = context === 'header' && !isDarkMode ? '#ec4899' : (isDarkMode ? '#ffffff' : '#fbbf24');
 
   return (
     <svg
@@ -45,7 +52,7 @@ export default function Logo() {
         fontFamily="'Plus Jakarta Sans', sans-serif"
         fontWeight="600"
         fontSize="10"
-        fill={isDarkMode ? '#ffffff' : '#fbbf24'}
+        fill={subtextColor}
         textAnchor="middle"
         letterSpacing="3"
       >

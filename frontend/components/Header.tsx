@@ -22,7 +22,7 @@ export default function Header() {
           <div className="flex-shrink-0 flex items-center">
             {/* Logo on mobile only */}
             <div className="md:hidden">
-              <Logo />
+              <Logo context="header" />
             </div>
             
             {/* Text on tablet and desktop */}
