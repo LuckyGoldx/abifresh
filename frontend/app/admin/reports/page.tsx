@@ -437,8 +437,8 @@ export default function ComprehensiveReportsPage() {
                 <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="px-4 py-3 font-medium">{item.item_name}</td>
                   <td className="px-4 py-3">{item.quantity_sold}</td>
-                  <td className="px-4 py-3 text-green-600 font-semibold">₦{item.total_revenue.toLocaleString()}</td>
-                  <td className="px-4 py-3">₦{(item.avg_price || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-green-600 font-semibold">₦{parseFloat(item.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
+                  <td className="px-4 py-3">₦{(item.avg_price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
                 </tr>
               ))}
             </tbody>

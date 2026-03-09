@@ -805,7 +805,22 @@ export class AdminService {
         current.total_amount += receipt.total_amount || 0;
       });
 
-      // Group items sold
+      // Build lookup: receipt_id -> sold_outside_jalingo
+      const receiptOutsideMap = new Map<string, boolean>();
+      salesArray.forEach((receipt) => {
+        receiptOutsideMap.set(receipt.id, receipt.sold_outside_jalingo || false);
+      });
+
+      // Build lookup: item_id -> { price_jalingo, price_outside }
+      const itemPriceMap = new Map<string, any>();
+      (allItems || []).forEach((item: any) => {
+        itemPriceMap.set(item.id, {
+          price_jalingo: item.price_jalingo || 0,
+          price_outside: item.price_outside || 0,
+        });
+      });
+
+      // Group items sold — use actual selling price (price_jalingo / price_outside)
       const itemsSold = new Map<string, any>();
       (receiptItems || []).forEach((receiptItem) => {
         const itemName = receiptItem.items?.name || `Item ${receiptItem.item_id}`;
@@ -819,7 +834,14 @@ export class AdminService {
         }
         const current = itemsSold.get(receiptItem.item_id);
         current.quantity_sold += receiptItem.quantity || 0;
-        current.total_revenue += receiptItem.total_price || 0;
+
+        // Use actual selling price based on whether sold outside Jalingo
+        const soldOutside = receiptOutsideMap.get(receiptItem.receipt_id) || false;
+        const prices = itemPriceMap.get(receiptItem.item_id);
+        const actualUnitPrice = soldOutside
+          ? (prices?.price_outside || prices?.price_jalingo || receiptItem.unit_price || 0)
+          : (prices?.price_jalingo || receiptItem.unit_price || 0);
+        current.total_revenue += actualUnitPrice * (receiptItem.quantity || 0);
       });
 
       // Calculate average price per item
