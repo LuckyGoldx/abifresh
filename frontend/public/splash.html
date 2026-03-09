@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABIFRESH & KIDDIES VENTURES</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #fce7f3 0%, #f3e8ff 100%);
+            font-family: 'Cinzel', serif;
+            overflow: hidden;
+        }
+
+        .splash-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .logo-wrapper {
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        .logo-svg {
+            width: 150px;
+            height: 75px;
+            filter: drop-shadow(0 4px 15px rgba(236, 72, 153, 0.3));
+        }
+
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .loading-text {
+            font-size: 18px;
+            color: #ec4899;
+            font-weight: 600;
+            letter-spacing: 2px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #fbbf24;
+            border-top: 3px solid #ec4899;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .dots {
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: #ec4899;
+            border-radius: 50%;
+            margin: 0 3px;
+            animation: bounce 1.4s infinite;
+        }
+
+        .dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            40% {
+                transform: translateY(-10px);
+                opacity: 0.7;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <div class="logo-wrapper">
+            <svg class="logo-svg" viewBox="10 28 240 55" xmlns="http://www.w3.org/2000/svg">
+                <!-- Ribbon background -->
+                <path
+                    d="M20 35h220l-10 12 10 12H20l10-12z"
+                    fill="#fce7f3"
+                    stroke="#ec4899"
+                    stroke-width="1.5"
+                />
+
+                <!-- ABIFRESH text -->
+                <text
+                    x="130"
+                    y="52"
+                    font-family="'Cinzel', serif"
+                    font-weight="800"
+                    font-size="17"
+                    fill="#be185d"
+                    text-anchor="middle"
+                    letter-spacing="3"
+                >
+                    ABIFRESH
+                </text>
+
+                <!-- & KIDDIES VENTURES text -->
+                <text
+                    x="130"
+                    y="75"
+                    font-family="'Plus Jakarta Sans', sans-serif"
+                    font-weight="600"
+                    font-size="10"
+                    fill="#ec4899"
+                    text-anchor="middle"
+                    letter-spacing="3"
+                >
+                    &amp; KIDDIES VENTURES
+                </text>
+
+                <!-- Decorative circles -->
+                <circle cx="56" cy="47" r="2" fill="#ec4899" />
+            </svg>
+        </div>
+
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+            <div class="loading-text">
+                Loading<span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>
+            </div>
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-redirect after splash duration (optional)
+        // Uncomment if you want splash to auto-close
+        // setTimeout(() => {
+        //     window.location.href = '/';
+        // }, 3000);
+    </script>
+</body>
+</html>

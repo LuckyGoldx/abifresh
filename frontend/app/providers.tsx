@@ -5,6 +5,7 @@ import { useThemeStore } from '@/store/auth';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { ToastProvider } from '@/context/ToastContext';
 import ToastContainer from '@/components/ToastContainer';
+import SplashScreen from '@/components/SplashScreen';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const theme = useThemeStore((state) => state.theme);
@@ -23,6 +24,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ToastProvider>
       <NotificationProvider>
+        <SplashScreen />
         <ToastContainer />
         {children}
       </NotificationProvider>
