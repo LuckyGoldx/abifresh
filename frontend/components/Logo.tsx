@@ -1,6 +1,7 @@
 'use client';
 
 import { useThemeStore } from '@/store/auth';
+import { useEffect, useState } from 'react';
 
 /**
  * Logo component used in header and sidebar
@@ -13,9 +14,20 @@ interface LogoProps {
 export default function Logo({ context = 'sidebar' }: LogoProps) {
   const theme = useThemeStore((state) => state.theme);
   const isDarkMode = theme === 'dark';
+  const [isDesktop, setIsDesktop] = useState(false);
   
-  // In header context (mobile), use pink for & KIDDIES VENTURES in light mode
-  const subtextColor = context === 'header' && !isDarkMode ? '#ec4899' : (isDarkMode ? '#ffffff' : '#fbbf24');
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768); // md breakpoint
+    };
+    
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+  
+  // In desktop view, use pink for & KIDDIES VENTURES in light mode
+  const subtextColor = isDesktop && !isDarkMode ? '#ec4899' : (isDarkMode ? '#ffffff' : '#fbbf24');
 
   return (
     <svg

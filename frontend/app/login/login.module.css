@@ -210,11 +210,12 @@
 }
 
 .infoSection p {
-  color: #6b7280;
+  color: #374151;
   font-size: 16px;
   line-height: 1.6;
   margin-bottom: 30px;
   margin: 0 0 30px 0;
+  font-weight: 500;
 }
 
 .features {
@@ -251,12 +252,14 @@
   color: #1f2937;
   font-size: 14px;
   margin: 0 0 4px 0;
+  font-weight: 700;
 }
 
 .featureText p {
-  color: #9ca3af;
+  color: #4b5563;
   font-size: 12px;
   margin: 0;
+  font-weight: 500;
 }
 
 .formSection {
@@ -747,12 +750,24 @@
 }
 
 .darkMode .loginWrapper {
-  background: #1f2937;
+  background: transparent;
+}
+
+@media (min-width: 769px) {
+  .darkMode .loginWrapper {
+    background: transparent;
+  }
 }
 
 .darkMode .infoSection {
-  background-color: transparent;
+  background-color: transparent !important;
   border-right: none;
+}
+
+@media (min-width: 769px) {
+  .darkMode .infoSection {
+    background-color: transparent !important;
+  }
 }
 
 .darkMode .infoSection h2 {
@@ -765,6 +780,7 @@
 
 .darkMode .infoSection h4 {
   color: #f3f4f6;
+  font-weight: 700;
 }
 
 .darkMode .infoSection .featureText p {
@@ -772,7 +788,7 @@
 }
 
 .darkMode .formSection {
-  background-color: rgba(17, 24, 39, 0.8);
+  background-color: transparent;
 }
 
 .darkMode .loginBox {
