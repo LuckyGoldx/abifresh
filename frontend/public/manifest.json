@@ -1,7 +1,7 @@
 {
   "name": "ABIFRESH & KIDDIES VENTURES",
   "short_name": "ABIFRESH",
-  "description": "Sales Management System for ABIFRESH & KIDDIES VENTURES",
+  "description": "Management System for ABIFRESH & KIDDIES VENTURES",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
