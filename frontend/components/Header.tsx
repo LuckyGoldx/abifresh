@@ -18,8 +18,8 @@ export default function Header() {
   return (
     <>
       <header className="bg-white dark:bg-slate-800 shadow">
-        <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-2 flex items-center justify-between">
-          <div className="flex-shrink-0">
+        <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-0 flex items-center justify-between">
+          <div className="flex-shrink-0 flex items-center">
             <Logo />
           </div>
 
