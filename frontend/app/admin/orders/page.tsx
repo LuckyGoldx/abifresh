@@ -10,6 +10,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { useAuthStore } from '@/store/auth';
+import LoadingLogo from '@/components/LoadingLogo';
 import { toast } from 'sonner';
 
 // Company details
@@ -875,10 +876,7 @@ export default function RestockOrdersPage() {
 
         <div className="max-w-7xl mx-auto px-6 py-5">
           {loading ? (
-            <div className="text-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4" />
-              <p className="text-gray-500">Loading inventory items...</p>
-            </div>
+            <LoadingLogo text="Loading inventory items..." />
           ) : (
             <>
               {/* Display Options */}
@@ -1136,10 +1134,7 @@ export default function RestockOrdersPage() {
           </div>
 
           {loadingHistory ? (
-            <div className="text-center py-16">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-600 mx-auto mb-4" />
-              <p className="text-gray-500">Loading order history...</p>
-            </div>
+            <LoadingLogo text="Loading order history..." />
           ) : filteredHistory.length === 0 ? (
             <div className="text-center py-16 text-gray-400">
               <ClipboardList size={56} className="mx-auto mb-4 opacity-30" />

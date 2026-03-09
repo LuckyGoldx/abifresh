@@ -6,6 +6,7 @@ import {
   DollarSign, Search, Filter, BarChart3, TrendingUp, Eye, Download, X, 
   Calendar, User, FileText, Phone, MapPin, Wallet, Tag
 } from 'lucide-react';
+import LoadingLogo from '@/components/LoadingLogo';
 
 interface ExpenseItem {
   id: string;
@@ -253,11 +254,7 @@ export default function ExpensesPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <LoadingLogo text="Loading expenses..." />;
   }
 
   return (

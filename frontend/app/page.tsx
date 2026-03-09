@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
+import LoadingLogo from '@/components/LoadingLogo';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -37,12 +38,5 @@ export default function DashboardPage() {
     }
   }, [isAuthenticated, user, router]);
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-50 to-pink-100">
-      <div className="text-center">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
-        <p className="mt-4 text-gray-600">Loading dashboard...</p>
-      </div>
-    </div>
-  );
+  return <LoadingLogo fullScreen text="Loading dashboard..." />;
 }

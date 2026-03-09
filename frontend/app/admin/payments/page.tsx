@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { CreditCard, CheckCircle, Clock, XCircle, Search, Filter, BarChart3, TrendingUp, Eye, Download, X, FileText, Phone, MapPin } from 'lucide-react';
+import LoadingLogo from '@/components/LoadingLogo';
 
 interface PaymentItem {
   item_id: string;
@@ -257,11 +258,7 @@ export default function PaymentsPage() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
-      </div>
-    );
+    return <LoadingLogo text="Loading payments..." />;
   }
 
   return (

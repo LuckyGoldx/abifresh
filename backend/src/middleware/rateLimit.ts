@@ -10,13 +10,18 @@ export const generalLimiter = rateLimit({
 });
 
 // Strict limiter for authentication endpoints (login/register)
+// Custom skip function to only count FAILED login attempts (status >= 400)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 attempts per 15 minutes
   message: { error: 'Too many login attempts, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: true,
+  skip: (req, res) => {
+    // Skip rate limit counting if response status is < 400 (successful)
+    // This ensures only failed login attempts consume the quota
+    return res.statusCode < 400;
+  },
 });
 
 // Payment endpoints limiter
