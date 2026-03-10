@@ -3,25 +3,20 @@ import rateLimit from 'express-rate-limit';
 // General API rate limiter
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per 15-minute window
+  max: 500, // Limit each IP to 500 requests per 15-minute window
   message: { error: 'Too many requests from this IP, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 // Strict limiter for authentication endpoints (login/register)
-// Custom skip function to only count FAILED login attempts (status >= 400)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 attempts per 15 minutes
   message: { error: 'Too many login attempts, please try again after 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req, res) => {
-    // Skip rate limit counting if response status is < 400 (successful)
-    // This ensures only failed login attempts consume the quota
-    return res.statusCode < 400;
-  },
+  skipSuccessfulRequests: true,
 });
 
 // Payment endpoints limiter
