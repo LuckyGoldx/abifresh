@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { supabaseAdmin } from '../config/supabase';
 import logger, { logSecurity } from '../config/logger';
+import { DEMO_USERS } from '../services/localhost-auth.service';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -33,7 +34,21 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       .single();
 
     if (error || !user) {
-      return res.status(401).json({ error: 'User not found' });
+      // Fallback: check localhost/demo users (for offline/demo auth)
+      const demoUser = Object.values(DEMO_USERS).find(u => u.id === decoded.sub);
+      if (!demoUser) {
+        return res.status(401).json({ error: 'User not found' });
+      }
+      if (!demoUser.is_active) {
+        return res.status(403).json({ error: 'Your account has been deactivated. Please contact the administrator.' });
+      }
+      req.user = {
+        id: decoded.sub,
+        email: decoded.email,
+        role: decoded.role,
+        full_name: demoUser.full_name,
+      };
+      return next();
     }
 
     if (!user.is_active) {
@@ -70,6 +85,7 @@ export const roleMiddleware = (...allowedRoles: string[]) => {
       'sales': 'sales',
       'sales_staff': 'sales',
       'admin': 'admin',
+      'superadmin': 'superadmin',
       // Normalize both old and new names to the new standard names
       'staff_commission': 'commission_staff',
       'commission_staff': 'commission_staff',
@@ -80,7 +96,11 @@ export const roleMiddleware = (...allowedRoles: string[]) => {
     const normalizedUserRole = roleMap[req.user.role] || req.user.role;
     const normalizedAllowedRoles = allowedRoles.map(role => roleMap[role] || role);
 
-    if (!normalizedAllowedRoles.includes(normalizedUserRole)) {
+    // Superadmin has access to everything admin can access
+    const isSuperadmin = normalizedUserRole === 'superadmin';
+    const adminRequired = normalizedAllowedRoles.includes('admin');
+
+    if (!normalizedAllowedRoles.includes(normalizedUserRole) && !(isSuperadmin && adminRequired)) {
       logSecurity('access_denied', {
         userId: req.user.id,
         email: req.user.email,

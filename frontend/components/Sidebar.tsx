@@ -81,7 +81,8 @@ export default function Sidebar({ menuItems, role, isOpen = true, setIsOpen }: S
         <div className="p-6 border-b border-gray-200 dark:border-slate-700 mt-12 md:mt-0">
           <h1 className="text-xl font-bold text-pink-600 whitespace-nowrap">ABIFRESH</h1>
           <p className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            {role === 'admin' ? 'Admin Portal' :
+            {role === 'superadmin' ? 'Superadmin Portal' :
+             role === 'admin' ? 'Admin Portal' :
              role === 'sales' || role === 'sales_staff' ? 'Sales Portal' :
              role === 'commission_staff' || role === 'staff_commission' ? 'Commission Portal' :
              role === 'non_commission_staff' || role === 'staff_non_commission' ? 'Non-Commission Portal' :

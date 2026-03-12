@@ -34,12 +34,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    if (hydrated && (!isAuthenticated || user?.role !== 'admin')) {
+    if (hydrated && (!isAuthenticated || (user?.role !== 'admin' && user?.role !== 'superadmin'))) {
       router.push('/login');
     }
   }, [hydrated, isAuthenticated, user, router]);
 
-  if (!mounted || !hydrated || !isAuthenticated || user?.role !== 'admin') {
+  if (!mounted || !hydrated || !isAuthenticated || (user?.role !== 'admin' && user?.role !== 'superadmin')) {
     return null;
   }
 
@@ -58,7 +58,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Reports', href: '/admin/reports', icon: '📈' },
     { label: 'Items', href: '/admin/items', icon: '🛍️' },
     { label: 'Notifications', href: '/admin/notifications', icon: '🔔' },
-    { label: 'Backup', href: '/admin/backup', icon: '💾' },
   ];
 
   return (

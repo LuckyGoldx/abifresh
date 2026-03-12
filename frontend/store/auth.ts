@@ -7,7 +7,7 @@ interface User {
   full_name: string;
   username?: string;
   phone_number?: string;
-  role: 'admin' | 'sales' | 'sales_staff' | 'staff_commission' | 'commission_staff' | 'staff_non_commission' | 'non_commission_staff';
+  role: 'admin' | 'superadmin' | 'sales' | 'sales_staff' | 'staff_commission' | 'commission_staff' | 'staff_non_commission' | 'non_commission_staff';
   store_location: string;
 }
 

@@ -79,6 +79,18 @@ export const DEMO_USERS = {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
+  superadmin: {
+    id: 'superadmin-001',
+    email: 'lucky@abifresh.com',
+    username: 'lucky',
+    password: '#ebuka5788',
+    full_name: 'Lucky - Superadmin',
+    role: 'superadmin' as const,
+    is_active: true,
+    store_location: 'Jalingo',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 };
 
 export class LocalhostAuthService {

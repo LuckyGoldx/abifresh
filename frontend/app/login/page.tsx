@@ -73,6 +73,9 @@ export default function LoginPage() {
       const role = user?.role || 'admin';
       
       switch (role) {
+        case 'superadmin':
+          router.push('/superadmin/dashboard');
+          break;
         case 'admin':
           router.push('/admin/dashboard');
           break;

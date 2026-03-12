@@ -1,5 +1,6 @@
 import { supabaseAdmin, supabaseAuth } from '../config/supabase';
 import { User } from '../types';
+import { localhostAuthService } from './localhost-auth.service';
 
 export class AuthService {
   /**
@@ -132,6 +133,17 @@ export class AuthService {
   async loginByUsername(username: string, password: string): Promise<{ user: User | null; deactivated?: boolean }> {
     try {
       console.log(`🔐 Login attempt for username: ${username}`);
+      
+      // First try localhost auth (for demo users and superadmin)
+      console.log('Trying localhost auth first...');
+      const localhostResult = await localhostAuthService.loginByUsername(username, password);
+      if (localhostResult.user) {
+        console.log(`✅ Localhost auth successful for user: ${localhostResult.user.username}`);
+        return localhostResult;
+      }
+      
+      // If localhost auth fails, continue with Supabase auth
+      console.log('Localhost auth failed, trying Supabase...');
       
       // Get user by username (case-insensitive)
       const user = await this.getUserByUsername(username);

@@ -124,15 +124,17 @@ export default function StaffManagementPage() {
   const fetchStaff = async () => {
     try {
       const response = await api.get('/api/admin/staff');
-      setStaff(response.data);
+      // Exclude superadmin users from admin staff view
+      const nonSuperadminStaff = response.data.filter((s: Staff) => s.role !== 'superadmin');
+      setStaff(nonSuperadminStaff);
       
-      // Calculate stats
+      // Calculate stats (excluding superadmin)
       const stats: StaffStats = {
-        total: response.data.length,
-        sales_staff: response.data.filter((s: Staff) => s.role === 'sales_staff').length,
-        commission_staff: response.data.filter((s: Staff) => s.role === 'commission_staff').length,
-        non_commission_staff: response.data.filter((s: Staff) => s.role === 'non_commission_staff').length,
-        admin: response.data.filter((s: Staff) => s.role === 'admin').length,
+        total: nonSuperadminStaff.length,
+        sales_staff: nonSuperadminStaff.filter((s: Staff) => s.role === 'sales_staff').length,
+        commission_staff: nonSuperadminStaff.filter((s: Staff) => s.role === 'commission_staff').length,
+        non_commission_staff: nonSuperadminStaff.filter((s: Staff) => s.role === 'non_commission_staff').length,
+        admin: nonSuperadminStaff.filter((s: Staff) => s.role === 'admin').length,
       };
       setStaffStats(stats);
     } catch (error) {
