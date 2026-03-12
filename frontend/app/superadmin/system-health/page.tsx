@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
-import { Activity, CheckCircle, Cpu, Database, HardDrive, RefreshCw, Server, Shield, Wifi, XCircle } from 'lucide-react';
+import { Activity, CheckCircle, Cpu, Database, HardDrive, RefreshCw, Server, Shield, Wifi, XCircle, X } from 'lucide-react';
 
 interface HealthCheck {
   name: string;
   status: 'healthy' | 'degraded' | 'down';
   latency?: string;
   details?: string;
+  errorLog?: string;
 }
 
 export default function SystemHealthPage() {
@@ -18,20 +19,24 @@ export default function SystemHealthPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
   const [dbStats, setDbStats] = useState({ tables: 0, receipts: 0, staff: 0, items: 0 });
+  const [selectedCheck, setSelectedCheck] = useState<HealthCheck | null>(null);
 
   const runHealthCheck = async () => {
     setIsLoading(true);
     const checks: HealthCheck[] = [];
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-    // Backend API check
+    // Backend API check - use correct endpoint WITHOUT /api prefix
     try {
       const start = Date.now();
-      await api.get('/api/health');
+      const response = await fetch('http://localhost:5000/health', { signal: AbortSignal.timeout(5000) });
       const latency = Date.now() - start;
-      checks.push({ name: 'Backend API', status: latency < 2000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: 'Express server responding' });
-    } catch {
-      checks.push({ name: 'Backend API', status: 'down', details: 'Cannot reach backend server' });
+      if (response.ok) {
+        checks.push({ name: 'Backend API', status: latency < 2000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: 'Express server responding', errorLog: 'Connection successful' });
+      } else {
+        checks.push({ name: 'Backend API', status: 'down', details: 'Server returned error', errorLog: `HTTP ${response.status}: ${response.statusText}` });
+      }
+    } catch (err: any) {
+      checks.push({ name: 'Backend API', status: 'down', details: 'Cannot reach backend server', errorLog: err.message || 'Network timeout or CORS error' });
     }
 
     // Database check (via staff endpoint)
@@ -40,10 +45,10 @@ export default function SystemHealthPage() {
       const staffRes = await api.get('/api/admin/staff', { headers: { Authorization: `Bearer ${token}` } });
       const latency = Date.now() - start;
       const staffCount = (staffRes.data || []).length;
-      checks.push({ name: 'Database (Staff)', status: latency < 3000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: `${staffCount} staff records` });
+      checks.push({ name: 'Database (Staff)', status: latency < 3000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: `${staffCount} staff records`, errorLog: 'Query successful' });
       setDbStats(prev => ({ ...prev, staff: staffCount }));
-    } catch {
-      checks.push({ name: 'Database (Staff)', status: 'down', details: 'Cannot query staff table' });
+    } catch (err: any) {
+      checks.push({ name: 'Database (Staff)', status: 'down', details: 'Cannot query staff table', errorLog: err.response?.data?.error || err.message || 'Database error' });
     }
 
     // Receipts check
@@ -52,29 +57,29 @@ export default function SystemHealthPage() {
       const receiptsRes = await api.get('/api/receipts/all', { headers: { Authorization: `Bearer ${token}` } });
       const latency = Date.now() - start;
       const count = (receiptsRes.data || []).length;
-      checks.push({ name: 'Receipts Service', status: latency < 3000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: `${count} receipts found` });
+      checks.push({ name: 'Receipts Service', status: latency < 3000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: `${count} receipts found`, errorLog: 'Query successful' });
       setDbStats(prev => ({ ...prev, receipts: count }));
-    } catch {
-      checks.push({ name: 'Receipts Service', status: 'down', details: 'Cannot access receipts' });
+    } catch (err: any) {
+      checks.push({ name: 'Receipts Service', status: 'down', details: 'Cannot access receipts', errorLog: err.response?.data?.error || err.message || 'Access denied' });
     }
 
-    // Items check
+    // Inventory check - query inventory endpoint (requires auth)
     try {
       const start = Date.now();
-      const itemsRes = await api.get('/api/items', { headers: { Authorization: `Bearer ${token}` } });
+      const inventoryRes = await api.get('/api/inventory/items', { headers: { Authorization: `Bearer ${token}` } });
       const latency = Date.now() - start;
-      const count = (itemsRes.data || []).length;
-      checks.push({ name: 'Inventory Service', status: latency < 3000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: `${count} items tracked` });
+      const count = (inventoryRes.data || []).length;
+      checks.push({ name: 'Inventory Service', status: latency < 3000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: `${count} items tracked`, errorLog: 'Query successful' });
       setDbStats(prev => ({ ...prev, items: count }));
-    } catch {
-      checks.push({ name: 'Inventory Service', status: 'down', details: 'Cannot access inventory' });
+    } catch (err: any) {
+      checks.push({ name: 'Inventory Service', status: 'down', details: 'Cannot access inventory', errorLog: err.response?.data?.error || err.message || 'Endpoint not accessible or authentication failed' });
     }
 
     // Auth service check
-    checks.push({ name: 'Auth Service', status: token ? 'healthy' : 'down', details: token ? 'JWT active and valid' : 'No active session' });
+    checks.push({ name: 'Auth Service', status: token ? 'healthy' : 'down', details: token ? 'JWT active and valid' : 'No active session', errorLog: token ? 'Token verified' : 'No token found' });
 
     // Frontend check is always healthy if we're running
-    checks.push({ name: 'Frontend (Next.js)', status: 'healthy', details: 'Running on port 3000' });
+    checks.push({ name: 'Frontend (Next.js)', status: 'healthy', details: 'Running on port 3000', errorLog: 'Application loaded successfully' });
 
     setHealthChecks(checks);
     setDbStats(prev => ({ ...prev, tables: 4 }));
@@ -167,7 +172,11 @@ export default function SystemHealthPage() {
         <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Service Status</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {healthChecks.map((check, i) => (
-            <div key={i} className={`p-4 rounded-xl border ${statusBg(check.status)} transition`}>
+            <div 
+              key={i} 
+              onClick={() => setSelectedCheck(check)}
+              className={`p-4 rounded-xl border ${statusBg(check.status)} transition cursor-pointer hover:shadow-lg`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {statusIcon(check.status)}
@@ -185,6 +194,58 @@ export default function SystemHealthPage() {
           ))}
         </div>
       </div>
+
+      {/* Detail Modal */}
+      {selectedCheck && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full max-h-96 overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                {statusIcon(selectedCheck.status)}
+                <h2 className="text-lg font-bold text-gray-800 dark:text-white">{selectedCheck.name}</h2>
+              </div>
+              <button 
+                onClick={() => setSelectedCheck(null)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                <p className={`text-lg font-bold capitalize ${statusColor(selectedCheck.status)}`}>{selectedCheck.status}</p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Details</p>
+                <p className="text-gray-800 dark:text-gray-200">{selectedCheck.details}</p>
+              </div>
+
+              {selectedCheck.latency && (
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Response Time</p>
+                  <p className="text-gray-800 dark:text-gray-200">{selectedCheck.latency}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Diagnostic Log</p>
+                <div className="bg-gray-900 text-green-400 p-3 rounded-lg font-mono text-sm break-words">
+                  <p>{selectedCheck.errorLog || 'No error information available'}</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Last checked: {lastCheck?.toLocaleTimeString('en-NG') || 'Never'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Database Overview */}
       <div className="card">

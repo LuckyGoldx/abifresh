@@ -8,6 +8,8 @@ import { StorageService } from '../services/storage.service';
 import expensesService from '../services/expenses.service';
 import { validateCreateStaff, validateSetCommission, validateApproveRejectPayment, validateRejectPaymentWithReason, validateUpdateStaff } from '../middleware/validation';
 import logger, { logSecurity } from '../config/logger';
+import { logStreamService } from '../services/log-stream.service';
+import jwt from 'jsonwebtoken';
 
 const router = Router();
 
@@ -1769,6 +1771,146 @@ router.delete('/restock-orders/:id', authMiddleware, roleMiddleware('admin'), as
     res.json({ success: true });
   } catch (error: any) {
     console.error('❌ Error deleting restock order:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get server logs (superadmin only)
+ * Query params: type=app|error|security, lines=number, date=YYYY-MM-DD
+ */
+router.get('/logs', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    // Only allow superadmin
+    if (req.user?.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Superadmin access required' });
+    }
+
+    const fs = require('fs');
+    const pathModule = require('path');
+    const logDir = process.env.LOG_DIR || pathModule.join(__dirname, '..', '..', 'logs');
+    const type = (req.query.type as string) || 'app';
+    const maxLines = Math.min(parseInt(req.query.lines as string) || 200, 1000);
+    const date = (req.query.date as string) || new Date().toISOString().split('T')[0];
+
+    // Validate type to prevent path traversal
+    const allowedTypes = ['app', 'error', 'security'];
+    if (!allowedTypes.includes(type)) {
+      return res.status(400).json({ error: 'Invalid log type' });
+    }
+
+    const filename = `${type}-${date}.log`;
+    const filepath = pathModule.join(logDir, filename);
+
+    // List available log files
+    let availableFiles: string[] = [];
+    try {
+      const files = fs.readdirSync(logDir);
+      availableFiles = files
+        .filter((f: string) => f.endsWith('.log'))
+        .sort()
+        .reverse();
+    } catch {
+      availableFiles = [];
+    }
+
+    // Read log file
+    let entries: any[] = [];
+    try {
+      const content = fs.readFileSync(filepath, 'utf8');
+      const lines = content.trim().split('\n').filter(Boolean);
+      // Take last N lines
+      const recentLines = lines.slice(-maxLines);
+      entries = recentLines.map((line: string) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return { message: line, level: 'info', timestamp: '' };
+        }
+      }).reverse(); // newest first
+    } catch {
+      // File may not exist for this date
+    }
+
+    res.json({
+      type,
+      date,
+      filename,
+      entries,
+      totalEntries: entries.length,
+      availableFiles,
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Stream server logs in real-time via SSE (superadmin only)
+ * Query params: type=app|error|security (comma-separated for multiple)
+ */
+/**
+ * Real-time server logs streaming (superadmin only)
+ * Uses EventSource for SSE streaming
+ * Query params: type=app|error|security, token=JWT
+ */
+router.get('/logs/stream', async (req: Request, res: Response) => {
+  try {
+    // Extract and verify JWT token from query params
+    const token = req.query.token as string;
+    
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized: No token provided' });
+    }
+
+    try {
+      // Verify token
+      const secret = process.env.JWT_SECRET || 'your-secret-key';
+      const decoded: any = jwt.verify(token, secret);
+
+      // Only superadmin can use logs streaming
+      if (decoded.role !== 'superadmin') {
+        return res.status(403).json({ error: 'Forbidden: Superadmin access required' });
+      }
+
+      // Set SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+
+      const types = (req.query.type as string || 'app,error,security')
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => ['app', 'error', 'security'].includes(t)) as ('app' | 'error' | 'security')[];
+
+      if (types.length === 0) {
+        return res.status(400).json({ error: 'Invalid log types' });
+      }
+
+      // Register SSE client and start streaming
+      logStreamService.registerSSEClient(res, types);
+      
+      // Keep connection alive with periodic pings
+      const keepAliveInterval = setInterval(() => {
+        try {
+          res.write(`: keep-alive\n\n`);
+        } catch (error) {
+          clearInterval(keepAliveInterval);
+        }
+      }, 30000);
+
+      res.on('close', () => {
+        clearInterval(keepAliveInterval);
+      });
+      
+      logger.info('SSE client connected for logs streaming', { email: decoded.email, types });
+    } catch (error: any) {
+      logger.error('Token verification failed for logs stream', { error: error.message });
+      return res.status(401).json({ error: `Unauthorized: ${error.message}` });
+    }
+  } catch (error: any) {
+    console.error('SSE stream error:', error);
     res.status(400).json({ error: error.message });
   }
 });

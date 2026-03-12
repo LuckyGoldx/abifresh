@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import fileUpload from 'express-fileupload';
+import WebSocket from 'ws';
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +25,7 @@ import { securityHeaders } from './config/security';
 import { generalLimiter, authLimiter, paymentLimiter, uploadLimiter, passwordChangeLimiter } from './middleware/rateLimit';
 import { csrfProtection } from './middleware/csrf';
 import logger, { logRequest } from './config/logger';
+import { logStreamService } from './services/log-stream.service';
 
 // Initialize Express app
 const app = express();
@@ -158,6 +160,54 @@ const server = app.listen(PORT, async () => {
   await initializeStorageBuckets();
 });
 
+// ============ WEBSOCKET SETUP ============
+const wss = new WebSocket.Server({ server });
+
+wss.on('connection', (ws, req) => {
+  const url = new URL(req.url || '/', `http://${req.headers.host}`);
+  const path = url.pathname;
+
+  // Only allow log streaming WebSocket connections
+  if (path !== '/ws/logs') {
+    ws.close(1008, 'Unknown endpoint');
+    return;
+  }
+
+  // Extract and verify JWT token from URL query params or headers
+  const token = url.searchParams.get('token') || req.headers['sec-websocket-protocol'];
+  
+  if (!token) {
+    ws.close(1008, 'Unauthorized: No token provided');
+    return;
+  }
+
+  try {
+    // Verify token
+    const secret = process.env.JWT_SECRET || 'your-secret-key';
+    const jwtModule = require('jsonwebtoken');
+    const decoded = jwtModule.verify(token, secret);
+
+    // Only superadmin can use logs WebSocket
+    if (decoded.role !== 'superadmin') {
+      ws.close(1008, 'Forbidden: Superadmin access required');
+      return;
+    }
+
+    // Register the WebSocket connection for log streaming
+    const types = (url.searchParams.get('types') || 'app,error,security')
+      .split(',')
+      .map((t: string) => t.trim())
+      .filter((t: string) => ['app', 'error', 'security'].includes(t)) as ('app' | 'error' | 'security')[];
+
+    logStreamService.registerWSConnection(ws, types);
+    
+    logger.info('WebSocket client connected for logs streaming', { user: decoded.email, types });
+  } catch (error: any) {
+    logger.error('WebSocket authentication failed', { error: error.message });
+    ws.close(1008, `Unauthorized: ${error.message}`);
+  }
+});
+
 // Handle server errors
 server.on('error', (err: any) => {
   if (err.code === 'EADDRINUSE') {
@@ -172,6 +222,15 @@ server.on('error', (err: any) => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, closing server gracefully...');
+  
+  // Close WebSocket connections
+  wss.clients.forEach((client) => {
+    client.close(1000, 'Server shutting down');
+  });
+  
+  // Cleanup log streaming
+  logStreamService.cleanup();
+
   server.close(() => {
     logger.info('Server closed');
     process.exit(0);

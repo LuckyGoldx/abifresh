@@ -61,6 +61,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     // Superadmin Exclusive
     { label: 'User Management', href: '/superadmin/users', icon: '🔐' },
     { label: 'Audit Logs', href: '/superadmin/audit-logs', icon: '📜' },
+    { label: 'Server Logs', href: '/superadmin/logs', icon: '🖥️' },
     { label: 'System Health', href: '/superadmin/system-health', icon: '💓' },
     { label: 'Notifications', href: '/superadmin/notifications', icon: '🔔' },
     { label: 'Backup', href: '/superadmin/backup', icon: '💾' },
