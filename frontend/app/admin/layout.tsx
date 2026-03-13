@@ -7,6 +7,10 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Toaster } from 'sonner';
 
+// Ensure routes are not statically generated since they require authentication
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
