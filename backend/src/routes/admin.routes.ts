@@ -98,14 +98,21 @@ router.post('/commissions/set', authMiddleware, roleMiddleware('admin'), validat
  */
 router.get('/payments/pending-count', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
-    const { count, error } = await supabaseAdmin
+    console.log('📊 Fetching pending payments count for admin...');
+    
+    // Fetch all pending payments
+    const { data: pendingPayments, error } = await supabaseAdmin
       .from('staff_payments')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('status', 'pending');
 
     if (error) throw error;
-    res.json({ count: count || 0 });
+    
+    const count = (pendingPayments || []).length;
+    console.log(`✅ Pending payments count: ${count}`);
+    res.json({ count });
   } catch (error: any) {
+    console.error('❌ Error fetching pending count:', error);
     res.status(400).json({ error: error.message });
   }
 });
