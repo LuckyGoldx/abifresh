@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { supabase } from '@/lib/supabase';
 
 interface Notification {
   id: string;
@@ -89,16 +90,37 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
-  // Fetch notifications on mount and set up polling
+  // Fetch notifications on mount and set up real-time subscription
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
     fetchNotifications();
 
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
+    // Set up Supabase real-time subscription for notifications
+    const channels = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[Realtime] Notification change:', payload);
+          
+          // Refresh notifications when changes occur
+          fetchNotifications();
+        }
+      )
+      .subscribe((status) => {
+        console.log('[Realtime] Subscription status:', status);
+      });
 
-    return () => clearInterval(interval);
+    return () => {
+      supabase.removeChannel(channels);
+    };
   }, [isAuthenticated, user, fetchNotifications]);
 
   return (
