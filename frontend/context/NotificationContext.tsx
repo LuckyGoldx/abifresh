@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -34,29 +34,47 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const fetchInProgress = useRef(false);
+  const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch all notifications
-  const fetchNotifications = useCallback(async () => {
+  // Core fetch function - no memoization to avoid stale closures
+  const performFetch = async () => {
     if (!isAuthenticated || !user) return;
-    if (fetchInProgress.current) return;
 
     try {
-      fetchInProgress.current = true;
       setIsLoading(true);
+      console.log('[Notifications] Fetching notifications...');
       const response = await api.get('/api/notifications');
       const data: Notification[] = response.data || [];
+      console.log('[Notifications] Fetched', data.length, 'notifications');
       setNotifications(data);
       
       // Count unread using is_read field
       const unread = data.filter((n: Notification) => !n.is_read).length;
       setUnreadCount(unread);
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      console.error('[Notifications] Failed to fetch:', error);
     } finally {
       setIsLoading(false);
-      fetchInProgress.current = false;
     }
+  };
+
+  // Debounced fetch for realtime updates (prevents too many simultaneous requests)
+  const debouncedFetch = useCallback(() => {
+    // Clear existing timeout
+    if (realtimeDebounceRef.current) {
+      clearTimeout(realtimeDebounceRef.current);
+    }
+
+    // Set new timeout - fetch after 300ms of no updates
+    realtimeDebounceRef.current = setTimeout(() => {
+      console.log('[Realtime] Debounce triggered - fetching notifications');
+      performFetch();
+    }, 300);
+  }, []);
+
+  // Fetchable function for external calls
+  const fetchNotifications = useCallback(() => {
+    return performFetch();
   }, [isAuthenticated, user]);
 
   // Mark single notification as read
@@ -94,13 +112,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    fetchNotifications();
+    // Initial fetch
+    performFetch();
 
     // If Supabase is configured, use real-time subscription
     if (isSupabaseConfigured && supabase) {
-      console.log('[Notifications] Using real-time subscription for multiple tables');
+      console.log('[Notifications] Setting up real-time subscription');
       
       // Listen to changes on multiple tables that trigger notifications
+      const handleChange = () => {
+        console.log('[Realtime] Data changed - triggering debounced fetch');
+        debouncedFetch();
+      };
+
       const channels = supabase
         .channel(`notifications:${user.id}`)
         .on(
@@ -110,10 +134,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             schema: 'public',
             table: 'posted_items',
           },
-          (payload) => {
-            console.log('[Realtime] Posted items change:', payload);
-            fetchNotifications();
-          }
+          handleChange
         )
         .on(
           'postgres_changes',
@@ -122,10 +143,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             schema: 'public',
             table: 'staff_payments',
           },
-          (payload) => {
-            console.log('[Realtime] Staff payments change:', payload);
-            fetchNotifications();
-          }
+          handleChange
         )
         .on(
           'postgres_changes',
@@ -134,10 +152,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             schema: 'public',
             table: 'returned_items',
           },
-          (payload) => {
-            console.log('[Realtime] Returned items change:', payload);
-            fetchNotifications();
-          }
+          handleChange
         )
         .on(
           'postgres_changes',
@@ -146,25 +161,37 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             schema: 'public',
             table: 'notifications',
           },
-          (payload) => {
-            console.log('[Realtime] Notifications table change:', payload);
-            fetchNotifications();
-          }
+          handleChange
         )
         .subscribe((status) => {
           console.log('[Realtime] Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('[Realtime] ✅ Connected to real-time updates');
+          }
         });
 
       return () => {
+        console.log('[Notifications] Cleaning up subscription');
         supabase.removeChannel(channels);
+        if (realtimeDebounceRef.current) {
+          clearTimeout(realtimeDebounceRef.current);
+        }
       };
     } else {
-      // Fall back to polling every 15 seconds if Supabase is not configured
+      // Fall back to polling every 10 seconds if Supabase is not configured
       console.log('[Notifications] Using polling (Supabase not configured)');
-      const interval = setInterval(fetchNotifications, 15000);
-      return () => clearInterval(interval);
+      const interval = setInterval(() => {
+        console.log('[Polling] Fetching notifications...');
+        performFetch();
+      }, 10000);
+      return () => {
+        clearInterval(interval);
+        if (realtimeDebounceRef.current) {
+          clearTimeout(realtimeDebounceRef.current);
+        }
+      };
     }
-  }, [isAuthenticated, user, fetchNotifications]);
+  }, [isAuthenticated, user]);
 
   return (
     <NotificationContext.Provider
