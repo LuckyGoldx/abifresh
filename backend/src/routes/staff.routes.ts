@@ -255,13 +255,13 @@ router.get('/payments', authMiddleware, async (req: AuthRequest, res: Response) 
       return {
         id: payment.id,
         staff_id: payment.staff_id,
-        staff_name: payment.staff_name || '',
-        staff_phone: payment.staff_phone || '',
+        staff_name: payment.staff_name || 'N/A',
+        staff_phone: payment.staff_phone || 'N/A',
         amount: payment.amount,
         payment_method: payment.payment_method || 'unknown',
         payment_type: payment.payment_type,
         status: payment.status,
-        reference_number: payment.reference_number || '',
+        reference_number: payment.reference_number || 'N/A',
         receipt_url: payment.receipt_url || null,
         notes: payment.notes,
         items_paid_for: payment.items_paid_for || [],
@@ -360,19 +360,36 @@ router.post('/payments/request', authMiddleware, async (req: AuthRequest, res: R
       return res.status(500).json({ error: 'Failed to validate payment amount' });
     }
 
+    // Generate reference number only for cash payments
+    let finalReferenceNumber = null;
+    if (payment_method === 'cash') {
+      // Auto-generate reference number for cash payments
+      if (!reference_number) {
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+        const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
+        finalReferenceNumber = `CASH-${dateStr}-${randomStr}`;
+      } else {
+        finalReferenceNumber = reference_number;
+      }
+    } else if (reference_number) {
+      // For non-cash, only use provided reference number
+      finalReferenceNumber = reference_number;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('staff_payments')
       .insert([
         {
           staff_id: req.user!.id,
-          staff_name: user?.full_name,
-          staff_email: user?.email,
-          staff_phone: user?.phone_number,
+          staff_name: user?.full_name || req.user!.email || 'Staff Member',
+          staff_email: user?.email || req.user!.email,
+          staff_phone: user?.phone_number || null,
           amount: parseFloat(amount),
           payment_type: 'other',
           payment_method: payment_method,
           status: 'pending',
-          reference_number: reference_number || null,
+          reference_number: finalReferenceNumber,
           receipt_url: receipt_url,
           items_paid_for: parsedItems.length > 0 ? parsedItems : null,
           notes: notes || null,

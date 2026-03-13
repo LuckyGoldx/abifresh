@@ -899,11 +899,19 @@ export default function PaymentsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-gray-500 dark:text-gray-400">Staff Name</label>
-                  <p className="font-semibold text-gray-900 dark:text-white">{selectedPaymentDetails.staff_name}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {selectedPaymentDetails.staff_name && selectedPaymentDetails.staff_name !== 'N/A' 
+                      ? selectedPaymentDetails.staff_name 
+                      : 'N/A'}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm text-gray-500 dark:text-gray-400">Phone Number</label>
-                  <p className="font-semibold text-gray-900 dark:text-white">{selectedPaymentDetails.staff_phone || 'N/A'}</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    {selectedPaymentDetails.staff_phone && selectedPaymentDetails.staff_phone !== 'N/A'
+                      ? selectedPaymentDetails.staff_phone
+                      : 'N/A'}
+                  </p>
                 </div>
               </div>
 
