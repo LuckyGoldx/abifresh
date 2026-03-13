@@ -272,7 +272,7 @@ export class SalesService {
         type,
         title,
         message,
-        related_id: relatedId,
+        is_read: false,
       },
     ]);
   }

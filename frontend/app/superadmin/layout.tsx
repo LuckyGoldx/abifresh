@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { Toaster } from 'sonner';
+import api from '@/lib/api';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -14,6 +15,16 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const [mounted, setMounted] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
+
+  const fetchPendingCount = useCallback(async () => {
+    try {
+      const res = await api.get('/api/admin/payments/pending-count');
+      setPendingPaymentsCount(res.data.count || 0);
+    } catch {
+      // silently ignore
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -36,6 +47,15 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     }
   }, [hydrated, isAuthenticated, user, router]);
 
+  // Fetch pending payments count and poll every 30 seconds
+  useEffect(() => {
+    if (hydrated && isAuthenticated) {
+      fetchPendingCount();
+      const interval = setInterval(fetchPendingCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [hydrated, isAuthenticated, fetchPendingCount]);
+
   if (!mounted || !hydrated || !isAuthenticated || user?.role !== 'superadmin') {
     return null;
   }
@@ -50,7 +70,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     { label: 'Post Items', href: '/superadmin/post-items', icon: '📮' },
     { label: 'Inventory', href: '/superadmin/inventory', icon: '📦' },
     { label: 'Restock Orders', href: '/superadmin/orders', icon: '🛒' },
-    { label: 'Payments', href: '/superadmin/payments', icon: '💳' },
+    { label: 'Payments', href: '/superadmin/payments', icon: '💳', badge: pendingPaymentsCount },
     { label: 'Receipts', href: '/superadmin/receipts', icon: '📄' },
     { label: 'Commissions', href: '/superadmin/commissions', icon: '💵' },
     { label: 'Expenses Tracker', href: '/superadmin/expenses', icon: '📋' },

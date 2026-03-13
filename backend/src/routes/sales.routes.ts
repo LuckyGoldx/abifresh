@@ -538,11 +538,11 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
       receipt_url: receipt_url || 'No receipt uploaded'
     });
 
-    // Create notification for admin
+    // Create notification for admin and superadmin
     const { data: admins } = await supabaseAdmin
       .from('users')
       .select('id')
-      .eq('role', 'admin');
+      .in('role', ['admin', 'superadmin']);
 
     if (admins && admins.length > 0) {
       await Promise.all(admins.map(admin => 
@@ -554,7 +554,6 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
               type: 'payment_request',
               title: '📋 New Payment Request',
               message: `${user?.full_name || 'Sales Staff'} has submitted a payment of ₦${parseFloat(amount).toLocaleString()} via ${payment_method}. Click to review.`,
-              related_id: data.id,
               is_read: false,
             },
           ])

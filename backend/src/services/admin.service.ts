@@ -193,8 +193,7 @@ export class AdminService {
           type: 'payment_approved',
           title: '✅ Payment Approved',
           message: `Your payment of ₦${payment.amount?.toLocaleString() || '0'} has been approved by admin. Check your account.`,
-          related_id: paymentId,
-          read: false,
+          is_read: false,
         },
       ]);
     }
@@ -230,8 +229,7 @@ export class AdminService {
           type: 'payment_rejected',
           title: '❌ Payment Rejected',
           message: `Your payment of ₦${payment.amount?.toLocaleString() || '0'} was rejected. Reason: ${reason || 'Please contact admin for details'}`,
-          related_id: paymentId,
-          read: false,
+          is_read: false,
         },
       ]);
     }

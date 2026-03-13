@@ -142,6 +142,13 @@ export class ReturnedItemsService {
       `${items.length} item(s) return request sent to ${receiverName}`
     );
 
+    // Notify admins about return request
+    await this.notifyAdmins(
+      'returned_items',
+      `🔄 Return Request`,
+      `${requesterName} is returning ${items.length} item(s) to ${receiverName}`
+    );
+
     // Log activity
     await this.logActivity(actualRequesterStaffId, 'RETURN_REQUEST_CREATED', 'returned_items', actualReceiverSalesStaffId, {
       receiver_staff_id: actualReceiverSalesStaffId,
@@ -239,6 +246,13 @@ export class ReturnedItemsService {
         `Your return request for ${returnedItem.quantity} item(s) has been accepted`
       );
 
+      // Notify admins about return accepted
+      await this.notifyAdmins(
+        'return_accepted',
+        `✅ Return Accepted`,
+        `${requesterName}'s return of ${returnedItem.quantity} item(s) was accepted`
+      );
+
       // Log activity
       await this.logActivity(actualSalesStaffId, 'RETURN_ACCEPTED', 'returned_items', returnedItem.requester_staff_id, {
         requester_staff_id: returnedItem.requester_staff_id,
@@ -319,6 +333,13 @@ export class ReturnedItemsService {
         'return_rejected',
         `Return Request Rejected`,
         `Your return request has been rejected. Reason: ${rejectReason}`
+      );
+
+      // Notify admins about return rejected
+      await this.notifyAdmins(
+        'return_rejected',
+        `❌ Return Rejected`,
+        `${requesterName}'s return request was rejected. Reason: ${rejectReason}`
       );
 
       // Log activity
@@ -533,6 +554,35 @@ export class ReturnedItemsService {
           is_read: false,
         },
       ]);
+  }
+
+  /**
+   * Notify all admin and superadmin users
+   */
+  private async notifyAdmins(
+    type: string,
+    title: string,
+    message: string
+  ): Promise<void> {
+    try {
+      const { data: admins } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .in('role', ['admin', 'superadmin']);
+      if (admins && admins.length > 0) {
+        await Promise.all(admins.map(admin =>
+          supabaseAdmin.from('notifications').insert([{
+            user_id: admin.id,
+            type,
+            title,
+            message,
+            is_read: false,
+          }])
+        ));
+      }
+    } catch (err) {
+      console.error('Error notifying admins:', err);
+    }
   }
 
   /**

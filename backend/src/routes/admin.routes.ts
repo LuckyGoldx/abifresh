@@ -94,6 +94,23 @@ router.post('/commissions/set', authMiddleware, roleMiddleware('admin'), validat
 });
 
 /**
+ * Get pending payments count (lightweight)
+ */
+router.get('/payments/pending-count', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { count, error } = await supabaseAdmin
+      .from('staff_payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+
+    if (error) throw error;
+    res.json({ count: count || 0 });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * Get pending payments
  */
 router.get('/payments/pending', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
@@ -793,15 +810,8 @@ router.post('/staff-payments/:id/approve', authMiddleware, roleMiddleware('admin
 
     if (updateError) throw updateError;
 
-    // Create notification for staff
-    await supabaseAdmin
-      .from('notifications')
-      .insert({
-        user_id: payment.staff_id,
-        message: `Your payment request of ₦${payment.amount.toLocaleString()} has been approved by admin${approved_amount && approved_amount !== payment.amount ? ` (Approved amount: ₦${approved_amount.toLocaleString()})` : ''}`,
-        notification_type: 'payment_approved',
-        is_read: false,
-      });
+    // Note: notification is NOT created here because adminService.approvePayment() already handles it
+    // This route is the legacy staff-payments path
 
     res.json({ message: 'Payment approved successfully' });
   } catch (error: any) {
@@ -845,8 +855,9 @@ router.post('/staff-payments/:id/reject', authMiddleware, roleMiddleware('admin'
       .from('notifications')
       .insert({
         user_id: payment.staff_id,
+        type: 'payment_rejected',
+        title: '❌ Payment Rejected',
         message: `Your payment request of ₦${payment.amount.toLocaleString()} has been rejected. ${rejection_reason ? 'Reason: ' + rejection_reason : ''}`,
-        notification_type: 'payment_rejected',
         is_read: false,
       });
 

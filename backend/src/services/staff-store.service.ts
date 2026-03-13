@@ -132,6 +132,13 @@ export class StaffStoreService {
       `${items.length} item(s) posted to ${staffData?.full_name || 'Staff'}`
     );
 
+    // Notify admins about items posted
+    await this.notifyAdmins(
+      'posted_items',
+      `📦 Items Posted`,
+      `Sales posted ${items.length} item(s) to ${staffData?.full_name || 'Staff'}`
+    );
+
     // Log activity for sales person
     await this.logActivity(actualSalesPersonId, 'ITEMS_POSTED_BATCH', 'posted_items', actualStaffUserId, {
       staff_id: actualStaffUserId,
@@ -303,6 +310,13 @@ export class StaffStoreService {
       `${postedItemIds.length} item(s) have been added to your store`
     );
 
+    // Notify admins about items accepted
+    await this.notifyAdmins(
+      'items_accepted',
+      `✅ Items Accepted`,
+      `${staffNameForActivity} accepted ${postedItemIds.length} item(s)`
+    );
+
     // Log activity for staff
     await this.logActivity(staffId, 'ITEMS_ACCEPTED', 'posted_items', postedItemIds[0], {
       items_count: postedItemIds.length,
@@ -405,6 +419,13 @@ export class StaffStoreService {
       'items_rejected',
       'Items Rejected',
       `${postedItemIds.length} item(s) have been rejected`
+    );
+
+    // Notify admins about items rejected
+    await this.notifyAdmins(
+      'items_rejected',
+      `❌ Items Rejected`,
+      `${staffNameForActivity} rejected ${postedItemIds.length} item(s)${comment ? ': ' + comment : ''}`
     );
 
     // Log activity for staff
@@ -942,8 +963,38 @@ export class StaffStoreService {
         type,
         title,
         message,
+        is_read: false,
       },
     ]);
+  }
+
+  /**
+   * Notify all admin and superadmin users
+   */
+  private async notifyAdmins(
+    type: string,
+    title: string,
+    message: string
+  ): Promise<void> {
+    try {
+      const { data: admins } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .in('role', ['admin', 'superadmin']);
+      if (admins && admins.length > 0) {
+        await Promise.all(admins.map(admin =>
+          supabaseAdmin.from('notifications').insert([{
+            user_id: admin.id,
+            type,
+            title,
+            message,
+            is_read: false,
+          }])
+        ));
+      }
+    } catch (err) {
+      console.error('Error notifying admins:', err);
+    }
   }
 
   /**

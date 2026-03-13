@@ -1,24 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNotifications } from '@/context/NotificationContext';
 import { useToast } from '@/context/ToastContext';
-import { Bell, CheckCircle, AlertCircle, TrendingUp, CreditCard, MessageSquare, Package } from 'lucide-react';
-
-interface Notification {
-  id: string;
-  user_id: string;
-  type: 'posted_item' | 'payment_approved' | 'payment_rejected' | 'item_request';
-  title: string;
-  message: string;
-  related_id?: string;
-  is_read: boolean;
-  created_at: string;
-}
+import { Bell, CheckCircle, CreditCard, Package, RotateCcw } from 'lucide-react';
 
 export default function NotificationsPage() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
-  const { notifications, isLoading, markAsRead: contextMarkAsRead, markAllAsRead: contextMarkAllAsRead } = useNotifications();
+  const { notifications, unreadCount, isLoading, markAsRead: contextMarkAsRead, markAllAsRead: contextMarkAllAsRead } = useNotifications();
   const { addToast } = useToast();
 
   const markAsRead = async (id: string) => {
@@ -41,48 +30,56 @@ export default function NotificationsPage() {
     }
   };
 
-  const getCategoryIcon = (type: string) => {
-    switch (type) {
-      case 'posted_item': return <Package className="w-5 h-5 text-purple-500" />;
-      case 'payment_approved': return <CreditCard className="w-5 h-5 text-green-500" />;
-      case 'payment_rejected': return <CreditCard className="w-5 h-5 text-red-500" />;
-      case 'item_request': return <MessageSquare className="w-5 h-5 text-green-500" />;
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'posted_items': return <Package className="w-5 h-5 text-purple-500" />;
+      case 'payments': return <CreditCard className="w-5 h-5 text-blue-500" />;
+      case 'returns': return <RotateCcw className="w-5 h-5 text-green-500" />;
+      case 'system': return <Bell className="w-5 h-5 text-orange-500" />;
       default: return <Bell className="w-5 h-5 text-gray-500" />;
     }
   };
 
-  const getCategoryColor = (type: string) => {
-    switch (type) {
-      case 'posted_item': return 'bg-purple-50 dark:bg-purple-900 border-purple-500';
-      case 'payment_approved': return 'bg-green-50 dark:bg-green-900 border-green-500';
-      case 'payment_rejected': return 'bg-red-50 dark:bg-red-900 border-red-500';
-      case 'item_request': return 'bg-blue-50 dark:bg-blue-900 border-blue-500';
-      default: return 'bg-gray-50 dark:bg-gray-900 border-gray-500';
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'posted_items': return 'bg-purple-50 dark:bg-purple-900/30 border-purple-500';
+      case 'payments': return 'bg-blue-50 dark:bg-blue-900/30 border-blue-500';
+      case 'returns': return 'bg-green-50 dark:bg-green-900/30 border-green-500';
+      case 'system': return 'bg-orange-50 dark:bg-orange-900/30 border-orange-500';
+      default: return 'bg-gray-50 dark:bg-gray-900/30 border-gray-500';
     }
   };
 
   const getStatusColor = (status?: string) => {
     if (!status) return '';
     switch (status) {
-      case 'accepted': return 'text-green-600 bg-green-100 dark:bg-green-900';
+      case 'accepted': case 'approved': return 'text-green-600 bg-green-100 dark:bg-green-900';
       case 'rejected': return 'text-red-600 bg-red-100 dark:bg-red-900';
       case 'pending': return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900';
-      case 'approved': return 'text-green-600 bg-green-100 dark:bg-green-900';
       default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900';
     }
   };
 
   const filteredNotifications = filterCategory === 'all' 
     ? notifications 
-    : notifications.filter(n => n.type === filterCategory);
+    : notifications.filter(n => n.category === filterCategory);
 
-  const categories = ['all', 'posted_item', 'payment_approved', 'payment_rejected', 'item_request'];
-  const categoryCounts = {
-    all: notifications.length,
-    posted_item: notifications.filter(n => n.type === 'posted_item').length,
-    payment_approved: notifications.filter(n => n.type === 'payment_approved').length,
-    payment_rejected: notifications.filter(n => n.type === 'payment_rejected').length,
-    item_request: notifications.filter(n => n.type === 'item_request').length,
+  const categories = ['all', 'posted_items', 'payments', 'returns', 'system'];
+
+  const getCategoryLabel = (cat: string): string => {
+    switch (cat) {
+      case 'posted_items': return 'Posted Items';
+      case 'payments': return 'Payments';
+      case 'returns': return 'Returns';
+      case 'system': return 'System';
+      case 'all': return 'All';
+      default: return cat;
+    }
+  };
+
+  const getCategoryCount = (cat: string): number => {
+    if (cat === 'all') return notifications.length;
+    return notifications.filter(n => n.category === cat).length;
   };
 
   if (isLoading) {
@@ -91,13 +88,13 @@ export default function NotificationsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
           <Bell className="w-8 h-8 text-pink-500" />
           Notifications
         </h1>
         <div className="flex items-center gap-4">
-          {notifications.some(n => !n.is_read) && (
+          {unreadCount > 0 && (
             <button
               onClick={markAllAsReadLocal}
               className="px-4 py-2 text-sm bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
@@ -106,41 +103,29 @@ export default function NotificationsPage() {
             </button>
           )}
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            {notifications.filter(n => !n.is_read).length} unread
+            {unreadCount} unread
           </div>
         </div>
       </div>
 
       {/* Category Filter */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {categories.map((category) => {
-          const getCategoryLabel = (cat: string) => {
-            switch (cat) {
-              case 'posted_item': return 'Posted Items';
-              case 'payment_approved': return 'Payment Approved';
-              case 'payment_rejected': return 'Payment Rejected';
-              case 'item_request': return 'Item Request';
-              case 'all': return 'All';
-              default: return cat;
-            }
-          };
-          return (
-            <button
-              key={category}
-              onClick={() => setFilterCategory(category)}
-              className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition ${
-                filterCategory === category
-                  ? 'bg-pink-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300'
-              }`}
-            >
-              {getCategoryLabel(category)}
-              <span className="ml-2 text-xs bg-opacity-30 bg-white px-2 py-1 rounded">
-                {categoryCounts[category as keyof typeof categoryCounts]}
-              </span>
-            </button>
-          );
-        })}
+        {categories.map((category) => (
+          <button
+            key={category}
+            onClick={() => setFilterCategory(category)}
+            className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition ${
+              filterCategory === category
+                ? 'bg-pink-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300'
+            }`}
+          >
+            {getCategoryLabel(category)}
+            <span className="ml-2 text-xs bg-opacity-30 bg-white px-2 py-1 rounded">
+              {getCategoryCount(category)}
+            </span>
+          </button>
+        ))}
       </div>
 
       {/* Notifications List */}
@@ -148,24 +133,41 @@ export default function NotificationsPage() {
         {filteredNotifications.map((notification) => (
           <div
             key={notification.id}
-            className={`card border-l-4 ${getCategoryColor(notification.type)}`}
+            className={`card border-l-4 ${getCategoryColor(notification.category)} ${
+              !notification.is_read ? 'ring-1 ring-pink-200 dark:ring-pink-800' : 'opacity-75'
+            }`}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-3 flex-1">
                 <div className="flex-shrink-0 mt-1">
-                  {getCategoryIcon(notification.type)}
+                  {getCategoryIcon(notification.category)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-bold text-lg">{notification.title}</h3>
+                    <h3 className={`font-bold text-lg ${!notification.is_read ? '' : 'text-gray-500'}`}>
+                      {notification.title}
+                    </h3>
+                    {notification.status && (
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${getStatusColor(notification.status)}`}>
+                        {notification.status.charAt(0).toUpperCase() + notification.status.slice(1)}
+                      </span>
+                    )}
+                    {!notification.is_read && (
+                      <span className="w-2 h-2 bg-pink-500 rounded-full" />
+                    )}
                   </div>
                   <p className="text-gray-700 dark:text-gray-300 mb-2 break-words">{notification.message}</p>
+                  {notification.amount && (
+                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                      ₦{notification.amount.toLocaleString()}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500">
-                    {new Date(notification.created_at).toLocaleString()}
+                    {new Date(notification.timestamp).toLocaleString()}
                   </p>
                 </div>
               </div>
-              {!notification.is_read && !notification.id.startsWith('posted-item-') && (
+              {!notification.is_read && (
                 <button
                   onClick={() => markAsRead(notification.id)}
                   className="text-pink-600 hover:text-pink-800 flex items-center gap-1 text-sm flex-shrink-0"
@@ -185,7 +187,7 @@ export default function NotificationsPage() {
           <p className="text-gray-500">
             {filterCategory === 'all' 
               ? 'No notifications yet' 
-              : `No ${filterCategory} notifications`}
+              : `No ${getCategoryLabel(filterCategory).toLowerCase()} notifications`}
           </p>
         </div>
       )}

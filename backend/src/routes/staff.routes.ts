@@ -400,11 +400,11 @@ router.post('/payments/request', authMiddleware, async (req: AuthRequest, res: R
     // Get user info for notification
     const userInfo = user || { full_name: 'Staff Member' };
 
-    // Create notification for admin
+    // Create notification for admin and superadmin
     const { data: admins } = await supabaseAdmin
       .from('users')
       .select('id')
-      .eq('role', 'admin');
+      .in('role', ['admin', 'superadmin']);
 
     if (admins && admins.length > 0) {
       await Promise.all(admins.map(admin => 
@@ -416,7 +416,6 @@ router.post('/payments/request', authMiddleware, async (req: AuthRequest, res: R
               type: 'payment_request',
               title: '📋 New Payment Request',
               message: `${userInfo?.full_name || 'Staff'} has submitted a payment of ₦${parseFloat(amount).toLocaleString()} via ${payment_method}. Click to review.`,
-              related_id: data.id,
               is_read: false,
             },
           ])
@@ -693,7 +692,7 @@ router.post('/post-items-to-staff', authMiddleware, async (req: AuthRequest, res
           user_id: staff_id,
           title: 'New Items Posted',
           message: `${item.name} (Qty: ${quantity}) has been posted to you. Review and accept in your Posted Items.`,
-          type: 'info',
+          type: 'posted_items',
           is_read: false,
         },
       ]);

@@ -1,18 +1,19 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 
 interface Notification {
   id: string;
-  user_id: string;
-  type: 'posted_item' | 'payment_approved' | 'payment_rejected' | 'item_request';
+  type: string;
+  category: string;
   title: string;
   message: string;
-  related_id?: string;
+  status?: string;
+  amount?: number;
+  timestamp: string;
   is_read: boolean;
-  created_at: string;
 }
 
 interface NotificationContextType {
@@ -32,41 +33,41 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const fetchInProgress = useRef(false);
 
   // Fetch all notifications
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated || !user) return;
+    if (fetchInProgress.current) return;
 
     try {
+      fetchInProgress.current = true;
       setIsLoading(true);
       const response = await api.get('/api/notifications');
-      setNotifications(response.data || []);
+      const data: Notification[] = response.data || [];
+      setNotifications(data);
       
-      // Count unread
-      const unread = (response.data || []).filter((n: Notification) => !n.is_read).length;
+      // Count unread using is_read field
+      const unread = data.filter((n: Notification) => !n.is_read).length;
       setUnreadCount(unread);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
       setIsLoading(false);
+      fetchInProgress.current = false;
     }
   }, [isAuthenticated, user]);
 
-  // Mark notification as read
+  // Mark single notification as read
   const markAsRead = useCallback(async (id: string) => {
     try {
-      // Only mark system notifications as read (they have a real read status)
+      // For virtual notifications (posted-item-*, payment-*), only update local state
+      // They will be persisted as read via the mark-all-read timestamp when user opens notifications
       if (id.startsWith('posted-item-') || id.startsWith('payment-')) {
-        // For posted items and payments, we don't mark as read in DB
-        // Just update local state
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-        );
-        // Recalculate unread count
         setNotifications((prev) => {
-          const unread = prev.filter((n) => !n.is_read).length;
-          setUnreadCount(unread);
-          return prev;
+          const updated = prev.map((n) => (n.id === id ? { ...n, is_read: true } : n));
+          setUnreadCount(updated.filter((n) => !n.is_read).length);
+          return updated;
         });
         return;
       }
@@ -75,9 +76,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       await api.put(`/api/notifications/${id}/read`);
       setNotifications((prev) => {
         const updated = prev.map((n) => (n.id === id ? { ...n, is_read: true } : n));
-        // Recalculate unread count after update
-        const unread = updated.filter((n) => !n.is_read).length;
-        setUnreadCount(unread);
+        setUnreadCount(updated.filter((n) => !n.is_read).length);
         return updated;
       });
     } catch (error) {
@@ -85,32 +84,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
-  // Mark all notifications as read
+  // Mark all notifications as read — uses bulk endpoint
   const markAllAsRead = useCallback(async () => {
     try {
-      // Mark all system notifications as read in DB
-      const systemNotifications = notifications.filter(n => !n.id.startsWith('posted-item-') && !n.id.startsWith('payment-'));
-      
-      for (const notification of systemNotifications) {
-        if (!notification.is_read) {
-          try {
-            await api.put(`/api/notifications/${notification.id}/read`);
-          } catch (error) {
-            console.error(`Failed to mark notification ${notification.id} as read:`, error);
-          }
-        }
-      }
+      // Call bulk mark-all-read endpoint (marks DB notifications + sets last_notifications_read_at)
+      await api.put('/api/notifications/mark-all-read');
 
-      // Mark all as read in local state
-      setNotifications((prev) => {
-        const updated = prev.map((n) => ({ ...n, read: true }));
-        setUnreadCount(0);
-        return updated;
-      });
+      // Update local state immediately
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, is_read: true }))
+      );
+      setUnreadCount(0);
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
     }
-  }, [notifications]);
+  }, []);
 
   // Fetch notifications on mount and set up polling
   useEffect(() => {
@@ -118,8 +106,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     fetchNotifications();
 
-    // Poll for new notifications every 15 seconds
-    const interval = setInterval(fetchNotifications, 15000);
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
 
     return () => clearInterval(interval);
   }, [isAuthenticated, user, fetchNotifications]);
