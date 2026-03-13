@@ -61,18 +61,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // Mark single notification as read
   const markAsRead = useCallback(async (id: string) => {
     try {
-      // For virtual notifications (posted-item-*, payment-*), only update local state
-      // They will be persisted as read via the mark-all-read timestamp when user opens notifications
-      if (id.startsWith('posted-item-') || id.startsWith('payment-')) {
-        setNotifications((prev) => {
-          const updated = prev.map((n) => (n.id === id ? { ...n, is_read: true } : n));
-          setUnreadCount(updated.filter((n) => !n.is_read).length);
-          return updated;
-        });
-        return;
-      }
-
-      // For system notifications, mark as read in DB
+      // Always call the backend — it handles both virtual and DB notifications
       await api.put(`/api/notifications/${id}/read`);
       setNotifications((prev) => {
         const updated = prev.map((n) => (n.id === id ? { ...n, is_read: true } : n));

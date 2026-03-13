@@ -133,8 +133,9 @@ export default function NotificationsPage() {
         {filteredNotifications.map((notification) => (
           <div
             key={notification.id}
+            onClick={() => !notification.is_read && markAsRead(notification.id)}
             className={`card border-l-4 ${getCategoryColor(notification.category)} ${
-              !notification.is_read ? 'ring-1 ring-pink-200 dark:ring-pink-800' : 'opacity-75'
+              !notification.is_read ? 'ring-1 ring-pink-200 dark:ring-pink-800 cursor-pointer' : 'opacity-75'
             }`}
           >
             <div className="flex items-start justify-between gap-4">

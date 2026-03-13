@@ -37,10 +37,27 @@ function isAdminRole(role: string): boolean {
 }
 
 /**
+ * Get the set of individually-read virtual notification IDs for a user.
+ * These are stored as special marker records in the notifications table with type='virtual_read_marker'.
+ */
+async function getReadVirtualIds(userId: string): Promise<Set<string>> {
+  try {
+    const { data } = await supabaseAdmin
+      .from('notifications')
+      .select('title')
+      .eq('user_id', userId)
+      .eq('type', 'virtual_read_marker');
+    return new Set((data || []).map((r: any) => r.title));
+  } catch {
+    return new Set();
+  }
+}
+
+/**
  * Get all notifications for current user (comprehensive)
  * Includes: posted items status, payment updates, returned items, system notifications
  * Admin/superadmin see ALL activity across the system.
- * Virtual notifications from posted_items/staff_payments/returned_items use last_notifications_read_at for read tracking
+ * Virtual notifications from posted_items/staff_payments/returned_items use last_notifications_read_at + notification_reads for read tracking
  */
 router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
@@ -48,6 +65,7 @@ router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Respo
     const userRole = req.user!.role;
     const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     const lastReadAt = await getLastReadAt(userId);
+    const readVirtualIds = await getReadVirtualIds(userId);
 
     const allNotifications: any[] = [];
 
@@ -76,10 +94,11 @@ router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Respo
           const statusText = item.status === 'accepted' ? 'Accepted' : 
                              item.status === 'rejected' ? 'Rejected' : 'Posted';
           const timestamp = item.updated_at || item.created_at;
-          const isRead = lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false;
+          const virtualId = `posted-item-${item.id}`;
+          const isRead = readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false);
           
           allNotifications.push({
-            id: `posted-item-${item.id}`,
+            id: virtualId,
             type: 'posted_item_status',
             title: statusText === 'Posted' ? 'New Items Posted' : `Items ${statusText}`,
             message: `${item.quantity}x ${item.item?.name || 'Item'} ${item.status === 'pending' ? 'awaiting your response' : statusText.toLowerCase()} - from ${item.posted_by?.full_name || 'Sales'}`,
@@ -113,9 +132,10 @@ router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Respo
           const statusText = item.status === 'accepted' ? 'Accepted' : 
                              item.status === 'rejected' ? 'Rejected' : 'Pending';
           const timestamp = item.updated_at || item.created_at;
-          const isRead = lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false;
+          const virtualId = `posted-item-${item.id}`;
+          const isRead = readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false);
           allNotifications.push({
-            id: `posted-item-${item.id}`,
+            id: virtualId,
             type: 'posted_item_status',
             title: isPending ? `Items posted to ${item.staff?.full_name || 'Staff'}` : `Items ${statusText} by ${item.staff?.full_name || 'Staff'}`,
             message: `${item.quantity}x ${item.item?.name || 'Item'} ${isPending ? 'posted to' : statusText.toLowerCase() + ' by'} ${item.staff?.full_name || 'Staff'}`,
@@ -149,12 +169,13 @@ router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Respo
           const statusText = item.status === 'accepted' ? 'Accepted' : 
                              item.status === 'rejected' ? 'Rejected' : 'Pending';
           const timestamp = item.updated_at || item.created_at;
-          const isRead = lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false;
+          const virtualId = `posted-item-${item.id}`;
+          const isRead = readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false);
           const poster = item.posted_by?.full_name || 'Sales';
           const staff = item.staff?.full_name || 'Staff';
 
           allNotifications.push({
-            id: `posted-item-${item.id}`,
+            id: virtualId,
             type: 'posted_item_status',
             title: isPending
               ? `Items Posted: ${poster} → ${staff}`
@@ -187,10 +208,11 @@ router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Respo
 
         if (isPending || isRecent) {
           const timestamp = payment.updated_at || payment.created_at;
-          const isRead = lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false;
+          const virtualId = `payment-${payment.id}`;
+          const isRead = readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false);
           const staffName = payment.staff_name || 'Staff';
           allNotifications.push({
-            id: `payment-${payment.id}`,
+            id: virtualId,
             type: 'payment_status',
             title: isPending
               ? `Payment Request from ${staffName}`
@@ -215,9 +237,10 @@ router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Respo
 
       (payments || []).forEach((payment: any) => {
         const timestamp = payment.updated_at || payment.created_at;
-        const isRead = lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false;
+        const virtualId = `payment-${payment.id}`;
+        const isRead = readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false);
         allNotifications.push({
-          id: `payment-${payment.id}`,
+          id: virtualId,
           type: 'payment_status',
           title: `Payment ${payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}`,
           message: `₦${(payment.amount || 0).toLocaleString()} payment ${payment.status}${payment.comment ? ': ' + payment.comment : ''}`,
@@ -253,13 +276,14 @@ router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Respo
 
         if (isPending || isRecent) {
           const timestamp = ret.updated_at || ret.created_at;
-          const isRead = lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false;
+          const virtualId = `return-${ret.id}`;
+          const isRead = readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false);
           const requester = ret.requester?.full_name || 'Staff';
           const receiver = ret.receiver?.full_name || 'Sales';
           const statusText = ret.status === 'accepted' ? 'Accepted' : ret.status === 'rejected' ? 'Rejected' : 'Pending';
 
           allNotifications.push({
-            id: `return-${ret.id}`,
+            id: virtualId,
             type: 'return_status',
             title: `Return ${statusText}: ${requester} → ${receiver}`,
             message: `${ret.quantity}x ${ret.item?.name || 'Item'} — ${requester} returned to ${receiver} (${statusText.toLowerCase()})`,
@@ -290,13 +314,14 @@ router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Respo
 
         if (isPending || isRecent) {
           const timestamp = ret.updated_at || ret.created_at;
-          const isRead = lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false;
+          const virtualId = `return-${ret.id}`;
+          const isRead = readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false);
           const isRequester = ret.requester_staff_id === userId;
           const otherParty = isRequester ? (ret.receiver?.full_name || 'Sales') : (ret.requester?.full_name || 'Staff');
           const statusText = ret.status === 'accepted' ? 'Accepted' : ret.status === 'rejected' ? 'Rejected' : 'Pending';
 
           allNotifications.push({
-            id: `return-${ret.id}`,
+            id: virtualId,
             type: 'return_status',
             title: isRequester
               ? `Return ${statusText} — sent to ${otherParty}`
@@ -313,11 +338,13 @@ router.get('/notifications', authMiddleware, async (req: AuthRequest, res: Respo
 
     // ────────────────────────────────────────────────────
     // 4. SYSTEM (DB) notifications — mapped to proper categories
+    //    Excludes virtual_read_marker records (used for tracking individual read state)
     // ────────────────────────────────────────────────────
     const { data: systemNotifications } = await supabaseAdmin
       .from('notifications')
       .select('*')
       .eq('user_id', userId)
+      .neq('type', 'virtual_read_marker')
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -365,45 +392,25 @@ router.get('/notifications/list', authMiddleware, async (req: AuthRequest, res: 
 });
 
 /**
- * Mark single notification as read
- */
-router.put('/notifications/:id/read', authMiddleware, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-
-    const { error } = await supabaseAdmin
-      .from('notifications')
-      .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq('id', id);
-
-    if (error) throw error;
-
-    res.json({ message: 'Notification marked as read' });
-  } catch (error: any) {
-    console.error('Error marking notification as read:', error);
-    res.status(400).json({ error: error.message });
-  }
-});
-
-/**
- * Mark ALL notifications as read (bulk operation)
+ * Mark ALL notifications as read (bulk operation) — MUST be before :id/read route
  * - Marks all system notifications (in DB) as read
  * - Updates last_notifications_read_at on users table so virtual notifications are marked read too
+ * - Cleans up notification_reads since they're now covered by the timestamp
  */
 router.put('/notifications/mark-all-read', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const now = new Date().toISOString();
 
-    // 1. Mark all system notifications as read in DB
+    // 1. Mark all system notifications as read in DB (exclude markers)
     await supabaseAdmin
       .from('notifications')
       .update({ is_read: true, read_at: now })
       .eq('user_id', userId)
-      .eq('is_read', false);
+      .eq('is_read', false)
+      .neq('type', 'virtual_read_marker');
 
     // 2. Update last_notifications_read_at on users table for virtual notifications
-    //    (gracefully handles if column doesn't exist yet)
     try {
       await supabaseAdmin
         .from('users')
@@ -413,9 +420,65 @@ router.put('/notifications/mark-all-read', authMiddleware, async (req: AuthReque
       // Column may not exist yet — migration pending
     }
 
+    // 3. Clean up virtual_read_marker records (now covered by the timestamp)
+    await supabaseAdmin
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId)
+      .eq('type', 'virtual_read_marker');
+
     res.json({ message: 'All notifications marked as read' });
   } catch (error: any) {
     console.error('Error marking all notifications as read:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Mark single notification as read
+ */
+router.put('/notifications/:id/read', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Virtual notification (posted-item-*, payment-*, return-*)
+    if (id.startsWith('posted-item-') || id.startsWith('payment-') || id.startsWith('return-')) {
+      // Check if marker already exists
+      const { data: existing } = await supabaseAdmin
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', 'virtual_read_marker')
+        .eq('title', id)
+        .limit(1);
+
+      if (!existing || existing.length === 0) {
+        await supabaseAdmin
+          .from('notifications')
+          .insert({
+            user_id: userId,
+            type: 'virtual_read_marker',
+            title: id,
+            message: '',
+            is_read: true,
+          });
+      }
+      return res.json({ message: 'Notification marked as read' });
+    }
+
+    // DB notification (UUID)
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    res.json({ message: 'Notification marked as read' });
+  } catch (error: any) {
+    console.error('Error marking notification as read:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -431,12 +494,13 @@ router.get('/notifications/unread-count', authMiddleware, async (req: AuthReques
 
     let unreadCount = 0;
 
-    // Count unread system notifications
+    // Count unread system notifications (exclude virtual_read_markers)
     const { count: systemCount } = await supabaseAdmin
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('is_read', false);
+      .eq('is_read', false)
+      .neq('type', 'virtual_read_marker');
 
     unreadCount += systemCount || 0;
 
