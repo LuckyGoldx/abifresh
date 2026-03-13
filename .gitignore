@@ -120,4 +120,7 @@ dist-ssr/
 DEMO_*.txt
 *_PASSWORD.md
 *_SECRETS.md
-logs/
+# Ignore log output directories (but not app route pages like /superadmin/logs)
+/logs/
+/backend/logs/
+/frontend/logs/

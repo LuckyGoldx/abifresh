@@ -7,10 +7,6 @@ import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import api from '@/lib/api';
 
-// Ensure routes are not statically generated since they require authentication
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 interface MenuItemWithBadge {
   label: string;
   href: string;
