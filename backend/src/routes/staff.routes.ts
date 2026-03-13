@@ -252,26 +252,22 @@ router.get('/payments', authMiddleware, async (req: AuthRequest, res: Response) 
     if (error) throw error;
 
     const payments = (data || []).map((payment: any) => {
-      // Extract payment method from notes field
-      let payment_method = 'unknown';
-      if (payment.notes && payment.notes.includes('Method: ')) {
-        const methodStart = payment.notes.indexOf('Method: ') + 8;
-        const methodEnd = payment.notes.indexOf(' |', methodStart);
-        payment_method = methodEnd > methodStart ? payment.notes.substring(methodStart, methodEnd) : payment.notes.substring(methodStart, methodStart + 20).split(' ')[0];
-      }
-      
       return {
         id: payment.id,
         staff_id: payment.staff_id,
+        staff_name: payment.staff_name || '',
+        staff_phone: payment.staff_phone || '',
         amount: payment.amount,
-        payment_method: payment_method,
+        payment_method: payment.payment_method || 'unknown',
         payment_type: payment.payment_type,
         status: payment.status,
+        reference_number: payment.reference_number || '',
+        receipt_url: payment.receipt_url || null,
         notes: payment.notes,
+        items_paid_for: payment.items_paid_for || [],
         requested_date: payment.requested_date,
         approved_date: payment.approved_date,
         created_at: payment.created_at,
-        items_paid_for: payment.items_paid_for || [],
       };
     });
 
