@@ -8,18 +8,18 @@ import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, File
 interface Payment {
   id: string;
   staff_name: string;
-  staff_phone?: string;
+  staff_phone: string;
   amount: number;
   items_paid_for: any[];
   reference_number: string;
   payment_method: string;
   payment_type: string;
   status: 'pending' | 'approved' | 'rejected';
-  approved_amount: number;
+  approved_amount?: number;
   notes: string;
   receipt_url?: string;
   created_at: string;
-  approved_date: string;
+  approved_date?: string;
 }
 
 interface Sale {

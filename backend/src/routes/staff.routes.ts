@@ -314,7 +314,7 @@ router.post('/payments/request', authMiddleware, async (req: AuthRequest, res: R
     // Get user info for enhanced payment details
     const { data: user } = await supabaseAdmin
       .from('users')
-      .select('full_name, email, phone')
+      .select('full_name, email, phone_number')
       .eq('id', req.user!.id)
       .single();
 
@@ -367,7 +367,7 @@ router.post('/payments/request', authMiddleware, async (req: AuthRequest, res: R
           staff_id: req.user!.id,
           staff_name: user?.full_name,
           staff_email: user?.email,
-          staff_phone: user?.phone,
+          staff_phone: user?.phone_number,
           amount: parseFloat(amount),
           payment_type: 'other',
           payment_method: payment_method,
