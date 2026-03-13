@@ -170,7 +170,10 @@ export default function SalesNotificationsPage() {
               </div>
               {!notification.is_read && (
                 <button
-                  onClick={() => markAsRead(notification.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAsRead(notification.id);
+                  }}
                   className="text-pink-600 hover:text-pink-800 flex items-center gap-1 text-sm flex-shrink-0"
                   title="Mark as read"
                 >
