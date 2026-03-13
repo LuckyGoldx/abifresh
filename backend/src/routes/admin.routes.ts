@@ -1779,12 +1779,8 @@ router.delete('/restock-orders/:id', authMiddleware, roleMiddleware('admin'), as
  * Get server logs (superadmin only)
  * Query params: type=app|error|security, lines=number, date=YYYY-MM-DD
  */
-router.get('/logs', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+router.get('/logs', authMiddleware, roleMiddleware('superadmin'), async (req: AuthRequest, res: Response) => {
   try {
-    // Only allow superadmin
-    if (req.user?.role !== 'superadmin') {
-      return res.status(403).json({ error: 'Superadmin access required' });
-    }
 
     const fs = require('fs');
     const pathModule = require('path');

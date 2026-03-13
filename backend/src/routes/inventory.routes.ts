@@ -316,56 +316,14 @@ router.post('/upload-image', authMiddleware, roleMiddleware('admin'), async (req
 });
 
 /**
- * Proxy endpoint to serve product images from Supabase Storage
- * Fetch the public URL and serve it to the client
+ * DEPRECATED: Image proxy endpoint has been removed.
+ * Use Supabase storage CDN directly via: supabaseAdmin.storage.from('product-images').getPublicUrl(path)
  */
-router.get('/images/:filename', async (req: Request, res: Response) => {
-  try {
-    const { filename } = req.params;
-    const filePath = `products/${filename}`;
-    
-    console.log(`🖼️ Image proxy request: ${filePath}`);
-
-    // Get the public URL for the file
-    const { data: urlData } = supabaseAdmin.storage
-      .from('product-images')
-      .getPublicUrl(filePath);
-
-    if (!urlData || !urlData.publicUrl) {
-      console.error('❌ Could not generate public URL for image');
-      return res.status(404).json({ error: 'Could not generate image URL' });
-    }
-
-    console.log(`ℹ️  Image public URL: ${urlData.publicUrl}`);
-
-    // Fetch the image from the Supabase public URL
-    const response = await fetch(urlData.publicUrl);
-    
-    if (!response.ok) {
-      console.error(`❌ Failed to fetch image: ${response.status} ${response.statusText}`);
-      return res.status(response.status).json({ error: `Failed to fetch image: ${response.statusText}` });
-    }
-
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-    const buffer = await response.arrayBuffer();
-    const bufferSize = buffer.byteLength;
-
-    console.log(`✅ Image proxy serving: ${filePath}, size: ${bufferSize} bytes, contentType: ${contentType}`);
-
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Length', bufferSize.toString());
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.end(Buffer.from(buffer));
-  } catch (error: any) {
-    console.error('❌ Image proxy error:', error.message);
-    res.status(500).json({ error: 'Failed to load image: ' + error.message });
-  }
-});
 
 /**
- * Debug endpoint: List all files in the products folder
+ * Debug endpoint: List all files in the products folder (admin only)
  */
-router.get('/debug/list-images', async (req: Request, res: Response) => {
+router.get('/debug/list-images', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
   try {
     const { data, error } = await supabaseAdmin.storage
       .from('product-images')

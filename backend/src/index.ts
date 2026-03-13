@@ -15,7 +15,6 @@ import adminRoutes from './routes/admin.routes';
 import staffRoutes from './routes/staff.routes';
 import receiptsRoutes from './routes/receipts.routes';
 import notificationsRoutes from './routes/notifications.routes';
-import testRoutes from './routes/test.routes';
 import backupRoutes from './routes/backup.routes';
 import { supabaseAdmin } from './config/supabase';
 import { initializeStorageBuckets } from './config/storage-init';
@@ -103,7 +102,7 @@ app.get('/health', async (req: Request, res: Response) => {
       service: 'ABIFRESH & KIDDIES VENTURES API',
       database: {
         supabase: supabaseStatus,
-        url: process.env.SUPABASE_URL?.replace(/https?:\/\//, ''),
+
       },
       environment: process.env.NODE_ENV || 'development',
     });
@@ -133,7 +132,6 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/receipts', receiptsRoutes);
-app.use('/api/test', testRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api', notificationsRoutes);
 

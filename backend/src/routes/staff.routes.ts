@@ -10,57 +10,6 @@ import { validatePostItem, validateAcceptPostedItem, validateRejectPostedItem } 
 const router = Router();
 
 /**
- * DEBUG: Check all users and their roles
- * GET /api/staff/debug/users
- */
-router.get('/debug/users', async (req: AuthRequest, res: Response) => {
-  try {
-    console.log('🔍 === FETCHING USER DATA ===');
-    
-    const { data: allUsers, error: allError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, full_name, role')
-      .order('role', { ascending: true });
-
-    if (allError) {
-      console.error('❌ Error fetching all users:', allError);
-      throw allError;
-    }
-
-    console.log(`✅ Total users found: ${allUsers?.length || 0}`);
-    allUsers?.forEach(u => {
-      console.log(`   - ${u.email} | Role: "${u.role}" | Name: ${u.full_name}`);
-    });
-
-    // Get unique roles
-    const uniqueRoles = Array.from(new Set(allUsers?.map(u => u.role) || []));
-    console.log(`📋 Unique roles in system: ${JSON.stringify(uniqueRoles)}`);
-
-    const { data: salesUsers, error: salesError } = await supabaseAdmin
-      .from('users')
-      .select('id, email, full_name, role')
-      .in('role', ['sales', 'sales_staff']);
-
-    console.log(`🔍 Query .in(['sales', 'sales_staff']) returned: ${salesUsers?.length || 0} users`);
-    salesUsers?.forEach(u => {
-      console.log(`   - ${u.email} | Role: "${u.role}" | Name: ${u.full_name}`);
-    });
-
-    res.json({
-      total_users: allUsers?.length || 0,
-      all_users: allUsers || [],
-      unique_roles: uniqueRoles,
-      sales_users_found: salesUsers?.length || 0,
-      sales_users: salesUsers || [],
-      query_used: { role_in: ['sales', 'sales_staff'] },
-    });
-  } catch (error: any) {
-    console.error('❌ Debug error:', error);
-    res.status(400).json({ error: error.message, details: error });
-  }
-});
-
-/**
  * Get staff's own sales (items they've sold)
  */
 router.get('/my-sales', authMiddleware, async (req: AuthRequest, res: Response) => {

@@ -2,7 +2,6 @@ import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { supabaseAdmin } from '../config/supabase';
 import logger, { logSecurity } from '../config/logger';
-import { DEMO_USERS } from '../services/localhost-auth.service';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -14,7 +13,11 @@ export interface AuthRequest extends Request {
   files?: any; // Allow any file structure from express-fileupload
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+// Validate JWT_SECRET exists at application startup
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is required but not set. Application cannot start without it.');
+}
 
 export const authMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -53,28 +56,8 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     }
 
     if (dbError || !dbUser) {
-      // Fallback: check localhost/demo users (for offline/demo auth)
-      const demoUser = Object.values(DEMO_USERS).find(u => u.id === decoded.sub);
-      if (!demoUser) {
-        return res.status(401).json({ error: 'User not found' });
-      }
-      if (!demoUser.is_active) {
-        return res.status(403).json({ error: 'Your account has been deactivated. Please contact the administrator.' });
-      }
-      // Even for demo users, try to resolve real UUID from database by email
-      const { data: resolvedUser } = await supabaseAdmin
-        .from('users')
-        .select('id')
-        .eq('email', demoUser.email)
-        .single();
-      
-      req.user = {
-        id: resolvedUser?.id || decoded.sub,
-        email: decoded.email,
-        role: decoded.role,
-        full_name: demoUser.full_name,
-      };
-      return next();
+      logSecurity('User not found in database', { sub: decoded.sub, email: decoded.email, ip: req.ip });
+      return res.status(401).json({ error: 'User not found' });
     }
 
     if (!dbUser.is_active) {
@@ -143,22 +126,20 @@ export const roleMiddleware = (...allowedRoles: string[]) => {
 };
 
 export const generateToken = (userId: string, email: string, role: string): string => {
-  const jwtSecret = process.env.JWT_SECRET || 'default-secret-key-change-in-production';
   return jwt.sign(
     {
       sub: userId,
       email,
       role,
     },
-    jwtSecret,
+    JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRY || '7d' } as any
   );
 };
 
 export const verifyToken = (token: string) => {
   try {
-    const jwtSecret = process.env.JWT_SECRET || 'default-secret-key-change-in-production';
-    return jwt.verify(token, jwtSecret) as any;
+    return jwt.verify(token, JWT_SECRET) as any;
   } catch (error) {
     return null;
   }

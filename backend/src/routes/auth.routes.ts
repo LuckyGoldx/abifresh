@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { authService } from '../services/auth.service';
 import { generateToken, authMiddleware, AuthRequest } from '../middleware/auth';
 import { supabaseAdmin, supabaseAuth } from '../config/supabase';
@@ -70,24 +71,33 @@ router.get('/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader) {
-      return res.status(401).json({ error: 'No authorization header' });
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No authorization token' });
     }
 
-    const userId = req.body.user_id || req.query.user_id;
+    const token = authHeader.split(' ')[1];
+    const secret = process.env.JWT_SECRET;
 
-    if (!userId) {
-      return res.status(400).json({ error: 'User ID required' });
+    if (!secret) {
+      logger.error('JWT_SECRET not configured');
+      return res.status(500).json({ error: 'Server configuration error' });
     }
 
-    const user = await authService.getUserById(userId as string);
+    try {
+      const decoded = jwt.verify(token, secret) as { sub: string };
+      const user = await authService.getUserById(decoded.sub);
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json(user);
+    } catch (tokenError: any) {
+      logSecurity('Invalid token attempt', { error: tokenError.message, ip: req.ip });
+      return res.status(401).json({ error: 'Invalid or expired token' });
     }
-
-    res.json(user);
   } catch (error: any) {
+    logger.error('Error in /me endpoint', { error: error.message });
     res.status(400).json({ error: error.message });
   }
 });

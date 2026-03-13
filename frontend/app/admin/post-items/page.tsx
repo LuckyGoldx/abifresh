@@ -9,12 +9,12 @@ import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag
  * Convert any image URL (old Supabase public URL or new proxy path) to a working proxy URL.
  */
 function getImageUrl(url: string | undefined | null): string | null {
+  // Return Supabase CDN URL directly (proxy endpoint was removed for security)
   if (!url) return null;
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-  if (url.startsWith(API_BASE + '/api/inventory/images/')) return url;
-  if (url.startsWith('/api/inventory/images/')) return `${API_BASE}${url}`;
-  const match = url.match(/products\/([^?]+)/);
-  if (match) return `${API_BASE}/api/inventory/images/${match[1]}`;
+  // Already a Supabase public URL or full URL
+  if (url.startsWith('https://')) return url;
+  if (url.startsWith('http://')) return url;
+  // If it's just a path, assume it's a Supabase public URL
   return url;
 }
 

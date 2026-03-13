@@ -43,21 +43,18 @@ type ModalType = 'add' | 'edit' | 'transfer' | null;
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 /**
- * Convert any image URL (old Supabase public URL or new proxy path) to a working proxy URL.
- * - If it's already a full proxy URL, return as-is
- * - If it's a relative proxy path like /api/inventory/images/..., prepend API_BASE
- * - If it's an old Supabase URL, extract the filename and build a proxy URL
+ * Return Supabase CDN URL directly.
+ * - The old proxy endpoint was removed for security (LOW-2 fix)
+ * - Images are now served directly from Supabase storage CDN
+ * - Supports full URLs and paths
  */
 function getImageUrl(url: string | undefined | null): string | null {
+  // Return Supabase CDN URL directly (proxy endpoint was removed for security)
   if (!url) return null;
-  // Already a full proxy URL
-  if (url.startsWith(API_BASE + '/api/inventory/images/')) return url;
-  // Relative proxy path from upload endpoint
-  if (url.startsWith('/api/inventory/images/')) return `${API_BASE}${url}`;
-  // Old Supabase URL - extract filename from path like .../products/filename.jpg
-  const match = url.match(/products\/([^?]+)/);
-  if (match) return `${API_BASE}/api/inventory/images/${match[1]}`;
-  // Fallback - return original (might fail, but better than nothing)
+  // Already a Supabase public URL or full URL
+  if (url.startsWith('https://')) return url;
+  if (url.startsWith('http://')) return url;
+  // If it's just a path, assume it's a Supabase public URL
   return url;
 }
 

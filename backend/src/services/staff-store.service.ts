@@ -14,31 +14,44 @@ export class StaffStoreService {
       unit_price: number;
     }>
   ): Promise<any[]> {
+    // Validate identifiers to prevent PostgREST filter injection
+    const validateIdentifier = (id: string): string => {
+      if (!id) throw new Error('Invalid identifier: empty');
+      // Must be UUID format or alphanumeric with underscores/hyphens (username format)
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$|^[a-zA-Z0-9_-]{1,50}$/i.test(id)) {
+        throw new Error(`Invalid identifier format: ${id}`);
+      }
+      return id;
+    };
+
+    const validatedSalesPersonId = validateIdentifier(salesPersonId);
+    const validatedStaffId = validateIdentifier(staffId);
+
     // Resolve salesPersonId to UUID if needed (e.g. "admin-001" -> real UUID)
-    let actualSalesPersonId = salesPersonId;
-    if (!salesPersonId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    let actualSalesPersonId = validatedSalesPersonId;
+    if (!validatedSalesPersonId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
       const { data: salesUser } = await supabaseAdmin
         .from('users')
         .select('id')
-        .or(`username.eq.${salesPersonId},id.eq.${salesPersonId}`)
+        .or(`username.eq.${validatedSalesPersonId},id.eq.${validatedSalesPersonId}`)
         .single();
       if (salesUser) actualSalesPersonId = salesUser.id;
     }
 
     // Look up the actual user UUID if staffId is not a UUID format
-    let actualStaffUserId = staffId;
-    if (!staffId.includes('-') || staffId.length < 30) {
+    let actualStaffUserId = validatedStaffId;
+    if (!validatedStaffId.includes('-') || validatedStaffId.length < 30) {
       // staffId looks like "sales-001", need to look up actual UUID
-      console.log(`🔍 Looking up actual user UUID for staff identifier: ${staffId}`);
+      console.log(`🔍 Looking up actual user UUID for staff identifier: ${validatedStaffId}`);
       
       const { data: staffUser, error: lookupError } = await supabaseAdmin
         .from('users')
         .select('id, full_name')
-        .or(`username.eq.${staffId},id.eq.${staffId}`)
+        .or(`username.eq.${validatedStaffId},id.eq.${validatedStaffId}`)
         .single();
 
       if (lookupError || !staffUser) {
-        throw new Error(`Staff member not found: ${staffId}`);
+        throw new Error(`Staff member not found: ${validatedStaffId}`);
       }
 
       actualStaffUserId = staffUser.id;
