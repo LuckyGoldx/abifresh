@@ -98,8 +98,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // If Supabase is configured, use real-time subscription
     if (isSupabaseConfigured && supabase) {
-      console.log('[Notifications] Using real-time subscription');
+      console.log('[Notifications] Using real-time subscription for multiple tables');
       
+      // Listen to changes on multiple tables that trigger notifications
       const channels = supabase
         .channel(`notifications:${user.id}`)
         .on(
@@ -107,13 +108,46 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           {
             event: '*',
             schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`,
+            table: 'posted_items',
           },
           (payload) => {
-            console.log('[Realtime] Notification change:', payload);
-            
-            // Refresh notifications when changes occur
+            console.log('[Realtime] Posted items change:', payload);
+            fetchNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'staff_payments',
+          },
+          (payload) => {
+            console.log('[Realtime] Staff payments change:', payload);
+            fetchNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'returned_items',
+          },
+          (payload) => {
+            console.log('[Realtime] Returned items change:', payload);
+            fetchNotifications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+          },
+          (payload) => {
+            console.log('[Realtime] Notifications table change:', payload);
             fetchNotifications();
           }
         )
@@ -125,9 +159,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         supabase.removeChannel(channels);
       };
     } else {
-      // Fall back to polling every 30 seconds if Supabase is not configured
+      // Fall back to polling every 15 seconds if Supabase is not configured
       console.log('[Notifications] Using polling (Supabase not configured)');
-      const interval = setInterval(fetchNotifications, 30000);
+      const interval = setInterval(fetchNotifications, 15000);
       return () => clearInterval(interval);
     }
   }, [isAuthenticated, user, fetchNotifications]);
