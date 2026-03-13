@@ -139,6 +139,14 @@ export class AuthService {
       const localhostResult = await localhostAuthService.loginByUsername(username, password);
       if (localhostResult.user) {
         console.log(`✅ Localhost auth successful for user: ${localhostResult.user.username}`);
+        // Resolve the demo user's fake ID to a real database UUID
+        const dbUser = await this.getUserByEmail(localhostResult.user.email);
+        if (dbUser) {
+          console.log(`🔄 Resolved demo ID "${localhostResult.user.id}" → real UUID "${dbUser.id}"`);
+          localhostResult.user.id = dbUser.id;
+        } else {
+          console.warn(`⚠️ Demo user ${localhostResult.user.email} not found in database - using demo ID`);
+        }
         return localhostResult;
       }
       

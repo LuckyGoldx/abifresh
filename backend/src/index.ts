@@ -65,6 +65,18 @@ app.use(generalLimiter);
 // Structured request logging
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
+  
+  // Log SSE endpoint attempts for debugging
+  if (req.path.includes('/logs/stream')) {
+    console.log('[ROUTE] 🟢 Incoming request to logs/stream');
+    console.log('[ROUTE] Method:', req.method);
+    console.log('[ROUTE] Path:', req.path);
+    console.log('[ROUTE] Headers:', {
+      origin: req.headers.origin,
+      authorization: req.headers.authorization ? 'present' : 'missing',
+    });
+  }
+  
   res.on('finish', () => {
     logRequest(req.method, req.path, res.statusCode, Date.now() - start, {
       ip: req.ip,

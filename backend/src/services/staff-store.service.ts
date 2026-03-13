@@ -14,13 +14,44 @@ export class StaffStoreService {
       unit_price: number;
     }>
   ): Promise<any[]> {
+    // Resolve salesPersonId to UUID if needed (e.g. "admin-001" -> real UUID)
+    let actualSalesPersonId = salesPersonId;
+    if (!salesPersonId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      const { data: salesUser } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .or(`username.eq.${salesPersonId},id.eq.${salesPersonId}`)
+        .single();
+      if (salesUser) actualSalesPersonId = salesUser.id;
+    }
+
+    // Look up the actual user UUID if staffId is not a UUID format
+    let actualStaffUserId = staffId;
+    if (!staffId.includes('-') || staffId.length < 30) {
+      // staffId looks like "sales-001", need to look up actual UUID
+      console.log(`🔍 Looking up actual user UUID for staff identifier: ${staffId}`);
+      
+      const { data: staffUser, error: lookupError } = await supabaseAdmin
+        .from('users')
+        .select('id, full_name')
+        .or(`username.eq.${staffId},id.eq.${staffId}`)
+        .single();
+
+      if (lookupError || !staffUser) {
+        throw new Error(`Staff member not found: ${staffId}`);
+      }
+
+      actualStaffUserId = staffUser.id;
+      console.log(`✅ Found staff user UUID: ${actualStaffUserId}`);
+    }
+
     const postedItemsData = [];
 
     // Get staff name
     const { data: staffData } = await supabaseAdmin
       .from('users')
       .select('full_name')
-      .eq('id', staffId)
+      .eq('id', actualStaffUserId)
       .single();
     
     const staffName = staffData?.full_name || 'Staff';
@@ -57,8 +88,8 @@ export class StaffStoreService {
         .insert([
           {
             item_id: item.item_id,
-            poster_id: salesPersonId,
-            staff_id: staffId,
+            poster_id: actualSalesPersonId,
+            staff_id: actualStaffUserId,
             quantity: item.quantity,
             unit_price: item.unit_price,
             status: 'pending',
@@ -74,7 +105,7 @@ export class StaffStoreService {
 
     // Create notification for staff
     await this.createNotification(
-      staffId,
+      actualStaffUserId,
       'posted_items',
       'New Items Posted',
       `You have received ${items.length} item(s) for sale`
@@ -82,16 +113,16 @@ export class StaffStoreService {
 
     // Create notification for sales person to show in recent activities
     await this.createNotification(
-      salesPersonId,
+      actualSalesPersonId,
       'items_posted',
-      `Items posted to ${staffName}`,
-      `${items.length} item(s) posted to ${staffName}`
+      `Items posted to ${staffData?.full_name || 'Staff'}`,
+      `${items.length} item(s) posted to ${staffData?.full_name || 'Staff'}`
     );
 
     // Log activity for sales person
-    await this.logActivity(salesPersonId, 'ITEMS_POSTED_BATCH', 'posted_items', staffId, {
-      staff_id: staffId,
-      staff_name: staffName,
+    await this.logActivity(actualSalesPersonId, 'ITEMS_POSTED_BATCH', 'posted_items', actualStaffUserId, {
+      staff_id: actualStaffUserId,
+      staff_name: staffData?.full_name || 'Staff',
       items_count: items.length,
       total_quantity: items.reduce((sum, i) => sum + i.quantity, 0),
     });

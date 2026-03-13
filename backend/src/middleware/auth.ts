@@ -26,14 +26,33 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
 
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     
-    // Check if user is still active in the database
-    const { data: user, error } = await supabaseAdmin
-      .from('users')
-      .select('is_active, full_name')
-      .eq('id', decoded.sub)
-      .single();
+    // Check if decoded.sub is a valid UUID format
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decoded.sub);
+    
+    let dbUser: any = null;
+    let dbError: any = null;
 
-    if (error || !user) {
+    if (isValidUUID) {
+      // Normal path: look up by UUID
+      const result = await supabaseAdmin
+        .from('users')
+        .select('id, is_active, full_name')
+        .eq('id', decoded.sub)
+        .single();
+      dbUser = result.data;
+      dbError = result.error;
+    } else if (decoded.email) {
+      // Demo user with non-UUID sub (e.g. "admin-001") - look up by email to get real UUID
+      const result = await supabaseAdmin
+        .from('users')
+        .select('id, is_active, full_name')
+        .eq('email', decoded.email)
+        .single();
+      dbUser = result.data;
+      dbError = result.error;
+    }
+
+    if (dbError || !dbUser) {
       // Fallback: check localhost/demo users (for offline/demo auth)
       const demoUser = Object.values(DEMO_USERS).find(u => u.id === decoded.sub);
       if (!demoUser) {
@@ -42,8 +61,15 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       if (!demoUser.is_active) {
         return res.status(403).json({ error: 'Your account has been deactivated. Please contact the administrator.' });
       }
+      // Even for demo users, try to resolve real UUID from database by email
+      const { data: resolvedUser } = await supabaseAdmin
+        .from('users')
+        .select('id')
+        .eq('email', demoUser.email)
+        .single();
+      
       req.user = {
-        id: decoded.sub,
+        id: resolvedUser?.id || decoded.sub,
         email: decoded.email,
         role: decoded.role,
         full_name: demoUser.full_name,
@@ -51,15 +77,15 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       return next();
     }
 
-    if (!user.is_active) {
+    if (!dbUser.is_active) {
       return res.status(403).json({ error: 'Your account has been deactivated. Please contact the administrator.' });
     }
 
     req.user = {
-      id: decoded.sub,
+      id: dbUser.id,
       email: decoded.email,
       role: decoded.role,
-      full_name: user.full_name ?? undefined,
+      full_name: dbUser.full_name ?? undefined,
     };
 
     next();

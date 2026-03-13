@@ -2,6 +2,30 @@ import { supabaseAdmin } from '../config/supabase';
 
 export class ReturnedItemsService {
   /**
+   * Helper: Resolve staff ID to actual UUID if needed
+   * If ID looks like "sales-001", look up the actual UUID
+   */
+  private async resolveStaffIdToUUID(staffId: string): Promise<string> {
+    // If it's already a UUID format, return as is
+    if (staffId.includes('-') && staffId.length > 30) {
+      return staffId;
+    }
+
+    // It's a string like "sales-001", look it up
+    const { data: staffUser, error } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .or(`username.eq.${staffId},id.eq.${staffId}`)
+      .single();
+
+    if (error || !staffUser) {
+      throw new Error(`Staff member not found: ${staffId}`);
+    }
+
+    return staffUser.id;
+  }
+
+  /**
    * Create a return request from staff to sales staff
    * Items are held in requester's staff_store until accepted/rejected
    */
@@ -14,13 +38,17 @@ export class ReturnedItemsService {
       unit_price: number;
     }>
   ): Promise<any[]> {
+    // Resolve IDs to UUIDs if needed
+    const actualRequesterStaffId = await this.resolveStaffIdToUUID(requesterStaffId);
+    const actualReceiverSalesStaffId = await this.resolveStaffIdToUUID(receiverSalesStaffId);
+    
     const returnedItemsData = [];
 
     // Get requester staff name and validate they exist
     const { data: requesterData } = await supabaseAdmin
       .from('users')
       .select('full_name, role')
-      .eq('id', requesterStaffId)
+      .eq('id', actualRequesterStaffId)
       .single();
     
     if (!requesterData) throw new Error('Requester not found');
@@ -30,7 +58,7 @@ export class ReturnedItemsService {
     const { data: receiverData } = await supabaseAdmin
       .from('users')
       .select('full_name, role')
-      .eq('id', receiverSalesStaffId)
+      .eq('id', actualReceiverSalesStaffId)
       .single();
     
     if (!receiverData) throw new Error('Sales staff not found');
@@ -43,7 +71,7 @@ export class ReturnedItemsService {
     const { data: existingReturns } = await supabaseAdmin
       .from('returned_items')
       .select('item_id, quantity')
-      .eq('requester_staff_id', requesterStaffId)
+      .eq('requester_staff_id', actualRequesterStaffId)
       .in('status', ['pending', 'accepted']);
 
     const lockedQuantities = new Map<string, number>();
@@ -57,7 +85,7 @@ export class ReturnedItemsService {
       const { data: staffStoreItem, error: storeError } = await supabaseAdmin
         .from('staff_store')
         .select('*')
-        .eq('staff_id', requesterStaffId)
+        .eq('staff_id', actualRequesterStaffId)
         .eq('item_id', item.item_id)
         .single();
 
@@ -83,8 +111,8 @@ export class ReturnedItemsService {
         .insert([
           {
             item_id: item.item_id,
-            requester_staff_id: requesterStaffId,
-            receiver_staff_id: receiverSalesStaffId,
+            requester_staff_id: actualRequesterStaffId,
+            receiver_staff_id: actualReceiverSalesStaffId,
             quantity: item.quantity,
             unit_price: item.unit_price,
             status: 'pending',
@@ -100,7 +128,7 @@ export class ReturnedItemsService {
 
     // Create notification for sales staff
     await this.createNotification(
-      receiverSalesStaffId,
+      actualReceiverSalesStaffId,
       'returned_items',
       `Items Returned by ${requesterName}`,
       `${items.length} item(s) returned by ${requesterName} - awaiting your review`
@@ -108,15 +136,15 @@ export class ReturnedItemsService {
 
     // Create notification for requester
     await this.createNotification(
-      requesterStaffId,
+      actualRequesterStaffId,
       'return_request_sent',
       `Return Request Sent to ${receiverName}`,
       `${items.length} item(s) return request sent to ${receiverName}`
     );
 
     // Log activity
-    await this.logActivity(requesterStaffId, 'RETURN_REQUEST_CREATED', 'returned_items', receiverSalesStaffId, {
-      receiver_staff_id: receiverSalesStaffId,
+    await this.logActivity(actualRequesterStaffId, 'RETURN_REQUEST_CREATED', 'returned_items', actualReceiverSalesStaffId, {
+      receiver_staff_id: actualReceiverSalesStaffId,
       receiver_name: receiverName,
       items_count: items.length,
       total_quantity: items.reduce((sum, i) => sum + i.quantity, 0),
@@ -129,6 +157,7 @@ export class ReturnedItemsService {
    * Accept returned items and move them to active store
    */
   async acceptReturnedItems(salesStaffId: string, returnedItemIds: string[]): Promise<any[]> {
+    const actualSalesStaffId = await this.resolveStaffIdToUUID(salesStaffId);
     const results = [];
 
     for (const returnedItemId of returnedItemIds) {
@@ -142,7 +171,7 @@ export class ReturnedItemsService {
       if (fetchError) throw new Error(`Returned item not found: ${returnedItemId}`);
       if (!returnedItem) throw new Error(`Returned item not found: ${returnedItemId}`);
 
-      if (returnedItem.receiver_staff_id !== salesStaffId) {
+      if (returnedItem.receiver_staff_id !== actualSalesStaffId) {
         throw new Error('Unauthorized: This return was not sent to you');
       }
 
@@ -211,7 +240,7 @@ export class ReturnedItemsService {
       );
 
       // Log activity
-      await this.logActivity(salesStaffId, 'RETURN_ACCEPTED', 'returned_items', returnedItem.requester_staff_id, {
+      await this.logActivity(actualSalesStaffId, 'RETURN_ACCEPTED', 'returned_items', returnedItem.requester_staff_id, {
         requester_staff_id: returnedItem.requester_staff_id,
         requester_name: requesterName,
         quantity: returnedItem.quantity,
@@ -232,6 +261,7 @@ export class ReturnedItemsService {
     returnedItemIds: string[],
     rejectReason: string
   ): Promise<any[]> {
+    const actualSalesStaffId = await this.resolveStaffIdToUUID(salesStaffId);
     const results = [];
 
     for (const returnedItemId of returnedItemIds) {
@@ -245,7 +275,7 @@ export class ReturnedItemsService {
       if (fetchError) throw new Error(`Returned item not found: ${returnedItemId}`);
       if (!returnedItem) throw new Error(`Returned item not found: ${returnedItemId}`);
 
-      if (returnedItem.receiver_staff_id !== salesStaffId) {
+      if (returnedItem.receiver_staff_id !== actualSalesStaffId) {
         throw new Error('Unauthorized: This return was not sent to you');
       }
 
@@ -292,7 +322,7 @@ export class ReturnedItemsService {
       );
 
       // Log activity
-      await this.logActivity(salesStaffId, 'RETURN_REJECTED', 'returned_items', returnedItem.requester_staff_id, {
+      await this.logActivity(actualSalesStaffId, 'RETURN_REJECTED', 'returned_items', returnedItem.requester_staff_id, {
         requester_staff_id: returnedItem.requester_staff_id,
         requester_name: requesterName,
         quantity: returnedItem.quantity,
@@ -310,6 +340,7 @@ export class ReturnedItemsService {
    * Get all returned items for a requester staff (their own return requests)
    */
   async getReturnsByRequester(requesterStaffId: string): Promise<any[]> {
+    const actualId = await this.resolveStaffIdToUUID(requesterStaffId);
     const { data, error } = await supabaseAdmin
       .from('returned_items')
       .select(`
@@ -317,7 +348,7 @@ export class ReturnedItemsService {
         item:item_id(id, name, unit_price),
         receiver:receiver_staff_id(id, full_name)
       `)
-      .eq('requester_staff_id', requesterStaffId)
+      .eq('requester_staff_id', actualId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -340,6 +371,7 @@ export class ReturnedItemsService {
    * Get all returned items sent to a sales staff (items they need to accept/reject)
    */
   async getReturnsForReceiver(receiverSalesStaffId: string): Promise<any[]> {
+    const actualId = await this.resolveStaffIdToUUID(receiverSalesStaffId);
     const { data, error } = await supabaseAdmin
       .from('returned_items')
       .select(`
@@ -347,7 +379,7 @@ export class ReturnedItemsService {
         item:item_id(id, name, unit_price),
         requester:requester_staff_id(id, full_name)
       `)
-      .eq('receiver_staff_id', receiverSalesStaffId)
+      .eq('receiver_staff_id', actualId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -376,31 +408,33 @@ export class ReturnedItemsService {
     pending_to_accept: number;
     available_for_return: number;
   }> {
+    const actualId = await this.resolveStaffIdToUUID(requesterStaffId);
+
     // Get all accepted returns
     const { count: acceptedCount } = await supabaseAdmin
       .from('returned_items')
       .select('*', { count: 'exact', head: true })
-      .eq('requester_staff_id', requesterStaffId)
+      .eq('requester_staff_id', actualId)
       .eq('status', 'accepted');
 
     // Get pending returns (still waiting for receiver to accept/reject)
     const { count: pendingCount } = await supabaseAdmin
       .from('returned_items')
       .select('*', { count: 'exact', head: true })
-      .eq('requester_staff_id', requesterStaffId)
+      .eq('requester_staff_id', actualId)
       .eq('status', 'pending');
 
     // Get all items in staff_store (need quantity_available for accurate calculation)
     const { data: staffStoreItems } = await supabaseAdmin
       .from('staff_store')
       .select('quantity_available, item_id')
-      .eq('staff_id', requesterStaffId);
+      .eq('staff_id', actualId);
 
     // Get all pending or accepted returns for this staff
     const { data: returnedItems } = await supabaseAdmin
       .from('returned_items')
       .select('item_id, quantity, status')
-      .eq('requester_staff_id', requesterStaffId)
+      .eq('requester_staff_id', actualId)
       .in('status', ['pending', 'accepted']);
 
     // Create map of item_id -> total locked quantity (pending + accepted)
@@ -430,6 +464,8 @@ export class ReturnedItemsService {
    * Only shows items if remaining quantity > 0
    */
   async getAvailableItemsForReturn(requesterStaffId: string): Promise<any[]> {
+    const actualId = await this.resolveStaffIdToUUID(requesterStaffId);
+
     // Get all items in staff_store with quantity_available > 0 (unsold items only)
     const { data: staffStoreItems, error: storeError } = await supabaseAdmin
       .from('staff_store')
@@ -437,7 +473,7 @@ export class ReturnedItemsService {
         *,
         item:item_id(id, name, unit_price)
       `)
-      .eq('staff_id', requesterStaffId)
+      .eq('staff_id', actualId)
       .gt('quantity_available', 0);
 
     if (storeError) throw storeError;
@@ -446,7 +482,7 @@ export class ReturnedItemsService {
     const { data: returnedItems, error: returnError } = await supabaseAdmin
       .from('returned_items')
       .select('item_id, quantity, status')
-      .eq('requester_staff_id', requesterStaffId)
+      .eq('requester_staff_id', actualId)
       .in('status', ['pending', 'accepted']);
 
     if (returnError) throw returnError;

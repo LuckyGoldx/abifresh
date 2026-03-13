@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventSource Test</title>
+    <style>
+        body { font-family: monospace; margin: 20px; }
+        .console { border: 1px solid #ddd; padding: 10px; margin: 20px 0; background: #f5f5f5; max-height: 400px; overflow-y: auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .log-line { padding: 5px 0; border-bottom: 1px solid #eee; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>EventSource SSE Test</h1>
+    <div>
+        <button onclick="startTest()">Start Test</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    <div class="console" id="console"></div>
+
+    <script>
+        const consoleDiv = document.getElementById('console');
+        let eventSource = null;
+
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `log-line ${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleDiv.appendChild(line);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function clearLog() {
+            consoleDiv.innerHTML = '';
+        }
+
+        async function startTest() {
+            log('=== Starting EventSource Test ===', 'info');
+            
+            // First, get token from localStorage (assuming user is logged in)
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                log('ERROR: No auth token found in localStorage', 'error');
+                log('Please log in first and try again', 'error');
+                return;
+            }
+
+            log(`Token found (${token.substring(0, 20)}...)`, 'success');
+
+            // Test the SSE endpoint
+            const url = `/api/admin/logs/stream?type=app&token=${token}`;
+            log(`Connecting to: ${url}`, 'info');
+
+            // Close previous connection if any
+            if (eventSource) {
+                eventSource.close();
+                log('Closed previous connection', 'info');
+            }
+
+            eventSource = new EventSource(url);
+            let eventCount = 0;
+
+            eventSource.onopen = () => {
+                log('✓ EventSource.onopen fired - Connection ESTABLISHED', 'success');
+            };
+
+            eventSource.onmessage = (event) => {
+                eventCount++;
+                try {
+                    const data = JSON.parse(event.data);
+                    log(`Event ${eventCount}: ${JSON.stringify(data).substring(0, 100)}...`, 'success');
+                } catch (e) {
+                    log(`Event ${eventCount}: ${event.data}`, 'info');
+                }
+            };
+
+            eventSource.onerror = (error) => {
+                log(`✗ EventSource.onerror fired - ${error}`, 'error');
+                log(`readyState: ${eventSource?.readyState}`, 'error');
+                if (eventCount === 0) {
+                    log('No events received before error', 'error');
+                } else {
+                    log(`Received ${eventCount} events before error`, 'info');
+                }
+            };
+
+            // Set timeout to close after 10 seconds and report status
+            setTimeout(() => {
+                if (eventCount === 0) {
+                    log('⚠ After 10 seconds: No events received (but no error fired either)', 'error');
+                    log('Possible issues: onopen never fired, or no data being sent', 'error');
+                }
+                log(`Total events received: ${eventCount}`, 'info');
+                if (eventSource) {
+                    log(`EventSource readyState: ${eventSource.readyState} (0=CONNECTING, 1=OPEN, 2=CLOSED)`, 'info');
+                }
+            }, 10000);
+
+            log('Test started - waiting for connection...', 'info');
+        }
+    </script>
+</body>
+</html>

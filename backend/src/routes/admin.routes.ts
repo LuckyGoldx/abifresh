@@ -1855,11 +1855,17 @@ router.get('/logs', authMiddleware, roleMiddleware('admin'), async (req: AuthReq
  * Query params: type=app|error|security, token=JWT
  */
 router.get('/logs/stream', async (req: Request, res: Response) => {
+  console.log('[SSE] 🟢 /logs/stream endpoint called');
+  console.log('[SSE] Query params:', req.query);
+  
   try {
     // Extract and verify JWT token from query params
     const token = req.query.token as string;
     
+    console.log('[SSE] Token present:', !!token);
+    
     if (!token) {
+      console.log('[SSE] ❌ No token provided');
       return res.status(401).json({ error: 'Unauthorized: No token provided' });
     }
 
@@ -1867,9 +1873,12 @@ router.get('/logs/stream', async (req: Request, res: Response) => {
       // Verify token
       const secret = process.env.JWT_SECRET || 'your-secret-key';
       const decoded: any = jwt.verify(token, secret);
+      
+      console.log('[SSE] ✅ Token verified, role:', decoded.role);
 
       // Only superadmin can use logs streaming
       if (decoded.role !== 'superadmin') {
+        console.log('[SSE] ❌ User is not superadmin');
         return res.status(403).json({ error: 'Forbidden: Superadmin access required' });
       }
 
@@ -1878,39 +1887,34 @@ router.get('/logs/stream', async (req: Request, res: Response) => {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Headers', '*');
+      res.setHeader('Access-Control-Allow-Methods', '*');
 
       const types = (req.query.type as string || 'app,error,security')
         .split(',')
         .map(t => t.trim())
         .filter(t => ['app', 'error', 'security'].includes(t)) as ('app' | 'error' | 'security')[];
 
+      console.log('[SSE] Log types requested:', types);
+
       if (types.length === 0) {
+        console.log('[SSE] ❌ No valid log types');
         return res.status(400).json({ error: 'Invalid log types' });
       }
 
       // Register SSE client and start streaming
+      console.log('[SSE] 📡 Registering SSE client');
       logStreamService.registerSSEClient(res, types);
+      // Service handles keep-alive and cleanup
       
-      // Keep connection alive with periodic pings
-      const keepAliveInterval = setInterval(() => {
-        try {
-          res.write(`: keep-alive\n\n`);
-        } catch (error) {
-          clearInterval(keepAliveInterval);
-        }
-      }, 30000);
-
-      res.on('close', () => {
-        clearInterval(keepAliveInterval);
-      });
-      
-      logger.info('SSE client connected for logs streaming', { email: decoded.email, types });
+      console.log('[SSE] ✅ SSE Stream initialized');
     } catch (error: any) {
+      console.log('[SSE] ❌ Token verification failed:', error.message);
       logger.error('Token verification failed for logs stream', { error: error.message });
       return res.status(401).json({ error: `Unauthorized: ${error.message}` });
     }
   } catch (error: any) {
-    console.error('SSE stream error:', error);
+    console.error('[SSE] ❌ Stream error:', error);
     res.status(400).json({ error: error.message });
   }
 });

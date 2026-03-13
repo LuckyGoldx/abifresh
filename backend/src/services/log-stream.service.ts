@@ -25,6 +25,8 @@ class LogStreamService extends EventEmitter {
    * Register an SSE client for real-time log streaming
    */
   registerSSEClient(res: Response, types: ('app' | 'error' | 'security')[] = ['app', 'error', 'security']) {
+    console.log('[SSE-Service] Register called, types:', types);
+    
     const client: SSEClient = { 
       res, 
       types,
@@ -32,32 +34,58 @@ class LogStreamService extends EventEmitter {
     };
     this.sseClients.add(client);
 
+    // Ensure no compression or buffering interferes
+    res.setHeader('Content-Encoding', 'none');
+    
     // Set up SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable buffering even if behind proxy
 
     // Send initial connection message
-    res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() })}\n\n`);
+    console.log('[SSE-Service] Sending initial connected message');
+    try {
+      const msg = `data: ${JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() })}\n\n`;
+      console.log('[SSE-Service] Writing:', msg.substring(0, 100) + '...');
+      res.write(msg, (err) => {
+        if (err) {
+          console.error('[SSE-Service] Write error on connected message:', err);
+        } else {
+          console.log('[SSE-Service] ✅ Connected message written successfully');
+        }
+      });
+    } catch (error) {
+      console.error('[SSE-Service] ❌ Error writing connected message:', error);
+    }
 
     // Set up file watchers for this client
     this.setupFileWatchers(client);
 
     // Handle client disconnect
     res.on('close', () => {
+      console.log('[SSE-Service] Connection closed by client');
       this.sseClients.delete(client);
     });
 
-    res.on('error', () => {
+    res.on('error', (error) => {
+      console.error('[SSE-Service] Connection error:', error);
       this.sseClients.delete(client);
     });
 
     // Keep-alive ping every 30 seconds
     const keepAliveInterval = setInterval(() => {
       try {
-        res.write(`: keep-alive\n\n`);
+        console.log('[SSE-Service] Sending keep-alive ping');
+        res.write(`: keep-alive\n\n`, (err) => {
+          if (err) {
+            console.error('[SSE-Service] Keep-alive error:', err);
+            clearInterval(keepAliveInterval);
+          }
+        });
       } catch (error) {
+        console.error('[SSE-Service] Keep-alive exception:', error);
         clearInterval(keepAliveInterval);
       }
     }, 30000);
