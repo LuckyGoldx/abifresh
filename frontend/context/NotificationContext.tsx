@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface Notification {
   id: string;
@@ -90,37 +90,46 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, []);
 
-  // Fetch notifications on mount and set up real-time subscription
+  // Fetch notifications on mount and set up real-time subscription or polling
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
     fetchNotifications();
 
-    // Set up Supabase real-time subscription for notifications
-    const channels = supabase
-      .channel(`notifications:${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('[Realtime] Notification change:', payload);
-          
-          // Refresh notifications when changes occur
-          fetchNotifications();
-        }
-      )
-      .subscribe((status) => {
-        console.log('[Realtime] Subscription status:', status);
-      });
+    // If Supabase is configured, use real-time subscription
+    if (isSupabaseConfigured && supabase) {
+      console.log('[Notifications] Using real-time subscription');
+      
+      const channels = supabase
+        .channel(`notifications:${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('[Realtime] Notification change:', payload);
+            
+            // Refresh notifications when changes occur
+            fetchNotifications();
+          }
+        )
+        .subscribe((status) => {
+          console.log('[Realtime] Subscription status:', status);
+        });
 
-    return () => {
-      supabase.removeChannel(channels);
-    };
+      return () => {
+        supabase.removeChannel(channels);
+      };
+    } else {
+      // Fall back to polling every 30 seconds if Supabase is not configured
+      console.log('[Notifications] Using polling (Supabase not configured)');
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
   }, [isAuthenticated, user, fetchNotifications]);
 
   return (
