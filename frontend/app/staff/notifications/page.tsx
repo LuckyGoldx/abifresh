@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/context/NotificationContext';
 import { useToast } from '@/context/ToastContext';
 import { Bell, CheckCircle, CreditCard, Package, RotateCcw } from 'lucide-react';
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const { notifications, unreadCount, isLoading, markAsRead: contextMarkAsRead, markAllAsRead: contextMarkAllAsRead } = useNotifications();
   const { addToast } = useToast();
@@ -17,6 +19,16 @@ export default function NotificationsPage() {
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       addToast('Failed to mark notification as read', 'error', 2000);
+    }
+  };
+
+  const handleNotificationClick = async (notification: any) => {
+    if (!notification.is_read) {
+      await markAsRead(notification.id);
+    }
+    // Navigate to payments page if it's a payment notification
+    if (notification.category === 'payments') {
+      router.push('/staff/payments');
     }
   };
 
@@ -133,10 +145,10 @@ export default function NotificationsPage() {
         {filteredNotifications.map((notification) => (
           <div
             key={notification.id}
-            onClick={() => !notification.is_read && markAsRead(notification.id)}
+            onClick={() => handleNotificationClick(notification)}
             className={`card border-l-4 ${getCategoryColor(notification.category)} ${
               !notification.is_read ? 'ring-1 ring-pink-200 dark:ring-pink-800 cursor-pointer' : 'opacity-75'
-            }`}
+            } ${notification.category === 'payments' ? 'hover:shadow-lg dark:hover:shadow-pink-900/50 transition-shadow' : ''}`}
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex gap-3 flex-1">
