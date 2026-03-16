@@ -20,9 +20,14 @@ import {
 } from 'lucide-react';
 
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase credentials:', { supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey });
+}
+
+const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -55,33 +60,51 @@ export default function DownloadPage() {
 
   const fetchStats = async () => {
     try {
+      console.log('[Stats] Fetching download statistics...');
+      
       // Total downloads
-      const { count: totalDownloads } = await supabase
+      const { count: totalDownloads, error: totalError } = await supabase
         .from('pwa_downloads')
         .select('*', { count: 'exact', head: true });
+
+      if (totalError) {
+        console.error('[Stats] Total downloads error:', totalError);
+      }
 
       // Downloads today
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const { count: todayDownloads } = await supabase
+      const { count: todayDownloads, error: todayError } = await supabase
         .from('pwa_downloads')
         .select('*', { count: 'exact', head: true })
         .gte('downloaded_at', today.toISOString());
+
+      if (todayError) {
+        console.error('[Stats] Today downloads error:', todayError);
+      }
 
       // Downloads in last 7 days
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      const { count: recentDownloads } = await supabase
+      const { count: recentDownloads, error: recentError } = await supabase
         .from('pwa_downloads')
         .select('*', { count: 'exact', head: true })
         .gte('downloaded_at', sevenDaysAgo.toISOString());
 
+      if (recentError) {
+        console.error('[Stats] Recent downloads error:', recentError);
+      }
+
       // Platform breakdown
-      const { data: platformData } = await supabase
+      const { data: platformData, error: platformError } = await supabase
         .from('pwa_downloads')
         .select('platform');
+
+      if (platformError) {
+        console.error('[Stats] Platform data error:', platformError);
+      }
 
       const platformBreakdown = (platformData || []).reduce(
         (acc, item: any) => {
@@ -97,8 +120,10 @@ export default function DownloadPage() {
         todayDownloads: todayDownloads || 0,
         platformBreakdown,
       });
+
+      console.log('[Stats] Updated stats:', { totalDownloads, todayDownloads, recentDownloads });
     } catch (error) {
-      console.error('Failed to fetch stats:', error);
+      console.error('[Stats] Failed to fetch stats:', error);
     }
   };
 
@@ -131,25 +156,32 @@ export default function DownloadPage() {
 
       // Track download in Supabase
       try {
-        const { error } = await supabase
-          .from('pwa_downloads')
-          .insert([
-            {
-              platform: navigator.userAgent,
-              user_agent: navigator.userAgent,
-              downloaded_at: new Date().toISOString(),
-            },
-          ]);
+        console.log('[Download] Inserting download record into Supabase...');
+        
+        const insertData = {
+          platform: navigator.userAgent,
+          user_agent: navigator.userAgent,
+          downloaded_at: new Date().toISOString(),
+        };
 
-        if (!error) {
-          console.log('Download tracked successfully');
+        console.log('[Download] Insert data:', insertData);
+
+        const { data, error } = await supabase
+          .from('pwa_downloads')
+          .insert([insertData])
+          .select();
+
+        if (error) {
+          console.error('[Download] Insert error:', error);
+          console.error('[Download] Error code:', error.code);
+          console.error('[Download] Error message:', error.message);
+        } else {
+          console.log('[Download] Successfully inserted:', data);
           // Refresh stats after tracking
           setTimeout(fetchStats, 500);
-        } else {
-          console.error('Tracking error:', error);
         }
-      } catch (error) {
-        console.error('Tracking error:', error);
+      } catch (trackError) {
+        console.error('[Download] Tracking exception:', trackError);
       }
 
       // Show install prompt
@@ -170,7 +202,7 @@ export default function DownloadPage() {
         alert('To install ABIFRESH:\n\n1. Open the app menu (three dots)\n2. Select "Install app"\n3. Or use "Add to Home Screen"');
       }
     } catch (error) {
-      console.error('Download error:', error);
+      console.error('[Download] Download error:', error);
     } finally {
       setIsLoading(false);
     }

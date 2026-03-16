@@ -1,8 +1,15 @@
 -- Update PWA downloads table RLS policies for better public access
 
--- Drop existing policies if they exist
-DROP POLICY IF EXISTS "Allow anyone to track downloads" ON pwa_downloads;
-DROP POLICY IF EXISTS "Allow authenticated users to read stats" ON pwa_downloads;
+-- Drop existing policies if they exist (ignore errors if they don't exist)
+DO $$
+BEGIN
+  DROP POLICY IF EXISTS "Allow anyone to track downloads" ON pwa_downloads;
+  DROP POLICY IF EXISTS "Allow authenticated users to read stats" ON pwa_downloads;
+  DROP POLICY IF EXISTS "Allow anyone to insert downloads" ON pwa_downloads;
+  DROP POLICY IF EXISTS "Allow anyone to read download stats" ON pwa_downloads;
+EXCEPTION WHEN OTHERS THEN
+  NULL; -- Ignore any errors
+END $$;
 
 -- Create new permissive policies for public access
 -- Allow anyone (including anonymous) to insert
