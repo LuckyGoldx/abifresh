@@ -63,39 +63,47 @@ export default function DownloadPage() {
       console.log('[Stats] Fetching download statistics...');
       
       // Total downloads
-      const { count: totalDownloads, error: totalError } = await supabase
+      const { count: totalDownloads, error: totalError, data: totalData } = await supabase
         .from('pwa_downloads')
         .select('*', { count: 'exact', head: true });
 
       if (totalError) {
         console.error('[Stats] Total downloads error:', totalError);
       }
+      console.log('[Stats] Total - count:', totalDownloads, 'data:', totalData);
 
-      // Downloads today
+      // Downloads today - use beginning of day in UTC
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const todayStart = today.toISOString();
+      console.log('[Stats] Today start:', todayStart);
 
-      const { count: todayDownloads, error: todayError } = await supabase
+      const { count: todayDownloads, error: todayError, data: todayData } = await supabase
         .from('pwa_downloads')
         .select('*', { count: 'exact', head: true })
-        .gte('downloaded_at', today.toISOString());
+        .gte('downloaded_at', todayStart);
 
       if (todayError) {
         console.error('[Stats] Today downloads error:', todayError);
       }
+      console.log('[Stats] Today - count:', todayDownloads, 'data:', todayData);
 
       // Downloads in last 7 days
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      sevenDaysAgo.setHours(0, 0, 0, 0);
+      const sevenDaysStart = sevenDaysAgo.toISOString();
+      console.log('[Stats] Seven days start:', sevenDaysStart);
 
-      const { count: recentDownloads, error: recentError } = await supabase
+      const { count: recentDownloads, error: recentError, data: recentData } = await supabase
         .from('pwa_downloads')
         .select('*', { count: 'exact', head: true })
-        .gte('downloaded_at', sevenDaysAgo.toISOString());
+        .gte('downloaded_at', sevenDaysStart);
 
       if (recentError) {
         console.error('[Stats] Recent downloads error:', recentError);
       }
+      console.log('[Stats] Seven days - count:', recentDownloads, 'data:', recentData);
 
       // Platform breakdown
       const { data: platformData, error: platformError } = await supabase
@@ -114,14 +122,15 @@ export default function DownloadPage() {
         {} as Record<string, number>
       );
 
-      setStats({
-        totalDownloads: totalDownloads || 0,
-        recentDownloads: recentDownloads || 0,
-        todayDownloads: todayDownloads || 0,
+      const finalStats = {
+        totalDownloads: typeof totalDownloads === 'number' ? totalDownloads : 0,
+        recentDownloads: typeof recentDownloads === 'number' ? recentDownloads : 0,
+        todayDownloads: typeof todayDownloads === 'number' ? todayDownloads : 0,
         platformBreakdown,
-      });
+      };
 
-      console.log('[Stats] Updated stats:', { totalDownloads, todayDownloads, recentDownloads });
+      setStats(finalStats);
+      console.log('[Stats] Final stats set:', finalStats);
     } catch (error) {
       console.error('[Stats] Failed to fetch stats:', error);
     }
