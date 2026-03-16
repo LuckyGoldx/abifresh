@@ -89,22 +89,48 @@ export default function DownloadPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle BeforeInstallPrompt event
+  // Handle BeforeInstallPrompt event and PWA installation
   useEffect(() => {
-    const handler = (e: Event) => {
+    let installPrompt: BeforeInstallPromptEvent | null = null;
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('[PWA] beforeinstallprompt event fired');
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      installPrompt = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(installPrompt);
       setShowInstallPrompt(true);
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    const handleAppInstalled = () => {
+      console.log('[PWA] App installed successfully');
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    // Listen for beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('[PWA] App already in standalone mode');
       setIsInstalled(true);
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    // Also check for installed status
+    if ('getInstalledRelatedApps' in navigator) {
+      navigator.getInstalledRelatedApps?.().then((apps) => {
+        if (apps.length > 0) {
+          console.log('[PWA] App found in installed apps');
+          setIsInstalled(true);
+        }
+      });
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   const handleDownloadClick = async () => {
@@ -116,81 +142,86 @@ export default function DownloadPage() {
     try {
       setIsLoading(true);
 
-      // Track download via API
+      // Extract browser/OS info for tracking
+      const userAgent = navigator.userAgent;
+      let platformInfo = 'web';
+      
+      if (userAgent.includes('Windows')) platformInfo = 'Windows';
+      else if (userAgent.includes('Mac')) platformInfo = 'macOS';
+      else if (userAgent.includes('Linux')) platformInfo = 'Linux';
+      else if (userAgent.includes('Android')) platformInfo = 'Android';
+      else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) platformInfo = 'iOS';
+      
+      if (userAgent.includes('Chrome')) platformInfo += ' - Chrome';
+      else if (userAgent.includes('Firefox')) platformInfo += ' - Firefox';
+      else if (userAgent.includes('Safari')) platformInfo += ' - Safari';
+      else if (userAgent.includes('Edge')) platformInfo += ' - Edge';
+
+      // Track download via API (non-blocking)
       try {
-        console.log('[Download] Starting download tracking...');
-        
-        // Extract browser/OS info for platform field (max 50 chars)
-        const userAgent = navigator.userAgent;
-        let platformInfo = 'web'; // default
-        
-        if (userAgent.includes('Windows')) platformInfo = 'Windows';
-        else if (userAgent.includes('Mac')) platformInfo = 'macOS';
-        else if (userAgent.includes('Linux')) platformInfo = 'Linux';
-        else if (userAgent.includes('Android')) platformInfo = 'Android';
-        else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) platformInfo = 'iOS';
-        
-        // Add browser info if available
-        if (userAgent.includes('Chrome')) platformInfo += ' - Chrome';
-        else if (userAgent.includes('Firefox')) platformInfo += ' - Firefox';
-        else if (userAgent.includes('Safari')) platformInfo += ' - Safari';
-        else if (userAgent.includes('Edge')) platformInfo += ' - Edge';
-        
+        console.log('[Download] Tracking download...');
         const trackingData = {
-          platform: platformInfo.substring(0, 50), // Ensure max 50 chars
-          user_agent: userAgent.substring(0, 500), // User agent full string
+          platform: platformInfo.substring(0, 50),
+          user_agent: userAgent.substring(0, 500),
         };
 
-        console.log('[Download] Sending tracking data:', trackingData);
-
-        const trackResponse = await fetch('/api/download/track', {
+        fetch('/api/download/track', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(trackingData),
+        }).then(() => {
+          console.log('[Download] ✅ Tracking recorded');
+          setTimeout(fetchStats, 500);
+        }).catch(err => {
+          console.error('[Download] Tracking failed (non-blocking):', err);
         });
-
-        if (!trackResponse.ok) {
-          throw new Error(`API returned ${trackResponse.status}: ${trackResponse.statusText}`);
-        }
-
-        const trackResult = await trackResponse.json();
-        console.log('[Download] ✅ Successfully tracked:', trackResult);
-        
-        // Refresh stats after tracking
-        setTimeout(fetchStats, 500);
       } catch (trackError) {
-        console.error('[Download] ❌ Tracking exception:', trackError);
-        const errorMsg = trackError instanceof Error ? trackError.message : String(trackError);
-        console.error('[Download] Error details:', { 
-          message: errorMsg, 
-          type: typeof trackError, 
-          stack: trackError instanceof Error ? trackError.stack : undefined 
-        });
-        // Don't block installation if tracking fails
-        console.warn('[Download] ⚠️  Download tracking failed, but proceeding with installation');
+        console.error('[Download] Tracking error:', trackError);
       }
 
-      // Show install prompt
+      // Trigger PWA install prompt
       if (deferredPrompt) {
-        await deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        
-        if (outcome === 'accepted') {
-          setDownloadSuccess(true);
-          setShowInstallPrompt(false);
-          // Redirect to homepage after 2 seconds
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 2000);
+        console.log('[Download] Showing install prompt...');
+        try {
+          await deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          
+          console.log('[Download] User install outcome:', outcome);
+          if (outcome === 'accepted') {
+            console.log('[Download] ✅ Installation accepted');
+            setDownloadSuccess(true);
+            setShowInstallPrompt(false);
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+          } else {
+            console.log('[Download] Installation dismissed');
+            setDeferredPrompt(null);
+          }
+        } catch (promptError) {
+          console.error('[Download] ❌ Prompt error:', promptError);
         }
       } else {
-        // Fallback: Show instructions
-        alert('To install ABIFRESH:\n\n1. Open the app menu (three dots)\n2. Select "Install app"\n3. Or use "Add to Home Screen"');
+        // No beforeinstallprompt available - check installation capability
+        console.log('[Download] ⚠️ beforeinstallprompt not available');
+        
+        // Check if browser supports PWA installation differently
+        const userAgent = navigator.userAgent;
+        
+        if (userAgent.includes('Chrome') || userAgent.includes('Edge')) {
+          // Chrome/Edge: Show address bar install prompt hint
+          alert('To install ABIFRESH on Chrome:\n\n1. Click the install icon (⬇️) in the address bar\n2. Or tap the menu (⋮) and select "Install app"');
+        } else if (userAgent.includes('Firefox')) {
+          alert('To install ABIFRESH on Firefox:\n\n1. Click the home icon in the address bar\n2. Select "Install" from the dropdown');
+        } else if (userAgent.includes('Safari')) {
+          alert('To install ABIFRESH on Safari:\n\n1. Tap the Share button (⬆️ in box)\n2. Select "Add to Home Screen"');
+        } else {
+          alert('To install ABIFRESH:\n\n1. Open the browser menu (⋮)\n2. Select "Install" or "Add to Home Screen"\n\nOr look for an install prompt in your address bar');
+        }
       }
     } catch (error) {
       console.error('[Download] Download error:', error);
+      alert('Installation failed. Please try again or manually install the app using your browser menu.');
     } finally {
       setIsLoading(false);
     }
