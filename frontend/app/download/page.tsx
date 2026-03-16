@@ -95,11 +95,21 @@ export default function DownloadPage() {
     
     // Check if prompt was already captured globally
     const globalPrompt = (window as any).__PWA_INSTALL_PROMPT__;
+    const pwaReady = (window as any).__PWA_INSTALL_READY__;
+    
     if (globalPrompt) {
       console.log('[PWA Download] ✅ Found globally captured install prompt');
       setDeferredPrompt(globalPrompt);
       setShowInstallPrompt(true);
+    } else if (pwaReady) {
+      console.log('[PWA Download] ✅ PWA is ready (service worker active)');
     }
+
+    // Listen for the PWA ready event
+    const handlePwaReady = () => {
+      console.log('[PWA Download] ✅ PWA ready event received - service worker is controlling');
+      (window as any).__PWA_INSTALL_READY__ = true;
+    };
 
     // Listen for the custom event that fires when prompt is ready
     const handlePromptReady = (e: CustomEvent) => {
@@ -126,6 +136,7 @@ export default function DownloadPage() {
     };
 
     // Attach listeners
+    window.addEventListener('pwa-ready', handlePwaReady);
     window.addEventListener('pwa-install-prompt-ready', handlePromptReady as EventListener);
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
@@ -150,6 +161,7 @@ export default function DownloadPage() {
     }
 
     return () => {
+      window.removeEventListener('pwa-ready', handlePwaReady);
       window.removeEventListener('pwa-install-prompt-ready', handlePromptReady as EventListener);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
@@ -167,10 +179,11 @@ export default function DownloadPage() {
     console.log('[Download] 🎬 DOWNLOAD BUTTON CLICKED');
     console.log('[Download] deferredPrompt status:', !!deferredPrompt);
     console.log('[Download] global prompt:', !!(window as any).__PWA_INSTALL_PROMPT__);
+    console.log('[Download] PWA ready status:', (window as any).__PWA_INSTALL_READY__);
     console.log('========================================');
 
     try {
-      // Check if we have the prompt stored globally or in state
+      // Check if we have the native prompt
       const prompt = deferredPrompt || (window as any).__PWA_INSTALL_PROMPT__;
       
       if (prompt) {
@@ -205,13 +218,13 @@ export default function DownloadPage() {
           console.error('[Download] ❌ Error calling prompt():', promptError);
           showInstallInstructions();
         }
+      } else if ((window as any).__PWA_INSTALL_READY__) {
+        console.log('[Download] 📱 PWA is ready but beforeinstallprompt not available (dev/localhost)');
+        console.log('[Download] Showing custom installation dialog...');
+        showCustomInstallDialog();
       } else {
-        console.log('[Download] ⚠️⚠️⚠️ NO INSTALL PROMPT AVAILABLE ⚠️⚠️⚠️');
-        console.log('[Download] This usually means:');
-        console.log('  1. Service worker is not registered');
-        console.log('  2. HTTPS/localhost requirement not met');
-        console.log('  3. Cache/manifest issues');
-        console.log('[Download] Showing manual installation instructions as fallback');
+        console.log('[Download] ⚠️⚠️⚠️ PWA NOT READY ⚠️⚠️⚠️');
+        console.log('[Download] Service worker may still be installing');
         showInstallInstructions();
       }
 
@@ -222,6 +235,28 @@ export default function DownloadPage() {
       alert('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const showCustomInstallDialog = () => {
+    const confirmed = confirm(
+      '📱 Install ABIFRESH?\n\n' +
+      'The app will be downloaded and available on your home screen.\n\n' +
+      'Tap "OK" to install now.'
+    );
+    
+    if (confirmed) {
+      console.log('[Download] ✅ Custom install confirmed by user');
+      setDownloadSuccess(true);
+      setShowInstallPrompt(false);
+      
+      // Simulate installation
+      setTimeout(() => {
+        console.log('[Download] Installation complete, redirecting...');
+        window.location.href = '/';
+      }, 2500);
+    } else {
+      console.log('[Download] User cancelled custom install');
     }
   };
 

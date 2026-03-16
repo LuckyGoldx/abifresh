@@ -26,23 +26,36 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-        {/* Capture beforeinstallprompt at the earliest possible point */}
+        {/* PWA Install Prompt Handler */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                console.log('[PWA Early] Initializing early install prompt capture...');
+                console.log('[PWA Early] Initializing PWA install system...');
                 window.__PWA_INSTALL_PROMPT__ = null;
+                window.__PWA_INSTALL_READY__ = false;
                 
-                const handler = (e) => {
-                  console.log('[PWA Early] ✅ beforeinstallprompt event captured at earliest point!');
+                // Capture native beforeinstallprompt if available
+                const nativeHandler = (e) => {
+                  console.log('[PWA Early] ✅ beforeinstallprompt event captured!');
                   e.preventDefault();
                   window.__PWA_INSTALL_PROMPT__ = e;
+                  window.__PWA_INSTALL_READY__ = true;
                   window.dispatchEvent(new CustomEvent('pwa-install-prompt-ready', { detail: e }));
                 };
                 
-                window.addEventListener('beforeinstallprompt', handler);
-                console.log('[PWA Early] Event listener attached');
+                // Listen for service worker ready and dispatch custom install event
+                const swHandler = () => {
+                  console.log('[PWA Early] ✅ Service worker is controlling - PWA ready for dev!');
+                  window.__PWA_INSTALL_READY__ = true;
+                  window.dispatchEvent(new CustomEvent('pwa-ready'));
+                };
+                
+                window.addEventListener('beforeinstallprompt', nativeHandler);
+                navigator.serviceWorker?.controller && swHandler();
+                navigator.serviceWorker?.addEventListener('controllerchange', swHandler);
+                
+                console.log('[PWA Early] PWA system initialized');
               })();
             `,
           }}
