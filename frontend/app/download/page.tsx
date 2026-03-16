@@ -64,13 +64,6 @@ export default function DownloadPage() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
-  // Fetch download statistics
-  useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 60000); // Update every minute
-    return () => clearInterval(interval);
-  }, []);
-
   const fetchStats = async () => {
     try {
       console.log('[Stats] Fetching download statistics...');
@@ -149,6 +142,13 @@ export default function DownloadPage() {
     }
   };
 
+  // Fetch stats on mount
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, []);
+
   // Handle BeforeInstallPrompt event
   useEffect(() => {
     const handler = (e: Event) => {
@@ -182,6 +182,10 @@ export default function DownloadPage() {
         console.log('[Download] Supabase URL:', supabaseUrl ? '✓ Set' : '✗ Missing');
         console.log('[Download] Supabase Key:', supabaseAnonKey ? '✓ Set' : '✗ Missing');
         
+        if (!supabaseUrl || !supabaseAnonKey) {
+          throw new Error('Supabase credentials are not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+        }
+
         // Extract browser/OS info for platform field (max 50 chars)
         const userAgent = navigator.userAgent;
         let platformInfo = 'web'; // default
@@ -222,7 +226,8 @@ export default function DownloadPage() {
             details: error.details,
             hint: error.hint,
           });
-          alert(`Download tracking failed: ${error.message}`);
+          console.error('[Download] Full error object:', error);
+          throw new Error(error.message || 'Failed to track download');
         } else {
           console.log('[Download] ✅ Successfully inserted:', data);
           // Refresh stats after tracking
@@ -230,7 +235,14 @@ export default function DownloadPage() {
         }
       } catch (trackError) {
         console.error('[Download] ❌ Tracking exception:', trackError);
-        alert(`Download error: ${trackError instanceof Error ? trackError.message : 'Unknown error'}`);
+        const errorMsg = trackError instanceof Error ? trackError.message : String(trackError);
+        console.error('[Download] Error details:', { 
+          message: errorMsg, 
+          type: typeof trackError, 
+          stack: trackError instanceof Error ? trackError.stack : undefined 
+        });
+        // Don't block installation if tracking fails
+        console.warn('[Download] ⚠️  Download tracking failed, but proceeding with installation');
       }
 
       // Show install prompt
