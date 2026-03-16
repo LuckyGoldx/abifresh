@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
 import { 
   Download, 
@@ -343,8 +344,13 @@ export default function DownloadPage() {
       <nav className="relative z-20 backdrop-blur-md bg-slate-900/70 border-b border-slate-700/50 sticky top-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-pink-500 to-blue-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-xs">AF</span>
+            <div className="w-8 h-8 flex-shrink-0">
+              <Image 
+                src="/favicon.svg" 
+                alt="ABIFRESH Logo" 
+                width={32} 
+                height={32}
+              />
             </div>
             <span className="font-bold text-xl">ABIFRESH</span>
           </div>
