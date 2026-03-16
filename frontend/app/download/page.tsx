@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
+import { useThemeStore } from '@/store/auth';
 import { 
   Download, 
   Smartphone, 
@@ -17,7 +18,9 @@ import {
   Lock,
   Clock,
   Star,
-  ChevronDown
+  ChevronDown,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 // Initialize Supabase client
@@ -51,6 +54,8 @@ interface DownloadStats {
 }
 
 export default function DownloadPage() {
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
@@ -59,6 +64,16 @@ export default function DownloadPage() {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const statsRef = useRef<HTMLDivElement>(null);
+
+  // Apply theme to document
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [theme]);
 
   // Fetch download statistics
   useEffect(() => {
@@ -332,16 +347,30 @@ export default function DownloadPage() {
   ];
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className={`w-full min-h-screen transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white' 
+        : 'bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 text-slate-900'
+    }`}>
       {/* Animated background elements */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
-        <div className="absolute top-40 right-10 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
-        <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
+        <div className={`absolute top-20 left-10 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob ${
+          theme === 'light' ? 'hidden' : ''
+        }`} />
+        <div className={`absolute top-40 right-10 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000 ${
+          theme === 'light' ? 'hidden' : ''
+        }`} />
+        <div className={`absolute -bottom-8 left-1/2 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000 ${
+          theme === 'light' ? 'hidden' : ''
+        }`} />
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-20 backdrop-blur-md bg-slate-900/70 border-b border-slate-700/50 sticky top-0">
+      <nav className={`relative z-20 backdrop-blur-md transition-colors duration-300 ${
+        theme === 'dark'
+          ? 'bg-slate-900/70 border-slate-700/50'
+          : 'bg-white/70 border-slate-200/50'
+      } border-b sticky top-0`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 flex-shrink-0">
@@ -354,7 +383,18 @@ export default function DownloadPage() {
             </div>
             <span className="font-bold text-xl">ABIFRESH</span>
           </div>
-          <div className="text-sm text-slate-400">Download the App</div>
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded transition-colors ${
+              theme === 'dark'
+                ? 'text-yellow-400 hover:bg-slate-700/50'
+                : 'text-slate-600 hover:bg-slate-200/50'
+            }`}
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
+          </button>
         </div>
       </nav>
 
@@ -369,7 +409,7 @@ export default function DownloadPage() {
                 <h1 className="text-5xl md:text-6xl font-bold leading-tight">
                   Install <span className="bg-gradient-to-r from-pink-500 to-blue-500 bg-clip-text text-transparent">ABIFRESH</span>
                 </h1>
-                <p className="text-xl text-slate-300">
+                <p className={`text-xl ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>
                   Your powerful management system, now in your pocket. Fast, secure, and works offline.
                 </p>
               </div>
@@ -413,7 +453,7 @@ export default function DownloadPage() {
                 </button>
 
                 {!isInstalled && !showInstallPrompt && (
-                  <p className="text-sm text-slate-400 text-center">
+                  <p className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} text-center`}>
                     ✓ Free • No ads • Always secure
                   </p>
                 )}
@@ -421,17 +461,17 @@ export default function DownloadPage() {
 
               {/* Stats preview */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-slate-800/50 backdrop-blur rounded-lg p-4 text-center border border-slate-700/50">
+                <div className={`${theme === 'dark' ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-200/50 border-slate-300/50'} backdrop-blur rounded-lg p-4 text-center border`}>
                   <div className="text-2xl font-bold text-pink-400">{stats?.totalDownloads.toLocaleString() || '—'}</div>
-                  <div className="text-xs text-slate-400 mt-1">Total Downloads</div>
+                  <div className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} mt-1`}>Total Downloads</div>
                 </div>
-                <div className="bg-slate-800/50 backdrop-blur rounded-lg p-4 text-center border border-slate-700/50">
+                <div className={`${theme === 'dark' ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-200/50 border-slate-300/50'} backdrop-blur rounded-lg p-4 text-center border`}>
                   <div className="text-2xl font-bold text-blue-400">{stats?.todayDownloads || '—'}</div>
-                  <div className="text-xs text-slate-400 mt-1">Today</div>
+                  <div className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} mt-1`}>Today</div>
                 </div>
-                <div className="bg-slate-800/50 backdrop-blur rounded-lg p-4 text-center border border-slate-700/50">
+                <div className={`${theme === 'dark' ? 'bg-slate-800/50 border-slate-700/50' : 'bg-slate-200/50 border-slate-300/50'} backdrop-blur rounded-lg p-4 text-center border`}>
                   <div className="text-2xl font-bold text-purple-400">{stats?.recentDownloads || '—'}</div>
-                  <div className="text-xs text-slate-400 mt-1">Last 7 Days</div>
+                  <div className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} mt-1`}>Last 7 Days</div>
                 </div>
               </div>
             </div>
@@ -458,13 +498,13 @@ export default function DownloadPage() {
             {features.map((feature, i) => (
               <div
                 key={i}
-                className="bg-slate-800/40 backdrop-blur border border-slate-700/50 rounded-xl p-6 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group cursor-pointer"
+                className={`${theme === 'dark' ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-200/40 border-slate-300/50'} backdrop-blur border rounded-xl p-6 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group cursor-pointer`}
               >
                 <div className="text-pink-400 mb-4 group-hover:scale-110 transition-transform">
                   {feature.icon}
                 </div>
                 <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-slate-400 text-sm">{feature.description}</p>
+                <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'} text-sm`}>{feature.description}</p>
               </div>
             ))}
           </div>
@@ -477,13 +517,13 @@ export default function DownloadPage() {
             {platformGuides.map((platform, i) => (
               <div
                 key={i}
-                className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 rounded-xl p-6 hover:border-blue-500/50 transition-all"
+                className={`${theme === 'dark' ? 'bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700/50' : 'bg-gradient-to-br from-slate-200 to-slate-300 border-slate-400/50'} border rounded-xl p-6 hover:border-blue-500/50 transition-all`}
               >
                 <div className="text-4xl mb-4">{platform.icon}</div>
                 <h3 className="text-xl font-bold mb-4">{platform.name}</h3>
                 <ol className="space-y-2">
                   {platform.steps.map((step, j) => (
-                    <li key={j} className="text-sm text-slate-300 flex gap-2">
+                    <li key={j} className={`text-sm ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'} flex gap-2`}>
                       <span className="text-pink-400 font-bold">{j + 1}.</span>
                       <span>{step.replace(/^\d+\.\s/, '')}</span>
                     </li>
@@ -495,7 +535,7 @@ export default function DownloadPage() {
         </section>
 
         {/* Live Stats Section */}
-        <section ref={statsRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 bg-gradient-to-r from-pink-500/10 to-blue-500/10 rounded-3xl border border-slate-700/30 my-8">
+        <section ref={statsRef} className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 bg-gradient-to-r from-pink-500/10 to-blue-500/10 rounded-3xl ${theme === 'dark' ? 'border-slate-700/30' : 'border-slate-400/30'} border my-8`}>
           <h2 className="text-4xl font-bold mb-12 text-center">Growing Community</h2>
           <div className="grid md:grid-cols-4 gap-6">
             <div className="text-center">
@@ -532,11 +572,11 @@ export default function DownloadPage() {
             {faqItems.map((item, i) => (
               <div
                 key={i}
-                className="bg-slate-800/40 backdrop-blur border border-slate-700/50 rounded-xl overflow-hidden hover:border-pink-500/50 transition-all"
+                className={`${theme === 'dark' ? 'bg-slate-800/40 border-slate-700/50' : 'bg-slate-200/40 border-slate-300/50'} backdrop-blur border rounded-xl overflow-hidden hover:border-pink-500/50 transition-all`}
               >
                 <button
                   onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors"
+                  className={`w-full px-6 py-4 flex items-center justify-between ${theme === 'dark' ? 'hover:bg-slate-800/50' : 'hover:bg-slate-300/50'} transition-colors`}
                 >
                   <span className="font-bold text-left">{item.q}</span>
                   <ChevronDown
@@ -546,7 +586,7 @@ export default function DownloadPage() {
                   />
                 </button>
                 {expandedFaq === i && (
-                  <div className="px-6 py-4 bg-slate-900/50 border-t border-slate-700/50 text-slate-300">
+                  <div className={`px-6 py-4 ${theme === 'dark' ? 'bg-slate-900/50 border-slate-700/50 text-slate-300' : 'bg-slate-100/50 border-slate-300/50 text-slate-700'} border-t`}>
                     {item.a}
                   </div>
                 )}
@@ -559,7 +599,7 @@ export default function DownloadPage() {
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
           <div className="bg-gradient-to-r from-pink-500/10 to-blue-500/10 backdrop-blur border border-pink-500/20 rounded-3xl p-12 space-y-6">
             <h2 className="text-4xl font-bold">Ready to Get Started?</h2>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+            <p className={`text-xl ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'} max-w-2xl mx-auto`}>
               Join thousands of users enjoying ABIFRESH. Download now and manage your business on the go.
             </p>
             <button
