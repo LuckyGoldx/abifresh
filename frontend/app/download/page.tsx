@@ -121,12 +121,15 @@ export default function DownloadPage() {
 
     // Also check for installed status
     if ('getInstalledRelatedApps' in navigator) {
-      navigator.getInstalledRelatedApps?.().then((apps) => {
-        if (apps.length > 0) {
-          console.log('[PWA] ✅ App found in installed apps');
-          setIsInstalled(true);
-        }
-      }).catch(err => console.warn('[PWA] getInstalledRelatedApps error:', err));
+      const getInstalledApps = navigator.getInstalledRelatedApps as any;
+      if (typeof getInstalledApps === 'function') {
+        getInstalledApps().then((apps: any) => {
+          if (apps.length > 0) {
+            console.log('[PWA] ✅ App found in installed apps');
+            setIsInstalled(true);
+          }
+        }).catch((err: any) => console.warn('[PWA] getInstalledRelatedApps error:', err));
+      }
     }
 
     return () => {
