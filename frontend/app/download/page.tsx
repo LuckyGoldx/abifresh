@@ -91,31 +91,48 @@ export default function DownloadPage() {
 
   // Handle BeforeInstallPrompt event and PWA installation
   useEffect(() => {
-    console.log('[PWA] Setting up install prompt listener...');
+    console.log('[PWA Download] Initializing install prompt on download page...');
     
+    // Check if prompt was already captured globally
+    const globalPrompt = (window as any).__PWA_INSTALL_PROMPT__;
+    if (globalPrompt) {
+      console.log('[PWA Download] ✅ Found globally captured install prompt');
+      setDeferredPrompt(globalPrompt);
+      setShowInstallPrompt(true);
+    }
+
+    // Listen for the custom event that fires when prompt is ready
+    const handlePromptReady = (e: CustomEvent) => {
+      console.log('[PWA Download] ✅ Install prompt ready event received');
+      const prompt = e.detail;
+      setDeferredPrompt(prompt);
+      setShowInstallPrompt(true);
+    };
+
+    // Also keep the original listener as fallback
     const handleBeforeInstallPrompt = (e: Event) => {
-      console.log('[PWA] ✅ beforeinstallprompt event FIRED!');
+      console.log('[PWA Download] ✅ beforeinstallprompt event received in component');
       e.preventDefault();
       const installPrompt = e as BeforeInstallPromptEvent;
       setDeferredPrompt(installPrompt);
       setShowInstallPrompt(true);
-      console.log('[PWA] Deferred prompt saved and ready');
     };
 
     const handleAppInstalled = () => {
-      console.log('[PWA] ✅ App installed successfully!');
+      console.log('[PWA Download] ✅ App installed successfully!');
       setIsInstalled(true);
       setDeferredPrompt(null);
       setShowInstallPrompt(false);
     };
 
-    // Listen for beforeinstallprompt
+    // Attach listeners
+    window.addEventListener('pwa-install-prompt-ready', handlePromptReady as EventListener);
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
-      console.log('[PWA] ✅ App already in standalone mode');
+      console.log('[PWA Download] ✅ App already in standalone mode');
       setIsInstalled(true);
     }
 
@@ -125,14 +142,15 @@ export default function DownloadPage() {
       if (typeof getInstalledApps === 'function') {
         getInstalledApps().then((apps: any) => {
           if (apps.length > 0) {
-            console.log('[PWA] ✅ App found in installed apps');
+            console.log('[PWA Download] ✅ App found in installed apps');
             setIsInstalled(true);
           }
-        }).catch((err: any) => console.warn('[PWA] getInstalledRelatedApps error:', err));
+        }).catch((err: any) => console.warn('[PWA Download] getInstalledRelatedApps error:', err));
       }
     }
 
     return () => {
+      window.removeEventListener('pwa-install-prompt-ready', handlePromptReady as EventListener);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
@@ -145,50 +163,62 @@ export default function DownloadPage() {
     }
 
     setIsLoading(true);
-    console.log('[Download] Click handler started. deferredPrompt available:', !!deferredPrompt);
+    console.log('========================================');
+    console.log('[Download] 🎬 DOWNLOAD BUTTON CLICKED');
+    console.log('[Download] deferredPrompt status:', !!deferredPrompt);
+    console.log('[Download] global prompt:', !!(window as any).__PWA_INSTALL_PROMPT__);
+    console.log('========================================');
 
     try {
-      // Trigger PWA install prompt immediately (must be user gesture)
-      if (deferredPrompt) {
-        console.log('[Download] 🎯 Showing native browser install prompt...');
+      // Check if we have the prompt stored globally or in state
+      const prompt = deferredPrompt || (window as any).__PWA_INSTALL_PROMPT__;
+      
+      if (prompt) {
+        console.log('[Download] 🎯 SHOWING NATIVE BROWSER INSTALL DIALOG NOW');
         try {
-          await deferredPrompt.prompt();
-          console.log('[Download] Prompt called successfully');
+          // Call prompt() to show the browser's native install dialog
+          await prompt.prompt();
+          console.log('[Download] ✅ Prompt displayed to user');
           
-          const { outcome } = await deferredPrompt.userChoice;
-          console.log('[Download] User choice outcome:', outcome);
+          // Wait for user's choice
+          const { outcome } = await prompt.userChoice;
+          console.log('[Download] User choice:', outcome);
           
           if (outcome === 'accepted') {
-            console.log('[Download] ✅ User ACCEPTED installation');
+            console.log('[Download] ✅✅✅ USER ACCEPTED - INSTALLING NOW ✅✅✅');
             setDownloadSuccess(true);
             setShowInstallPrompt(false);
             setDeferredPrompt(null);
-            // Wait for app to install before redirect
+            (window as any).__PWA_INSTALL_PROMPT__ = null;
+            
+            // Redirect to home after installation completes
             setTimeout(() => {
+              console.log('[Download] Redirecting to home...');
               window.location.href = '/';
-            }, 2000);
+            }, 2500);
           } else {
-            console.log('[Download] ❌ User DISMISSED installation');
+            console.log('[Download] User dismissed the install dialog');
             setDeferredPrompt(null);
+            (window as any).__PWA_INSTALL_PROMPT__ = null;
           }
         } catch (promptError) {
-          console.error('[Download] ❌ Prompt execution error:', promptError);
+          console.error('[Download] ❌ Error calling prompt():', promptError);
           showInstallInstructions();
         }
       } else {
-        console.log('[Download] ⚠️ beforeinstallprompt NOT available');
-        console.log('[Download] Environment:', { 
-          isDev: process.env.NODE_ENV === 'development',
-          isChrome: navigator.userAgent.includes('Chrome'),
-          hasServiceWorker: 'serviceWorker' in navigator,
-        });
+        console.log('[Download] ⚠️⚠️⚠️ NO INSTALL PROMPT AVAILABLE ⚠️⚠️⚠️');
+        console.log('[Download] This usually means:');
+        console.log('  1. Service worker is not registered');
+        console.log('  2. HTTPS/localhost requirement not met');
+        console.log('  3. Cache/manifest issues');
+        console.log('[Download] Showing manual installation instructions as fallback');
         showInstallInstructions();
       }
 
-      // Track download asynchronously (non-blocking)
+      // Track download asynchronously
       trackDownloadAsync();
     } catch (error) {
-      console.error('[Download] Handler error:', error);
+      console.error('[Download] Unexpected error:', error);
       alert('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);

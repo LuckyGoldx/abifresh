@@ -27,18 +27,32 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     const registerServiceWorker = async () => {
       try {
         if ('serviceWorker' in navigator) {
-          console.log('[PWA] Registering service worker...');
+          console.log('[PWA SW] Attempting to register service worker at /sw.js...');
           const registration = await navigator.serviceWorker.register('/sw.js', {
             scope: '/',
           });
-          console.log('[PWA] ✅ Service worker registered:', registration);
+          console.log('[PWA SW] ✅ Service worker registered successfully');
+          console.log('[PWA SW] Registration details:', {
+            scope: registration.scope,
+            active: !!registration.active,
+            installing: !!registration.installing,
+            waiting: !!registration.waiting,
+          });
+          
+          // Listen for controller change
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('[PWA SW] ✅ Service worker is now controlling the page');
+          });
+        } else {
+          console.warn('[PWA SW] Service Worker API not supported in this browser');
         }
       } catch (error) {
-        console.error('[PWA] Service worker registration failed:', error);
+        console.error('[PWA SW] ❌ Service worker registration failed:', error);
       }
     };
 
-    registerServiceWorker();
+    // Register SW after a small delay to ensure DOM is ready
+    setTimeout(registerServiceWorker, 500);
   }, []);
 
   return (
