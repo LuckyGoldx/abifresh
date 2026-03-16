@@ -1,30 +1,40 @@
 -- Update PWA downloads table RLS policies for better public access
 
--- Drop existing policies if they exist (ignore errors if they don't exist)
-DO $$
-BEGIN
-  DROP POLICY IF EXISTS "Allow anyone to track downloads" ON pwa_downloads;
-  DROP POLICY IF EXISTS "Allow authenticated users to read stats" ON pwa_downloads;
-  DROP POLICY IF EXISTS "Allow anyone to insert downloads" ON pwa_downloads;
-  DROP POLICY IF EXISTS "Allow anyone to read download stats" ON pwa_downloads;
-EXCEPTION WHEN OTHERS THEN
-  NULL; -- Ignore any errors
-END $$;
+-- First, disable RLS completely to test if that's the issue
+ALTER TABLE pwa_downloads DISABLE ROW LEVEL SECURITY;
 
--- Create new permissive policies for public access
--- Allow anyone (including anonymous) to insert
-CREATE POLICY "Allow anyone to insert downloads" ON pwa_downloads
+-- OR if you want to keep RLS enabled, use these simple policies:
+-- Uncomment the block below and comment out "DISABLE ROW LEVEL SECURITY" above
+
+/*
+-- Enable RLS
+ALTER TABLE pwa_downloads ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies
+DROP POLICY IF EXISTS "Allow anyone to track downloads" ON pwa_downloads;
+DROP POLICY IF EXISTS "Allow authenticated users to read stats" ON pwa_downloads;
+DROP POLICY IF EXISTS "Allow anyone to insert downloads" ON pwa_downloads;
+DROP POLICY IF EXISTS "Allow anyone to read download stats" ON pwa_downloads;
+
+-- Create permissive policies - allow everyone
+CREATE POLICY "Enable insert for all users" ON pwa_downloads
   FOR INSERT
-  TO public
   WITH CHECK (true);
 
--- Allow anyone to read (anonymous can view stats)
-CREATE POLICY "Allow anyone to read download stats" ON pwa_downloads
+CREATE POLICY "Enable select for all users" ON pwa_downloads
   FOR SELECT
-  TO public
   USING (true);
 
--- Optional: Add a trigger to update created_at timestamp
+CREATE POLICY "Enable update for all users" ON pwa_downloads
+  FOR UPDATE
+  USING (true);
+*/
+
+-- Grant full permissions to anonymous users
+GRANT SELECT, INSERT, UPDATE, DELETE ON pwa_downloads TO anon;
+GRANT USAGE ON SEQUENCE pwa_downloads_id_seq TO anon;
+
+-- Add a trigger to update created_at timestamp
 CREATE OR REPLACE FUNCTION update_pwa_downloads_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN

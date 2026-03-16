@@ -24,10 +24,18 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase credentials:', { supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey });
+  console.error('Missing Supabase credentials:', { 
+    url: supabaseUrl ? '✓' : '✗', 
+    key: supabaseAnonKey ? '✓' : '✗' 
+  });
 }
 
 const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+
+// Log initialization
+if (typeof window !== 'undefined') {
+  console.log('[Supabase] Initialized with URL:', supabaseUrl?.substring(0, 30) + '...');
+}
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -165,32 +173,59 @@ export default function DownloadPage() {
 
       // Track download in Supabase
       try {
-        console.log('[Download] Inserting download record into Supabase...');
+        console.log('[Download] Starting download tracking...');
+        console.log('[Download] Supabase URL:', supabaseUrl ? '✓ Set' : '✗ Missing');
+        console.log('[Download] Supabase Key:', supabaseAnonKey ? '✓ Set' : '✗ Missing');
+        
+        // Extract browser/OS info for platform field (max 50 chars)
+        const userAgent = navigator.userAgent;
+        let platformInfo = 'web'; // default
+        
+        if (userAgent.includes('Windows')) platformInfo = 'Windows';
+        else if (userAgent.includes('Mac')) platformInfo = 'macOS';
+        else if (userAgent.includes('Linux')) platformInfo = 'Linux';
+        else if (userAgent.includes('Android')) platformInfo = 'Android';
+        else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) platformInfo = 'iOS';
+        
+        // Add browser info if available
+        if (userAgent.includes('Chrome')) platformInfo += ' - Chrome';
+        else if (userAgent.includes('Firefox')) platformInfo += ' - Firefox';
+        else if (userAgent.includes('Safari')) platformInfo += ' - Safari';
+        else if (userAgent.includes('Edge')) platformInfo += ' - Edge';
         
         const insertData = {
-          platform: navigator.userAgent,
-          user_agent: navigator.userAgent,
+          platform: platformInfo.substring(0, 50), // Ensure max 50 chars
+          user_agent: userAgent.substring(0, 500), // User agent full string
           downloaded_at: new Date().toISOString(),
         };
 
-        console.log('[Download] Insert data:', insertData);
+        console.log('[Download] Inserting:', insertData);
 
-        const { data, error } = await supabase
+        const { data, error, status } = await supabase
           .from('pwa_downloads')
           .insert([insertData])
           .select();
 
+        console.log('[Download] Response status:', status);
+        console.log('[Download] Response data:', data);
+        console.log('[Download] Response error:', error);
+
         if (error) {
-          console.error('[Download] Insert error:', error);
-          console.error('[Download] Error code:', error.code);
-          console.error('[Download] Error message:', error.message);
+          console.error('[Download] ❌ Insert FAILED:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+          });
+          alert(`Download tracking failed: ${error.message}`);
         } else {
-          console.log('[Download] Successfully inserted:', data);
+          console.log('[Download] ✅ Successfully inserted:', data);
           // Refresh stats after tracking
           setTimeout(fetchStats, 500);
         }
       } catch (trackError) {
-        console.error('[Download] Tracking exception:', trackError);
+        console.error('[Download] ❌ Tracking exception:', trackError);
+        alert(`Download error: ${trackError instanceof Error ? trackError.message : 'Unknown error'}`);
       }
 
       // Show install prompt
