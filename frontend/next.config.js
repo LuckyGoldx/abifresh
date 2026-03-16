@@ -3,8 +3,8 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  // Disable PWA in development for better performance
-  disable: process.env.NODE_ENV === 'development',
+  // Enable PWA in all environments so beforeinstallprompt event fires
+  disable: false,
 });
 
 const nextConfig = {

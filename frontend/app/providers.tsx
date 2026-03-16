@@ -26,14 +26,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const registerServiceWorker = async () => {
       try {
-        if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-          console.log('[PWA] Registering service worker from providers...');
+        if ('serviceWorker' in navigator) {
+          console.log('[PWA] Registering service worker...');
           const registration = await navigator.serviceWorker.register('/sw.js', {
             scope: '/',
           });
-          console.log('[PWA] Service worker registered:', registration);
-        } else if ('serviceWorker' in navigator) {
-          console.log('[PWA] In development mode, SW registration handled by next-pwa');
+          console.log('[PWA] ✅ Service worker registered:', registration);
         }
       } catch (error) {
         console.error('[PWA] Service worker registration failed:', error);
