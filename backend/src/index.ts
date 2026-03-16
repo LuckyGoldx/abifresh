@@ -16,6 +16,7 @@ import staffRoutes from './routes/staff.routes';
 import receiptsRoutes from './routes/receipts.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import backupRoutes from './routes/backup.routes';
+import downloadRoutes from './routes/download.routes';
 import { supabaseAdmin } from './config/supabase';
 import { initializeStorageBuckets } from './config/storage-init';
 
@@ -133,6 +134,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/staff', staffRoutes);
 app.use('/api/receipts', receiptsRoutes);
 app.use('/api/backup', backupRoutes);
+app.use('/api/download', downloadRoutes);
 app.use('/api', notificationsRoutes);
 
 // 404 Handler

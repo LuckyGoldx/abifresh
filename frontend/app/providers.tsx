@@ -6,6 +6,7 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { ToastProvider } from '@/context/ToastContext';
 import ToastContainer from '@/components/ToastContainer';
 import SplashScreen from '@/components/SplashScreen';
+import PWAPrompt from '@/components/PWAPrompt';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const theme = useThemeStore((state) => state.theme);
@@ -26,6 +27,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <NotificationProvider>
         <SplashScreen />
         <ToastContainer />
+        <PWAPrompt />
         {children}
       </NotificationProvider>
     </ToastProvider>

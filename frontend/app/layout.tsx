@@ -26,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
       </head>
-      <body className="bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 overflow-hidden">
+      <body className="bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100">
         <Providers>{children}</Providers>
       </body>
     </html>
