@@ -93,6 +93,21 @@ export default function DownloadPage() {
   useEffect(() => {
     let installPrompt: BeforeInstallPromptEvent | null = null;
 
+    // Register service worker on mount
+    const registerServiceWorker = async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          console.log('[PWA] Attempting to register service worker...');
+          const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/',
+          });
+          console.log('[PWA] Service worker registered:', registration);
+        }
+      } catch (error) {
+        console.error('[PWA] Service worker registration failed:', error);
+      }
+    };
+
     const handleBeforeInstallPrompt = (e: Event) => {
       console.log('[PWA] beforeinstallprompt event fired');
       e.preventDefault();
@@ -106,6 +121,9 @@ export default function DownloadPage() {
       setIsInstalled(true);
       setDeferredPrompt(null);
     };
+
+    // Register service worker
+    registerServiceWorker();
 
     // Listen for beforeinstallprompt
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
