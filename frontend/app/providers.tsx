@@ -22,6 +22,27 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [theme]);
 
+  // Register service worker globally
+  useEffect(() => {
+    const registerServiceWorker = async () => {
+      try {
+        if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+          console.log('[PWA] Registering service worker from providers...');
+          const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/',
+          });
+          console.log('[PWA] Service worker registered:', registration);
+        } else if ('serviceWorker' in navigator) {
+          console.log('[PWA] In development mode, SW registration handled by next-pwa');
+        }
+      } catch (error) {
+        console.error('[PWA] Service worker registration failed:', error);
+      }
+    };
+
+    registerServiceWorker();
+  }, []);
+
   return (
     <ToastProvider>
       <NotificationProvider>
