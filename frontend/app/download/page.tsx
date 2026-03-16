@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
-import { useThemeStore } from '@/store/auth';
 import { 
   Download, 
   Smartphone, 
@@ -54,8 +53,8 @@ interface DownloadStats {
 }
 
 export default function DownloadPage() {
-  const theme = useThemeStore((state) => state.theme);
-  const toggleTheme = useThemeStore((state) => state.toggleTheme);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
@@ -64,16 +63,6 @@ export default function DownloadPage() {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const statsRef = useRef<HTMLDivElement>(null);
-
-  // Apply theme to document
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
-  }, [theme]);
 
   // Fetch download statistics
   useEffect(() => {
