@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
-import { createClient } from '@supabase/supabase-js';
 import { 
   Download, 
   Smartphone, 
@@ -22,23 +21,8 @@ import {
   Moon
 } from 'lucide-react';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase credentials:', { 
-    url: supabaseUrl ? '✓' : '✗', 
-    key: supabaseAnonKey ? '✓' : '✗' 
-  });
-}
-
-const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
-
-// Log initialization
-if (typeof window !== 'undefined') {
-  console.log('[Supabase] Initialized with URL:', supabaseUrl?.substring(0, 30) + '...');
-}
+// API configuration
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -66,73 +50,29 @@ export default function DownloadPage() {
 
   const fetchStats = async () => {
     try {
-      console.log('[Stats] Fetching download statistics...');
+      console.log('[Stats] Fetching download statistics from API...');
       
-      // Total downloads
-      const { count: totalDownloads, error: totalError, data: totalData } = await supabase
-        .from('pwa_downloads')
-        .select('*', { count: 'exact', head: true });
-
-      if (totalError) {
-        console.error('[Stats] Total downloads error:', totalError);
-      }
-      console.log('[Stats] Total - count:', totalDownloads, 'data:', totalData);
-
-      // Downloads today - use beginning of day in UTC
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayStart = today.toISOString();
-      console.log('[Stats] Today start:', todayStart);
-
-      const { count: todayDownloads, error: todayError, data: todayData } = await supabase
-        .from('pwa_downloads')
-        .select('*', { count: 'exact', head: true })
-        .gte('downloaded_at', todayStart);
-
-      if (todayError) {
-        console.error('[Stats] Today downloads error:', todayError);
-      }
-      console.log('[Stats] Today - count:', todayDownloads, 'data:', todayData);
-
-      // Downloads in last 7 days
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      sevenDaysAgo.setHours(0, 0, 0, 0);
-      const sevenDaysStart = sevenDaysAgo.toISOString();
-      console.log('[Stats] Seven days start:', sevenDaysStart);
-
-      const { count: recentDownloads, error: recentError, data: recentData } = await supabase
-        .from('pwa_downloads')
-        .select('*', { count: 'exact', head: true })
-        .gte('downloaded_at', sevenDaysStart);
-
-      if (recentError) {
-        console.error('[Stats] Recent downloads error:', recentError);
-      }
-      console.log('[Stats] Seven days - count:', recentDownloads, 'data:', recentData);
-
-      // Platform breakdown
-      const { data: platformData, error: platformError } = await supabase
-        .from('pwa_downloads')
-        .select('platform');
-
-      if (platformError) {
-        console.error('[Stats] Platform data error:', platformError);
-      }
-
-      const platformBreakdown = (platformData || []).reduce(
-        (acc, item: any) => {
-          acc[item.platform || 'unknown'] = (acc[item.platform || 'unknown'] || 0) + 1;
-          return acc;
+      const response = await fetch('/api/download/stats', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {} as Record<string, number>
-      );
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        console.error('[Stats] API error:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('[Stats] Received stats:', data);
 
       const finalStats = {
-        totalDownloads: typeof totalDownloads === 'number' ? totalDownloads : 0,
-        recentDownloads: typeof recentDownloads === 'number' ? recentDownloads : 0,
-        todayDownloads: typeof todayDownloads === 'number' ? todayDownloads : 0,
-        platformBreakdown,
+        totalDownloads: data.totalDownloads || 0,
+        recentDownloads: data.recentDownloads || 0,
+        todayDownloads: data.todayDownloads || 0,
+        platformBreakdown: data.platformBreakdown || {},
       };
 
       setStats(finalStats);
@@ -176,16 +116,10 @@ export default function DownloadPage() {
     try {
       setIsLoading(true);
 
-      // Track download in Supabase
+      // Track download via API
       try {
         console.log('[Download] Starting download tracking...');
-        console.log('[Download] Supabase URL:', supabaseUrl ? '✓ Set' : '✗ Missing');
-        console.log('[Download] Supabase Key:', supabaseAnonKey ? '✓ Set' : '✗ Missing');
         
-        if (!supabaseUrl || !supabaseAnonKey) {
-          throw new Error('Supabase credentials are not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.');
-        }
-
         // Extract browser/OS info for platform field (max 50 chars)
         const userAgent = navigator.userAgent;
         let platformInfo = 'web'; // default
@@ -202,37 +136,30 @@ export default function DownloadPage() {
         else if (userAgent.includes('Safari')) platformInfo += ' - Safari';
         else if (userAgent.includes('Edge')) platformInfo += ' - Edge';
         
-        const insertData = {
+        const trackingData = {
           platform: platformInfo.substring(0, 50), // Ensure max 50 chars
           user_agent: userAgent.substring(0, 500), // User agent full string
-          downloaded_at: new Date().toISOString(),
         };
 
-        console.log('[Download] Inserting:', insertData);
+        console.log('[Download] Sending tracking data:', trackingData);
 
-        const { data, error, status } = await supabase
-          .from('pwa_downloads')
-          .insert([insertData])
-          .select();
+        const trackResponse = await fetch('/api/download/track', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(trackingData),
+        });
 
-        console.log('[Download] Response status:', status);
-        console.log('[Download] Response data:', data);
-        console.log('[Download] Response error:', error);
-
-        if (error) {
-          console.error('[Download] ❌ Insert FAILED:', {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-          });
-          console.error('[Download] Full error object:', error);
-          throw new Error(error.message || 'Failed to track download');
-        } else {
-          console.log('[Download] ✅ Successfully inserted:', data);
-          // Refresh stats after tracking
-          setTimeout(fetchStats, 500);
+        if (!trackResponse.ok) {
+          throw new Error(`API returned ${trackResponse.status}: ${trackResponse.statusText}`);
         }
+
+        const trackResult = await trackResponse.json();
+        console.log('[Download] ✅ Successfully tracked:', trackResult);
+        
+        // Refresh stats after tracking
+        setTimeout(fetchStats, 500);
       } catch (trackError) {
         console.error('[Download] ❌ Tracking exception:', trackError);
         const errorMsg = trackError instanceof Error ? trackError.message : String(trackError);
