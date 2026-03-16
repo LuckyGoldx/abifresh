@@ -3,9 +3,10 @@
 import { usePWAInstall, trackDownload } from '@/lib/usePWAInstall';
 import { Download, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export default function PWAPrompt() {
-  const { canInstall, isInstalled, install } = usePWAInstall();
+  const { canInstall, isInstalled } = usePWAInstall();
   const [isVisible, setIsVisible] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
 
@@ -30,14 +31,6 @@ export default function PWAPrompt() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleInstall = async () => {
-    await trackDownload('pwa-prompt');
-    const success = await install();
-    if (success) {
-      setIsVisible(false);
-    }
-  };
 
   const handleDismiss = () => {
     setIsVisible(false);
@@ -72,13 +65,14 @@ export default function PWAPrompt() {
         </div>
 
         <div className="space-y-2">
-          <button
-            onClick={handleInstall}
-            className="w-full bg-white text-pink-600 font-bold py-2 px-4 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Install Now
-          </button>
+          <Link href="/download">
+            <button
+              className="w-full bg-white text-pink-600 font-bold py-2 px-4 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Install Now
+            </button>
+          </Link>
           <button
             onClick={handleDismiss}
             className="w-full text-white/80 hover:text-white font-semibold py-2 px-4 transition-colors"
