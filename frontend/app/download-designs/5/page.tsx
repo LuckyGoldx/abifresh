@@ -3,7 +3,7 @@ import { Download, Rocket, Heart, Sparkles, Zap, ChevronLeft, ChevronRight } fro
 import Link from 'next/link';
 
 export default function Design5() {
-  const currentDesign = 5;
+  const currentDesign: number = 5;
   const prevDesign = currentDesign === 1 ? 10 : currentDesign - 1;
   const nextDesign = currentDesign === 10 ? 1 : currentDesign + 1;
 

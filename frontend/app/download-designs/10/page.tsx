@@ -3,7 +3,7 @@ import { Download, Smartphone, Zap, Lock, ChevronLeft, ChevronRight } from 'luci
 import Link from 'next/link';
 
 export default function Design10() {
-  const currentDesign = 10;
+  const currentDesign: number = 10;
   const prevDesign = currentDesign === 1 ? 10 : currentDesign - 1;
   const nextDesign = currentDesign === 10 ? 1 : currentDesign + 1;
 

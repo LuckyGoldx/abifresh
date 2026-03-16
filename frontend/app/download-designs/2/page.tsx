@@ -3,7 +3,7 @@ import { Download, Zap, Shield, Wifi, ChevronLeft, ChevronRight } from 'lucide-r
 import Link from 'next/link';
 
 export default function Design2() {
-  const currentDesign = 2;
+  const currentDesign: number = 2;
   const prevDesign = currentDesign === 1 ? 10 : currentDesign - 1;
   const nextDesign = currentDesign === 10 ? 1 : currentDesign + 1;
 

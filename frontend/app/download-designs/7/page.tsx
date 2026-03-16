@@ -3,7 +3,7 @@ import { Download, Cpu, Zap, Shield, Wifi, ChevronLeft, ChevronRight } from 'luc
 import Link from 'next/link';
 
 export default function Design7() {
-  const currentDesign = 7;
+  const currentDesign: number = 7;
   const prevDesign = currentDesign === 1 ? 10 : currentDesign - 1;
   const nextDesign = currentDesign === 10 ? 1 : currentDesign + 1;
 

@@ -3,7 +3,7 @@ import { Download, Zap, Lock, Wifi, ChevronLeft, ChevronRight } from 'lucide-rea
 import Link from 'next/link';
 
 export default function Design3() {
-  const currentDesign = 3;
+  const currentDesign: number = 3;
   const prevDesign = currentDesign === 1 ? 10 : currentDesign - 1;
   const nextDesign = currentDesign === 10 ? 1 : currentDesign + 1;
 

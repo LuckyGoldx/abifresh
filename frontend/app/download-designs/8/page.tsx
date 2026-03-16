@@ -3,7 +3,7 @@ import { Download, Zap, Radio, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Design8() {
-  const currentDesign = 8;
+  const currentDesign: number = 8;
   const prevDesign = currentDesign === 1 ? 10 : currentDesign - 1;
   const nextDesign = currentDesign === 10 ? 1 : currentDesign + 1;
 

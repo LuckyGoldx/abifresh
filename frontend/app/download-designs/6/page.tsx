@@ -3,7 +3,7 @@ import { Download, Crown, Shield, Sparkles, ChevronLeft, ChevronRight } from 'lu
 import Link from 'next/link';
 
 export default function Design6() {
-  const currentDesign = 6;
+  const currentDesign: number = 6;
   const prevDesign = currentDesign === 1 ? 10 : currentDesign - 1;
   const nextDesign = currentDesign === 10 ? 1 : currentDesign + 1;
 

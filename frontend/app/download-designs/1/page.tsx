@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 export default function Design1() {
   const designs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-  const currentDesign = 1;
+  const currentDesign: number = 1;
   const prevDesign = currentDesign === 1 ? 10 : currentDesign - 1;
   const nextDesign = currentDesign === 10 ? 1 : currentDesign + 1;
 

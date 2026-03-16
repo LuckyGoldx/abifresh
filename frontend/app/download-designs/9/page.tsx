@@ -3,7 +3,7 @@ import { Download, Zap, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Design9() {
-  const currentDesign = 9;
+  const currentDesign: number = 9;
   const prevDesign = currentDesign === 1 ? 10 : currentDesign - 1;
   const nextDesign = currentDesign === 10 ? 1 : currentDesign + 1;
 
