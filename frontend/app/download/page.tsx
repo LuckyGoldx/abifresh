@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { 
   Download, 
   Smartphone, 
@@ -17,6 +18,11 @@ import {
   Star,
   ChevronDown
 } from 'lucide-react';
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -49,11 +55,48 @@ export default function DownloadPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/download/stats');
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      }
+      // Total downloads
+      const { count: totalDownloads } = await supabase
+        .from('pwa_downloads')
+        .select('*', { count: 'exact', head: true });
+
+      // Downloads today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { count: todayDownloads } = await supabase
+        .from('pwa_downloads')
+        .select('*', { count: 'exact', head: true })
+        .gte('downloaded_at', today.toISOString());
+
+      // Downloads in last 7 days
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const { count: recentDownloads } = await supabase
+        .from('pwa_downloads')
+        .select('*', { count: 'exact', head: true })
+        .gte('downloaded_at', sevenDaysAgo.toISOString());
+
+      // Platform breakdown
+      const { data: platformData } = await supabase
+        .from('pwa_downloads')
+        .select('platform');
+
+      const platformBreakdown = (platformData || []).reduce(
+        (acc, item: any) => {
+          acc[item.platform || 'unknown'] = (acc[item.platform || 'unknown'] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+
+      setStats({
+        totalDownloads: totalDownloads || 0,
+        recentDownloads: recentDownloads || 0,
+        todayDownloads: todayDownloads || 0,
+        platformBreakdown,
+      });
     } catch (error) {
       console.error('Failed to fetch stats:', error);
     }
@@ -86,24 +129,24 @@ export default function DownloadPage() {
     try {
       setIsLoading(true);
 
-      // Track download
-      const trackingData = {
-        platform: navigator.userAgent,
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString(),
-      };
-
+      // Track download in Supabase
       try {
-        const response = await fetch('/api/download/track', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(trackingData),
-        });
-        
-        if (response.ok) {
+        const { error } = await supabase
+          .from('pwa_downloads')
+          .insert([
+            {
+              platform: navigator.userAgent,
+              user_agent: navigator.userAgent,
+              downloaded_at: new Date().toISOString(),
+            },
+          ]);
+
+        if (!error) {
           console.log('Download tracked successfully');
           // Refresh stats after tracking
           setTimeout(fetchStats, 500);
+        } else {
+          console.error('Tracking error:', error);
         }
       } catch (error) {
         console.error('Tracking error:', error);
