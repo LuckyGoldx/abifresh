@@ -172,7 +172,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       return () => {
         console.log('[Notifications] Cleaning up subscription');
-        supabase.removeChannel(channels);
+        if (supabase) {
+          supabase.removeChannel(channels);
+        }
         if (realtimeDebounceRef.current) {
           clearTimeout(realtimeDebounceRef.current);
         }
