@@ -367,7 +367,7 @@ export const PRODUCT_CATALOG: Brand[] = [
         ],
       },
       {
-        name: 'LEBRACE JUMBO PACK',
+        name: 'DR BROWN JUMBO PACK',
         variants: [
           { name: 'DR BROWN JUMBO PACK SI', priceJalingo: 0, priceOutside: 0 },
           { name: 'DR BROWN JUMBO PACK S2', priceJalingo: 0, priceOutside: 0 },
