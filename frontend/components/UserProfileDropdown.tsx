@@ -158,7 +158,7 @@ export default function UserProfileDropdown() {
 
     setProfileLoading(true);
     try {
-      const response = await api.put('/api/auth/profile', {
+      const response = await api.put('/api/auth/update-profile', {
         email: editEmail,
         phone_number: editPhone,
       }, {

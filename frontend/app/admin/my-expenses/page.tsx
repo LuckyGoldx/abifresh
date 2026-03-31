@@ -51,8 +51,18 @@ export default function AdminExpensesPage() {
     setSubmitting(true);
     
     try {
+      // DEBUG LOGGING
+      console.log('💰 [ADMIN MY-EXPENSES FORM] Submitting expense:');
+      console.log('  amount (state):', amount, `(type: ${typeof amount})`);
+      console.log('  parseFloat(amount):', parseFloat(amount));
+      console.log('  category:', category);
+      console.log('  expenseDate:', expenseDate);
+
+      const parsedAmount = parseFloat(amount);
+      console.log('  Final amount being sent:', parsedAmount);
+
       await api.post('/api/admin/expenses/create', {
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         category,
         description,
         expense_date: expenseDate
@@ -144,14 +154,21 @@ export default function AdminExpensesPage() {
                   Amount (₦) *
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    // Only allow digits and one decimal point
+                    const value = e.target.value.replace(/[^0-9.]/g, '');
+                    // Prevent multiple decimal points
+                    const parts = value.split('.');
+                    if (parts.length <= 2) {
+                      setAmount(parts.length === 2 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0]);
+                    }
+                  }}
                   className="input"
-                  min="1"
-                  step="0.01"
                   required
-                  placeholder="0.00"
+                  placeholder="Enter amount"
                 />
               </div>
 
@@ -218,7 +235,14 @@ export default function AdminExpensesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {expenses.map((expense) => (
+                  {expenses.map((expense) => {
+                    console.log('📊 Displaying expense:', {
+                      id: expense.id,
+                      amount: expense.amount,
+                      amountType: typeof expense.amount,
+                      amountRepr: JSON.stringify(expense.amount)
+                    });
+                    return (
                     <tr key={expense.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="py-3 px-4 text-sm">
                         {new Date(expense.expense_date || expense.created_at).toLocaleDateString('en-US', {
@@ -242,7 +266,8 @@ export default function AdminExpensesPage() {
                         </span>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -112,7 +112,7 @@ export default function StaffCommissionDetailPage() {
   const [viewMode, setViewMode] = useState<'receipts' | 'items'>('receipts');
   
   const token = useAuthStore((state) => state.token);
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
   useEffect(() => {
     if (staffId) {

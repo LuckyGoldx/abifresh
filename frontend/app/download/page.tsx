@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 
 // API configuration
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;

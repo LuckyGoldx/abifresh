@@ -1,0 +1,39 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth, hasRole } from '@/lib/server/auth';
+import { supabaseAdmin } from '@/lib/server/supabase-admin';
+
+export async function GET(req: NextRequest) {
+  const authResult = await verifyAuth(req);
+  if (authResult instanceof NextResponse) return authResult;
+
+  if (!hasRole(authResult.role, 'admin', 'sales', 'sales_staff')) {
+    return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+  }
+
+  // Fetch all users
+  const { data: users, error } = await supabaseAdmin.from('users').select('*');
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Enrich each user with their sales summary
+  const enriched = await Promise.all(
+    (users || []).map(async (staff: any) => {
+      const { data: salesItems } = await supabaseAdmin
+        .from('sales_items')
+        .select('quantity, unit_price, sale_id!inner(staff_id)')
+        .eq('sale_id.staff_id', staff.id);
+
+      const { data: sales } = await supabaseAdmin
+        .from('sales')
+        .select('total_amount')
+        .eq('staff_id', staff.id);
+
+      return {
+        ...staff,
+        total_sales_items: (salesItems || []).reduce((s: number, x: any) => s + (x.quantity || 0), 0),
+        total_sales_amount: (sales || []).reduce((s: number, x: any) => s + (x.total_amount || 0), 0),
+      };
+    })
+  );
+
+  return NextResponse.json(enriched);
+}

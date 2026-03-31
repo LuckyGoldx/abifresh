@@ -25,18 +25,18 @@ export default function SystemHealthPage() {
     setIsLoading(true);
     const checks: HealthCheck[] = [];
 
-    // Backend API check - use correct endpoint WITHOUT /api prefix
+    // Backend API check - call Next.js serverless API route
     try {
       const start = Date.now();
-      const response = await fetch('http://localhost:5000/health', { signal: AbortSignal.timeout(5000) });
+      const response = await api.get('/api/health');
       const latency = Date.now() - start;
-      if (response.ok) {
-        checks.push({ name: 'Backend API', status: latency < 2000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: 'Express server responding', errorLog: 'Connection successful' });
+      if (response.status === 200) {
+        checks.push({ name: 'Backend API', status: latency < 2000 ? 'healthy' : 'degraded', latency: `${latency}ms`, details: 'Vercel serverless responding', errorLog: 'Connection successful' });
       } else {
-        checks.push({ name: 'Backend API', status: 'down', details: 'Server returned error', errorLog: `HTTP ${response.status}: ${response.statusText}` });
+        checks.push({ name: 'Backend API', status: 'down', details: 'Server returned error', errorLog: `HTTP ${response.status}` });
       }
     } catch (err: any) {
-      checks.push({ name: 'Backend API', status: 'down', details: 'Cannot reach backend server', errorLog: err.message || 'Network timeout or CORS error' });
+      checks.push({ name: 'Backend API', status: 'down', details: 'Cannot reach backend server', errorLog: err.message || 'Network timeout or error' });
     }
 
     // Database check (via staff endpoint)
@@ -282,10 +282,10 @@ export default function SystemHealthPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
           {[
             { label: 'Frontend', value: 'Next.js on port 3000' },
-            { label: 'Backend', value: 'Express.js on port 5000' },
+            { label: 'Backend', value: 'Next.js Serverless (Vercel)' },
             { label: 'Database', value: 'Supabase PostgreSQL' },
-            { label: 'Auth Provider', value: 'JWT + Localhost Fallback' },
-            { label: 'API Base URL', value: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000' },
+            { label: 'Auth Provider', value: 'JWT + Supabase Auth' },
+            { label: 'API Base URL', value: process.env.NEXT_PUBLIC_API_URL || '(relative /api routes)' },
             { label: 'Environment', value: process.env.NODE_ENV || 'development' },
           ].map((info, i) => (
             <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">

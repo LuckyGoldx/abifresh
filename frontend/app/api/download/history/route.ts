@@ -1,33 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/server/supabase-admin';
 
 export async function GET(request: NextRequest) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    const limit = request.nextUrl.searchParams.get('limit') || '50';
-    
-    const response = await fetch(`${apiUrl}/api/download/history?limit=${limit}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store',
-    });
+    const limitParam = request.nextUrl.searchParams.get('limit') || '50';
+    const limit = Math.min(Math.max(1, parseInt(limitParam) || 50), 500);
 
-    if (!response.ok) {
-      console.error('Backend history error:', response.status);
-      return NextResponse.json(
-        { data: [] },
-        { status: 200 }
-      );
+    const { data, error } = await supabaseAdmin
+      .from('pwa_downloads')
+      .select('*')
+      .order('downloaded_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Failed to fetch download history:', error);
+      return NextResponse.json({ data: [], count: 0 });
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    return NextResponse.json({ data: data || [], count: data?.length || 0 });
   } catch (error) {
     console.error('Download history error:', error);
-    return NextResponse.json(
-      { data: [] },
-      { status: 200 }
-    );
+    return NextResponse.json({ data: [], count: 0 });
   }
 }

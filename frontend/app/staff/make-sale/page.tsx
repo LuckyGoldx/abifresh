@@ -226,11 +226,7 @@ export default function MakeSalePage() {
 
   const calculateCartTotal = () => {
     return cart.reduce((sum, item) => {
-      let itemTotal = getCartItemPrice(item) * item.sale_quantity;
-      if (globalOutsideJalingo) {
-        itemTotal += logisticPrice * item.sale_quantity;
-      }
-      return sum + itemTotal;
+      return sum + getCartItemPrice(item) * item.sale_quantity;
     }, 0);
   };
 
@@ -253,7 +249,12 @@ export default function MakeSalePage() {
       // Try to save receipt to database (optional - won't fail the sale if it doesn't work)
       const receiptData = {
         receipt_number: receiptNumber,
-        items: cart,
+        items: cart.map(item => ({
+          item_id: item.id,
+          quantity: item.sale_quantity,
+          unit_price: getCartItemPrice(item),
+          total_price: getCartItemPrice(item) * item.sale_quantity,
+        })),
         total_amount: calculateCartTotal(),
         payment_method: globalPaymentMethod,
         sold_outside_jalingo: globalOutsideJalingo,
@@ -276,7 +277,7 @@ export default function MakeSalePage() {
           unit_price: getCartItemPrice(item),
           payment_method: globalPaymentMethod,
           sold_outside_jalingo: globalOutsideJalingo,
-          logistics_fee: globalOutsideJalingo ? logisticPrice : 0,
+          logistics_fee: 0,
         })),
         total_amount: calculateCartTotal(),
         payment_method: globalPaymentMethod,
@@ -651,14 +652,7 @@ export default function MakeSalePage() {
                     {globalPaymentMethod}
                   </span>
                 </div>
-                {globalOutsideJalingo && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Logistics Fee:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      ₦{logisticPrice.toLocaleString()}/item
-                    </span>
-                  </div>
-                )}
+
                 <div className="border-t dark:border-gray-600 pt-2 mt-2">
                   <div className="flex justify-between">
                     <span className="text-lg font-bold text-gray-900 dark:text-white">Total Amount:</span>

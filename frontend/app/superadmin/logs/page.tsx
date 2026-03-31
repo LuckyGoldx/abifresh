@@ -105,7 +105,7 @@ export default function LogsPage() {
       return;
     }
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
     const url = `${apiBase}/api/admin/logs/stream?type=${backendLogType}&token=${token}`;
     
     console.log('[SSE] Starting stream...');

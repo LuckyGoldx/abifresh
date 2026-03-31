@@ -1,42 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/server/supabase-admin';
 
-export async function GET(request: NextRequest) {
+const emptyStats = { totalDownloads: 0, recentDownloads: 0, todayDownloads: 0, platformBreakdown: {} };
+
+export async function GET(_request: NextRequest) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-    
-    const response = await fetch(`${apiUrl}/api/download/stats`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+    const [totalResult, platformResult, recentResult, todayResult] = await Promise.all([
+      supabaseAdmin.from('pwa_downloads').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('pwa_downloads').select('platform'),
+      supabaseAdmin
+        .from('pwa_downloads')
+        .select('*', { count: 'exact', head: true })
+        .gte('downloaded_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+      supabaseAdmin
+        .from('pwa_downloads')
+        .select('*', { count: 'exact', head: true })
+        .gte('downloaded_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+    ]);
+
+    const platformBreakdown = (platformResult.data || []).reduce(
+      (acc: Record<string, number>, item: { platform: string }) => {
+        const p = item.platform || 'unknown';
+        acc[p] = (acc[p] || 0) + 1;
+        return acc;
       },
-      cache: 'no-store',
+      {}
+    );
+
+    return NextResponse.json({
+      totalDownloads: totalResult.count || 0,
+      recentDownloads: recentResult.count || 0,
+      todayDownloads: todayResult.count || 0,
+      platformBreakdown,
     });
-
-    if (!response.ok) {
-      console.error('Backend stats error:', response.status);
-      return NextResponse.json(
-        { 
-          totalDownloads: 0, 
-          recentDownloads: 0, 
-          todayDownloads: 0, 
-          platformBreakdown: {} 
-        },
-        { status: 200 } // Return empty stats instead of error to prevent breaking UI
-      );
-    }
-
-    const data = await response.json();
-    return NextResponse.json(data);
   } catch (error) {
     console.error('Download stats error:', error);
-    return NextResponse.json(
-      { 
-        totalDownloads: 0, 
-        recentDownloads: 0, 
-        todayDownloads: 0, 
-        platformBreakdown: {} 
-      },
-      { status: 200 } // Return empty stats instead of error
-    );
+    return NextResponse.json(emptyStats);
   }
 }

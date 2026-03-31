@@ -275,7 +275,12 @@ export default function MakeSalePage() {
       // First, save the receipt to database
       const receiptData = {
         receipt_number: receiptNumber,
-        items: cart,
+        items: cart.map(item => ({
+          item_id: item.id,
+          quantity: item.sale_quantity,
+          unit_price: getCartItemPrice(item),
+          total_price: getCartItemPrice(item) * item.sale_quantity,
+        })),
         total_amount: calculateCartTotal(),
         payment_method: globalPaymentMethod,
         sold_outside_jalingo: globalOutsideJalingo,

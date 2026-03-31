@@ -28,7 +28,7 @@ interface Item {
 
 type ModalType = 'add' | 'edit' | null;
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 function getImageUrl(url: string | undefined | null): string | null {
   // Return Supabase CDN URL directly (proxy endpoint was removed for security)

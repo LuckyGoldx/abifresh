@@ -145,14 +145,21 @@ export default function ExpensesPage() {
                   Amount (₦) *
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    // Only allow digits and one decimal point
+                    const value = e.target.value.replace(/[^0-9.]/g, '');
+                    // Prevent multiple decimal points
+                    const parts = value.split('.');
+                    if (parts.length <= 2) {
+                      setAmount(parts.length === 2 ? `${parts[0]}.${parts[1].slice(0, 2)}` : parts[0]);
+                    }
+                  }}
                   className="input"
-                  min="1"
-                  step="0.01"
                   required
-                  placeholder="0.00"
+                  placeholder="Enter amount"
                 />
               </div>
 

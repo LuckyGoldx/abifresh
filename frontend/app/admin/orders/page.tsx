@@ -78,7 +78,7 @@ interface DisplayOptions {
 
 type PageView = 'create' | 'history' | 'preview' | 'view-order';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000') + '/api';
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? '') + '/api';
 
 export default function RestockOrdersPage() {
   const token = useAuthStore((state) => state.token);

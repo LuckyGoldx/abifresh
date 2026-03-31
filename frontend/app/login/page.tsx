@@ -40,7 +40,7 @@ export default function LoginPage() {
   useEffect(() => {
     const checkSupabaseConnection = async () => {
       try {
-        const response = await api.get('/health');
+        const response = await api.get('/api/health');
         setSupabaseStatus('connected');
       } catch (error) {
         setSupabaseStatus('disconnected');
@@ -172,7 +172,7 @@ export default function LoginPage() {
                     type="text"
                     placeholder="Enter your username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                    onChange={(e) => setUsername(e.target.value)}
                     disabled={isLoading}
                     required
                   />
