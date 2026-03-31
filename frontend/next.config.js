@@ -1,10 +1,12 @@
 /** @type {import('next').NextConfig} */
+// Temporarily disable PWA due to lodash compatibility issue in next-pwa v5.6.0
+// Error: 'assignWith is not defined' during service worker generation
+// TODO: Update to next-pwa v6+ or implement custom PWA setup
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  // Enable PWA in all environments so beforeinstallprompt event fires
-  disable: false,
+  disable: true,  // DISABLED - fixes build error
 });
 
 const nextConfig = {
