@@ -19,8 +19,10 @@ export async function GET(req: NextRequest) {
       .eq('staff_id', authResult.id),
     supabaseAdmin
       .from('staff_payments')
-      .select('amount, status')
-      .eq('staff_id', authResult.id),
+      .select('amount, status, payment_type, paid_by')
+      .eq('staff_id', authResult.id)
+      // Exclude admin-paid commissions (those belong to commission management, not payments)
+      .or('payment_type.neq.commission,paid_by.is.null'),
     supabaseAdmin
       .from('staff_expenses')
       .select('expense_amount')
