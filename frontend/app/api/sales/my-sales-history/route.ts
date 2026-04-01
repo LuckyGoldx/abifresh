@@ -47,11 +47,13 @@ export async function GET(req: NextRequest) {
 
     if (itemsError) throw itemsError;
 
-    // Step 3: Get all payments for this user
+    // Step 3: Get payments submitted by this user (exclude admin-paid commissions
+    // which belong to /sales/commissions, not /sales/payments)
     const { data: paymentsData } = await supabaseAdmin
       .from('staff_payments')
       .select('id, amount, items_paid_for, status, created_at')
-      .eq('staff_id', userId);
+      .eq('staff_id', userId)
+      .or('payment_type.neq.commission,paid_by.is.null');
 
     const approvedPayments = (paymentsData || []).filter((p: any) => p.status === 'approved');
     const pendingPayments = (paymentsData || []).filter((p: any) => p.status === 'pending');

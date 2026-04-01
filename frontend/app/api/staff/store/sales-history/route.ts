@@ -16,10 +16,12 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   // Get staff_payments to calculate what's been paid and what's pending
+  // Exclude admin-paid commissions (those belong to /staff/commissions, not /staff/payments)
   const { data: payments } = await supabaseAdmin
     .from('staff_payments')
     .select('amount, status, items_paid_for')
-    .eq('staff_id', authResult.id);
+    .eq('staff_id', authResult.id)
+    .or('payment_type.neq.commission,paid_by.is.null');
 
   // All-time totals from every sale (before any filtering)
   const allTimeQuantity = (sales || []).reduce((s: number, sale: any) => s + (sale.quantity || 0), 0);
