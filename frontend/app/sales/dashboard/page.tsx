@@ -192,10 +192,16 @@ export default function SalesDashboard() {
       });
       
       // Calculate today's stats
-      const todayStats = todayReceipts.reduce((acc: any, receipt: any) => ({
-        items: acc.items + (receipt.items_count || 0),
-        amount: acc.amount + (receipt.total_amount || 0),
-      }), { items: 0, amount: 0 });
+      // receipts API returns receipt_items[] array (no items_count field)
+      const todayStats = todayReceipts.reduce((acc: any, receipt: any) => {
+        const itemsCount = (receipt.receipt_items || []).reduce(
+          (sum: number, item: any) => sum + (item.quantity || 0), 0
+        );
+        return {
+          items: acc.items + itemsCount,
+          amount: acc.amount + (receipt.total_amount || 0),
+        };
+      }, { items: 0, amount: 0 });
       
       // Fetch available and unavailable items count from active store only
       const itemsRes = await api.get('/api/inventory/active-store', {
