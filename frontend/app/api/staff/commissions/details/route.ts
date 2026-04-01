@@ -19,13 +19,15 @@ export async function GET(req: NextRequest) {
 
   const allSales = sales || [];
 
-  // 2. Get commission payments made to this staff
+  // 2. Get commission payments made to this staff BY ADMIN via commission management
+  // Only include payments where paid_by IS NOT NULL (admin-initiated, not staff-submitted)
   const { data: payments, error: paymentsError } = await supabaseAdmin
     .from('staff_payments')
     .select('id, amount, status, approved_date, paid_date, notes, created_at')
     .eq('staff_id', staffId)
     .eq('payment_type', 'commission')
     .in('status', ['paid', 'approved'])
+    .not('paid_by', 'is', null)
     .order('approved_date', { ascending: false });
 
   if (paymentsError) return NextResponse.json({ error: paymentsError.message }, { status: 400 });
