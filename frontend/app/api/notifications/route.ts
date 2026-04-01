@@ -233,5 +233,5 @@ export async function GET(req: NextRequest) {
   });
 
   allNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  return NextResponse.json(allNotifications);
+  return NextResponse.json(allNotifications.slice(0, 100));
 }

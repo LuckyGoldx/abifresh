@@ -10,8 +10,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
-  // Fetch all users
-  const { data: users, error } = await supabaseAdmin.from('users').select('*');
+  const url = new URL(req.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 200);
+  const offset = Math.max(parseInt(url.searchParams.get('offset') || '0'), 0);
+
+  // Fetch users with pagination
+  const { data: users, error } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .range(offset, offset + limit - 1)
+    .order('full_name', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   // Enrich each user with their sales summary

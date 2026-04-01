@@ -92,6 +92,18 @@ export async function verifyAuth(req: NextRequest): Promise<AuthUser | NextRespo
 
 /**
  * Checks if a user has one of the allowed roles (same normalization as Express roleMiddleware).
+ *
+ * SUPERADMIN BYPASS RULE (implicit elevation):
+ *   A `superadmin` user automatically passes any check that includes `admin` in the allowed list.
+ *   This means `hasRole('superadmin', 'admin')` → true, intentionally granting superadmins access
+ *   to all admin-gated routes without listing 'superadmin' explicitly in every call.
+ *
+ * IMPORTANT ASYMMETRY — superadmin does NOT automatically pass role checks that do NOT include
+ *   'admin'. For example, `hasRole('superadmin', 'sales')` → false. If a superadmin must access
+ *   a sales-only route, add 'superadmin' explicitly: `hasRole(role, 'sales', 'superadmin')`.
+ *
+ * For routes that must be superadmin-EXCLUSIVE (e.g. backups), always check:
+ *   `hasRole(role, 'superadmin')` — do NOT include 'admin', or admins will also be granted access.
  */
 export function hasRole(userRole: string, ...allowedRoles: string[]): boolean {
   const roleMap: Record<string, string> = {
@@ -109,6 +121,7 @@ export function hasRole(userRole: string, ...allowedRoles: string[]): boolean {
   const normalizedAllowed = allowedRoles.map((r) => roleMap[r] || r);
 
   const isSuperadmin = normalizedUserRole === 'superadmin';
+  // Superadmin inherits admin access — but only when 'admin' is explicitly in the allowed list.
   const adminRequired = normalizedAllowed.includes('admin');
 
   return (
