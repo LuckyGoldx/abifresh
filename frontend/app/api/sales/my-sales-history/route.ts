@@ -59,13 +59,16 @@ export async function GET(req: NextRequest) {
     const paidItemIds = new Set<string>();
     const pendingItemIds = new Set<string>();
 
+    // items_paid_for stores { sale_ids: string[], item_id, ... } — iterate sale_ids, not item.id
     for (const payment of approvedPayments) {
-      const items = payment.items_paid_for || [];
-      items.forEach((item: any) => { if (item.id) paidItemIds.add(item.id); });
+      (payment.items_paid_for || []).forEach((item: any) => {
+        (item.sale_ids || []).forEach((sid: string) => { if (sid) paidItemIds.add(String(sid)); });
+      });
     }
     for (const payment of pendingPayments) {
-      const items = payment.items_paid_for || [];
-      items.forEach((item: any) => { if (item.id) pendingItemIds.add(item.id); });
+      (payment.items_paid_for || []).forEach((item: any) => {
+        (item.sale_ids || []).forEach((sid: string) => { if (sid) pendingItemIds.add(String(sid)); });
+      });
     }
 
     const today = new Date();

@@ -15,19 +15,33 @@ export async function GET(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Get staff_payments to calculate what's been paid
+  // Get staff_payments to calculate what's been paid and what's pending
   const { data: payments } = await supabaseAdmin
     .from('staff_payments')
-    .select('amount, status')
+    .select('amount, status, items_paid_for')
     .eq('staff_id', authResult.id);
 
   const paidAmount = (payments || [])
     .filter((p: any) => p.status === 'paid' || p.status === 'approved')
     .reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
 
-  // Build allItems as grouped by item_id
+  // Collect sale IDs that are already in a pending or approved payment
+  // items_paid_for stores { sale_ids: string[], item_id, ... }
+  const lockedSaleIds = new Set<string>();
+  (payments || [])
+    .filter((p: any) => p.status === 'pending' || p.status === 'approved')
+    .forEach((p: any) => {
+      (p.items_paid_for || []).forEach((item: any) => {
+        (item.sale_ids || []).forEach((sid: string) => { if (sid) lockedSaleIds.add(String(sid)); });
+      });
+    });
+
+  // Build allItems as grouped by item_id, skipping any sale that is locked
   const groupedMap = new Map<string, any>();
   for (const sale of sales || []) {
+    // Skip sales already covered by a pending or approved payment
+    if (lockedSaleIds.has(String(sale.id))) continue;
+
     const key = sale.item_id;
     if (groupedMap.has(key)) {
       const existing = groupedMap.get(key);
