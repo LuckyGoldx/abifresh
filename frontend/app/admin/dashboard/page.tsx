@@ -125,16 +125,20 @@ export default function AdminDashboard() {
         console.log('📅 Today Receipts sample:', todayReceipts[0]);
         
         // Calculate today's stats
+        // receipts API returns receipt_items[] (no items_count field)
+        const countItems = (receipt: any) =>
+          (receipt.receipt_items || []).reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+
         const todayStats = todayReceipts.reduce((acc: any, receipt: any) => ({
           sales: acc.sales + 1,
           amount: acc.amount + (receipt.total_amount || 0),
-          items: acc.items + (receipt.items_count || 0),
+          items: acc.items + countItems(receipt),
         }), { sales: 0, amount: 0, items: 0 });
         
         // Calculate all-time stats
         const allTimeStats = allReceipts.reduce((acc: any, receipt: any) => ({
           sales: acc.sales + 1,
-          items: acc.items + (receipt.items_count || 0),
+          items: acc.items + countItems(receipt),
           amount: acc.amount + (receipt.total_amount || 0),
         }), { sales: 0, items: 0, amount: 0 });
 
@@ -483,7 +487,7 @@ export default function AdminDashboard() {
                         {receipt.payment_method}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{receipt.items_count}</td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{(receipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0)}</td>
                     <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">
                       ₦{receipt.total_amount.toLocaleString()}
                     </td>
@@ -661,7 +665,7 @@ export default function AdminDashboard() {
 
               {/* Receipt Items */}
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Items ({selectedReceipt.items_count})</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Items ({(selectedReceipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0)})</h3>
                 <div className="space-y-2 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   {selectedReceipt.receipt_items && selectedReceipt.receipt_items.length > 0 ? (
                     selectedReceipt.receipt_items.map((item, index) => (
