@@ -21,9 +21,18 @@ export async function GET(req: NextRequest) {
     .select('amount, status, items_paid_for')
     .eq('staff_id', authResult.id);
 
-  const paidAmount = (payments || [])
-    .filter((p: any) => p.status === 'paid' || p.status === 'approved')
+  // All-time totals from every sale (before any filtering)
+  const allTimeQuantity = (sales || []).reduce((s: number, sale: any) => s + (sale.quantity || 0), 0);
+  const allTimeTotalAmount = (sales || []).reduce((s: number, sale: any) => s + (parseFloat(sale.total_amount) || 0), 0);
+
+  // Amounts already covered by approved and pending payments
+  const approvedAmount = (payments || [])
+    .filter((p: any) => p.status === 'approved' || p.status === 'paid')
     .reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
+  const pendingAmount = (payments || [])
+    .filter((p: any) => p.status === 'pending')
+    .reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
+  const outstandingAmount = Math.max(0, allTimeTotalAmount - approvedAmount - pendingAmount);
 
   // Collect sale IDs that are already in a pending or approved payment
   // items_paid_for stores { sale_ids: string[], item_id, ... }
@@ -36,10 +45,9 @@ export async function GET(req: NextRequest) {
       });
     });
 
-  // Build allItems as grouped by item_id, skipping any sale that is locked
+  // Build allItems grouped by item_id — skip any sale already in a pending/approved payment
   const groupedMap = new Map<string, any>();
   for (const sale of sales || []) {
-    // Skip sales already covered by a pending or approved payment
     if (lockedSaleIds.has(String(sale.id))) continue;
 
     const key = sale.item_id;
@@ -80,17 +88,18 @@ export async function GET(req: NextRequest) {
     commission: parseFloat(sale.commission) || 0,
   }));
 
-  const totalQuantity = allItems.reduce((s, i) => s + i.quantity, 0);
-  const totalSales = allItems.reduce((s, i) => s + i.total_amount, 0);
-  const outstandingAmount = Math.max(0, totalSales - paidAmount);
+  const totalQuantity = allItems.reduce((s: number, i: any) => s + i.quantity, 0);
 
   return NextResponse.json({
     allItems,
     recentSales,
     stats: {
+      // Field names must match what staff/payments/page.tsx displays
+      allTimeQuantity,
+      allTimeTotalAmount,
       totalQuantity,
+      totalSalesAmount: allTimeTotalAmount,
       outstandingQuantity: totalQuantity,
-      totalSales,
       outstandingAmount,
     },
   });
