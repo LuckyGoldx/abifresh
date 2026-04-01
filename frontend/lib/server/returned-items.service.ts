@@ -60,11 +60,12 @@ export class ReturnedItemsService {
     }
     const receiverName = receiverData.full_name || 'Sales Staff';
 
+    // Only count PENDING returns as locked. Accepted returns already reduced staff_store.quantity.
     const { data: existingReturns } = await supabaseAdmin
       .from('returned_items')
       .select('item_id, quantity')
       .eq('requester_staff_id', actualRequesterStaffId)
-      .in('status', ['pending', 'accepted']);
+      .eq('status', 'pending');
 
     const lockedQuantities = new Map<string, number>();
     (existingReturns || []).forEach((ret: any) => {
@@ -320,12 +321,12 @@ export class ReturnedItemsService {
 
     if (storeError) throw storeError;
 
-    // Subtract pending/accepted returns (soft-locked quantities)
+    // Only subtract PENDING returns (soft-locked). Accepted returns already reduced staff_store.quantity.
     const { data: returnedItems, error: returnError } = await supabaseAdmin
       .from('returned_items')
       .select('item_id, quantity, status')
       .eq('requester_staff_id', actualId)
-      .in('status', ['pending', 'accepted']);
+      .eq('status', 'pending');
 
     if (returnError) throw returnError;
 

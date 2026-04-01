@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       .from('returned_items')
       .select('item_id, quantity')
       .eq('requester_staff_id', authResult.id)
-      .in('status', ['pending', 'accepted']),
+      .eq('status', 'pending'),
   ]);
 
   const { data, error } = storeResult;

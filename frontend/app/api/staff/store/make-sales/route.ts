@@ -36,12 +36,13 @@ export async function POST(req: NextRequest) {
       }
 
       // Subtract any quantities locked in pending/accepted returns
+      // Only pending returns are soft-locked; accepted returns are already deducted from staff_store.quantity
       const { data: pendingReturns } = await supabaseAdmin
         .from('returned_items')
         .select('quantity')
         .eq('requester_staff_id', authResult.id)
         .eq('item_id', item_id)
-        .in('status', ['pending', 'accepted']);
+        .eq('status', 'pending');
 
       const lockedQty = (pendingReturns || []).reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
       const quantityAvailable = (storeEntry.quantity || 0) - (storeEntry.quantity_sold || 0) - lockedQty;
