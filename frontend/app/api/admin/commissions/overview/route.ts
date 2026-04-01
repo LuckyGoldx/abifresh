@@ -49,7 +49,8 @@ export async function GET(req: NextRequest) {
       .select('staff_id, amount')
       .in('staff_id', staffIds)
       .eq('payment_type', 'commission')
-      .in('status', ['paid', 'approved']);
+      .in('status', ['paid', 'approved'])
+      .not('paid_by', 'is', null);
 
     (paymentsData || []).forEach((p: any) => {
       const id = p.staff_id;
