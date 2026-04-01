@@ -52,9 +52,9 @@ export default function ExpensesPage() {
     setSubmitting(true);
     
     try {
-      await api.post('/api/sales/expenses/create', {
+      await api.post('/api/sales/expenses', {
         amount: parseFloat(amount),
-        category,
+        expense_type: category,
         description,
         expense_date: expenseDate
       });
