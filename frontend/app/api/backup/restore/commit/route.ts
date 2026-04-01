@@ -29,7 +29,7 @@ function parseGeneratedColumnError(msg: string): string | null {
 export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
-  if (!hasRole(authResult.role, 'admin')) {
+  if (!hasRole(authResult.role, 'superadmin')) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
