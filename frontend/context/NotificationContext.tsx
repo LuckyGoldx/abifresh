@@ -96,7 +96,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const markAllAsRead = useCallback(async () => {
     try {
       // Call bulk mark-all-read endpoint (marks DB notifications + sets last_notifications_read_at)
-      await api.put('/api/notifications/mark-all-read');
+      await api.put('/api/notifications/mark-read');
 
       // Update local state immediately
       setNotifications((prev) =>
