@@ -115,9 +115,9 @@ export default function Sidebar({ menuItems, role, isOpen = true, setIsOpen }: S
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
-                {!isNotifications && (item.badge || 0) > 0 && (
+                {!isNotifications && (item.badge ?? 0) > 0 && (
                   <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                    {item.badge > 99 ? '99+' : item.badge}
+                    {(item.badge ?? 0) > 99 ? '99+' : item.badge}
                   </span>
                 )}
               </Link>
