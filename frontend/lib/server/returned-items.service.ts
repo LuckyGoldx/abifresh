@@ -75,7 +75,7 @@ export class ReturnedItemsService {
     for (const item of items) {
       const { data: staffStoreItem, error: storeError } = await supabaseAdmin
         .from('staff_store')
-        .select('*')
+        .select('quantity, quantity_sold')
         .eq('staff_id', actualRequesterStaffId)
         .eq('item_id', item.item_id)
         .single();
@@ -84,7 +84,9 @@ export class ReturnedItemsService {
       if (!staffStoreItem) throw new Error(`Item not found in your store: ${item.item_id}`);
 
       const lockedQty = lockedQuantities.get(item.item_id) || 0;
-      const actualAvailable = Math.max(0, (staffStoreItem.quantity_available || 0) - lockedQty);
+      // Use real-time quantity - quantity_sold (not stale quantity_available column)
+      const netAvailable = (staffStoreItem.quantity || 0) - (staffStoreItem.quantity_sold || 0);
+      const actualAvailable = Math.max(0, netAvailable - lockedQty);
 
       if (actualAvailable < item.quantity) {
         throw new Error(
@@ -307,17 +309,18 @@ export class ReturnedItemsService {
   async getAvailableItemsForReturn(requesterStaffId: string): Promise<any[]> {
     const actualId = await this.resolveStaffIdToUUID(requesterStaffId);
 
+    // Use quantity - quantity_sold for real-time available stock (quantity_available column is stale)
     const { data: staffStoreItems, error: storeError } = await supabaseAdmin
       .from('staff_store')
       .select(`
-        *,
+        id, item_id, quantity, quantity_sold,
         item:item_id(id, name, price_jalingo)
       `)
-      .eq('staff_id', actualId)
-      .gt('quantity_available', 0);
+      .eq('staff_id', actualId);
 
     if (storeError) throw storeError;
 
+    // Subtract pending/accepted returns (soft-locked quantities)
     const { data: returnedItems, error: returnError } = await supabaseAdmin
       .from('returned_items')
       .select('item_id, quantity, status')
@@ -335,7 +338,9 @@ export class ReturnedItemsService {
     const availableItems = (staffStoreItems || [])
       .map((item: any) => {
         const lockedQty = lockedQuantities.get(item.item_id) || 0;
-        const remainingQty = Math.max(0, (item.quantity_available || 0) - lockedQty);
+        // Real-time available = quantity - quantity_sold - pending/accepted returns
+        const netAvailable = (item.quantity || 0) - (item.quantity_sold || 0);
+        const remainingQty = Math.max(0, netAvailable - lockedQty);
         
         const sellingPrice = item.item?.price_jalingo || 0;
         

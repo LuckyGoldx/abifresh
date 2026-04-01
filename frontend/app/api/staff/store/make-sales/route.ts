@@ -35,7 +35,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Item ${item_id} not found in your store` }, { status: 404 });
       }
 
-      const quantityAvailable = (storeEntry.quantity || 0) - (storeEntry.quantity_sold || 0);
+      // Subtract any quantities locked in pending/accepted returns
+      const { data: pendingReturns } = await supabaseAdmin
+        .from('returned_items')
+        .select('quantity')
+        .eq('requester_staff_id', authResult.id)
+        .eq('item_id', item_id)
+        .in('status', ['pending', 'accepted']);
+
+      const lockedQty = (pendingReturns || []).reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
+      const quantityAvailable = (storeEntry.quantity || 0) - (storeEntry.quantity_sold || 0) - lockedQty;
       if (quantityAvailable < quantity) {
         return NextResponse.json(
           { error: `Insufficient stock. Available: ${quantityAvailable}, Requested: ${quantity}` },
