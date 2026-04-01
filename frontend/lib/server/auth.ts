@@ -56,7 +56,7 @@ export async function verifyAuth(req: NextRequest): Promise<AuthUser | NextRespo
   if (isValidUUID) {
     const result = await supabaseAdmin
       .from('users')
-      .select('id, email, is_active, full_name')
+      .select('id, email, is_active, full_name, role')
       .eq('id', decoded.sub)
       .single();
     dbUser = result.data;
@@ -64,7 +64,7 @@ export async function verifyAuth(req: NextRequest): Promise<AuthUser | NextRespo
   } else if (decoded.email) {
     const result = await supabaseAdmin
       .from('users')
-      .select('id, email, is_active, full_name')
+      .select('id, email, is_active, full_name, role')
       .eq('email', decoded.email)
       .single();
     dbUser = result.data;
@@ -85,7 +85,7 @@ export async function verifyAuth(req: NextRequest): Promise<AuthUser | NextRespo
   return {
     id: dbUser.id,
     email: dbUser.email,
-    role: decoded.role,
+    role: dbUser.role,
     full_name: dbUser.full_name ?? undefined,
   };
 }

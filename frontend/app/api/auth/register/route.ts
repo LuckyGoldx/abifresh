@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
-import { generateToken } from '@/lib/server/auth';
+import { verifyAuth, hasRole } from '@/lib/server/auth';
 
 export async function POST(req: NextRequest) {
+  const authResult = await verifyAuth(req);
+  if (authResult instanceof NextResponse) return authResult;
+  if (!hasRole(authResult.role, 'admin')) {
+    return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     const { email, password, full_name, role, store_location, username, phone_number } = body;
