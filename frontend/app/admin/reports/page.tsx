@@ -73,7 +73,7 @@ export default function ComprehensiveReportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'expenses' | 'inventory' | 'performance'>('overview');
   const [filters, setFilters] = useState<ReportFilters>({
-    dateRange: 'month',
+    dateRange: 'year',
   });
   const [selectedMetric, setSelectedMetric] = useState<'revenue' | 'items' | 'profit'>('revenue');
   const [staff, setStaff] = useState<any[]>([]);

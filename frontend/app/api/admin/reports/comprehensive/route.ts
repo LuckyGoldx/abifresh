@@ -34,6 +34,9 @@ export async function GET(req: NextRequest) {
     case 'year':
       from = new Date(now.getFullYear(), 0, 1);
       break;
+    case 'all':
+      from = new Date('1900-01-01');
+      break;
     case 'custom':
       if (customFrom) from = new Date(customFrom);
       if (customTo) to = new Date(customTo);
@@ -74,7 +77,7 @@ export async function GET(req: NextRequest) {
     .select('*, items(id, name, category)')
     .in('receipt_id', receipts.map((r: any) => r.id));
 
-  // Fetch expenses
+  // Fetch expenses (use same date range as receipts for consistency)
   let expensesQuery = supabaseAdmin
     .from('staff_expenses')
     .select('*')
