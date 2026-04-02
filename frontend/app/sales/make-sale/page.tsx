@@ -96,6 +96,7 @@ export default function MakeSalePage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -340,6 +341,7 @@ export default function MakeSalePage() {
   };
 
   const handlePostItems = async () => {
+    if (isPosting) return;
     if (!selectedStaffForPost || cart.length === 0) {
       setToast({ message: 'Please select a staff member and add items', type: 'error' });
       return;
@@ -350,6 +352,7 @@ export default function MakeSalePage() {
       return;
     }
 
+    setIsPosting(true);
     try {
       const postData = {
         staff_id: selectedStaffForPost,
@@ -369,11 +372,14 @@ export default function MakeSalePage() {
       setCart([]);
       setSelectedStaffForPost(null);
       setShowPostModal(false);
+      setShowMobileCartModal(false);
       setGlobalOutsideJalingo(false);
       setGlobalPaymentMethod('cash');
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'Failed to post items';
       setToast({ message: errorMsg, type: 'error' });
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -813,16 +819,22 @@ export default function MakeSalePage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowPostModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                  disabled={isPosting}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handlePostItems}
-                  disabled={!selectedStaffForPost}
-                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50"
+                  disabled={!selectedStaffForPost || isPosting}
+                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Post Items
+                  {isPosting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      Posting...
+                    </>
+                  ) : 'Post Items'}
                 </button>
               </div>
             </div>

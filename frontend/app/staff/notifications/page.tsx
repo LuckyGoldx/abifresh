@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useNotifications } from '@/context/NotificationContext';
 import { useToast } from '@/context/ToastContext';
 import { Bell, CheckCircle, CreditCard, Package, RotateCcw } from 'lucide-react';
+import { formatTimestamp } from '@/lib/format-quantity';
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -176,7 +177,7 @@ export default function NotificationsPage() {
                     </p>
                   )}
                   <p className="text-xs text-gray-500">
-                    {new Date(notification.timestamp).toLocaleString()}
+                    {formatTimestamp(notification.timestamp)}
                   </p>
                 </div>
               </div>

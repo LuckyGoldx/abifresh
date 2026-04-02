@@ -38,7 +38,7 @@ interface StoreStats {
   total_value: number;
 }
 
-type StoreView = 'all' | 'main' | 'active' | 'unavailable' | 'low-stocks' | 'out-of-stock';
+type StoreView = 'all' | 'main' | 'active' | 'unavailable' | 'low-stocks' | 'out-of-stock' | 'half-bags';
 type ModalType = 'add' | 'edit' | 'transfer' | null;
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -348,6 +348,14 @@ export default function ComprehensiveInventoryPage() {
         return totalQty === 0;
       });
     }
+
+    // Filter by half-bag quantities (any store quantity has a .5 fractional part)
+    if (storeView === 'half-bags') {
+      result = result.filter(item =>
+        item.main_store_quantity % 1 !== 0 ||
+        item.active_store_quantity % 1 !== 0
+      );
+    }
     
     // Filter by search query
     if (searchQuery.trim()) {
@@ -648,6 +656,16 @@ export default function ComprehensiveInventoryPage() {
               }`}
             >
               Low Stocks
+            </button>
+            <button
+              onClick={() => setStoreView('half-bags')}
+              className={`px-4 py-2 rounded font-semibold transition ${
+                storeView === 'half-bags'
+                  ? 'bg-pink-600 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 hover:border-pink-600 dark:hover:border-pink-500'
+              }`}
+            >
+              ½ Stocks
             </button>
           </div>
 

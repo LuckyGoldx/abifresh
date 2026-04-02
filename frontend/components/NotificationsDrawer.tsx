@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useNotifications } from '@/context/NotificationContext';
 import { Bell, CheckCircle, AlertCircle, X, CreditCard, Package, RotateCcw } from 'lucide-react';
+import { formatTimestamp } from '@/lib/format-quantity';
 
 interface NotificationsDrawerProps {
   isOpen: boolean;
@@ -197,7 +198,7 @@ export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDr
                       </p>
                     )}
                     <p className="text-xs text-gray-500">
-                      {new Date(notification.timestamp).toLocaleString()}
+                      {formatTimestamp(notification.timestamp)}
                     </p>
                   </div>
                 </div>

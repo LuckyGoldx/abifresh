@@ -89,6 +89,7 @@ export default function PostItemsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
 
@@ -242,6 +243,8 @@ export default function PostItemsPage() {
   };
 
   const confirmPostItems = async () => {
+    if (isPosting) return;
+    setIsPosting(true);
     try {
       const postData = {
         staff_id: selectedStaff,
@@ -268,6 +271,8 @@ export default function PostItemsPage() {
       const errorMsg = error.response?.data?.error || 'Failed to post items';
       setToast({ message: errorMsg, type: 'error' });
       setShowConfirmation(false);
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -714,16 +719,27 @@ export default function PostItemsPage() {
               <div className="flex gap-4">
                 <button
                   onClick={() => setShowConfirmation(false)}
-                  className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold transition"
+                  disabled={isPosting}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmPostItems}
-                  className="flex-1 px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
+                  disabled={isPosting}
+                  className="flex-1 px-6 py-3 bg-pink-600 hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition flex items-center justify-center gap-2"
                 >
-                  <Send className="w-5 h-5" />
-                  Confirm & Post
+                  {isPosting ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      Posting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5" />
+                      Confirm & Post
+                    </>
+                  )}
                 </button>
               </div>
             </div>
