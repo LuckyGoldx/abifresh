@@ -143,7 +143,7 @@ export default function StaffDashboard() {
           <div className="flex-1 min-w-0">
             <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">Today's Sales</p>
             <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">{todaysItemsSold}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 truncate">{todaysTotalUnits} units</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 truncate">{formatQty(todaysTotalUnits)} units</p>
           </div>
         </div>
         
@@ -161,7 +161,7 @@ export default function StaffDashboard() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">Total Items Sold</p>
-            <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">{dashboard?.total_items_sold || 0}</p>
+            <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">{formatQty(dashboard?.total_items_sold || 0)}</p>
             <p className="text-xs text-gray-500 dark:text-gray-500 truncate">Total units sold</p>
           </div>
         </div>
