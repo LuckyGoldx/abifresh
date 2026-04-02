@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { Package, DollarSign, TrendingUp, AlertCircle, Bell, CheckCircle2, ShoppingBag } from 'lucide-react';
+import { formatQty } from '@/lib/format-quantity';
 
 interface StaffDashboard {
   total_items_sold: number;
@@ -310,7 +311,7 @@ export default function StaffDashboard() {
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">{sale.quantity}</td>
+                    <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">{formatQty(sale.quantity)}</td>
                     {/* unit_price here is the actual sold price: price_jalingo or price_outside+logistics. Not items.unit_price (purchase cost). */}
                     <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-300">₦{(sale.unit_price || 0).toLocaleString()}</td>
                     <td className="py-3 px-4 text-right font-bold text-pink-600 dark:text-pink-400">₦{(sale.total_amount || 0).toLocaleString()}</td>

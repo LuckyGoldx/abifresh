@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatQty } from '@/lib/format-quantity';
 import * as XLSX from 'xlsx';
 import { useAuthStore } from '@/store/auth';
 import LoadingLogo from '@/components/LoadingLogo';
@@ -999,7 +1000,7 @@ export default function RestockOrdersPage() {
                             </div>
                           </div>
                           <div className="text-center px-3">
-                            <p className={`text-lg font-bold ${totalQty < 50 ? 'text-red-600' : totalQty < 100 ? 'text-orange-500' : 'text-green-600'}`}>{totalQty}</p>
+                            <p className={`text-lg font-bold ${totalQty < 50 ? 'text-red-600' : totalQty < 100 ? 'text-orange-500' : 'text-green-600'}`}>{formatQty(totalQty)}</p>
                             <p className="text-[10px] text-gray-400 uppercase">in stock</p>
                           </div>
                           {!inOrder && (

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { CheckCircle, Package } from 'lucide-react';
+import { formatQty } from '@/lib/format-quantity';
 
 interface Item {
   id: string;
@@ -70,7 +71,7 @@ export default function AvailableItemsPage() {
             </div>
             <div className="flex justify-between items-center mt-4">
               <p className="text-2xl font-bold text-pink-600">₦{(item.price_jalingo || 0).toLocaleString()}</p>
-              <p className="text-sm text-green-600 dark:text-green-400">Stock: {item.active_store_quantity}</p>
+              <p className="text-sm text-green-600 dark:text-green-400">Stock: {formatQty(item.active_store_quantity)}</p>
             </div>
           </div>
         ))}

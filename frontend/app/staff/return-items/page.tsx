@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { Plus, Trash2, X, Check, Clock, AlertCircle, Eye, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatQty } from '@/lib/format-quantity';
 
 interface AvailableItem {
   id: string;
@@ -148,14 +149,19 @@ export default function ReturnItemsPage() {
     const item = availableItems.find((i) => i.id === itemId);
     if (!item) return;
 
-    // Validate: quantity must be between 1 and available_quantity
-    if (quantity < 1) {
-      toast.error('Quantity must be at least 1');
+    // Validate: quantity must be a positive multiple of 0.5
+    if (quantity < 0.5) {
+      toast.error('Quantity must be at least 0.5');
+      return;
+    }
+
+    if (Math.round(quantity * 2) / 2 !== quantity) {
+      toast.error('Quantity must be in multiples of 0.5 (e.g. 0.5, 1, 1.5, 2…)');
       return;
     }
 
     if (quantity > item.available_quantity) {
-      toast.error(`Maximum available: ${item.available_quantity}`);
+      toast.error(`Maximum available: ${formatQty(item.available_quantity)}`);
       return;
     }
 
@@ -278,7 +284,7 @@ export default function ReturnItemsPage() {
             Available for Return
           </p>
           <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-            {stats.available_for_return}
+            {formatQty(stats.available_for_return)}
           </p>
           <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
             📦 Items in your store
@@ -345,7 +351,7 @@ export default function ReturnItemsPage() {
                         {request.item_name}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                        {request.quantity}
+                        {formatQty(request.quantity)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                         {request.receiver_name}
@@ -491,7 +497,7 @@ export default function ReturnItemsPage() {
                             {item.name}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            ₦{item.unit_price.toLocaleString()} | Available: {remainingQuantity}
+                            ₦{item.unit_price.toLocaleString()} | Available: {formatQty(remainingQuantity)}
                           </p>
                         </div>
                       </div>
@@ -523,19 +529,20 @@ export default function ReturnItemsPage() {
                         <div className="flex items-center gap-3">
                           <input
                             type="number"
-                            min="1"
-                            max={item?.available_quantity || 1}
+                            min="0.5"
+                            step="0.5"
+                            max={item?.available_quantity || 0.5}
                             value={selectedItem.quantity}
                             onChange={(e) =>
                               handleQuantityChange(
                                 selectedItem.item_id,
-                                parseInt(e.target.value) || 1
+                                parseFloat(e.target.value) || 0.5
                               )
                             }
                             className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500"
                           />
                           <span className="text-sm text-gray-600 dark:text-gray-400">
-                            / {item?.available_quantity}
+                            / {formatQty(item?.available_quantity || 0)}
                           </span>
                           <button
                             onClick={() => handleRemoveItem(selectedItem.item_id)}
@@ -556,7 +563,7 @@ export default function ReturnItemsPage() {
             {selectedItems.length > 0 && (
               <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Total items to return: <span className="font-bold text-gray-900 dark:text-white">{selectedItems.reduce((sum, i) => sum + i.quantity, 0)}</span>
+                  Total items to return: <span className="font-bold text-gray-900 dark:text-white">{formatQty(selectedItems.reduce((sum, i) => sum + i.quantity, 0))}</span>
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   Total value: <span className="font-bold text-gray-900 dark:text-white">₦{selectedItems.reduce((sum, i) => sum + i.quantity * i.unit_price, 0).toLocaleString()}</span>
@@ -629,7 +636,7 @@ export default function ReturnItemsPage() {
                       Quantity
                     </p>
                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {selectedDetailRequest.quantity} units
+                      {formatQty(selectedDetailRequest.quantity)} units
                     </p>
                   </div>
                   <div>

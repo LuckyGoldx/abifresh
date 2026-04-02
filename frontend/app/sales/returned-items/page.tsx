@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { Check, X, AlertCircle, CheckCircle, Clock, Eye, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatQty } from '@/lib/format-quantity';
 
 interface ReturnedItem {
   id: string;
@@ -263,7 +264,7 @@ export default function ReturnedItemsPage() {
                       {item.requester_name}
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {item.quantity}
+                      {formatQty(item.quantity)}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                       ₦{item.unit_price.toLocaleString()}
@@ -364,7 +365,7 @@ export default function ReturnedItemsPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">Quantity</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{selectedAcceptItem.quantity} units</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatQty(selectedAcceptItem.quantity)} units</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">From</p>
@@ -483,7 +484,7 @@ export default function ReturnedItemsPage() {
                       Quantity
                     </p>
                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {selectedDetailItem.quantity} units
+                      {formatQty(selectedDetailItem.quantity)} units
                     </p>
                   </div>
                   <div>

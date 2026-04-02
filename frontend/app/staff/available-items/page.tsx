@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Package, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { formatQty } from '@/lib/format-quantity';
 
 interface PostedItem {
   id: string;
@@ -169,7 +170,7 @@ export default function AvailableItemsPage() {
                     Posted by: {item.posted_by}
                   </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Quantity: <span className="font-bold">{item.quantity}</span>
+                    Quantity: <span className="font-bold">{formatQty(item.quantity)}</span>
                   </p>
                   {item.notes && (
                     <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 italic">
@@ -223,7 +224,7 @@ export default function AvailableItemsPage() {
                 {acceptedItems.map((item) => (
                   <tr key={item.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="py-3 px-4 font-medium">{item.item_name}</td>
-                    <td className="py-3 px-4 font-bold">{item.quantity}</td>
+                    <td className="py-3 px-4 font-bold">{formatQty(item.quantity)}</td>
                     <td className="py-3 px-4 text-sm">{item.posted_by}</td>
                     <td className="py-3 px-4 text-sm">
                       {new Date(item.posted_at).toLocaleDateString()}
@@ -253,7 +254,7 @@ export default function AvailableItemsPage() {
             {rejectedItems.map((item) => (
               <div key={item.id} className="border dark:border-gray-700 p-4 rounded">
                 <h3 className="font-bold text-gray-800 dark:text-white">{item.item_name}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Quantity: {item.quantity}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Quantity: {formatQty(item.quantity)}</p>
                 {item.staff_comment && (
                   <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
                     Reason: {item.staff_comment}

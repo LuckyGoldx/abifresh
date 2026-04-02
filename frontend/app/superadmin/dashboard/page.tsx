@@ -6,6 +6,7 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import api from '@/lib/api';
 import { Users, DollarSign, Package, TrendingUp, Search, Eye, X, ShoppingCart, Wallet, Clock, Banknote, ArrowRightLeft, Shield, Activity, AlertTriangle, Server, UserCheck, UserX, Database } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { formatQty } from '@/lib/format-quantity';
 
 interface DashboardStats {
   today_sales: number;
@@ -336,7 +337,7 @@ export default function SuperAdminDashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={Users} title="Total Staff" value={stats.total_staff} color="bg-violet-500" onClick={() => router.push('/superadmin/staff')} />
             <StatCard icon={UserCheck} title="Active Users" value={stats.active_users} color="bg-teal-500" />
-            <StatCard icon={ShoppingCart} title="Total Items Sold" value={stats.total_items} color="bg-sky-500" />
+            <StatCard icon={ShoppingCart} title="Total Items Sold" value={formatQty(stats.total_items)} color="bg-sky-500" />
             <StatCard icon={TrendingUp} title="Total Transactions" value={stats.total_sales} color="bg-indigo-500" />
           </div>
 
@@ -405,7 +406,7 @@ export default function SuperAdminDashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             <StatCard icon={Banknote} title="Today's Sales Amount" value={`₦${stats.today_amount.toLocaleString()}`} color="bg-emerald-600" />
             <StatCard icon={ArrowRightLeft} title="Today's Transactions" value={stats.today_sales} color="bg-cyan-500" />
-            <StatCard icon={Package} title="Today's Items Sold" value={stats.today_items || 0} color="bg-indigo-500" />
+            <StatCard icon={Package} title="Today's Items Sold" value={formatQty(stats.today_items || 0)} color="bg-indigo-500" />
           </div>
 
           {/* Receipts Table */}
@@ -646,7 +647,7 @@ export default function SuperAdminDashboard() {
                   { label: 'Total Receipts', value: receipts.length },
                   { label: 'Total Revenue', value: `₦${stats.total_amount.toLocaleString()}` },
                   { label: 'Pending Payments', value: stats.pending_approvals },
-                  { label: 'Items Sold', value: stats.total_items },
+                  { label: 'Items Sold', value: formatQty(stats.total_items) },
                 ].map(item => (
                   <div key={item.label} className="flex justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
                     <span className="text-gray-600 dark:text-gray-400 text-sm">{item.label}</span>
@@ -717,7 +718,7 @@ export default function SuperAdminDashboard() {
                 </div>
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Items ({(selectedReceipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0)})</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Items ({formatQty((selectedReceipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0))})</h3>
                 <div className="space-y-2 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   {selectedReceipt.receipt_items && selectedReceipt.receipt_items.length > 0 ? (
                     selectedReceipt.receipt_items.map((item, index) => (
@@ -726,7 +727,7 @@ export default function SuperAdminDashboard() {
                           <p className="font-semibold text-gray-900 dark:text-white">
                             {typeof item.item_id === 'object' && item.item_id?.name ? item.item_id.name : 'Unknown Item'}
                           </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Qty: {item.quantity} × ₦{(item.unit_price || 0).toLocaleString()}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Qty: {formatQty(item.quantity)} × ₦{(item.unit_price || 0).toLocaleString()}</p>
                         </div>
                         <p className="font-bold text-gray-900 dark:text-white">₦{((item.unit_price || 0) * item.quantity).toLocaleString()}</p>
                       </div>

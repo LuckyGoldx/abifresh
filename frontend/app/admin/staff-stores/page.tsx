@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Package, TrendingUp, Users, ShoppingCart, BarChart3, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { formatQty } from '@/lib/format-quantity';
 
 interface StaffStoreItem {
   id: string;
@@ -325,10 +326,10 @@ export default function AdminStaffStorePage() {
                       {stat.staff_role === 'commission_staff' ? 'Commission' : 'Non-Commission'}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-right font-semibold">{stat.total_items}</td>
-                  <td className="py-3 px-4 text-right font-semibold">{stat.total_quantity.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-right text-green-600 dark:text-green-400 font-semibold">{stat.total_sold.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-right text-orange-600 dark:text-orange-400 font-semibold">{stat.available.toLocaleString()}</td>
+                  <td className="py-3 px-4 text-right font-semibold">{formatQty(stat.total_items)}</td>
+                  <td className="py-3 px-4 text-right font-semibold">{formatQty(stat.total_quantity)}</td>
+                  <td className="py-3 px-4 text-right text-green-600 dark:text-green-400 font-semibold">{formatQty(stat.total_sold)}</td>
+                  <td className="py-3 px-4 text-right text-orange-600 dark:text-orange-400 font-semibold">{formatQty(stat.available)}</td>
                   <td className="py-3 px-4 text-right text-indigo-600 dark:text-indigo-400 font-semibold">₦{(stat.total_amount_sold || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
                   <td className="py-3 px-4 text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -386,11 +387,11 @@ export default function AdminStaffStorePage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-6 border-b dark:border-gray-700">
             <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded">
               <p className="text-xs text-blue-700 dark:text-blue-300">Total Items</p>
-              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{staffDetails.total_items || 0}</p>
+              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{formatQty(staffDetails.total_items || 0)}</p>
             </div>
             <div className="bg-purple-50 dark:bg-purple-900 p-3 rounded">
               <p className="text-xs text-purple-700 dark:text-purple-300">Total Qty</p>
-              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{(staffDetails.total_quantity || 0).toLocaleString()}</p>
+              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{formatQty(staffDetails.total_quantity || 0)}</p>
             </div>
             <div className="bg-green-50 dark:bg-green-900 p-3 rounded">
               <p className="text-xs text-green-700 dark:text-green-300">Sold</p>
@@ -476,9 +477,9 @@ export default function AdminStaffStorePage() {
                         </div>
                       )}
                     </td>
-                    <td className="py-2 px-3 text-right font-semibold">{item.quantity || 0}</td>
-                    <td className="py-2 px-3 text-right text-green-600 dark:text-green-400">{item.quantity_sold || 0}</td>
-                    <td className="py-2 px-3 text-right text-orange-600 dark:text-orange-400 font-semibold">{item.quantity_available || 0}</td>
+                    <td className="py-2 px-3 text-right font-semibold">{formatQty(item.quantity || 0)}</td>
+                    <td className="py-2 px-3 text-right text-green-600 dark:text-green-400">{formatQty(item.quantity_sold || 0)}</td>
+                    <td className="py-2 px-3 text-right text-orange-600 dark:text-orange-400 font-semibold">{formatQty(item.quantity_available || 0)}</td>
                   </tr>
                 ))}
               </tbody>

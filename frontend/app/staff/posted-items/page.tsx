@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Package, CheckCircle, XCircle, MessageSquare, User, Calendar } from 'lucide-react';
+import { formatQty } from '@/lib/format-quantity';
 
 interface PostedItem {
   id: string;
@@ -151,7 +152,7 @@ export default function PostedItemsPage() {
                   <td className="py-3 px-4 font-medium">{item.item_name}</td>
                   <td className="py-3 px-4">
                     <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded font-semibold">
-                      {item.quantity}
+                      {formatQty(item.quantity)}
                     </span>
                   </td>
                   <td className="py-3 px-4">
@@ -216,7 +217,7 @@ export default function PostedItemsPage() {
                 <strong>Item:</strong> {selectedItem.item_name}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                <strong>Quantity:</strong> {selectedItem.quantity}
+                <strong>Quantity:</strong> {formatQty(selectedItem.quantity)}
               </p>
               
               <label className="block text-sm font-medium mb-2">

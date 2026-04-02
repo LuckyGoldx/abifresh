@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { CreditCard, CheckCircle, Clock, XCircle, Search, Filter, BarChart3, TrendingUp, Eye, Download, X, FileText, Phone, MapPin } from 'lucide-react';
 import LoadingLogo from '@/components/LoadingLogo';
+import { formatQty } from '@/lib/format-quantity';
 
 interface PaymentItem {
   item_id: string;
@@ -626,7 +627,7 @@ export default function PaymentsPage() {
                       <div key={idx} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded">
                         <div>
                           <p className="font-semibold text-gray-800 dark:text-white">{item.item_name}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Quantity: {item.quantity}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Quantity: {formatQty(item.quantity)}</p>
                         </div>
                         <p className="font-bold text-lg text-orange-600">₦{item.amount.toLocaleString()}</p>
                       </div>

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { FileText, Download, Printer, Search, Filter, Eye, X, ChevronDown } from 'lucide-react';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
+import { formatQty } from '@/lib/format-quantity';
 
 interface ReceiptItem {
   id: string;
@@ -697,7 +698,7 @@ export default function AdminReceiptsPage() {
                       return (
                         <div key={idx} className="grid grid-cols-4 gap-4 p-4 text-sm text-gray-700 dark:text-gray-300">
                           <div>{itemName}</div>
-                          <div className="text-center">{item.quantity}</div>
+                          <div className="text-center">{formatQty(item.quantity)}</div>
                           <div className="text-right">₦{correctPrice.toLocaleString()}</div>
                           <div className="text-right font-semibold text-gray-900 dark:text-white">
                             ₦{(correctPrice * item.quantity).toLocaleString()}

@@ -359,6 +359,7 @@ export class ReturnedItemsService {
 
   /**
    * Get all returned items for a requester staff (their own return requests)
+   * CRITICAL: Uses price_jalingo (selling price), NOT unit_price (cost price)
    */
   async getReturnsByRequester(requesterStaffId: string): Promise<any[]> {
     const actualId = await this.resolveStaffIdToUUID(requesterStaffId);
@@ -366,7 +367,7 @@ export class ReturnedItemsService {
       .from('returned_items')
       .select(`
         *,
-        item:item_id(id, name, unit_price),
+        item:item_id(id, name, price_jalingo),
         receiver:receiver_staff_id(id, full_name)
       `)
       .eq('requester_staff_id', actualId)
@@ -379,7 +380,7 @@ export class ReturnedItemsService {
       item_id: item.item_id,
       item_name: item.item?.name || 'Unknown',
       quantity: item.quantity,
-      unit_price: item.unit_price,
+      unit_price: item.item?.price_jalingo || 0,  // Display price_jalingo (selling price), not cost price
       status: item.status,
       reject_reason: item.reject_reason,
       receiver_name: item.receiver?.full_name || 'Unknown',
@@ -390,6 +391,7 @@ export class ReturnedItemsService {
 
   /**
    * Get all returned items sent to a sales staff (items they need to accept/reject)
+   * CRITICAL: Uses price_jalingo (selling price), NOT unit_price (cost price)
    */
   async getReturnsForReceiver(receiverSalesStaffId: string): Promise<any[]> {
     const actualId = await this.resolveStaffIdToUUID(receiverSalesStaffId);
@@ -397,7 +399,7 @@ export class ReturnedItemsService {
       .from('returned_items')
       .select(`
         *,
-        item:item_id(id, name, unit_price),
+        item:item_id(id, name, price_jalingo),
         requester:requester_staff_id(id, full_name)
       `)
       .eq('receiver_staff_id', actualId)
@@ -410,7 +412,7 @@ export class ReturnedItemsService {
       item_id: item.item_id,
       item_name: item.item?.name || 'Unknown',
       quantity: item.quantity,
-      unit_price: item.unit_price,
+      unit_price: item.item?.price_jalingo || 0,  // Display price_jalingo (selling price), not cost price
       status: item.status,
       reject_reason: item.reject_reason,
       requester_name: item.requester?.full_name || 'Unknown',
@@ -483,16 +485,20 @@ export class ReturnedItemsService {
    * Get available items in requester's staff_store for return
    * Shows items with remaining quantity after subtracting pending/accepted returns
    * Only shows items if remaining quantity > 0
+   * 
+   * CRITICAL: Uses price_jalingo (selling price) from items table
+   * NOT unit_price (cost price) from items or posted_items tables
    */
   async getAvailableItemsForReturn(requesterStaffId: string): Promise<any[]> {
     const actualId = await this.resolveStaffIdToUUID(requesterStaffId);
 
     // Get all items in staff_store with quantity_available > 0 (unsold items only)
+    // JOIN with items table to get price_jalingo (selling price)
     const { data: staffStoreItems, error: storeError } = await supabaseAdmin
       .from('staff_store')
       .select(`
         *,
-        item:item_id(id, name, unit_price)
+        item:item_id(id, name, price_jalingo)
       `)
       .eq('staff_id', actualId)
       .gt('quantity_available', 0);
@@ -522,10 +528,14 @@ export class ReturnedItemsService {
         // Use quantity_available (= quantity - quantity_sold) minus locked returns
         const remainingQty = Math.max(0, (item.quantity_available || 0) - lockedQty);
         
+        // Use price_jalingo (selling price for Jalingo) from items table
+        // NOT unit_price which is the cost price
+        const sellingPrice = item.item?.price_jalingo || 0;
+        
         return {
           id: item.item_id,
           name: item.item?.name || 'Unknown',
-          unit_price: item.item?.unit_price || 0,
+          unit_price: sellingPrice,  // Note: field named unit_price but contains price_jalingo (selling price)
           available_quantity: remainingQty,
         };
       })

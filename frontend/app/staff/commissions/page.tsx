@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { formatQty } from '@/lib/format-quantity';
 import { TrendingUp, DollarSign, CheckCircle2, Clock, Package, BarChart3, Download, Filter, ChevronDown } from 'lucide-react';
 
 interface CommissionData {
@@ -201,7 +202,7 @@ export default function CommissionStaffPage() {
               <tr style="border-bottom: 1px solid #ddd;">
                 <td style="padding: 8px;">${item.name}</td>
                 <td style="padding: 8px;">${item.sku || '-'}</td>
-                <td style="padding: 8px; text-align: right;">${item.quantity}</td>
+                <td style="padding: 8px; text-align: right;">${formatQty(item.quantity)}</td>
                 <td style="padding: 8px; text-align: right;">₦${item.commission.toLocaleString()}</td>
                 <td style="padding: 8px; text-align: right;">${item.sales}</td>
               </tr>
@@ -316,14 +317,14 @@ export default function CommissionStaffPage() {
         <StatCard
           icon={Package}
           title="Items Sold"
-          value={commissions.summary.total_items_sold}
+          value={formatQty(commissions.summary.total_items_sold)}
           color="bg-blue-500"
           subtitle="With commission"
         />
         <StatCard
           icon={TrendingUp}
           title="Units Commissioned"
-          value={commissions.summary.total_units_commissioned}
+          value={formatQty(commissions.summary.total_units_commissioned)}
           color="bg-indigo-500"
           subtitle="Total units"
         />
@@ -413,11 +414,11 @@ export default function CommissionStaffPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
                 <span className="text-gray-600 dark:text-gray-400">Items Sold</span>
-                <span className="font-bold text-lg">{commissions.summary.total_items_sold}</span>
+                <span className="font-bold text-lg">{formatQty(commissions.summary.total_items_sold)}</span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
                 <span className="text-gray-600 dark:text-gray-400">Units</span>
-                <span className="font-bold text-lg">{commissions.summary.total_units_commissioned}</span>
+                <span className="font-bold text-lg">{formatQty(commissions.summary.total_units_commissioned)}</span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-gray-200 dark:border-gray-700">
                 <span className="text-gray-600 dark:text-gray-400">Avg Commission per Item</span>
@@ -459,7 +460,7 @@ export default function CommissionStaffPage() {
                   <tr key={idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="py-3 px-4 text-gray-800 dark:text-white">{item.name}</td>
                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{item.sku || '-'}</td>
-                    <td className="py-3 px-4 text-right text-gray-800 dark:text-white">{item.quantity}</td>
+                    <td className="py-3 px-4 text-right text-gray-800 dark:text-white">{formatQty(item.quantity)}</td>
                     <td className="py-3 px-4 text-right font-semibold text-green-600">₦{item.commission.toLocaleString()}</td>
                     <td className="py-3 px-4 text-right text-gray-600 dark:text-gray-400">{item.sales}</td>
                   </tr>

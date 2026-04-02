@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth';
 import LoadingLogo from '@/components/LoadingLogo';
+import { formatQty } from '@/lib/format-quantity';
 
 interface Staff {
   id: string;
@@ -328,7 +329,7 @@ export default function StaffCommissionDetailPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 text-sm">Items Sold</p>
-              <p className="text-2xl md:text-3xl font-bold mt-2">{details.total_items_sold.toLocaleString()}</p>
+              <p className="text-2xl md:text-3xl font-bold mt-2">{formatQty(details.total_items_sold)}</p>
             </div>
             <div className="text-4xl opacity-80">📦</div>
           </div>
@@ -436,7 +437,7 @@ export default function StaffCommissionDetailPage() {
                           {item.item_name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                          {item.quantity}
+                          {formatQty(item.quantity)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
                           {formatCurrency(item.unit_price)}
@@ -509,7 +510,7 @@ export default function StaffCommissionDetailPage() {
                         {item.category}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                        {item.quantity_sold.toLocaleString()}
+                        {formatQty(item.quantity_sold)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
                         {formatCurrency(item.total_sales)}

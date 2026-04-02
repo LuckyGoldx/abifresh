@@ -7,6 +7,7 @@ import { Plus, Edit2, Trash2, ChevronRight, X, Upload, Image as ImageIcon } from
 import { PRODUCT_CATALOG, getBrandNames, getPackageTypes, getProductVariants, getBrandCategory, isOthersBrand } from '@/lib/productCatalog';
 import type { ProductVariant } from '@/lib/productCatalog';
 import { toast } from 'sonner';
+import { formatQty } from '@/lib/format-quantity';
 
 interface Item {
   id: string;
@@ -772,17 +773,17 @@ export default function ComprehensiveInventoryPage() {
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">₦{item.unit_price.toLocaleString()}</td>
                       <td className="px-4 py-3 text-center">
                         <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-sm font-semibold">
-                          {totalQty}
+                          {formatQty(totalQty)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className="inline-block bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded text-sm font-semibold">
-                          {item.active_store_quantity}
+                          {formatQty(item.active_store_quantity)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className="inline-block bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded text-sm font-semibold">
-                          {item.main_store_quantity}
+                          {formatQty(item.main_store_quantity)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-400">
@@ -886,7 +887,7 @@ function StatCard({ title, items, quantity, color, isCurrency, onClick, isActive
 
   const displayQuantity = isCurrency 
     ? `₦${quantity.toLocaleString()}` 
-    : quantity.toLocaleString();
+    : formatQty(quantity);
 
   return (
     <div 
@@ -904,7 +905,7 @@ function StatCard({ title, items, quantity, color, isCurrency, onClick, isActive
             {displayQuantity}
           </p>
           {totalQuantity !== undefined && (
-            <p className="text-sm font-semibold text-center">{totalQuantity.toLocaleString()} Units</p>
+            <p className="text-sm font-semibold text-center">{formatQty(totalQuantity)} Units</p>
           )}
         </div>
       ) : (

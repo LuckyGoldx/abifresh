@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { api } from '@/lib/api';
 import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag, X, Search } from 'lucide-react';
+import { formatQty } from '@/lib/format-quantity';
 
 /**
  * Convert any image URL (old Supabase public URL or new proxy path) to a working proxy URL.
@@ -345,7 +346,7 @@ export default function AdminPostItemsPage() {
                   )}
                   
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{item.category} • {item.sku}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2">📊 Stock: {item.active_store_quantity}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2">📊 Stock: {formatQty(item.active_store_quantity)}</p>
                   
                   <p className="text-lg font-bold text-pink-600 mt-auto pt-2">₦{(item.price_jalingo || 0).toLocaleString()}</p>
                 </div>

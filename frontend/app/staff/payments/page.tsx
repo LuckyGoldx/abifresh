@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { formatQty } from '@/lib/format-quantity';
 import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, User, Phone, X, Eye, Maximize2, Download } from 'lucide-react';
 
 interface Payment {
@@ -317,23 +318,14 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <CreditCard className="w-8 h-8 text-pink-500" />
-            Payment Management
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Submit payment for items sold
-          </p>
-        </div>
-        <button
-          onClick={() => setShowPaymentForm(!showPaymentForm)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          New Payment
-        </button>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+          <CreditCard className="w-8 h-8 text-pink-500" />
+          Payment Management
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
+          Submit payment for items sold
+        </p>
       </div>
 
       {/* Summary Cards */}
@@ -344,7 +336,7 @@ export default function PaymentsPage() {
             <div>
               <p className="text-sm text-purple-700 dark:text-purple-200">Total Items Sold</p>
               <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                {stats.allTimeQuantity || 0} units
+                {formatQty(stats.allTimeQuantity || 0)} units
               </p>
               <p className="text-xs text-purple-600 dark:text-purple-300 mt-1">
                 Unpaid items
@@ -408,6 +400,16 @@ export default function PaymentsPage() {
         </div>
       </div>
 
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowPaymentForm(!showPaymentForm)}
+          className="btn-primary flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          New Payment
+        </button>
+      </div>
+
       {/* Payment Form */}
       {showPaymentForm && (
         <div className="card">
@@ -448,7 +450,7 @@ export default function PaymentsPage() {
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">Total Items</p>
                       <p className="text-xl font-bold text-gray-800 dark:text-white">
-                        {stats.allTimeQuantity || 0} units
+                        {formatQty(stats.allTimeQuantity || 0)} units
                       </p>
                     </div>
                     <div className="text-right">
@@ -531,7 +533,7 @@ export default function PaymentsPage() {
                               </span>
                             )}
                           </td>
-                          <td className="py-2 px-3">{sale.quantity}</td>
+                          <td className="py-2 px-3">{formatQty(sale.quantity)}</td>
                           <td className="py-2 px-3 font-semibold">₦{sale.total_amount.toLocaleString()}</td>
                         </tr>
                       ))}
@@ -746,7 +748,7 @@ export default function PaymentsPage() {
                 <ul className="mt-2 space-y-1 text-sm">
                   {sales.filter(s => selectedItems.includes(s.id)).map(s => (
                     <li key={s.id}>
-                      • {s.item_name} (x{s.quantity}) - ₦{s.total_amount.toLocaleString()}
+                      • {s.item_name} (x{formatQty(s.quantity)}) - ₦{s.total_amount.toLocaleString()}
                     </li>
                   ))}
                 </ul>
@@ -960,7 +962,7 @@ export default function PaymentsPage() {
                         {selectedPaymentDetails.items_paid_for.map((item, index) => (
                           <tr key={index} className="border-b dark:border-gray-800 last:border-0">
                             <td className="py-2 text-sm">{item.item_name}</td>
-                            <td className="text-right py-2 text-sm">{item.quantity}</td>
+                            <td className="text-right py-2 text-sm">{formatQty(item.quantity)}</td>
                             <td className="text-right py-2 text-sm font-semibold">₦{item.amount.toLocaleString()}</td>
                           </tr>
                         ))}

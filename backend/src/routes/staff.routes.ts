@@ -503,19 +503,33 @@ router.post('/expenses/create', authMiddleware, async (req: AuthRequest, res: Re
       return res.status(400).json({ error: 'Amount and category are required' });
     }
 
+    // DEBUG LOGGING
+    console.log('🔍 [STAFF EXPENSE CREATE] Received request:');
+    console.log('  Raw amount:', amount, `(type: ${typeof amount})`);
+    console.log('  Parsed amount:', parseFloat(amount), `(type: ${typeof parseFloat(amount)})`);
+    console.log('  Amount string:', amount.toString());
+    console.log('  Category:', category);
+    console.log('  Expense date:', expense_date);
+
+    const parsedAmount = parseFloat(amount);
+    console.log('  Final parsed amount before service:', parsedAmount);
+
     const expense = await expensesService.createExpense({
       staff_id: req.user!.id,
       expense_type: category,
-      amount: parseFloat(amount),
+      amount: parsedAmount,
       description,
       expense_date,
     });
+
+    console.log('  ✅ Expense created with amount:', expense.expense_amount);
 
     res.status(201).json({
       expense,
       message: 'Expense recorded successfully',
     });
   } catch (error: any) {
+    console.error('  ❌ Error creating expense:', error.message);
     res.status(400).json({ error: error.message });
   }
 });

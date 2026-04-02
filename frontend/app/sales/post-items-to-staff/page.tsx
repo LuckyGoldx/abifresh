@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Send, Package, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { formatQty } from '@/lib/format-quantity';
 
 interface Staff {
   id: string;
@@ -213,7 +214,7 @@ export default function PostItemsPage() {
                   <option value="">Choose an item...</option>
                   {availableItems.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.name} - ₦{(item.price_jalingo || 0).toLocaleString()} (Available: {item.quantity})
+                      {item.name} - ₦{(item.price_jalingo || 0).toLocaleString()} (Available: {formatQty(item.quantity)})
                     </option>
                   ))}
                 </select>
@@ -235,7 +236,7 @@ export default function PostItemsPage() {
                 />
                 {selectedItem && availableItems.find(i => i.id === selectedItem) && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Available: {availableItems.find(i => i.id === selectedItem)?.quantity || 0}
+                    Available: {formatQty(availableItems.find(i => i.id === selectedItem)?.quantity || 0)}
                   </p>
                 )}
               </div>
@@ -276,7 +277,7 @@ export default function PostItemsPage() {
           <div className="card bg-purple-50 dark:bg-purple-900">
             <p className="text-sm text-purple-700 dark:text-purple-200">Items in Stock</p>
             <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-              {availableItems.reduce((sum, i) => sum + i.quantity, 0)}
+              {formatQty(availableItems.reduce((sum, i) => sum + i.quantity, 0))}
             </p>
           </div>
 
@@ -313,7 +314,7 @@ export default function PostItemsPage() {
                   <tr key={item.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="py-3 px-4 font-medium">{item.item_name}</td>
                     <td className="py-3 px-4">{item.staff_name}</td>
-                    <td className="py-3 px-4">{item.quantity}</td>
+                    <td className="py-3 px-4">{formatQty(item.quantity)}</td>
                     <td className="py-3 px-4 text-sm">
                       {new Date(item.posted_at).toLocaleDateString()}
                     </td>

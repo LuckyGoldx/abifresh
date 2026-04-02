@@ -93,8 +93,11 @@ export const validateRecordSale = [
     .notEmpty()
     .withMessage('Item ID is required'),
   body('quantity')
-    .isInt({ min: 1 })
-    .withMessage('Quantity must be a positive integer'),
+    .isFloat({ min: 0.5 })
+    .withMessage('Quantity must be at least 0.5')
+    .custom((value) => Number.isInteger(parseFloat(value) * 2))
+    .withMessage('Quantity must be a multiple of 0.5 (whole or half bags only)'),
+
   body('payment_method')
     .isIn(['cash', 'pos', 'transfer'])
     .withMessage('Payment method must be cash, pos, or transfer'),
@@ -116,8 +119,11 @@ export const validateCreateSale = [
     .notEmpty()
     .withMessage('Each item must have an item_id'),
   body('items.*.quantity')
-    .isInt({ min: 1 })
-    .withMessage('Each item must have a positive quantity'),
+    .isFloat({ min: 0.5 })
+    .withMessage('Each item quantity must be at least 0.5')
+    .custom((value) => Number.isInteger(parseFloat(value) * 2))
+    .withMessage('Each item quantity must be a multiple of 0.5 (whole or half bags only)'),
+
   body('items.*.unit_price')
     .isFloat({ min: 0 })
     .withMessage('Each item must have a valid unit_price'),

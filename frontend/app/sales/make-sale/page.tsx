@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { ShoppingCart, Plus, Minus, Trash2, X, Search, Send, Printer, Download, CheckCircle, AlertCircle } from 'lucide-react';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
+import { formatQty } from '@/lib/format-quantity';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
@@ -179,7 +180,9 @@ export default function MakeSalePage() {
   };
 
   const updateQuantity = (id: string, newQty: number | string) => {
-    let qty = typeof newQty === 'string' ? parseInt(newQty) || 0 : newQty;
+    let qty = typeof newQty === 'string' ? parseFloat(newQty) || 0 : newQty;
+    // Snap to nearest 0.5
+    qty = Math.round(qty * 2) / 2;
     const item = items.find(i => i.id === id);
     const maxQty = item?.active_store_quantity || 0;
     
@@ -206,16 +209,16 @@ export default function MakeSalePage() {
   const handleQuantityBlur = (id: string, maxQty: number) => {
     const raw = quantityInputs[id];
     if (raw === undefined) return; // no pending edit
-    const parsed = parseInt(raw);
-    if (!parsed || parsed < 1) {
-      // Reset to 1 if empty or 0
+    const parsed = parseFloat(raw);
+    if (!parsed || parsed < 0.5) {
       setCart(cart.map(cartItem =>
-        cartItem.id === id ? { ...cartItem, sale_quantity: 1 } : cartItem
+        cartItem.id === id ? { ...cartItem, sale_quantity: 0.5 } : cartItem
       ));
     } else {
-      const clamped = Math.min(parsed, maxQty);
+      // Snap to nearest 0.5, clamped to max
+      const snapped = Math.round(Math.min(parsed, maxQty) * 2) / 2;
       setCart(cart.map(cartItem =>
-        cartItem.id === id ? { ...cartItem, sale_quantity: clamped } : cartItem
+        cartItem.id === id ? { ...cartItem, sale_quantity: Math.max(0.5, snapped) } : cartItem
       ));
     }
     setQuantityInputs(prev => { const next = { ...prev }; delete next[id]; return next; });
@@ -261,7 +264,7 @@ export default function MakeSalePage() {
       return;
     }
     // Check for any invalid quantities (empty inputs or zero)
-    const invalidItem = cart.find(item => !item.sale_quantity || item.sale_quantity < 1);
+    const invalidItem = cart.find(item => !item.sale_quantity || item.sale_quantity < 0.5);
     if (invalidItem || Object.keys(quantityInputs).length > 0) {
       setToast({ message: 'Please enter valid quantities for all items', type: 'error' });
       return;
@@ -341,9 +344,9 @@ export default function MakeSalePage() {
       setToast({ message: 'Please select a staff member and add items', type: 'error' });
       return;
     }
-    const invalidPost = cart.find(item => !item.sale_quantity || item.sale_quantity < 1);
+    const invalidPost = cart.find(item => !item.sale_quantity || item.sale_quantity < 1 || item.sale_quantity % 1 !== 0);
     if (invalidPost || Object.keys(quantityInputs).length > 0) {
-      setToast({ message: 'Please enter valid quantities for all items', type: 'error' });
+      setToast({ message: 'Items must be posted in whole bags only (no half bags when posting to staff)', type: 'error' });
       return;
     }
 
@@ -387,7 +390,7 @@ export default function MakeSalePage() {
             <div className="flex justify-between items-start mb-2">
               <div className="flex-1">
                 <span className="font-semibold text-gray-900 dark:text-white">{item.name}</span>
-                <p className="text-xs text-gray-600 dark:text-gray-400">₦{getCartItemPrice(item).toLocaleString()}/unit</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">₦{getCartItemPrice(item).toLocaleString()}/bag</p>
               </div>
               <button onClick={() => removeFromCart(item.id)} className="text-red-500 hover:text-red-700 ml-2">
                 <Trash2 className="w-4 h-4" />
@@ -397,7 +400,7 @@ export default function MakeSalePage() {
             {/* Quantity Controls with Text Input */}
             <div className="flex items-center gap-2 mb-3">
               <button 
-                onClick={() => updateQuantity(item.id, item.sale_quantity - 1)} 
+                onClick={() => updateQuantity(item.id, item.sale_quantity - 0.5)} 
                 className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
               >
                 <Minus className="w-4 h-4" />
@@ -407,12 +410,13 @@ export default function MakeSalePage() {
                 value={quantityInputs[item.id] ?? item.sale_quantity}
                 onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
                 onBlur={() => handleQuantityBlur(item.id, item.active_store_quantity)}
-                min="1"
+                min="0.5"
+                step="0.5"
                 max={item.active_store_quantity}
                 className="flex-1 text-center px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white"
               />
               <button 
-                onClick={() => updateQuantity(item.id, item.sale_quantity + 1)} 
+                onClick={() => updateQuantity(item.id, item.sale_quantity + 0.5)} 
                 className="p-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
               >
                 <Plus className="w-4 h-4" />
@@ -566,7 +570,7 @@ export default function MakeSalePage() {
                   )}
                   
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{item.category} • {item.sku}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2">📊 Stock: {item.active_store_quantity}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2">📊 Stock: {formatQty(item.active_store_quantity)}</p>
                   
                   <p className="text-lg font-bold text-pink-600 mt-auto pt-2">₦{getCartItemPrice(item as CartItem).toLocaleString()}</p>
                 </div>
@@ -662,14 +666,14 @@ export default function MakeSalePage() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900 dark:text-white">{item.name}</h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          ₦{getCartItemPrice(item).toLocaleString()} × {item.sale_quantity}
+                          ₦{getCartItemPrice(item).toLocaleString()} × {formatQty(item.sale_quantity)}
                         </p>
                       </div>
                       
                       {/* Quantity Controls */}
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => updateQuantity(item.id, item.sale_quantity - 1)}
+                          onClick={() => updateQuantity(item.id, item.sale_quantity - 0.5)}
                           className="p-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500"
                         >
                           <Minus className="w-4 h-4" />
@@ -679,12 +683,13 @@ export default function MakeSalePage() {
                           value={quantityInputs[item.id] ?? item.sale_quantity}
                           onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
                           onBlur={() => handleQuantityBlur(item.id, item.active_store_quantity)}
-                          min="1"
+                          min="0.5"
+                          step="0.5"
                           max={item.active_store_quantity}
                           className="w-16 text-center px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-600 dark:text-white"
                         />
                         <button
-                          onClick={() => updateQuantity(item.id, item.sale_quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.sale_quantity + 0.5)}
                           className="p-2 bg-gray-200 dark:bg-gray-600 rounded hover:bg-gray-300 dark:hover:bg-gray-500"
                         >
                           <Plus className="w-4 h-4" />
@@ -800,7 +805,7 @@ export default function MakeSalePage() {
                 <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Items to Post:</p>
                 <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
                   {cart.map((item) => (
-                    <li key={item.id}>• {item.name} x{item.sale_quantity}</li>
+                    <li key={item.id}>• {item.name} ×{formatQty(item.sale_quantity)}</li>
                   ))}
                 </ul>
               </div>
@@ -884,7 +889,7 @@ export default function MakeSalePage() {
                     {lastReceipt.items.map((item: CartItem, idx: number) => (
                       <div key={idx} className="flex justify-between text-sm text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0">
                         <span className="flex-1 font-medium">{item.name}</span>
-                        <span className="w-16 text-right">{item.sale_quantity}</span>
+                        <span className="w-16 text-right">{formatQty(item.sale_quantity)}</span>
                         <span className="w-20 text-right">₦{getReceiptItemPrice(item).toLocaleString()}</span>
                         <span className="w-24 text-right font-bold text-gray-900 dark:text-white">₦{(getReceiptItemPrice(item) * item.sale_quantity).toLocaleString()}</span>
                       </div>

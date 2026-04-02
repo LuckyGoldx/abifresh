@@ -6,6 +6,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import api from '@/lib/api';
 import { Users, DollarSign, Package, TrendingUp, Search, Eye, X, ShoppingCart, Wallet, Clock, Banknote, ArrowRightLeft } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { formatQty } from '@/lib/format-quantity';
 
 interface DashboardStats {
   today_sales: number;
@@ -300,7 +301,7 @@ export default function AdminDashboard() {
           <StatCard
             icon={Package}
             title="Today's Items Sold"
-            value={stats.today_items || 0}
+            value={formatQty(stats.today_items || 0)}
             color="bg-indigo-500"
           />
         </div>
@@ -319,7 +320,7 @@ export default function AdminDashboard() {
           <StatCard
             icon={ShoppingCart}
             title="Total Items Sold"
-            value={stats.total_items}
+            value={formatQty(stats.total_items)}
             color="bg-sky-500"
           />
           <StatCard
@@ -487,7 +488,7 @@ export default function AdminDashboard() {
                         {receipt.payment_method}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{(receipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0)}</td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{formatQty((receipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0))}</td>
                     <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">
                       ₦{receipt.total_amount.toLocaleString()}
                     </td>
@@ -665,7 +666,7 @@ export default function AdminDashboard() {
 
               {/* Receipt Items */}
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Items ({(selectedReceipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0)})</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Items ({formatQty((selectedReceipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0))})</h3>
                 <div className="space-y-2 bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                   {selectedReceipt.receipt_items && selectedReceipt.receipt_items.length > 0 ? (
                     selectedReceipt.receipt_items.map((item, index) => (
@@ -680,7 +681,7 @@ export default function AdminDashboard() {
                               : 'Unknown Item'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity} × ₦{(
+                            Qty: {formatQty(item.quantity)} × ₦{(
                               selectedReceipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
                                 ? item.item_id.price_outside
                                 : typeof item.item_id === 'object' && item.item_id?.price_jalingo

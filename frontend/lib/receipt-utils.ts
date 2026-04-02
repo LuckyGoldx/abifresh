@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { formatQty } from '@/lib/format-quantity';
 
 /**
  * Generate a beautiful styled receipt HTML
@@ -25,7 +26,7 @@ export function generateReceiptHTML(receipt: {
       (item) => `
     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid #e5e7eb; font-size: 14px;">
       <span style="flex: 1; font-weight: 500;">${item.name}</span>
-      <span style="width: 60px; text-align: center;">${item.sale_quantity}</span>
+      <span style="width: 60px; text-align: center;">${formatQty(item.sale_quantity)}</span>
       <span style="width: 100px; text-align: right;">₦${(item.price * item.sale_quantity).toLocaleString()}</span>
     </div>
   `

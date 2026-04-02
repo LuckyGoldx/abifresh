@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth';
 import LoadingLogo from '@/components/LoadingLogo';
+import { formatQty } from '@/lib/format-quantity';
 
 interface StaffCommission {
   staff_id: string;
@@ -685,7 +686,7 @@ export default function AdminCommissionsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                        {staff.items_sold.toLocaleString()}
+                        {formatQty(staff.items_sold)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
                         {formatCurrency(staff.total_sales)}
@@ -1150,7 +1151,7 @@ export default function AdminCommissionsPage() {
                             {formatCurrency(performer.total_sales)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                            {performer.items_sold.toLocaleString()}
+                            {formatQty(performer.items_sold)}
                           </td>
                         </tr>
                       ))}
@@ -1205,7 +1206,7 @@ export default function AdminCommissionsPage() {
                             {formatCurrency(item.commission_per_unit)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-white">
-                            {item.quantity_sold.toLocaleString()}
+                            {formatQty(item.quantity_sold)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-green-600 dark:text-green-400">
                             {formatCurrency(item.total_commission)}

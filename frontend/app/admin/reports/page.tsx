@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
+import { formatQty } from '@/lib/format-quantity';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import {
@@ -325,7 +326,7 @@ export default function ComprehensiveReportsPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-gray-600 dark:text-gray-400 text-sm">Items Sold</p>
-            <p className="text-3xl font-bold text-purple-600">{report?.summary.total_items_sold || 0}</p>
+            <p className="text-3xl font-bold text-purple-600">{formatQty(report?.summary.total_items_sold || 0)}</p>
           </div>
           <ShoppingCart className="w-10 h-10 text-purple-500 opacity-20" />
         </div>
@@ -437,7 +438,7 @@ export default function ComprehensiveReportsPage() {
               {(report?.sales.items_list || []).slice(0, 10).map((item, idx) => (
                 <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="px-4 py-3 font-medium">{item.item_name}</td>
-                  <td className="px-4 py-3">{item.quantity_sold}</td>
+                  <td className="px-4 py-3">{formatQty(item.quantity_sold)}</td>
                   <td className="px-4 py-3 text-green-600 font-semibold">₦{parseFloat(item.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
                   <td className="px-4 py-3">₦{(item.avg_price || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</td>
                 </tr>
@@ -660,7 +661,7 @@ export default function ComprehensiveReportsPage() {
                       <span className="text-xs text-red-600 dark:text-red-400 ml-2 font-normal">(⚠️ Invalid Item ID)</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">{item.quantity}</td>
+                  <td className="px-4 py-3">{formatQty(item.quantity)}</td>
                   <td className="px-4 py-3">
                     {item.unit_price === 0 ? (
                       <span className="text-red-600 dark:text-red-400 font-semibold">₦0 (Invalid)</span>
@@ -709,7 +710,7 @@ export default function ComprehensiveReportsPage() {
                       <span className="text-xs text-red-600 dark:text-red-400 ml-2 font-normal">(⚠️ Invalid Item ID)</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">{item.quantity}</td>
+                  <td className="px-4 py-3">{formatQty(item.quantity)}</td>
                   <td className="px-4 py-3">
                     {item.unit_price === 0 ? (
                       <span className="text-red-600 dark:text-red-400 font-semibold">₦0 (Invalid)</span>
@@ -754,8 +755,8 @@ export default function ComprehensiveReportsPage() {
               {(report?.inventory.staff_store_items || []).slice(0, 15).map((item, idx) => (
                 <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="px-4 py-3 font-medium">{item.item_name}</td>
-                  <td className="px-4 py-3">{item.quantity}</td>
-                  <td className="px-4 py-3">{item.quantity_available || item.quantity}</td>
+                  <td className="px-4 py-3">{formatQty(item.quantity)}</td>
+                  <td className="px-4 py-3">{formatQty(item.quantity_available || item.quantity)}</td>
                   <td className="px-4 py-3">₦{(item.unit_price || 0).toLocaleString()}</td>
                   <td className="px-4 py-3 text-green-600 font-semibold">₦{((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()}</td>
                 </tr>
@@ -819,7 +820,7 @@ export default function ComprehensiveReportsPage() {
                       {item.stores && item.stores.length > 0 ? (
                         <div className="space-y-1">
                           {item.stores.map((store: any, i: number) => (
-                            <div key={i}>{store.store}: {store.quantity}</div>
+                            <div key={i}>{store.store}: {formatQty(store.quantity)}</div>
                           ))}
                         </div>
                       ) : (

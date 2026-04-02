@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import { api } from '@/lib/api';
 import { FileText, Download, Printer, Search, Filter, Eye } from 'lucide-react';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
+import { formatQty } from '@/lib/format-quantity';
 
 interface Receipt {
   id: string;
@@ -453,7 +454,7 @@ export default function ReceiptsPage() {
                               : itemNames[typeof item.item_id === 'string' ? item.item_id : ''] || 'Item'}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Qty: {item.quantity} x ₦{(
+                            Qty: {formatQty(item.quantity)} x ₦{(
                               selectedReceipt.sold_outside_jalingo && typeof item.item_id === 'object' && item.item_id?.price_outside
                                 ? item.item_id.price_outside
                                 : typeof item.item_id === 'object' && item.item_id?.price_jalingo

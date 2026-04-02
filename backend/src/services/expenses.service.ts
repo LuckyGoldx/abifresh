@@ -30,12 +30,20 @@ class ExpensesService {
     try {
       const { staff_id, expense_type, amount, description, expense_date } = params;
 
+      const parsedAmount = parseFloat(amount.toString());
+      console.log('📊 [EXPENSE SERVICE] createExpense called:');
+      console.log('  Raw amount received:', amount, `(type: ${typeof amount})`);
+      console.log('  Parsed amount:', parsedAmount);
+      console.log('  Staff ID:', staff_id);
+      console.log('  Expense type:', expense_type);
+      console.log('  Expense date:', expense_date);
+
       const { data, error } = await supabaseAdmin
         .from('staff_expenses')
         .insert({
           staff_id,
           expense_category: expense_type,  // DB column is expense_category
-          expense_amount: parseFloat(amount.toString()),  // DB column is expense_amount
+          expense_amount: parsedAmount,  // DB column is expense_amount
           description: description || null,
           expense_date: expense_date || new Date().toISOString().split('T')[0],
         })
@@ -47,7 +55,9 @@ class ExpensesService {
         throw error;
       }
 
-      console.log('✅ Expense created:', data);
+      console.log('✅ Expense inserted and returned from Supabase:');
+      console.log('  Data:', data);
+      console.log('  expense_amount:', data.expense_amount, `(type: ${typeof data.expense_amount})`);
       return data;
     } catch (error: any) {
       console.error('❌ ExpensesService.createExpense error:', error.message);

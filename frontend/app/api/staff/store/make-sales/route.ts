@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
     for (const item of items) {
       const { item_id, quantity, unit_price, logistics_fee = 0 } = item;
 
-      if (!item_id || !quantity || quantity <= 0) {
-        return NextResponse.json({ error: 'Each item requires item_id and quantity > 0' }, { status: 400 });
+      if (!item_id || !quantity || quantity <= 0 || !Number.isInteger(parseFloat(quantity) * 2)) {
+        return NextResponse.json({ error: 'Each item requires item_id and a valid quantity (0.5 or whole numbers only)' }, { status: 400 });
       }
 
       // Get staff store entry
