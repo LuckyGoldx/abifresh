@@ -490,18 +490,18 @@ export default function AdminCommissionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Commission Management</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Commission Management</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
             Track and manage commission payments for commission staff
           </p>
         </div>
-        <div className="flex space-x-2 relative">
+        <div className="flex flex-col sm:flex-row gap-2 relative w-full sm:w-auto justify-start sm:justify-end">
           <div className="relative group">
             <button
               onClick={() => setShowExportMenu(!showExportMenu)}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+              className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center sm:justify-start gap-2"
             >
               📥 Export
               <span className="text-sm">▼</span>
@@ -540,7 +540,7 @@ export default function AdminCommissionsPage() {
           </div>
           <button
             onClick={fetchData}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             🔄 Refresh
           </button>
@@ -549,50 +549,50 @@ export default function AdminCommissionsPage() {
 
       {/* Summary Cards */}
       {overview && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-sm">Total Generated</p>
-                <p className="text-3xl font-bold mt-2">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
+            <div className="flex flex-col gap-3 h-full">
+              <div className="flex-1 min-w-0">
+                <p className="text-green-100 text-xs sm:text-sm truncate">Total Generated</p>
+                <p className="text-xl sm:text-3xl font-bold mt-1 truncate">
                   {formatCurrency(overview.total_commission_generated)}
                 </p>
               </div>
-              <div className="text-4xl opacity-80">💰</div>
+              <div className="text-2xl sm:text-4xl opacity-80 text-right">💰</div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm">Total Paid</p>
-                <p className="text-3xl font-bold mt-2">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
+            <div className="flex flex-col gap-3 h-full">
+              <div className="flex-1 min-w-0">
+                <p className="text-blue-100 text-xs sm:text-sm truncate">Total Paid</p>
+                <p className="text-xl sm:text-3xl font-bold mt-1 truncate">
                   {formatCurrency(overview.total_commission_paid)}
                 </p>
               </div>
-              <div className="text-4xl opacity-80">✅</div>
+              <div className="text-2xl sm:text-4xl opacity-80 text-right">✅</div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm">Pending Payment</p>
-                <p className="text-3xl font-bold mt-2">
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
+            <div className="flex flex-col gap-3 h-full">
+              <div className="flex-1 min-w-0">
+                <p className="text-orange-100 text-xs sm:text-sm truncate">Pending Payment</p>
+                <p className="text-xl sm:text-3xl font-bold mt-1 truncate">
                   {formatCurrency(overview.total_commission_pending)}
                 </p>
               </div>
-              <div className="text-4xl opacity-80">⏳</div>
+              <div className="text-2xl sm:text-4xl opacity-80 text-right">⏳</div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm">Commission Staff</p>
-                <p className="text-3xl font-bold mt-2">{overview.commission_staff_count}</p>
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
+            <div className="flex flex-col gap-3 h-full">
+              <div className="flex-1 min-w-0">
+                <p className="text-purple-100 text-xs sm:text-sm truncate">Commission Staff</p>
+                <p className="text-xl sm:text-3xl font-bold mt-1">{overview.commission_staff_count}</p>
               </div>
-              <div className="text-4xl opacity-80">👥</div>
+              <div className="text-2xl sm:text-4xl opacity-80 text-right">👥</div>
             </div>
           </div>
         </div>

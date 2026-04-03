@@ -16,11 +16,22 @@ export async function GET(req: NextRequest) {
       staff_id,
       quantity,
       quantity_sold,
-      items:item_id(unit_price),
       users:staff_id(full_name, role)
     `);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // Get actual amounts sold from staff_sales (source of truth)
+  const { data: salesData } = await supabaseAdmin
+    .from('staff_sales')
+    .select('staff_id, total_amount');
+
+  // Build a map of actual total_amount_sold per staff from sales records
+  const salesAmountMap = new Map<string, number>();
+  for (const sale of salesData || []) {
+    const current = salesAmountMap.get(sale.staff_id) || 0;
+    salesAmountMap.set(sale.staff_id, current + (parseFloat(sale.total_amount) || 0));
+  }
 
   // Group by staff_id
   const staffMap = new Map<string, any>();
@@ -44,7 +55,11 @@ export async function GET(req: NextRequest) {
     staff.total_sold += entry.quantity_sold || 0;
     const avail = (entry.quantity || 0) - (entry.quantity_sold || 0);
     staff.available += avail;
-    staff.total_amount_sold += (entry.quantity_sold || 0) * ((entry as any).items?.unit_price || 0);
+  }
+
+  // Apply actual amounts from staff_sales records
+  for (const [staffId, staff] of staffMap) {
+    staff.total_amount_sold = salesAmountMap.get(staffId) || 0;
   }
 
   const stats = Array.from(staffMap.values()).map(s => ({

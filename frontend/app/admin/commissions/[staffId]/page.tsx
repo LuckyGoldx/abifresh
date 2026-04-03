@@ -201,18 +201,18 @@ export default function StaffCommissionDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-1 min-w-0">
           <button
             onClick={() => router.push('/admin/commissions')}
-            className="text-blue-600 hover:text-blue-700 mb-2 flex items-center"
+            className="text-blue-600 hover:text-blue-700 mb-2 flex items-center text-sm"
           >
             ← Back to Commissions
           </button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white break-words">
             Commission Details: {details.staff.full_name}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
             {details.staff.email} • @{details.staff.username}
           </p>
         </div>
@@ -304,48 +304,48 @@ export default function StaffCommissionDetailPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm">Total Commission</p>
-              <p className="text-2xl md:text-3xl font-bold mt-2">{formatCurrency(details.total_commission)}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
+          <div className="flex flex-col gap-3 h-full">
+            <div className="flex-1 min-w-0">
+              <p className="text-green-100 text-xs sm:text-sm truncate">Total Commission</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1 truncate">{formatCurrency(details.total_commission)}</p>
             </div>
-            <div className="text-4xl opacity-80">💰</div>
+            <div className="text-2xl sm:text-4xl opacity-80 text-right">💰</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm">Total Sales</p>
-              <p className="text-2xl md:text-3xl font-bold mt-2">{formatCurrency(details.total_sales)}</p>
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
+          <div className="flex flex-col gap-3 h-full">
+            <div className="flex-1 min-w-0">
+              <p className="text-blue-100 text-xs sm:text-sm truncate">Total Sales</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1 truncate">{formatCurrency(details.total_sales)}</p>
             </div>
-            <div className="text-4xl opacity-80">💵</div>
+            <div className="text-2xl sm:text-4xl opacity-80 text-right">💵</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm">Items Sold</p>
-              <p className="text-2xl md:text-3xl font-bold mt-2">{formatQty(details.total_items_sold)}</p>
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
+          <div className="flex flex-col gap-3 h-full">
+            <div className="flex-1 min-w-0">
+              <p className="text-purple-100 text-xs sm:text-sm truncate">Items Sold</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1 truncate">{formatQty(details.total_items_sold)}</p>
             </div>
-            <div className="text-4xl opacity-80">📦</div>
+            <div className="text-2xl sm:text-4xl opacity-80 text-right">📦</div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm">Avg Commission/Item</p>
-              <p className="text-2xl md:text-3xl font-bold mt-2">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
+          <div className="flex flex-col gap-3 h-full">
+            <div className="flex-1 min-w-0">
+              <p className="text-orange-100 text-xs sm:text-sm truncate">Avg Commission/Item</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1 truncate">
                 {details.total_items_sold > 0
                   ? formatCurrency(details.total_commission / details.total_items_sold)
                   : '₦0.00'}
               </p>
             </div>
-            <div className="text-4xl opacity-80">📊</div>
+            <div className="text-2xl sm:text-4xl opacity-80 text-right">📊</div>
           </div>
         </div>
       </div>

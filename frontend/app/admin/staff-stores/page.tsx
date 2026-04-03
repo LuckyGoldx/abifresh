@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { Package, TrendingUp, Users, ShoppingCart, BarChart3, Eye } from 'lucide-react';
 import Link from 'next/link';
@@ -46,6 +46,8 @@ export default function AdminStaffStorePage() {
   const [storesStats, setStoresStats] = useState<StaffStoreStats[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [staffDetails, setStaffDetails] = useState<any>(null);
+  const [loadingStaffId, setLoadingStaffId] = useState<string | null>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,16 +82,30 @@ export default function AdminStaffStorePage() {
   };
 
   const handleSelectStaff = async (staffId: string) => {
+    // If already selected, close the details
+    if (selectedStaff === staffId) {
+      setSelectedStaff(null);
+      setStaffDetails(null);
+      setLoadingStaffId(null);
+      return;
+    }
+
     try {
+      setLoadingStaffId(staffId);
       console.log(`👁️ Fetching details for staff: ${staffId}`);
       const response = await api.get(`/api/admin/staff-stores/${staffId}`);
       console.log('👁️ Staff details response:', response.data);
       setSelectedStaff(staffId);
       setStaffDetails(response.data);
+      setTimeout(() => {
+        detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     } catch (error: any) {
       console.error('❌ Error fetching staff details:', error);
       console.error('Error details:', error.response?.data);
       setError('Failed to load staff store details');
+    } finally {
+      setLoadingStaffId(null);
     }
   };
 
@@ -304,7 +320,7 @@ export default function AdminStaffStorePage() {
                 <th className="text-left py-3 px-4 font-semibold">Staff Member</th>
                 <th className="text-left py-3 px-4 font-semibold">Role</th>
                 <th className="text-right py-3 px-4 font-semibold">Items</th>
-                <th className="text-right py-3 px-4 font-semibold">Total Qty</th>
+                <th className="text-right py-3 px-4 font-semibold">Total Quantity</th>
                 <th className="text-right py-3 px-4 font-semibold">Sold</th>
                 <th className="text-right py-3 px-4 font-semibold">Available</th>
                 <th className="text-right py-3 px-4 font-semibold">Amount Sold</th>
@@ -316,10 +332,7 @@ export default function AdminStaffStorePage() {
               {sortedStats.map((stat) => (
                 <tr key={stat.staff_id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="py-3 px-4">
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">{stat.staff_name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{stat.staff_id}</p>
-                    </div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{stat.staff_name}</p>
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
@@ -345,10 +358,24 @@ export default function AdminStaffStorePage() {
                   <td className="py-3 px-4 text-center">
                     <button
                       onClick={() => handleSelectStaff(stat.staff_id)}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm transition"
+                      disabled={loadingStaffId === stat.staff_id}
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded text-sm transition ${
+                        selectedStaff === stat.staff_id
+                          ? 'bg-red-500 hover:bg-red-600 text-white'
+                          : 'bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-75'
+                      }`}
                     >
-                      <Eye className="w-4 h-4" />
-                      View
+                      {loadingStaffId === stat.staff_id ? (
+                        <>
+                          <span className="inline-block animate-spin">⟳</span>
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="w-4 h-4" />
+                          {selectedStaff === stat.staff_id ? 'Hide' : 'View'}
+                        </>
+                      )}
                     </button>
                   </td>
                 </tr>
@@ -367,7 +394,7 @@ export default function AdminStaffStorePage() {
 
       {/* Staff Details Modal */}
       {selectedStaff && staffDetails && (
-        <div className="card border-2 border-pink-200 dark:border-pink-800">
+        <div ref={detailsRef} className="card border-2 border-pink-200 dark:border-pink-800">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               Store Details: {staffDetails.items?.[0]?.users?.full_name || 'Staff'}
@@ -390,7 +417,7 @@ export default function AdminStaffStorePage() {
               <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{formatQty(staffDetails.total_items || 0)}</p>
             </div>
             <div className="bg-purple-50 dark:bg-purple-900 p-3 rounded">
-              <p className="text-xs text-purple-700 dark:text-purple-300">Total Qty</p>
+              <p className="text-xs text-purple-700 dark:text-purple-300">Total Quantity</p>
               <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{formatQty(staffDetails.total_quantity || 0)}</p>
             </div>
             <div className="bg-green-50 dark:bg-green-900 p-3 rounded">
@@ -452,7 +479,7 @@ export default function AdminStaffStorePage() {
                   <th className="text-left py-2 px-3">SKU</th>
                   <th className="text-left py-2 px-3">Category</th>
                   <th className="text-right py-2 px-3">Price</th>
-                  <th className="text-right py-2 px-3">Qty</th>
+                  <th className="text-right py-2 px-3">Quantity</th>
                   <th className="text-right py-2 px-3">Sold</th>
                   <th className="text-right py-2 px-3">Available</th>
                 </tr>

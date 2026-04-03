@@ -65,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const menuItems = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: '📊' },
-    { label: 'Staff Management', href: '/admin/staff', icon: '👥' },
+    { label: 'Notifications', href: '/admin/notifications', icon: '🔔' },
     { label: 'Staff Stores', href: '/admin/staff-stores', icon: '🏪' },
     { label: 'Post Items', href: '/admin/post-items', icon: '📮' },
     { label: 'Inventory', href: '/admin/inventory', icon: '📦' },
@@ -77,7 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'My Expenses', href: '/admin/my-expenses', icon: '💰' },
     { label: 'Reports', href: '/admin/reports', icon: '📈' },
     { label: 'Items', href: '/admin/items', icon: '🛍️' },
-    { label: 'Notifications', href: '/admin/notifications', icon: '🔔' },
+    { label: 'Staff Management', href: '/admin/staff', icon: '👥' },
   ];
 
   return (
