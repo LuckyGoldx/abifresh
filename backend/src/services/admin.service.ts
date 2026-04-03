@@ -563,6 +563,24 @@ export class AdminService {
       const toISO = to.toISOString();
       console.log(`   Date filters: ${fromISO} to ${toISO}`);
 
+      // If filtering by role, resolve matching staff IDs at DB level first
+      const roleVariants: Record<string, string[]> = {
+        commission:     ['commission_staff', 'staff_commission'],
+        non_commission: ['non_commission_staff', 'staff_non_commission'],
+        sales:          ['sales', 'sales_staff'],
+        admin:          ['admin'],
+      };
+      let roleFilteredStaffIds: string[] | null = null;
+      if (staffRole && !staffId) {
+        const allowedRoles = roleVariants[staffRole] || [staffRole];
+        const { data: roleUsers } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .in('role', allowedRoles);
+        roleFilteredStaffIds = (roleUsers || []).map((u: any) => u.id);
+        console.log(`   Role filter "${staffRole}" → ${roleFilteredStaffIds.length} matching staff IDs`);
+      }
+
       // Fetch receipts data (actual sales records)
       let receiptsQuery = supabaseAdmin
         .from('receipts')
@@ -571,6 +589,14 @@ export class AdminService {
         .lte('created_at', toISO);
 
       if (staffId) receiptsQuery = receiptsQuery.eq('staff_id', staffId);
+      if (roleFilteredStaffIds !== null) {
+        if (roleFilteredStaffIds.length === 0) {
+          // No users match this role — force empty result
+          receiptsQuery = receiptsQuery.in('staff_id', ['00000000-0000-0000-0000-000000000000']);
+        } else {
+          receiptsQuery = receiptsQuery.in('staff_id', roleFilteredStaffIds);
+        }
+      }
 
       const { data: receiptsRaw, error: receiptsError } = await receiptsQuery;
       if (receiptsError) {
@@ -623,6 +649,13 @@ export class AdminService {
         .lte('expense_date', to.toISOString().split('T')[0]);
 
       if (staffId) expensesQuery = expensesQuery.eq('staff_id', staffId);
+      if (roleFilteredStaffIds !== null) {
+        if (roleFilteredStaffIds.length === 0) {
+          expensesQuery = expensesQuery.in('staff_id', ['00000000-0000-0000-0000-000000000000']);
+        } else {
+          expensesQuery = expensesQuery.in('staff_id', roleFilteredStaffIds);
+        }
+      }
 
       const { data: expensesRaw, error: expensesError } = await expensesQuery;
       if (expensesError) {

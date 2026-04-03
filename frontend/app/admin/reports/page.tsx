@@ -265,7 +265,7 @@ export default function ComprehensiveReportsPage() {
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
           >
             <option value="">All Staff</option>
-            {staff.map(s => (
+            {staff.filter(s => s.role !== 'superadmin').map(s => (
               <option key={s.id} value={s.id}>{s.full_name}</option>
             ))}
           </select>
