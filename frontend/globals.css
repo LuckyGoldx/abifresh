@@ -148,3 +148,13 @@ body {
 .dark * {
   scrollbar-color: #ec4899 #1e293b;
 }
+
+/* Hide scrollbar while keeping scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

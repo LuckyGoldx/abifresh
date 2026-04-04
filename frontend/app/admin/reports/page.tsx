@@ -73,9 +73,12 @@ const COLORS = ['#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
 
 export default function ComprehensiveReportsPage() {
   const reportRef = useRef<HTMLDivElement>(null);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [report, setReport] = useState<ComprehensiveReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'expenses' | 'inventory' | 'performance'>('overview');
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
   const [filters, setFilters] = useState<ReportFilters>({
     dateRange: 'all',
   });
@@ -93,6 +96,31 @@ export default function ComprehensiveReportsPage() {
   useEffect(() => {
     fetchReport();
   }, [filters]);
+
+  useEffect(() => {
+    checkTabsScroll();
+    window.addEventListener('resize', checkTabsScroll);
+    return () => window.removeEventListener('resize', checkTabsScroll);
+  }, []);
+
+  const checkTabsScroll = () => {
+    if (tabsContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  };
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+      const scrollAmount = 200;
+      tabsContainerRef.current.scroll({
+        left: tabsContainerRef.current.scrollLeft + (direction === 'left' ? -scrollAmount : scrollAmount),
+        behavior: 'smooth',
+      });
+      setTimeout(checkTabsScroll, 300);
+    }
+  };
 
   const fetchAllStaff = async () => {
     try {
@@ -974,31 +1002,64 @@ export default function ComprehensiveReportsPage() {
 
       {renderFilterSection()}
 
-      {/* Tab Navigation */}
-      <div className="flex gap-2 border-b dark:border-gray-700 overflow-x-auto">
-        {[
-          { id: 'overview', label: 'Overview', icon: Activity },
-          { id: 'sales', label: 'Sales Analysis', icon: ShoppingCart },
-          { id: 'expenses', label: 'Expenses', icon: AlertCircle },
-          { id: 'inventory', label: 'Inventory', icon: Warehouse },
-          { id: 'performance', label: 'Performance', icon: TrendingUp },
-        ].map(tab => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
+      {/* Tab Navigation with Scroll Indicators */}
+      <div className="relative">
+        {/* Left Arrow - visible on mobile/tablet */}
+        {canScrollLeft && (
+          <button
+            onClick={() => scrollTabs('left')}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-gradient-to-r from-white dark:from-gray-900 to-transparent md:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition"
+            aria-label="Scroll tabs left"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+
+        {/* Tabs Container */}
+        <div
+          ref={tabsContainerRef}
+          className="flex gap-2 border-b dark:border-gray-700 overflow-x-auto scrollbar-hide"
+          onScroll={checkTabsScroll}
+        >
+          {[
+            { id: 'overview', label: 'Overview', icon: Activity },
+            { id: 'sales', label: 'Sales Analysis', icon: ShoppingCart },
+            { id: 'expenses', label: 'Expenses', icon: AlertCircle },
+            { id: 'inventory', label: 'Inventory', icon: Warehouse },
+            { id: 'performance', label: 'Performance', icon: TrendingUp },
+          ].map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-4 py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right Arrow - visible on mobile/tablet */}
+        {canScrollRight && (
+          <button
+            onClick={() => scrollTabs('right')}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-gradient-to-l from-white dark:from-gray-900 to-transparent md:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition"
+            aria-label="Scroll tabs right"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Tab Content */}
