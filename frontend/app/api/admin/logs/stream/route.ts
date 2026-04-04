@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import { serverCache } from '@/lib/server/cache';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -22,21 +23,44 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Superadmin access required' }, { status: 403 });
   }
 
-  // Fetch recent activity logs to stream
-  const { data } = await supabaseAdmin
-    .from('activity_logs')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50);
+  // Create cache key for stream endpoint
+  const cacheKey = 'logs:stream:activity:50';
+
+  // Check cache first (3 minute TTL for stream - shorter than main endpoint)
+  let data = serverCache.get(cacheKey);
+  let fromCache = false;
+
+  if (!data) {
+    // Fetch recent activity logs to stream
+    const result = await supabaseAdmin
+      .from('activity_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    data = result.data;
+
+    // Cache the result for 3 minutes
+    if (data) {
+      serverCache.set(cacheKey, data, 3 * 60 * 1000);
+    }
+  } else {
+    fromCache = true;
+  }
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
-      const send = (event: string, data: any) => {
-        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      const send = (event: string, logData: any) => {
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(logData)}\n\n`));
       };
 
-      send('connected', { message: 'Connected to activity log stream (serverless mode)', timestamp: new Date().toISOString() });
+      const cacheStatus = fromCache ? ' (cached)' : '';
+      send('connected', { 
+        message: `Connected to activity log stream${cacheStatus}`, 
+        timestamp: new Date().toISOString(),
+        fromCache,
+      });
 
       for (const log of (data || [])) {
         send('log', {
@@ -49,7 +73,10 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      send('done', { message: 'Stream complete (serverless: no real-time log files available)' });
+      send('done', { 
+        message: 'Stream complete (serverless: no real-time log files available)',
+        itemsCount: (data || []).length,
+      });
       controller.close();
     },
   });

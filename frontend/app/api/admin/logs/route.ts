@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, hasRole } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import { serverCache } from '@/lib/server/cache';
 
 export async function GET(req: NextRequest) {
   const authResult = await verifyAuth(req);
@@ -11,6 +12,17 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const lines = Math.min(parseInt(searchParams.get('lines') || '200'), 1000);
+  const logType = searchParams.get('type') || 'activity';
+  const logDate = searchParams.get('date') || new Date().toISOString().split('T')[0];
+
+  // Create cache key based on query parameters
+  const cacheKey = `logs:${logType}:${logDate}:${lines}`;
+
+  // Check cache first (5 minute TTL)
+  const cachedResult = serverCache.get(cacheKey);
+  if (cachedResult) {
+    return NextResponse.json({ ...cachedResult, fromCache: true });
+  }
 
   try {
     const { data, error } = await supabaseAdmin
@@ -32,15 +44,21 @@ export async function GET(req: NextRequest) {
       details: log.details,
     }));
 
-    return NextResponse.json({
+    const response = {
       type: 'activity',
-      date: new Date().toISOString().split('T')[0],
+      date: logDate,
       filename: 'activity_logs',
       entries,
       totalEntries: entries.length,
       availableFiles: ['activity_logs'],
       note: 'Serverless mode: showing activity_logs from database (file-based logs unavailable)',
-    });
+      fromCache: false,
+    };
+
+    // Cache the result for 5 minutes
+    serverCache.set(cacheKey, response, 5 * 60 * 1000);
+
+    return NextResponse.json(response);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
