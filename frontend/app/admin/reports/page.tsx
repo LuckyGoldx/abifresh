@@ -18,7 +18,7 @@ import LoadingLogo from '@/components/LoadingLogo';
 interface ReportFilters {
   staffId?: string;
   staffRole?: string;
-  dateRange: 'today' | 'week' | 'month' | 'year' | 'custom';
+  dateRange: 'all' | 'today' | 'week' | 'month' | 'year' | 'custom';
   customFrom?: string;
   customTo?: string;
 }
@@ -77,7 +77,7 @@ export default function ComprehensiveReportsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'expenses' | 'inventory' | 'performance'>('overview');
   const [filters, setFilters] = useState<ReportFilters>({
-    dateRange: 'year',
+    dateRange: 'all',
   });
   const [selectedMetric, setSelectedMetric] = useState<'revenue' | 'items' | 'profit'>('revenue');
   const [staff, setStaff] = useState<any[]>([]);
@@ -228,6 +228,7 @@ export default function ComprehensiveReportsPage() {
             onChange={(e) => setFilters({ ...filters, dateRange: e.target.value as any })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
           >
+            <option value="all">All Time</option>
             <option value="today">Today</option>
             <option value="week">This Week</option>
             <option value="month">This Month</option>

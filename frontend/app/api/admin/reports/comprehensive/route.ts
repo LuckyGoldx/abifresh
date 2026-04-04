@@ -47,14 +47,38 @@ export async function GET(req: NextRequest) {
   const fromISO = from.toISOString();
   const toISO = to.toISOString();
 
+  // Resolve staff IDs for role-based filtering upfront.
+  // This avoids deriving IDs from receipts (which fails for roles like admin who may have no receipts).
+  const roleMap: Record<string, string[]> = {
+    'sales': ['sales', 'sales_staff'],
+    'commission_staff': ['commission_staff', 'staff_commission'],
+    'non_commission_staff': ['non_commission_staff', 'staff_non_commission'],
+    'admin': ['admin', 'superadmin'],
+  };
+  let roleStaffIds: string[] | null = null; // null = no role filter; [] = role has 0 users
+  if (staffRole && !staffId) {
+    const rolesToMatch = roleMap[staffRole] || [staffRole];
+    const { data: roleUsers } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .in('role', rolesToMatch);
+    roleStaffIds = (roleUsers || []).map((u: any) => u.id);
+  }
+
   // Fetch receipts
   let receiptsQuery = supabaseAdmin
     .from('receipts')
     .select('*')
     .gte('created_at', fromISO)
     .lte('created_at', toISO);
-  if (staffId) receiptsQuery = receiptsQuery.eq('staff_id', staffId);
-  const { data: receiptsRaw, error: receiptsError } = await receiptsQuery;
+  if (staffId) {
+    receiptsQuery = receiptsQuery.eq('staff_id', staffId);
+  } else if (roleStaffIds !== null && roleStaffIds.length > 0) {
+    receiptsQuery = receiptsQuery.in('staff_id', roleStaffIds);
+  }
+  const { data: receiptsRaw, error: receiptsError } = (roleStaffIds !== null && roleStaffIds.length === 0)
+    ? { data: [], error: null }
+    : await receiptsQuery;
   if (receiptsError) return NextResponse.json({ error: receiptsError.message }, { status: 400 });
 
   // Enrich receipts with user data
@@ -67,73 +91,73 @@ export async function GET(req: NextRequest) {
       .in('id', receiptStaffIds);
     (receiptStaffData || []).forEach((u: any) => receiptUsersMap.set(u.id, u));
   }
-  let receipts = (receiptsRaw || []).map((r: any) => ({
+  const receipts = (receiptsRaw || []).map((r: any) => ({
     ...r,
     users: receiptUsersMap.get(r.staff_id) || { full_name: null, email: null, role: null },
   }));
 
-  // Filter by staff role if provided (only applies when staffId is NOT set)
-  // Role aliases handle legacy/variant role names stored in the database
-  const roleAliases: Record<string, string[]> = {
-    'sales': ['sales', 'sales_staff'],
-    'commission_staff': ['commission_staff', 'staff_commission'],
-    'non_commission_staff': ['non_commission_staff', 'staff_non_commission'],
-  };
-  if (staffRole && !staffId) {
-    const rolesToMatch = roleAliases[staffRole] || [staffRole];
-    receipts = receipts.filter((r: any) => rolesToMatch.includes(r.users?.role));
-  }
+  // IDs to use for filtering commission and expense queries
+  const filteredStaffIds: string[] = staffId
+    ? [staffId]
+    : roleStaffIds !== null
+      ? roleStaffIds
+      : [];
+  const hasStaffFilter = staffId !== undefined || roleStaffIds !== null;
 
-  // Get staff IDs from filtered receipts for use in other queries
-  const filteredStaffIds = [...new Set(receipts.map((r: any) => r.staff_id))];
-
-  // Fetch receipt items
-  // NOTE: ALL staff types (commission, non-commission, sales) write to receipt_items
-  // when making a sale, so this covers 100% of all sales across all staff roles.
-  const { data: receiptItems } = await supabaseAdmin
-    .from('receipt_items')
-    .select('*, items(id, name, category)')
-    .in('receipt_id', receipts.map((r: any) => r.id));
+  // Fetch receipt items for receipts we found
+  const receiptIdList = receipts.map((r: any) => r.id);
+  const { data: receiptItems } = receiptIdList.length > 0
+    ? await supabaseAdmin
+        .from('receipt_items')
+        .select('*, items(id, name, category)')
+        .in('receipt_id', receiptIdList)
+    : { data: [] };
 
   // Fetch total commission generated: sum of staff_sales.commission within the date range.
-  // Non-commission staff have commission=0 stored, so summing all staff is safe and correct.
-  let commissionSalesQuery = supabaseAdmin
-    .from('staff_sales')
-    .select('commission')
-    .gte('created_at', fromISO)
-    .lte('created_at', toISO);
-  if (staffId) commissionSalesQuery = commissionSalesQuery.eq('staff_id', staffId);
-  else if (filteredStaffIds.length > 0) commissionSalesQuery = commissionSalesQuery.in('staff_id', filteredStaffIds);
-  const { data: commissionSalesData } = await commissionSalesQuery;
-  const totalCommissionGenerated = (commissionSalesData || []).reduce(
-    (sum: number, s: any) => sum + (parseFloat(s.commission) || 0), 0
-  );
+  let totalCommissionGenerated = 0;
+  if (!hasStaffFilter || filteredStaffIds.length > 0) {
+    let commissionSalesQuery = supabaseAdmin
+      .from('staff_sales')
+      .select('commission')
+      .gte('created_at', fromISO)
+      .lte('created_at', toISO);
+    if (filteredStaffIds.length > 0) commissionSalesQuery = commissionSalesQuery.in('staff_id', filteredStaffIds);
+    const { data: commissionSalesData } = await commissionSalesQuery;
+    totalCommissionGenerated = (commissionSalesData || []).reduce(
+      (sum: number, s: any) => sum + (parseFloat(s.commission) || 0), 0
+    );
+  }
 
   // Fetch total commission paid: sum of staff_payments.amount where admin paid commission.
-  // Only rows with paid_by IS NOT NULL are admin-initiated payments (not staff self-requests).
-  let commissionPaidQuery = supabaseAdmin
-    .from('staff_payments')
-    .select('amount')
-    .eq('payment_type', 'commission')
-    .in('status', ['paid', 'approved'])
-    .not('paid_by', 'is', null)
-    .gte('created_at', fromISO)
-    .lte('created_at', toISO);
-  if (staffId) commissionPaidQuery = commissionPaidQuery.eq('staff_id', staffId);
-  else if (filteredStaffIds.length > 0) commissionPaidQuery = commissionPaidQuery.in('staff_id', filteredStaffIds);
-  const { data: commissionPaidData } = await commissionPaidQuery;
-  const totalCommissionPaid = (commissionPaidData || []).reduce(
-    (sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0
-  );
+  let totalCommissionPaid = 0;
+  if (!hasStaffFilter || filteredStaffIds.length > 0) {
+    let commissionPaidQuery = supabaseAdmin
+      .from('staff_payments')
+      .select('amount')
+      .eq('payment_type', 'commission')
+      .in('status', ['paid', 'approved'])
+      .not('paid_by', 'is', null)
+      .gte('created_at', fromISO)
+      .lte('created_at', toISO);
+    if (filteredStaffIds.length > 0) commissionPaidQuery = commissionPaidQuery.in('staff_id', filteredStaffIds);
+    const { data: commissionPaidData } = await commissionPaidQuery;
+    totalCommissionPaid = (commissionPaidData || []).reduce(
+      (sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0
+    );
+  }
 
-  // Fetch expenses (use same date range as receipts for consistency)
+  // Fetch expenses
   let expensesQuery = supabaseAdmin
     .from('staff_expenses')
     .select('*')
     .gte('expense_date', from.toISOString().split('T')[0])
     .lte('expense_date', to.toISOString().split('T')[0]);
-  if (staffId) expensesQuery = expensesQuery.eq('staff_id', staffId);
-  const { data: expensesRaw } = await expensesQuery;
+  if (filteredStaffIds.length > 0) {
+    expensesQuery = expensesQuery.in('staff_id', filteredStaffIds);
+  }
+  const { data: expensesRaw } = (hasStaffFilter && filteredStaffIds.length === 0)
+    ? { data: [] }
+    : await expensesQuery;
 
   // Enrich expenses with user data
   const expenseStaffIds = [...new Set((expensesRaw || []).map((e: any) => e.staff_id))];
@@ -145,16 +169,10 @@ export async function GET(req: NextRequest) {
       .in('id', expenseStaffIds);
     (expenseStaffData || []).forEach((u: any) => expenseUsersMap.set(u.id, u));
   }
-  let expenses = (expensesRaw || []).map((e: any) => ({
+  const expenses = (expensesRaw || []).map((e: any) => ({
     ...e,
     users: expenseUsersMap.get(e.staff_id) || { full_name: null, email: null, role: null },
   }));
-
-  // Filter expenses by staff role if provided (only applies when staffId is NOT set)
-  if (staffRole && !staffId) {
-    const filteredReceiptStaffIds = new Set(receipts.map((r: any) => r.staff_id));
-    expenses = expenses.filter((e: any) => filteredReceiptStaffIds.has(e.staff_id));
-  }
 
   // Fetch all items for inventory data
   const { data: allItems } = await supabaseAdmin
