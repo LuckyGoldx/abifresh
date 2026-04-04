@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
   if (receiptStaffIds.length > 0) {
     const { data: receiptStaffData } = await supabaseAdmin
       .from('users')
-      .select('id, full_name, email, role')
+      .select('id, full_name, email, role, username')
       .in('id', receiptStaffIds);
     (receiptStaffData || []).forEach((u: any) => receiptUsersMap.set(u.id, u));
   }
@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
   if (expenseStaffIds.length > 0) {
     const { data: expenseStaffData } = await supabaseAdmin
       .from('users')
-      .select('id, full_name, email, role')
+      .select('id, full_name, email, role, username')
       .in('id', expenseStaffIds);
     (expenseStaffData || []).forEach((u: any) => expenseUsersMap.set(u.id, u));
   }
@@ -253,8 +253,10 @@ export async function GET(req: NextRequest) {
   const salesByStaff = new Map<string, any>();
   receipts.forEach((r: any) => {
     const staffName = r.users?.full_name || `Staff ${r.staff_id}`;
+    const username = r.users?.username || r.users?.email || `Staff ${r.staff_id}`;
+    const userRole = r.users?.role || 'unknown';
     if (!salesByStaff.has(r.staff_id)) {
-      salesByStaff.set(r.staff_id, { staff_id: r.staff_id, staff_name: staffName, total_sales: 0, total_amount: 0, items_count: 0 });
+      salesByStaff.set(r.staff_id, { staff_id: r.staff_id, staff_name: staffName, username: username, user_role: userRole, total_sales: 0, total_amount: 0, items_count: 0 });
     }
     const cur = salesByStaff.get(r.staff_id);
     cur.total_sales += 1;
@@ -277,10 +279,11 @@ export async function GET(req: NextRequest) {
   const salesByDay = new Map<string, any>();
   receipts.forEach((r: any) => {
     const date = new Date(r.created_at).toISOString().split('T')[0];
-    if (!salesByDay.has(date)) salesByDay.set(date, { date, total_sales: 0, total_amount: 0 });
+    if (!salesByDay.has(date)) salesByDay.set(date, { date, total_sales: 0, total_amount: 0, total_transactions: 0 });
     const cur = salesByDay.get(date);
     cur.total_sales += 1;
     cur.total_amount += r.total_amount || 0;
+    cur.total_transactions += 1;
   });
 
   // Group items sold
@@ -346,7 +349,7 @@ export async function GET(req: NextRequest) {
   const staffPerformanceMap = new Map<string, any>();
   Array.from(salesByStaff.values()).forEach((sale: any) => {
     staffPerformanceMap.set(sale.staff_id, {
-      staff_id: sale.staff_id, staff_name: sale.staff_name, role: 'unknown',
+      staff_id: sale.staff_id, staff_name: sale.staff_name, username: sale.username, role: sale.user_role,
       total_transactions: sale.total_sales, total_revenue: sale.total_amount,
       total_expenses: 0, profit_loss: 0,
     });

@@ -418,9 +418,20 @@ export default function ComprehensiveReportsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={report?.sales.by_staff || []}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="staff_name" angle={-45} textAnchor="end" height={80} />
+              <XAxis dataKey="username" angle={-45} textAnchor="end" height={80} />
               <YAxis />
-              <Tooltip />
+              <Tooltip content={({ active, payload }) => {
+                if (active && payload?.[0]) {
+                  const data = payload[0].payload;
+                  return (
+                    <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-600 text-sm">
+                      <p className="font-semibold">{data.staff_name}</p>
+                      <p className="text-gray-600 dark:text-gray-400">Revenue: ₦{data.total_amount?.toLocaleString()}</p>
+                    </div>
+                  );
+                }
+                return null;
+              }} />
               <Bar dataKey="total_amount" fill="#ec4899" name="Revenue (₦)" />
             </BarChart>
           </ResponsiveContainer>
@@ -903,9 +914,20 @@ export default function ComprehensiveReportsPage() {
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={report?.performance.top_staff || []}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="staff_name" angle={-45} textAnchor="end" height={80} />
+              <XAxis dataKey="username" angle={-45} textAnchor="end" height={80} />
               <YAxis />
-              <Tooltip />
+              <Tooltip content={({ active, payload }) => {
+                if (active && payload?.[0]) {
+                  const data = payload[0].payload;
+                  return (
+                    <div className="bg-white dark:bg-gray-800 p-2 rounded border border-gray-300 dark:border-gray-600 text-sm">
+                      <p className="font-semibold">{data.staff_name}</p>
+                      <p className="text-gray-600 dark:text-gray-400">Revenue: ₦{data.total_amount?.toLocaleString()}</p>
+                    </div>
+                  );
+                }
+                return null;
+              }} />
               <Bar dataKey="total_amount" fill="#10b981" name="Revenue (₦)" />
             </BarChart>
           </ResponsiveContainer>
@@ -923,7 +945,7 @@ export default function ComprehensiveReportsPage() {
               <XAxis dataKey="item_name" angle={-45} textAnchor="end" height={80} />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="total_amount" fill="#3b82f6" name="Revenue (₦)" />
+              <Bar dataKey="total_revenue" fill="#3b82f6" name="Revenue (₦)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -958,11 +980,11 @@ export default function ComprehensiveReportsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">{staff.total_transactions}</td>
-                  <td className="px-4 py-3 text-green-600 font-semibold">₦{staff.total_amount.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-red-600 font-semibold">₦{staff.total_expenses.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-green-600 font-semibold">₦{(staff.total_amount || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-red-600 font-semibold">₦{(staff.total_expenses || 0).toLocaleString()}</td>
                   <td className="px-4 py-3">
-                    <span className={`font-semibold ${staff.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ₦{staff.profit_loss.toLocaleString()}
+                    <span className={`font-semibold ${(staff.profit_loss || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ₦{(staff.profit_loss || 0).toLocaleString()}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -1090,16 +1112,16 @@ export default function ComprehensiveReportsPage() {
               </div>
               <div className="p-4 bg-green-100 dark:bg-green-900 rounded">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
-                <p className="text-lg font-bold text-green-600">₦{selectedStaffDetail.total_amount.toLocaleString()}</p>
+                <p className="text-lg font-bold text-green-600">₦{(selectedStaffDetail.total_amount || 0).toLocaleString()}</p>
               </div>
               <div className="p-4 bg-red-100 dark:bg-red-900 rounded">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Expenses</p>
-                <p className="text-lg font-bold text-red-600">₦{selectedStaffDetail.total_expenses.toLocaleString()}</p>
+                <p className="text-lg font-bold text-red-600">₦{(selectedStaffDetail.total_expenses || 0).toLocaleString()}</p>
               </div>
               <div className="p-4 bg-purple-100 dark:bg-purple-900 rounded">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Profit/Loss</p>
-                <p className={`text-lg font-bold ${selectedStaffDetail.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ₦{selectedStaffDetail.profit_loss.toLocaleString()}
+                <p className={`text-lg font-bold ${(selectedStaffDetail.profit_loss || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  ₦{(selectedStaffDetail.profit_loss || 0).toLocaleString()}
                 </p>
               </div>
               <div className="p-4 bg-cyan-100 dark:bg-cyan-900 rounded">
