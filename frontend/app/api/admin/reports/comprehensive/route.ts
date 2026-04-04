@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   const customFrom = searchParams.get('customFrom') || undefined;
   const customTo = searchParams.get('customTo') || undefined;
   const staffId = searchParams.get('staffId') || undefined;
+  const staffRole = searchParams.get('staffRole') || undefined;
 
   // Calculate date range
   const now = new Date();
@@ -66,16 +67,64 @@ export async function GET(req: NextRequest) {
       .in('id', receiptStaffIds);
     (receiptStaffData || []).forEach((u: any) => receiptUsersMap.set(u.id, u));
   }
-  const receipts = (receiptsRaw || []).map((r: any) => ({
+  let receipts = (receiptsRaw || []).map((r: any) => ({
     ...r,
     users: receiptUsersMap.get(r.staff_id) || { full_name: null, email: null, role: null },
   }));
 
+  // Filter by staff role if provided (only applies when staffId is NOT set)
+  // Role aliases handle legacy/variant role names stored in the database
+  const roleAliases: Record<string, string[]> = {
+    'sales': ['sales', 'sales_staff'],
+    'commission_staff': ['commission_staff', 'staff_commission'],
+    'non_commission_staff': ['non_commission_staff', 'staff_non_commission'],
+  };
+  if (staffRole && !staffId) {
+    const rolesToMatch = roleAliases[staffRole] || [staffRole];
+    receipts = receipts.filter((r: any) => rolesToMatch.includes(r.users?.role));
+  }
+
+  // Get staff IDs from filtered receipts for use in other queries
+  const filteredStaffIds = [...new Set(receipts.map((r: any) => r.staff_id))];
+
   // Fetch receipt items
+  // NOTE: ALL staff types (commission, non-commission, sales) write to receipt_items
+  // when making a sale, so this covers 100% of all sales across all staff roles.
   const { data: receiptItems } = await supabaseAdmin
     .from('receipt_items')
     .select('*, items(id, name, category)')
     .in('receipt_id', receipts.map((r: any) => r.id));
+
+  // Fetch total commission generated: sum of staff_sales.commission within the date range.
+  // Non-commission staff have commission=0 stored, so summing all staff is safe and correct.
+  let commissionSalesQuery = supabaseAdmin
+    .from('staff_sales')
+    .select('commission')
+    .gte('created_at', fromISO)
+    .lte('created_at', toISO);
+  if (staffId) commissionSalesQuery = commissionSalesQuery.eq('staff_id', staffId);
+  else if (filteredStaffIds.length > 0) commissionSalesQuery = commissionSalesQuery.in('staff_id', filteredStaffIds);
+  const { data: commissionSalesData } = await commissionSalesQuery;
+  const totalCommissionGenerated = (commissionSalesData || []).reduce(
+    (sum: number, s: any) => sum + (parseFloat(s.commission) || 0), 0
+  );
+
+  // Fetch total commission paid: sum of staff_payments.amount where admin paid commission.
+  // Only rows with paid_by IS NOT NULL are admin-initiated payments (not staff self-requests).
+  let commissionPaidQuery = supabaseAdmin
+    .from('staff_payments')
+    .select('amount')
+    .eq('payment_type', 'commission')
+    .in('status', ['paid', 'approved'])
+    .not('paid_by', 'is', null)
+    .gte('created_at', fromISO)
+    .lte('created_at', toISO);
+  if (staffId) commissionPaidQuery = commissionPaidQuery.eq('staff_id', staffId);
+  else if (filteredStaffIds.length > 0) commissionPaidQuery = commissionPaidQuery.in('staff_id', filteredStaffIds);
+  const { data: commissionPaidData } = await commissionPaidQuery;
+  const totalCommissionPaid = (commissionPaidData || []).reduce(
+    (sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0
+  );
 
   // Fetch expenses (use same date range as receipts for consistency)
   let expensesQuery = supabaseAdmin
@@ -96,10 +145,16 @@ export async function GET(req: NextRequest) {
       .in('id', expenseStaffIds);
     (expenseStaffData || []).forEach((u: any) => expenseUsersMap.set(u.id, u));
   }
-  const expenses = (expensesRaw || []).map((e: any) => ({
+  let expenses = (expensesRaw || []).map((e: any) => ({
     ...e,
     users: expenseUsersMap.get(e.staff_id) || { full_name: null, email: null, role: null },
   }));
+
+  // Filter expenses by staff role if provided (only applies when staffId is NOT set)
+  if (staffRole && !staffId) {
+    const filteredReceiptStaffIds = new Set(receipts.map((r: any) => r.staff_id));
+    expenses = expenses.filter((e: any) => filteredReceiptStaffIds.has(e.staff_id));
+  }
 
   // Fetch all items for inventory data
   const { data: allItems } = await supabaseAdmin
@@ -144,9 +199,24 @@ export async function GET(req: NextRequest) {
   // Summaries
   const totalRevenue = receipts.reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0);
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + (e.expense_amount || 0), 0);
-  const totalProfit = totalRevenue - totalExpenses;
   const totalItemsSold = (receiptItems || []).reduce((sum: number, ri: any) => sum + (ri.quantity || 0), 0);
   const avgTransaction = receipts.length > 0 ? totalRevenue / receipts.length : 0;
+
+  // Cost price map: item_id -> unit_price (purchase/cost price)
+  const itemCostMap = new Map<string, number>();
+  (allItems || []).forEach((item: any) => itemCostMap.set(item.id, item.unit_price || 0));
+
+  // Total cost price sold = SUM(items.unit_price * receipt_items.quantity) for ALL sales.
+  // receipt_items is the single source of truth: ALL staff types (commission_staff,
+  // non_commission_staff, sales) write to receipts+receipt_items on every checkout.
+  // Using receipt_items.quantity × items.unit_price (cost/purchase price from inventory).
+  const totalCostPriceSold = (receiptItems || []).reduce((sum: number, ri: any) => {
+    const costPrice = itemCostMap.get(ri.item_id) || 0;
+    return sum + costPrice * (ri.quantity || 0);
+  }, 0);
+
+  // Total Profit = Total Sales - (Total Cost Price Sold + Total Expenses + Total Commission Paid)
+  const totalProfit = totalRevenue - (totalCostPriceSold + totalExpenses + totalCommissionPaid);
 
   // Build lookup maps
   const itemsByReceiptId = new Map<string, any[]>();
@@ -281,8 +351,11 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     summary: {
-      total_sales: receipts.length, total_revenue: totalRevenue, total_expenses: totalExpenses,
+      total_transactions: receipts.length, total_sales: totalRevenue, total_expenses: totalExpenses,
       total_profit: totalProfit, total_items_sold: totalItemsSold, avg_transaction: avgTransaction,
+      total_cost_price_sold: totalCostPriceSold,
+      total_commission_generated: totalCommissionGenerated,
+      total_commission_paid: totalCommissionPaid,
     },
     sales: {
       by_staff: Array.from(salesByStaff.values()),

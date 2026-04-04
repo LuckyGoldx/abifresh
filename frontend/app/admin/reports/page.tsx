@@ -25,12 +25,15 @@ interface ReportFilters {
 
 interface ComprehensiveReport {
   summary: {
+    total_transactions: number;
     total_sales: number;
-    total_revenue: number;
     total_expenses: number;
     total_profit: number;
     total_items_sold: number;
     avg_transaction: number;
+    total_cost_price_sold: number;
+    total_commission_generated: number;
+    total_commission_paid: number;
   };
   sales: {
     by_staff: Array<any>;
@@ -103,10 +106,11 @@ export default function ComprehensiveReportsPage() {
   const fetchReport = async () => {
     setIsLoading(true);
     try {
+      // Only send staffId OR staffRole, never both - they should be mutually exclusive
       const params = new URLSearchParams({
         dateRange: filters.dateRange,
         ...(filters.staffId && { staffId: filters.staffId }),
-        ...(filters.staffRole && { staffRole: filters.staffRole }),
+        ...(filters.staffRole && !filters.staffId && { staffRole: filters.staffRole }),
         ...(filters.customFrom && { customFrom: filters.customFrom }),
         ...(filters.customTo && { customTo: filters.customTo }),
       });
@@ -261,7 +265,7 @@ export default function ComprehensiveReportsPage() {
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Staff Member</label>
           <select
             value={filters.staffId || ''}
-            onChange={(e) => setFilters({ ...filters, staffId: e.target.value || undefined })}
+            onChange={(e) => setFilters({ ...filters, staffId: e.target.value || undefined, staffRole: undefined })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
           >
             <option value="">All Staff</option>
@@ -276,12 +280,12 @@ export default function ComprehensiveReportsPage() {
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Staff Role</label>
           <select
             value={filters.staffRole || ''}
-            onChange={(e) => setFilters({ ...filters, staffRole: e.target.value || undefined })}
+            onChange={(e) => setFilters({ ...filters, staffRole: e.target.value || undefined, staffId: undefined })}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
           >
             <option value="">All Roles</option>
-            <option value="commission">Commission Staff</option>
-            <option value="non_commission">Non-Commission Staff</option>
+            <option value="commission_staff">Commission Staff</option>
+            <option value="non_commission_staff">Non-Commission Staff</option>
             <option value="sales">Sales Staff</option>
             <option value="admin">Admin</option>
           </select>
@@ -290,69 +294,89 @@ export default function ComprehensiveReportsPage() {
     </div>
   );
 
-  const renderSummaryCards = () => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <div className="card border-l-4 border-l-green-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Revenue</p>
-            <p className="text-3xl font-bold text-green-600">₦{(report?.summary.total_revenue || 0).toLocaleString()}</p>
-          </div>
-          <DollarSign className="w-10 h-10 text-green-500 opacity-20" />
+  const renderSummaryCards = () => {
+    const profitAmount = report?.summary.total_profit || 0;
+    const isProfitable = profitAmount >= 0;
+    const profitTextColor = isProfitable ? 'text-green-600' : 'text-red-600';
+    const profitBorderColor = isProfitable ? 'border-l-green-500' : 'border-l-red-500';
+    const profitIconColor = isProfitable ? 'text-green-500' : 'text-red-500';
+
+    return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      <div className="card border-l-4 border-l-blue-600 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-400 break-words">₦{(report?.summary.total_sales || 0).toLocaleString()}</p>
+          <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 opacity-20 self-end flex-shrink-0" />
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-blue-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Expenses</p>
-            <p className="text-3xl font-bold text-blue-600">₦{(report?.summary.total_expenses || 0).toLocaleString()}</p>
-          </div>
-          <AlertCircle className="w-10 h-10 text-blue-500 opacity-20" />
+      <div className={`card border-l-4 ${profitBorderColor} overflow-hidden`}>
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Profit</p>
+          <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${profitTextColor} break-words`}>₦{profitAmount.toLocaleString()}</p>
+          <TrendingUp className={`w-6 h-6 sm:w-8 sm:h-8 ${profitIconColor} opacity-20 self-end flex-shrink-0`} />
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-orange-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Profit</p>
-            <p className="text-3xl font-bold text-orange-600">₦{(report?.summary.total_profit || 0).toLocaleString()}</p>
-          </div>
-          <TrendingUp className="w-10 h-10 text-orange-500 opacity-20" />
+      <div className="card border-l-4 border-l-orange-600 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Cost Price Sold</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-orange-700 dark:text-orange-400 break-words">₦{(report?.summary.total_cost_price_sold || 0).toLocaleString()}</p>
+          <Warehouse className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 opacity-20 self-end flex-shrink-0" />
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-purple-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Items Sold</p>
-            <p className="text-3xl font-bold text-purple-600">{formatQty(report?.summary.total_items_sold || 0)}</p>
-          </div>
-          <ShoppingCart className="w-10 h-10 text-purple-500 opacity-20" />
+      <div className="card border-l-4 border-l-rose-600 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Expenses</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-rose-700 dark:text-rose-400 break-words">₦{(report?.summary.total_expenses || 0).toLocaleString()}</p>
+          <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-rose-600 opacity-20 self-end flex-shrink-0" />
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-cyan-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Total Transactions</p>
-            <p className="text-3xl font-bold text-cyan-600">{report?.summary.total_sales || 0}</p>
-          </div>
-          <Activity className="w-10 h-10 text-cyan-500 opacity-20" />
+      <div className="card border-l-4 border-l-purple-500 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Items Sold</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-600 break-words">{formatQty(report?.summary.total_items_sold || 0)}</p>
+          <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 opacity-20 self-end flex-shrink-0" />
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-pink-500">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Avg Transaction Value</p>
-            <p className="text-3xl font-bold text-pink-600">₦{(report?.summary.avg_transaction || 0).toLocaleString()}</p>
-          </div>
-          <Package className="w-10 h-10 text-pink-500 opacity-20" />
+      <div className="card border-l-4 border-l-teal-600 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Transactions</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-teal-700 dark:text-teal-400 break-words">{report?.summary.total_transactions || 0}</p>
+          <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600 opacity-20 self-end flex-shrink-0" />
+        </div>
+      </div>
+
+      <div className="card border-l-4 border-l-sky-600 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Avg Transaction Value</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-sky-700 dark:text-sky-400 break-words">₦{(report?.summary.avg_transaction || 0).toLocaleString('en-NG', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>
+          <Package className="w-6 h-6 sm:w-8 sm:h-8 text-sky-600 opacity-20 self-end flex-shrink-0" />
+        </div>
+      </div>
+
+      <div className="card border-l-4 border-l-amber-500 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Commission Generated</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-amber-600 break-words">₦{(report?.summary.total_commission_generated || 0).toLocaleString()}</p>
+          <Users className="w-6 h-6 sm:w-8 sm:h-8 text-amber-500 opacity-20 self-end flex-shrink-0" />
+        </div>
+      </div>
+
+      <div className="card border-l-4 border-l-emerald-500 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Commission Paid</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-emerald-600 break-words">₦{(report?.summary.total_commission_paid || 0).toLocaleString()}</p>
+          <User className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-500 opacity-20 self-end flex-shrink-0" />
         </div>
       </div>
     </div>
   );
+  };
 
   const renderOverviewTab = () => (
     <div className="space-y-6">
@@ -409,7 +433,7 @@ export default function ComprehensiveReportsPage() {
             <Tooltip />
             <Legend />
             <Line yAxisId="left" type="monotone" dataKey="total_amount" stroke="#ec4899" name="Revenue (₦)" strokeWidth={2} />
-            <Line yAxisId="right" type="monotone" dataKey="total_sales" stroke="#3b82f6" name="Transactions" strokeWidth={2} />
+            <Line yAxisId="right" type="monotone" dataKey="total_transactions" stroke="#3b82f6" name="Transactions" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -430,7 +454,7 @@ export default function ComprehensiveReportsPage() {
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">Item Name</th>
                 <th className="px-4 py-3 text-left font-semibold">Quantity Sold</th>
-                <th className="px-4 py-3 text-left font-semibold">Total Revenue</th>
+                <th className="px-4 py-3 text-left font-semibold">Total Amount</th>
                 <th className="px-4 py-3 text-left font-semibold">Avg Price</th>
               </tr>
             </thead>
@@ -459,7 +483,7 @@ export default function ComprehensiveReportsPage() {
             <YAxis yAxisId="right" orientation="right" />
             <Tooltip />
             <Legend />
-            <Bar yAxisId="left" dataKey="total_sales" fill="#3b82f6" name="Transactions" />
+            <Bar yAxisId="left" dataKey="total_transactions" fill="#3b82f6" name="Transactions" />
             <Line yAxisId="right" type="monotone" dataKey="total_amount" stroke="#ec4899" name="Revenue (₦)" strokeWidth={2} />
           </ComposedChart>
         </ResponsiveContainer>
@@ -870,7 +894,7 @@ export default function ComprehensiveReportsPage() {
               <XAxis dataKey="item_name" angle={-45} textAnchor="end" height={80} />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="total_revenue" fill="#3b82f6" name="Revenue (₦)" />
+              <Bar dataKey="total_amount" fill="#3b82f6" name="Revenue (₦)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -905,7 +929,7 @@ export default function ComprehensiveReportsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">{staff.total_transactions}</td>
-                  <td className="px-4 py-3 text-green-600 font-semibold">₦{staff.total_revenue.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-green-600 font-semibold">₦{staff.total_amount.toLocaleString()}</td>
                   <td className="px-4 py-3 text-red-600 font-semibold">₦{staff.total_expenses.toLocaleString()}</td>
                   <td className="px-4 py-3">
                     <span className={`font-semibold ${staff.profit_loss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -1004,7 +1028,7 @@ export default function ComprehensiveReportsPage() {
               </div>
               <div className="p-4 bg-green-100 dark:bg-green-900 rounded">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
-                <p className="text-lg font-bold text-green-600">₦{selectedStaffDetail.total_revenue.toLocaleString()}</p>
+                <p className="text-lg font-bold text-green-600">₦{selectedStaffDetail.total_amount.toLocaleString()}</p>
               </div>
               <div className="p-4 bg-red-100 dark:bg-red-900 rounded">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Expenses</p>
