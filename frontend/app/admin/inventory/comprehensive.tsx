@@ -805,7 +805,7 @@ export default function ComprehensiveInventoryPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-600 dark:text-gray-400">
-                        {item.commission}
+                        ₦{(item.commission || 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-center text-sm font-semibold text-gray-900 dark:text-gray-100">
                         ₦{totalValue.toLocaleString()}
