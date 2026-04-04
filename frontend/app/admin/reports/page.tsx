@@ -905,11 +905,11 @@ export default function ComprehensiveReportsPage() {
     <div className="space-y-6">
       {/* Top Performers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Top Staff by Revenue */}
+        {/* Top Staff by Sales */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-green-500" />
-            Top Staff by Revenue
+            Top Staff by Sales
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={report?.performance.top_staff || []}>
@@ -928,16 +928,16 @@ export default function ComprehensiveReportsPage() {
                 }
                 return null;
               }} />
-              <Bar dataKey="total_amount" fill="#10b981" name="Revenue (₦)" />
+              <Bar dataKey="total_amount" fill="#10b981" name="Sales (₦)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Top Items by Revenue */}
+        {/* Top Items by Sales */}
         <div className="card">
           <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-blue-500" />
-            Top Items by Revenue
+            Top Items by Sales
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={report?.performance.top_items || []}>
@@ -945,7 +945,7 @@ export default function ComprehensiveReportsPage() {
               <XAxis dataKey="item_name" angle={-45} textAnchor="end" height={80} />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="total_revenue" fill="#3b82f6" name="Revenue (₦)" />
+              <Bar dataKey="total_revenue" fill="#3b82f6" name="Sales (₦)" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -964,7 +964,7 @@ export default function ComprehensiveReportsPage() {
                 <th className="px-4 py-3 text-left font-semibold">Staff Name</th>
                 <th className="px-4 py-3 text-left font-semibold">Role</th>
                 <th className="px-4 py-3 text-left font-semibold">Transactions</th>
-                <th className="px-4 py-3 text-left font-semibold">Revenue</th>
+                <th className="px-4 py-3 text-left font-semibold">Total Sales</th>
                 <th className="px-4 py-3 text-left font-semibold">Expenses</th>
                 <th className="px-4 py-3 text-left font-semibold">Profit/Loss</th>
                 <th className="px-4 py-3 text-left font-semibold">Actions</th>
@@ -980,7 +980,7 @@ export default function ComprehensiveReportsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">{staff.total_transactions}</td>
-                  <td className="px-4 py-3 text-green-600 font-semibold">₦{(staff.total_amount || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-green-600 font-semibold">₦{(staff.total_revenue || 0).toLocaleString()}</td>
                   <td className="px-4 py-3 text-red-600 font-semibold">₦{(staff.total_expenses || 0).toLocaleString()}</td>
                   <td className="px-4 py-3">
                     <span className={`font-semibold ${(staff.profit_loss || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -1111,8 +1111,8 @@ export default function ComprehensiveReportsPage() {
                 <p className="text-lg font-bold">{selectedStaffDetail.role}</p>
               </div>
               <div className="p-4 bg-green-100 dark:bg-green-900 rounded">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
-                <p className="text-lg font-bold text-green-600">₦{(selectedStaffDetail.total_amount || 0).toLocaleString()}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Total Sales</p>
+                <p className="text-lg font-bold text-green-600">₦{(selectedStaffDetail.total_revenue || 0).toLocaleString()}</p>
               </div>
               <div className="p-4 bg-red-100 dark:bg-red-900 rounded">
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Expenses</p>
