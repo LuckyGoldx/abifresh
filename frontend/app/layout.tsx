@@ -26,36 +26,54 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
-        {/* PWA Install Prompt Handler */}
+        {/* PWA: Service Worker Registration + Install Prompt Handler */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                console.log('[PWA Early] Initializing PWA install system...');
+                if (!('serviceWorker' in navigator)) return;
+
+                // Register the service worker
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(function(reg) {
+                      console.log('[PWA] Service worker registered, scope:', reg.scope);
+                      reg.addEventListener('updatefound', function() {
+                        var newWorker = reg.installing;
+                        if (newWorker) {
+                          newWorker.addEventListener('statechange', function() {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                              newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                          });
+                        }
+                      });
+                    })
+                    .catch(function(err) {
+                      console.warn('[PWA] Service worker registration failed:', err);
+                    });
+                });
+
+                // Capture native beforeinstallprompt if available
                 window.__PWA_INSTALL_PROMPT__ = null;
                 window.__PWA_INSTALL_READY__ = false;
-                
-                // Capture native beforeinstallprompt if available
+
                 const nativeHandler = (e) => {
-                  console.log('[PWA Early] ✅ beforeinstallprompt event captured!');
+                  console.log('[PWA] ✅ beforeinstallprompt event captured!');
                   e.preventDefault();
                   window.__PWA_INSTALL_PROMPT__ = e;
                   window.__PWA_INSTALL_READY__ = true;
                   window.dispatchEvent(new CustomEvent('pwa-install-prompt-ready', { detail: e }));
                 };
-                
-                // Listen for service worker ready and dispatch custom install event
+
                 const swHandler = () => {
-                  console.log('[PWA Early] ✅ Service worker is controlling - PWA ready for dev!');
                   window.__PWA_INSTALL_READY__ = true;
                   window.dispatchEvent(new CustomEvent('pwa-ready'));
                 };
-                
+
                 window.addEventListener('beforeinstallprompt', nativeHandler);
-                navigator.serviceWorker?.controller && swHandler();
-                navigator.serviceWorker?.addEventListener('controllerchange', swHandler);
-                
-                console.log('[PWA Early] PWA system initialized');
+                navigator.serviceWorker.controller && swHandler();
+                navigator.serviceWorker.addEventListener('controllerchange', swHandler);
               })();
             `,
           }}

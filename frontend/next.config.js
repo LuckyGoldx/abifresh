@@ -1,13 +1,6 @@
 /** @type {import('next').NextConfig} */
-// Temporarily disable PWA due to lodash compatibility issue in next-pwa v5.6.0
-// Error: 'assignWith is not defined' during service worker generation
-// TODO: Update to next-pwa v6+ or implement custom PWA setup
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: true,  // DISABLED - fixes build error
-});
+// PWA is handled manually: service worker (public/sw.js) is registered
+// in app/layout.tsx. next-pwa is no longer used.
 
 const nextConfig = {
   reactStrictMode: true,
@@ -46,4 +39,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withPWA(nextConfig);
+module.exports = nextConfig;

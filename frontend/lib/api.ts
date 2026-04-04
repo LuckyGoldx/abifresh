@@ -23,7 +23,8 @@ api.interceptors.request.use(
     if (token) {
       try {
         const parsed = JSON.parse(token);
-        const authToken = parsed.state?.token || parsed.token;
+        // Handle both formats: state-wrapped and direct
+        const authToken = parsed.state?.token ?? parsed.token;
         
         if (authToken) {
           config.headers.Authorization = `Bearer ${authToken}`;
