@@ -36,11 +36,29 @@ type StreamMode = 'sse' | 'polling';
 
 export default function LogsPage() {
   const { token } = useAuthStore();
+  const [hydrated, setHydrated] = useState(false);
   
-  // Debug: Log token and auth state on load
+  // Wait for Zustand store to hydrate from localStorage
   useEffect(() => {
-    console.log('[LOGS PAGE] Mounted. Token:', token ? 'Present' : 'MISSING', token?.substring(0, 30));
+    const checkHydration = () => {
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('auth-storage');
+        if (stored) {
+          setHydrated(true);
+        }
+      }
+    };
+    checkHydration();
+    const timer = setTimeout(() => setHydrated(true), 100);
+    return () => clearTimeout(timer);
   }, []);
+  
+  // Debug: Log token and auth state after hydration
+  useEffect(() => {
+    if (hydrated) {
+      console.log('[LOGS PAGE] Hydrated. Token:', token ? 'Present' : 'MISSING', token?.substring(0, 30));
+    }
+  }, [hydrated, token]);
   
   const [activeTab, setActiveTab] = useState<LogTab>('backend');
   
@@ -255,12 +273,12 @@ export default function LogsPage() {
     setIsStreaming(false);
   }, []);
 
-  // Initialize on tab change
+  // Initialize on tab change (but only after hydrated)
   useEffect(() => {
-    if (activeTab === 'backend') {
+    if (hydrated && activeTab === 'backend') {
       fetchBackendLogs();
     }
-  }, [activeTab, fetchBackendLogs]);
+  }, [activeTab, fetchBackendLogs, hydrated]);
 
   // Handle streaming toggle
   useEffect(() => {
@@ -363,6 +381,14 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-4">
+      {/* Hydration loading state */}
+      {!hydrated && (
+        <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg flex items-center gap-3">
+          <div className="animate-spin">⊙</div>
+          <span>Initializing... Please wait for logs to load.</span>
+        </div>
+      )}
+
       {/* Error Alert */}
       {streamError && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg flex justify-between items-center">
