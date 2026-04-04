@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const cacheKey = 'logs:stream:activity:50';
 
   // Check cache first (3 minute TTL for stream - shorter than main endpoint)
-  let data = serverCache.get(cacheKey);
+  let data: any[] | null = serverCache.get(cacheKey) as any[] | null;
   let fromCache = false;
 
   if (!data) {
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    data = result.data;
+    data = (result.data as any[]) || [];
 
     // Cache the result for 3 minutes
     if (data) {
