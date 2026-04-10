@@ -118,6 +118,80 @@ router.get('/payments/pending-count', authMiddleware, roleMiddleware('admin'), a
 });
 
 /**
+ * Get total outstanding amount across all staff
+ * Outstanding = (total staff_sales amount + total sales amount) − approved payments − pending payments
+ * - Non-commission & commission staff → sales recorded in `staff_sales` table
+ * - Sales staff → sales recorded in `sales` table
+ */
+router.get('/payments/outstanding-summary', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('📍 GET /api/admin/payments/outstanding-summary - Calculating total outstanding');
+
+    // 1. Total from staff_sales (non-commission & commission staff)
+    const { data: staffSalesData, error: staffSalesError } = await supabaseAdmin
+      .from('staff_sales')
+      .select('total_amount');
+
+    if (staffSalesError) throw staffSalesError;
+
+    const staffSalesTotal = (staffSalesData || []).reduce((sum: number, s: any) => {
+      return sum + (parseFloat(s.total_amount) || 0);
+    }, 0);
+
+    // 2. Total from sales table (sales staff — role: sales / sales_staff)
+    const { data: salesData, error: salesError } = await supabaseAdmin
+      .from('sales')
+      .select('total_amount');
+
+    if (salesError) throw salesError;
+
+    const salesStaffTotal = (salesData || []).reduce((sum: number, s: any) => {
+      return sum + (parseFloat(s.total_amount) || 0);
+    }, 0);
+
+    const totalSalesAmount = staffSalesTotal + salesStaffTotal;
+
+    // 3. Total approved and pending payments across ALL staff
+    const { data: paymentsData, error: paymentsError } = await supabaseAdmin
+      .from('staff_payments')
+      .select('amount, status')
+      .in('status', ['approved', 'pending']);
+
+    if (paymentsError) throw paymentsError;
+
+    let approvedAmount = 0;
+    let pendingAmount = 0;
+    (paymentsData || []).forEach((p: any) => {
+      const amt = parseFloat(p.amount) || 0;
+      if (p.status === 'approved') approvedAmount += amt;
+      else if (p.status === 'pending') pendingAmount += amt;
+    });
+
+    const outstandingTotal = Math.max(0, totalSalesAmount - approvedAmount - pendingAmount);
+
+    console.log(`✅ Outstanding summary:`);
+    console.log(`   staff_sales total: ₦${staffSalesTotal}`);
+    console.log(`   sales table total: ₦${salesStaffTotal}`);
+    console.log(`   Combined sales:    ₦${totalSalesAmount}`);
+    console.log(`   Approved payments: ₦${approvedAmount}`);
+    console.log(`   Pending payments:  ₦${pendingAmount}`);
+    console.log(`   Outstanding total: ₦${outstandingTotal}`);
+
+    res.json({
+      staffSalesTotal,
+      salesStaffTotal,
+      totalSalesAmount,
+      approvedAmount,
+      pendingAmount,
+      outstandingTotal,
+    });
+  } catch (error: any) {
+    console.error('❌ Error calculating outstanding summary:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * Get pending payments
  */
 router.get('/payments/pending', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {

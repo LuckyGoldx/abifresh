@@ -1,6 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, hasRole } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import sharp from 'sharp';
+
+/**
+ * Compress image receipt to WebP format with optimized quality
+ * Keeps PDFs uncompressed. Returns compressed buffer and new filename.
+ */
+async function compressReceipt(file: File): Promise<{ buffer: Buffer; fileName: string; type: string }> {
+  const isImage = file.type.startsWith('image/');
+  const isPDF = file.type === 'application/pdf';
+
+  if (isPDF) {
+    // Keep PDFs as-is
+    const buffer = Buffer.from(await file.arrayBuffer());
+    return { buffer, fileName: file.name, type: file.type };
+  }
+
+  if (!isImage) {
+    throw new Error('Only images and PDFs are supported');
+  }
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    
+    // Compress to WebP with 80 quality for imperceptible quality loss
+    const compressed = await sharp(buffer)
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    // If compressed is smaller, use it; otherwise use original
+    const finalBuffer = compressed.length < buffer.length ? compressed : buffer;
+    
+    // Generate filename with .webp extension
+    const newFileName = file.name.replace(/\.[^.]+$/, '.webp');
+    
+    return { buffer: finalBuffer, fileName: newFileName, type: 'image/webp' };
+  } catch (error) {
+    // Fallback: return original file if compression fails
+    const buffer = Buffer.from(await file.arrayBuffer());
+    return { buffer, fileName: file.name, type: file.type };
+  }
+}
 
 export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
@@ -51,18 +92,22 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Receipt must be less than 10MB' }, { status: 400 });
       }
 
-      const ext = receiptFile.name.split('.').pop() || 'jpg';
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-      const arrayBuffer = await receiptFile.arrayBuffer();
-      const fileData = Buffer.from(arrayBuffer);
+      try {
+        // Compress receipt before uploading
+        const { buffer: fileData, fileName: compressedName, type: compressedType } = await compressReceipt(receiptFile);
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${compressedName}`;
 
-      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-        .from('payments')
-        .upload(fileName, fileData, { contentType: receiptFile.type, upsert: true });
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+          .from('payments')
+          .upload(fileName, fileData, { contentType: compressedType, upsert: true });
 
-      if (!uploadError && uploadData) {
-        const { data: urlData } = supabaseAdmin.storage.from('payments').getPublicUrl(uploadData.path);
-        receipt_url = urlData?.publicUrl || null;
+        if (!uploadError && uploadData) {
+          const { data: urlData } = supabaseAdmin.storage.from('payments').getPublicUrl(uploadData.path);
+          receipt_url = urlData?.publicUrl || null;
+        }
+      } catch (uploadErr) {
+        console.error('Receipt upload failed:', uploadErr);
+        // Continue without receipt URL - don't block payment submission
       }
     }
 

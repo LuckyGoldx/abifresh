@@ -69,7 +69,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Staff Stores', href: '/admin/staff-stores', icon: '🏪' },
     { label: 'Post Items', href: '/admin/post-items', icon: '📮' },
     { label: 'Inventory', href: '/admin/inventory', icon: '📦' },
-    { label: 'Restock Orders', href: '/admin/orders', icon: '🛒' },
     { label: 'Payments', href: '/admin/payments', icon: '💳', badge: pendingPaymentsCount },
     { label: 'Receipts', href: '/admin/receipts', icon: '📄' },
     { label: 'Commissions', href: '/admin/commissions', icon: '💵' },
@@ -77,6 +76,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'My Expenses', href: '/admin/my-expenses', icon: '💰' },
     { label: 'Reports', href: '/admin/reports', icon: '📈' },
     { label: 'Items', href: '/admin/items', icon: '🛍️' },
+    { label: 'Restock Orders', href: '/admin/orders', icon: '🛒' },
     { label: 'Staff Management', href: '/admin/staff', icon: '👥' },
   ];
 

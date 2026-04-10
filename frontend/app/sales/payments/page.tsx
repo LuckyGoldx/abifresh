@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { formatQty } from '@/lib/format-quantity';
-import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, User, Phone, X, Eye, Maximize2, Download } from 'lucide-react';
+import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, User, Phone, X, Eye, Maximize2, Download, Camera } from 'lucide-react';
 
 interface Payment {
   id: string;
@@ -36,6 +36,7 @@ interface Sale {
 
 export default function SalesPaymentsPage() {
   const user = useAuthStore((state) => state.user);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [stats, setStats] = useState<any>({
@@ -473,24 +474,24 @@ export default function SalesPaymentsPage() {
           </div>
         </div>
 
-        <div className="card bg-blue-50 dark:bg-blue-900 border-l-4 border-blue-500">
+        <div className="card bg-blue-50 dark:bg-blue-900 border-l-4 border-blue-500 overflow-hidden">
           <div className="flex items-center gap-3">
-            <DollarSign className="w-8 h-8 text-blue-600" />
-            <div>
+            <DollarSign className="w-8 h-8 text-blue-600 flex-shrink-0" />
+            <div className="w-full min-w-0">
               <p className="text-sm text-blue-700 dark:text-blue-200">Total Sales (All Time)</p>
-              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100 break-all">
                 ₦{(stats.allTimeTotalAmount || 0).toLocaleString()}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="card bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-500">
+        <div className="card bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-500 overflow-hidden">
           <div className="flex items-center gap-3">
-            <Clock className="w-8 h-8 text-yellow-600" />
-            <div>
+            <Clock className="w-8 h-8 text-yellow-600 flex-shrink-0" />
+            <div className="w-full min-w-0">
               <p className="text-sm text-yellow-700 dark:text-yellow-200">Pending Payments</p>
-              <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+              <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100 break-all">
                 ₦{pendingPayments.toLocaleString()}
               </p>
               <p className="text-xs text-yellow-600 dark:text-yellow-300 mt-1">
@@ -500,24 +501,24 @@ export default function SalesPaymentsPage() {
           </div>
         </div>
 
-        <div className="card bg-green-50 dark:bg-green-900 border-l-4 border-green-500">
+        <div className="card bg-green-50 dark:bg-green-900 border-l-4 border-green-500 overflow-hidden">
           <div className="flex items-center gap-3">
-            <CheckCircle className="w-8 h-8 text-green-600" />
-            <div>
+            <CheckCircle className="w-8 h-8 text-green-600 flex-shrink-0" />
+            <div className="w-full min-w-0">
               <p className="text-sm text-green-700 dark:text-green-200">Approved Payments</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+              <p className="text-2xl font-bold text-green-900 dark:text-green-100 break-all">
                 ₦{approvedPayments.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="card bg-red-50 dark:bg-red-900 border-l-4 border-red-500">
+        <div className="card bg-red-50 dark:bg-red-900 border-l-4 border-red-500 overflow-hidden">
           <div className="flex items-center gap-3">
-            <XCircle className="w-8 h-8 text-red-600" />
-            <div>
+            <XCircle className="w-8 h-8 text-red-600 flex-shrink-0" />
+            <div className="w-full min-w-0">
               <p className="text-sm text-red-700 dark:text-red-200">Outstanding Amount</p>
-              <p className="text-2xl font-bold text-red-900 dark:text-red-100">
+              <p className="text-2xl font-bold text-red-900 dark:text-red-100 break-all">
                 ₦{outstandingAmount.toLocaleString()}
               </p>
               <p className="text-xs text-red-600 dark:text-red-300 mt-1">
@@ -570,20 +571,20 @@ export default function SalesPaymentsPage() {
                 <FileText className="w-5 h-5" />
                 Your Sales Summary
               </h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                 {/* All-Time Sales Card */}
-                <div className="bg-white dark:bg-gray-700 p-3 rounded border dark:border-gray-600">
+                <div className="bg-white dark:bg-gray-700 p-3 rounded border dark:border-gray-600 overflow-hidden md:col-span-3">
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-2">ALL-TIME SALES</p>
-                  <div className="flex justify-between items-start">
-                    <div>
+                  <div className="flex justify-between items-start gap-2 w-full min-w-0">
+                    <div className="min-w-0">
                       <p className="text-sm text-gray-600 dark:text-gray-300">Total Items</p>
-                      <p className="text-xl font-bold text-gray-800 dark:text-white">
+                      <p className="text-lg font-bold text-gray-800 dark:text-white break-all">
                         {formatQty(stats.allTimeQuantity || 0)} units
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right min-w-0">
                       <p className="text-xs text-gray-500 dark:text-gray-400">Total Value</p>
-                      <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                      <p className="text-sm font-bold text-blue-600 dark:text-blue-400 break-all">
                         ₦{(stats.allTimeTotalAmount || 0).toLocaleString()}
                       </p>
                     </div>
@@ -591,19 +592,13 @@ export default function SalesPaymentsPage() {
                 </div>
                 
                 {/* Outstanding Amount Card */}
-                <div className="bg-white dark:bg-gray-700 p-3 rounded border dark:border-gray-600">
+                <div className="bg-white dark:bg-gray-700 p-3 rounded border dark:border-gray-600 overflow-hidden md:col-span-2">
                   <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-2">OUTSTANDING</p>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">Amount Due</p>
-                      <p className="text-xl font-bold text-red-600 dark:text-red-400">
-                        ₦{outstandingAmount.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right text-xs text-gray-500 dark:text-gray-400">
-                      <p>Sales - Approved</p>
-                      <p>- Pending</p>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Amount Due</p>
+                    <p className="text-lg font-bold text-red-600 dark:text-red-400 break-all">
+                      ₦{outstandingAmount.toLocaleString()}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -734,20 +729,54 @@ export default function SalesPaymentsPage() {
               <label className="block text-sm font-medium mb-2">
                 Upload Receipt / Proof of Payment <span className="text-red-500">*</span>
               </label>
-              <div className="border-2 border-dashed dark:border-gray-700 rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+              <div className="border-2 border-dashed dark:border-gray-700 rounded-lg p-6 text-center">
                 <input
+                  ref={receiptInputRef}
                   type="file"
                   id="receipt"
                   onChange={handleFileChange}
                   className="hidden"
                   accept="image/jpeg,image/png,image/jpg,image/gif,image/webp,application/pdf"
+                  capture="environment"
                   required={true}
                 />
-                <label htmlFor="receipt" className="cursor-pointer block">
-                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm font-medium">Click to upload receipt</p>
-                  <p className="text-xs text-gray-500 mt-1">JPG, PNG, GIF, WebP, or PDF • Max 5MB</p>
-                </label>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (receiptInputRef.current) {
+                        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                        if (isMobile) {
+                          receiptInputRef.current.setAttribute('capture', 'environment');
+                        } else {
+                          receiptInputRef.current.removeAttribute('capture');
+                        }
+                        receiptInputRef.current.click();
+                      }
+                    }}
+                    className="flex flex-col items-center gap-2 px-6 py-4 bg-blue-50 dark:bg-blue-900 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800 transition flex-1"
+                  >
+                    <Camera className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <span className="text-sm font-medium text-blue-600 dark:text-blue-400">📱 Camera</span>
+                  </button>
+                  <span className="hidden sm:inline text-gray-300">•</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (receiptInputRef.current) {
+                        receiptInputRef.current.removeAttribute('capture');
+                        receiptInputRef.current.click();
+                      }
+                    }}
+                    className="flex flex-col items-center gap-2 px-6 py-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition flex-1"
+                  >
+                    <Upload className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">📁 Upload</span>
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 break-words">JPG, PNG, GIF, WebP, or PDF • Max 5MB</p>
               </div>
               {receiptFile && (
                 <div className="mt-3 space-y-2">

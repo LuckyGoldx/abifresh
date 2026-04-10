@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { CreditCard, CheckCircle, Clock, XCircle, Search, Filter, BarChart3, TrendingUp, Eye, Download, X, FileText, Phone, MapPin } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { CreditCard, CheckCircle, Clock, XCircle, Search, Filter, BarChart3, TrendingUp, Eye, Download, X, FileText, Phone, MapPin, AlertTriangle, Users } from 'lucide-react';
 import LoadingLogo from '@/components/LoadingLogo';
 import { formatQty } from '@/lib/format-quantity';
 
@@ -34,8 +35,23 @@ interface Payment {
   rejection_reason?: string;
 }
 
+interface StaffSummaryRow {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  total_qty: number;
+  total_sales_amount: number;
+  pending_amount: number;
+  approved_amount: number;
+  outstanding_amount: number;
+}
+
 export default function PaymentsPage() {
+  const router = useRouter();
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [staffSummary, setStaffSummary] = useState<StaffSummaryRow[]>([]);
+  const [staffSummaryLoading, setStaffSummaryLoading] = useState(true);
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +68,8 @@ export default function PaymentsPage() {
   const [actionInProgress, setActionInProgress] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [outstandingSummary, setOutstandingSummary] = useState<{ outstandingTotal: number } | null>(null);
+  const [activeTab, setActiveTab] = useState<'payments' | 'breakdown'>('payments');
 
   // Download receipt handler - handles cross-origin downloads
   const handleDownloadReceipt = async (url: string, filename?: string) => {
@@ -87,6 +105,8 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     fetchPayments();
+    fetchOutstandingSummary();
+    fetchStaffSummary();
   }, []);
 
   useEffect(() => {
@@ -102,6 +122,27 @@ export default function PaymentsPage() {
       console.log('  - items_paid_for:', selectedPayment.items_paid_for);
     }
   }, [showDetailsModal, selectedPayment]);
+
+  const fetchStaffSummary = async () => {
+    try {
+      setStaffSummaryLoading(true);
+      const res = await api.get('/api/admin/payments/staff-summary');
+      setStaffSummary(res.data || []);
+    } catch (err: any) {
+      console.error('Failed to fetch staff summary:', err?.response?.data || err?.message);
+    } finally {
+      setStaffSummaryLoading(false);
+    }
+  };
+
+  const fetchOutstandingSummary = async () => {
+    try {
+      const response = await api.get('/api/admin/payments/outstanding-summary');
+      setOutstandingSummary(response.data);
+    } catch (error: any) {
+      console.error('Failed to fetch outstanding summary:', error?.response?.data || error?.message);
+    }
+  };
 
   const fetchPayments = async () => {
     try {
@@ -251,8 +292,9 @@ export default function PaymentsPage() {
     pending: payments.filter(p => p.status === 'pending').length,
     approved: payments.filter(p => p.status === 'approved').length,
     rejected: payments.filter(p => p.status === 'rejected').length,
-    totalAmount: (payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0) +
-                  payments.filter(p => p.status === 'approved').reduce((sum, p) => sum + p.amount, 0)),
+    totalAmount: ((outstandingSummary?.outstandingTotal ?? 0) +
+                  payments.filter(p => p.status === 'approved').reduce((sum, p) => sum + p.amount, 0) +
+                  payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0)),
     pendingAmount: payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
     approvedAmount: payments.filter(p => p.status === 'approved').reduce((sum, p) => sum + p.amount, 0),
     rejectedAmount: payments.filter(p => p.status === 'rejected').reduce((sum, p) => sum + p.amount, 0),
@@ -271,45 +313,216 @@ export default function PaymentsPage() {
           Payment Management System
         </h1>
         <button
-          onClick={fetchPayments}
+          onClick={() => { fetchPayments(); fetchOutstandingSummary(); fetchStaffSummary(); }}
           className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition"
         >
           Refresh
         </button>
       </div>
 
+      {/* Total Outstanding Card */}
+      <div 
+        onClick={() => {
+          setActiveTab('breakdown');
+          setTimeout(() => {
+            const tabElement = document.getElementById('payments-tabs');
+            if (tabElement) {
+              tabElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 0);
+        }}
+        className="card border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950 cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-200"
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-3 bg-orange-100 dark:bg-orange-900 rounded-full flex-shrink-0">
+            <AlertTriangle className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs sm:text-sm font-medium text-orange-700 dark:text-orange-300">Total Outstanding</p>
+            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-orange-600 dark:text-orange-400 break-words">
+              ₦{(outstandingSummary?.outstandingTotal ?? 0).toLocaleString()}
+            </p>
+            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+              Sum of sales not yet submitted by all staff
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Statistics Dashboard */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="card border-l-4 border-l-yellow-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Pending Payments</p>
-          <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Pending Payments</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-yellow-600 break-words">{stats.pending}</p>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 break-words">
             ₦{stats.pendingAmount.toLocaleString()}
           </p>
         </div>
 
         <div className="card border-l-4 border-l-green-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Approved Payments</p>
-          <p className="text-3xl font-bold text-green-600">{stats.approved}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Approved Payments</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-green-600 break-words">{stats.approved}</p>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 break-words">
             ₦{stats.approvedAmount.toLocaleString()}
           </p>
         </div>
 
         <div className="card border-l-4 border-l-red-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Rejected Payments</p>
-          <p className="text-3xl font-bold text-red-600">{stats.rejected}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Rejected Payments</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-red-600 break-words">{stats.rejected}</p>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 break-words">
             ₦{stats.rejectedAmount.toLocaleString()}
           </p>
         </div>
 
         <div className="card border-l-4 border-l-blue-500">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">Total Amount</p>
-          <p className="text-3xl font-bold text-blue-600">₦{stats.totalAmount.toLocaleString()}</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Total Amount</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-blue-600 break-words">₦{stats.totalAmount.toLocaleString()}</p>
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div id="payments-tabs" className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setActiveTab('payments')}
+          className={`px-4 py-3 font-medium text-sm sm:text-base transition-colors border-b-2 ${
+            activeTab === 'payments'
+              ? 'border-b-pink-500 text-pink-600 dark:text-pink-400'
+              : 'border-b-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'
+          }`}
+        >
+          Payments
+        </button>
+        <button
+          onClick={() => setActiveTab('breakdown')}
+          className={`px-4 py-3 font-medium text-sm sm:text-base transition-colors border-b-2 ${
+            activeTab === 'breakdown'
+              ? 'border-b-pink-500 text-pink-600 dark:text-pink-400'
+              : 'border-b-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300'
+          }`}
+        >
+          Payments Breakdown
+        </button>
+      </div>
+
+      {/* Staff Payment Breakdown Tab */}
+      {activeTab === 'breakdown' && (
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
+            <Users className="w-5 h-5 text-pink-500" />
+            Staff Payment Breakdown
+          </h2>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').length} staff member{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {staffSummaryLoading ? (
+          <div className="flex items-center justify-center py-10 text-gray-500 dark:text-gray-400 gap-2">
+            <div className="w-5 h-5 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+            Loading staff data...
+          </div>
+        ) : staffSummary.length === 0 ? (
+          <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+            <Users className="w-10 h-10 mx-auto mb-2 opacity-40" />
+            <p>No staff found</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                  <th className="text-left py-3 px-4 font-semibold">Staff</th>
+                  <th className="text-left py-3 px-4 font-semibold">Role</th>
+                  <th className="text-right py-3 px-4 font-semibold">Total Qty Sold</th>
+                  <th className="text-right py-3 px-4 font-semibold">Total Sales</th>
+                  <th className="text-right py-3 px-4 font-semibold">Pending</th>
+                  <th className="text-right py-3 px-4 font-semibold">Approved</th>
+                  <th className="text-right py-3 px-4 font-semibold">Outstanding</th>
+                  <th className="text-center py-3 px-4 font-semibold">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').sort((a, b) => {
+                  if (b.outstanding_amount !== a.outstanding_amount) {
+                    return b.outstanding_amount - a.outstanding_amount;
+                  }
+                  return b.total_sales_amount - a.total_sales_amount;
+                }).map(staff => (
+                  <tr key={staff.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                    <td className="py-3 px-4">
+                      <p className="font-medium text-gray-900 dark:text-white">{staff.full_name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{staff.email}</p>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="text-xs px-2 py-0.5 bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300 rounded-full capitalize">
+                        {staff.role.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300 font-medium">
+                      {staff.total_qty.toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 text-right font-semibold text-blue-600 dark:text-blue-400">
+                      ₦{(staff.total_sales_amount || 0).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="font-semibold text-yellow-600 dark:text-yellow-400">
+                        ₦{(staff.pending_amount || 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="font-semibold text-green-600 dark:text-green-400">
+                        ₦{(staff.approved_amount || 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="font-bold text-red-600 dark:text-red-400">
+                        ₦{(staff.outstanding_amount || 0).toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => router.push(`/admin/payments/staff/${staff.id}`)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs font-medium transition"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              {/* Totals Row */}
+              <tfoot>
+                <tr className="bg-gray-100 dark:bg-gray-700 border-t-2 dark:border-gray-600 font-bold text-sm">
+                  <td colSpan={2} className="py-3 px-4 text-gray-700 dark:text-gray-200">Totals</td>
+                  <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-200">
+                    {staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + r.total_qty, 0).toLocaleString()}
+                  </td>
+                  <td className="py-3 px-4 text-right text-blue-700 dark:text-blue-300">
+                    ₦{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + r.total_sales_amount, 0).toLocaleString()}
+                  </td>
+                  <td className="py-3 px-4 text-right text-yellow-700 dark:text-yellow-300">
+                    ₦{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + r.pending_amount, 0).toLocaleString()}
+                  </td>
+                  <td className="py-3 px-4 text-right text-green-700 dark:text-green-300">
+                    ₦{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + (r.approved_amount || 0), 0).toLocaleString()}
+                  </td>
+                  <td className="py-3 px-4 text-right text-red-700 dark:text-red-300">
+                    ₦{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + r.outstanding_amount, 0).toLocaleString()}
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* Payments Tab */}
+      {activeTab === 'payments' && (
+      <>
       {/* Filters */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
@@ -544,6 +757,8 @@ export default function PaymentsPage() {
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Payment Details Modal */}
       {showDetailsModal && selectedPayment && (
