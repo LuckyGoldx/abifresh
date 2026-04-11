@@ -400,7 +400,7 @@ export default function SalesPaymentsPage() {
       }
 
       await api.post('/api/sales/payments/request', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': undefined }
       });
       
       alert('Payment request submitted successfully! Awaiting admin approval.');
