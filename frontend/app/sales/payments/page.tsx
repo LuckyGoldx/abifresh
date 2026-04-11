@@ -340,11 +340,11 @@ export default function SalesPaymentsPage() {
     }
 
     // Use outstanding amount from backend stats (already calculated correctly)
-    const outstandingAmount = stats.outstandingAmount || 0;
+    const outstandingAmt = stats.outstandingAmount || 0;
 
-    // Validate that payment doesn't exceed outstanding balance
-    if (calculatedAmount > outstandingAmount) {
-      alert(`❌ Payment amount (₦${calculatedAmount.toLocaleString()}) exceeds your outstanding balance (₦${outstandingAmount.toLocaleString()})\n\nPlease select fewer items or reduce the payment amount.`);
+    // Validate payment doesn't exceed outstanding balance (allow tiny float tolerance)
+    if (calculatedAmount > outstandingAmt + 0.01) {
+      alert(`❌ Payment amount (₦${calculatedAmount.toLocaleString()}) exceeds your outstanding balance (₦${outstandingAmt.toLocaleString()})\n\nPlease select fewer items or reduce the payment amount.`);
       return;
     }
 
@@ -355,7 +355,6 @@ export default function SalesPaymentsPage() {
 
     // Validate based on payment method
     if (paymentMethod !== 'cash') {
-      // For online, bank_deposit, pos - require receipt and reference number
       if (!receiptFile) {
         alert('Please upload a receipt for this payment method');
         return;
@@ -372,9 +371,16 @@ export default function SalesPaymentsPage() {
     setShowPreview(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
-    
+
+    // Compute amount fresh from selected items
+    const freshAmount = calculateSelectedTotal();
+    if (freshAmount <= 0) {
+      alert('No items selected. Please select items to pay for.');
+      return;
+    }
+
     // Get selected items from the grouped view
     const selectedSalesData = soldItems
       .filter(item => selectedItems.includes(item.id))
@@ -389,7 +395,7 @@ export default function SalesPaymentsPage() {
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append('amount', paymentAmount);
+      formData.append('amount', freshAmount.toString());
       formData.append('staff_name', staffName);
       formData.append('items_paid_for', JSON.stringify(selectedSalesData));
       formData.append('reference_number', referenceNumber || '');
@@ -399,9 +405,26 @@ export default function SalesPaymentsPage() {
         formData.append('receipt', receiptFile);
       }
 
-      await api.post('/api/sales/payments/request', formData, {
-        headers: { 'Content-Type': undefined }
+      // Use fetch directly so the browser auto-sets Content-Type with boundary for FormData
+      const authStorage = typeof window !== 'undefined' ? localStorage.getItem('auth-storage') : null;
+      let authToken = '';
+      if (authStorage) {
+        try {
+          const parsed = JSON.parse(authStorage);
+          authToken = parsed.state?.token ?? parsed.token ?? '';
+        } catch {}
+      }
+
+      const response = await fetch('/api/sales/payments/request', {
+        method: 'POST',
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        body: formData,
       });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({ error: 'Server error. Please try again.' }));
+        throw new Error(errData.error || 'Failed to submit payment request');
+      }
       
       alert('Payment request submitted successfully! Awaiting admin approval.');
       
@@ -417,7 +440,7 @@ export default function SalesPaymentsPage() {
       setReceiptPreview(null);
       fetchData();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Failed to submit payment request');
+      alert(error.message || 'Failed to submit payment request');
     } finally {
       setSubmitting(false);
     }
@@ -547,7 +570,7 @@ export default function SalesPaymentsPage() {
             Submit New Payment
           </h2>
           
-          <form onSubmit={showPreview ? handleSubmit : handlePreview} className="space-y-6">
+          <form onSubmit={showPreview ? handleSubmit : handlePreview} className="space-y-6" noValidate>
             {/* Staff Name */}
             <div>
               <label className="block text-sm font-medium mb-2">
@@ -737,8 +760,6 @@ export default function SalesPaymentsPage() {
                   onChange={handleFileChange}
                   className="hidden"
                   accept="image/jpeg,image/png,image/jpg,image/gif,image/webp,application/pdf"
-                  capture="environment"
-                  required={true}
                 />
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
                   <button

@@ -1,116 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
-import sharp from 'sharp';
 
 /**
- * Compress image receipt to WebP format with optimized quality
- * Keeps PDFs uncompressed. Returns compressed buffer and new filename.
+ * Compress image receipt to WebP format.
+ * Uses dynamic sharp import to avoid module-level load failure on some platforms.
  */
 async function compressReceipt(file: File): Promise<{ buffer: Buffer; fileName: string; type: string }> {
-  const isImage = file.type.startsWith('image/');
-  const isPDF = file.type === 'application/pdf';
-
-  if (isPDF) {
-    // Keep PDFs as-is
-    const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (file.type === 'application/pdf' || !file.type.startsWith('image/')) {
     return { buffer, fileName: file.name, type: file.type };
   }
-
-  if (!isImage) {
-    throw new Error('Only images and PDFs are supported');
-  }
-
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    
-    // Compress to WebP with 80 quality for imperceptible quality loss
-    const compressed = await sharp(buffer)
-      .webp({ quality: 80 })
-      .toBuffer();
-
-    // If compressed is smaller, use it; otherwise use original
+    const sharp = (await import('sharp')).default;
+    const compressed = await sharp(buffer).webp({ quality: 80 }).toBuffer();
     const finalBuffer = compressed.length < buffer.length ? compressed : buffer;
-    
-    // Generate filename with .webp extension
     const newFileName = file.name.replace(/\.[^.]+$/, '.webp');
-    
     return { buffer: finalBuffer, fileName: newFileName, type: 'image/webp' };
-  } catch (error) {
-    // Fallback: return original file if compression fails
-    const buffer = Buffer.from(await file.arrayBuffer());
+  } catch {
     return { buffer, fileName: file.name, type: file.type };
   }
 }
 
 /**
  * POST /api/staff/payments/request
- * Staff requests payment with optional receipt file upload.
- * Handles multipart/form-data (file upload) or JSON.
  */
 export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
 
   try {
-    let amount: string | null = null;
-    let payment_method: string | null = null;
-    let reference_number: string | null = null;
-    let notes: string | null = null;
+    // Always parse as FormData — frontend always sends multipart/form-data
+    const formData = await req.formData();
+    const amount = formData.get('amount') as string;
+    const payment_method = formData.get('payment_method') as string;
+    const reference_number = (formData.get('reference_number') as string) || null;
+    const notes = (formData.get('notes') as string) || null;
+
+    const itemsRaw = formData.get('items_paid_for') as string | null;
     let items_paid_for: any[] = [];
-    let receipt_url: string | null = null;
-
-    const contentType = req.headers.get('content-type') || '';
-
-    if (contentType.includes('multipart/form-data')) {
-      // Handle file upload
-      const formData = await req.formData();
-      amount = formData.get('amount') as string;
-      payment_method = formData.get('payment_method') as string;
-      reference_number = formData.get('reference_number') as string | null;
-      notes = formData.get('notes') as string | null;
-
-      const itemsRaw = formData.get('items_paid_for') as string | null;
-      if (itemsRaw) {
-        try { items_paid_for = JSON.parse(itemsRaw); } catch {}
-      }
-
-      const receiptFile = formData.get('receipt') as File | null;
-      if (receiptFile) {
-        const { createClient } = await import('@supabase/supabase-js');
-        const { supabaseAdmin: adminClient } = await import('@/lib/server/supabase-admin');
-
-        try {
-          // Compress receipt before uploading
-          const { buffer: fileBuffer, fileName: compressedName, type: compressedType } = await compressReceipt(receiptFile);
-          const fileName = `receipt_${authResult.id}_${Date.now()}_${compressedName}`;
-          
-          const { data: uploadData, error: uploadError } = await adminClient.storage
-            .from('payments')
-            .upload(fileName, fileBuffer, { contentType: compressedType });
-
-          if (!uploadError && uploadData) {
-            const { data: publicUrlData } = adminClient.storage
-              .from('payments')
-              .getPublicUrl(fileName);
-            receipt_url = publicUrlData?.publicUrl || null;
-          }
-        } catch (uploadErr) {
-          console.error('Receipt upload failed:', uploadErr);
-          // Continue without receipt URL - don't block payment submission
-        }
-      }
-    } else {
-      // Handle JSON body
-      const body = await req.json();
-      amount = body.amount;
-      payment_method = body.payment_method;
-      reference_number = body.reference_number || null;
-      notes = body.notes || null;
-      items_paid_for = Array.isArray(body.items_paid_for) ? body.items_paid_for : [];
+    if (itemsRaw) {
+      try { items_paid_for = JSON.parse(itemsRaw); } catch {}
     }
 
-    if (!amount) {
+    if (!amount || isNaN(parseFloat(amount))) {
       return NextResponse.json({ error: 'Amount is required' }, { status: 400 });
     }
 
@@ -122,6 +55,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Upload receipt if present
+    let receipt_url: string | null = null;
+    const receiptFile = formData.get('receipt') as File | null;
+    if (receiptFile && receiptFile.size > 0) {
+      try {
+        const { buffer: fileBuffer, fileName: compressedName, type: compressedType } = await compressReceipt(receiptFile);
+        const fileName = `receipt_${authResult.id}_${Date.now()}_${compressedName}`;
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+          .from('payments')
+          .upload(fileName, fileBuffer, { contentType: compressedType });
+        if (!uploadError && uploadData) {
+          const { data: publicUrlData } = supabaseAdmin.storage.from('payments').getPublicUrl(fileName);
+          receipt_url = publicUrlData?.publicUrl || null;
+        }
+      } catch (uploadErr) {
+        console.error('Receipt upload failed:', uploadErr);
+        // Non-fatal: continue without receipt URL
+      }
+    }
+
     // Get user info
     const { data: user } = await supabaseAdmin
       .from('users')
@@ -129,7 +82,7 @@ export async function POST(req: NextRequest) {
       .eq('id', authResult.id)
       .single();
 
-    // Auto-generate reference number for cash payments if not provided
+    // Auto-generate reference number for cash payments
     let finalRefNumber = reference_number;
     if (payment_method === 'cash' && !finalRefNumber) {
       const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
@@ -137,25 +90,29 @@ export async function POST(req: NextRequest) {
       finalRefNumber = `CASH-${dateStr}-${randomStr}`;
     }
 
+    const paymentType = ['commission_staff', 'staff_commission', 'sales_staff', 'sales'].includes(authResult.role)
+      ? 'commission'
+      : ['non_commission_staff', 'staff_non_commission'].includes(authResult.role)
+        ? 'salary'
+        : 'other';
+
     const { data, error } = await supabaseAdmin
       .from('staff_payments')
-      .insert([
-        {
-          staff_id: authResult.id,
-          staff_name: user?.full_name || authResult.email || 'Staff Member',
-          staff_email: user?.email || authResult.email,
-          staff_phone: user?.phone_number || null,
-          amount: parseFloat(amount),
-          payment_type: ['commission_staff', 'staff_commission', 'sales_staff', 'sales'].includes(authResult.role) ? 'commission' : ['non_commission_staff', 'staff_non_commission'].includes(authResult.role) ? 'salary' : 'other',
-          payment_method,
-          status: 'pending',
-          reference_number: finalRefNumber,
-          receipt_url,
-          items_paid_for: items_paid_for.length > 0 ? items_paid_for : null,
-          notes: notes || null,
-          requested_date: new Date().toISOString(),
-        },
-      ])
+      .insert([{
+        staff_id: authResult.id,
+        staff_name: user?.full_name || authResult.email || 'Staff Member',
+        staff_email: user?.email || authResult.email,
+        staff_phone: user?.phone_number || null,
+        amount: parseFloat(amount),
+        payment_type: paymentType,
+        payment_method,
+        status: 'pending',
+        reference_number: finalRefNumber,
+        receipt_url,
+        items_paid_for: items_paid_for.length > 0 ? items_paid_for : null,
+        notes: notes || null,
+        requested_date: new Date().toISOString(),
+      }])
       .select()
       .single();
 
@@ -180,6 +137,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ payment: data, message: 'Payment request submitted' }, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error('Staff payment POST error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to process payment request' }, { status: 400 });
   }
 }

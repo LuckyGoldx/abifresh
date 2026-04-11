@@ -1,44 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, hasRole } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
-import sharp from 'sharp';
 
 /**
- * Compress image receipt to WebP format with optimized quality
- * Keeps PDFs uncompressed. Returns compressed buffer and new filename.
+ * Compress image receipt to WebP format.
+ * Uses dynamic sharp import to avoid module-level load failure on some platforms.
  */
 async function compressReceipt(file: File): Promise<{ buffer: Buffer; fileName: string; type: string }> {
-  const isImage = file.type.startsWith('image/');
-  const isPDF = file.type === 'application/pdf';
-
-  if (isPDF) {
-    // Keep PDFs as-is
-    const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = Buffer.from(await file.arrayBuffer());
+  if (file.type === 'application/pdf' || !file.type.startsWith('image/')) {
     return { buffer, fileName: file.name, type: file.type };
   }
-
-  if (!isImage) {
-    throw new Error('Only images and PDFs are supported');
-  }
-
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    
-    // Compress to WebP with 80 quality for imperceptible quality loss
-    const compressed = await sharp(buffer)
-      .webp({ quality: 80 })
-      .toBuffer();
-
-    // If compressed is smaller, use it; otherwise use original
+    const sharp = (await import('sharp')).default;
+    const compressed = await sharp(buffer).webp({ quality: 80 }).toBuffer();
     const finalBuffer = compressed.length < buffer.length ? compressed : buffer;
-    
-    // Generate filename with .webp extension
     const newFileName = file.name.replace(/\.[^.]+$/, '.webp');
-    
     return { buffer: finalBuffer, fileName: newFileName, type: 'image/webp' };
-  } catch (error) {
-    // Fallback: return original file if compression fails
-    const buffer = Buffer.from(await file.arrayBuffer());
+  } catch {
     return { buffer, fileName: file.name, type: file.type };
   }
 }
