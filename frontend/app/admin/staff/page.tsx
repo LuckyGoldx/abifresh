@@ -124,8 +124,11 @@ export default function StaffManagementPage() {
   const fetchStaff = async () => {
     try {
       const response = await api.get('/api/admin/staff');
-      // Exclude superadmin users from admin staff view
-      const nonSuperadminStaff = response.data.filter((s: Staff) => s.role !== 'superadmin');
+      // Exclude superadmin users and internal demo/system accounts from admin staff view
+      const HIDDEN_EMAILS = ['staff@abifresh.com', 'commission@abifresh.com', 'sales.@abifresh.com'];
+      const nonSuperadminStaff = response.data.filter(
+        (s: Staff) => s.role !== 'superadmin' && !HIDDEN_EMAILS.includes(s.email.toLowerCase())
+      );
       setStaff(nonSuperadminStaff);
       
       // Calculate stats (excluding superadmin)

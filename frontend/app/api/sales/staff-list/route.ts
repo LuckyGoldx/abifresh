@@ -10,11 +10,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
-  const { data, error } = await supabaseAdmin
+  const isSuperadmin = authResult.role === 'superadmin';
+  const HIDDEN_EMAILS = '("staff@abifresh.com","commission@abifresh.com","sales.@abifresh.com")';
+
+  let staffQuery = supabaseAdmin
     .from('users')
     .select('id, full_name, email, role')
-    .in('role', ['commission_staff', 'non_commission_staff'])
-    .order('full_name', { ascending: true });
+    .in('role', ['commission_staff', 'non_commission_staff']);
+  if (!isSuperadmin) staffQuery = staffQuery.not('email', 'in', HIDDEN_EMAILS);
+  const { data, error } = await staffQuery.order('full_name', { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 

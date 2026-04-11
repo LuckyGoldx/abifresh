@@ -12,11 +12,16 @@ export async function GET(req: NextRequest) {
   }
 
   // 1. Get all commission staff users
-  const { data: commissionStaff, error: staffError } = await supabaseAdmin
+  const isSuperadmin = authResult.role === 'superadmin';
+  const HIDDEN_EMAILS = '("staff@abifresh.com","commission@abifresh.com","sales.@abifresh.com")';
+
+  let commissionQuery = supabaseAdmin
     .from('users')
     .select('id, full_name, email, username')
     .in('role', COMMISSION_ROLES)
     .eq('is_active', true);
+  if (!isSuperadmin) commissionQuery = commissionQuery.not('email', 'in', HIDDEN_EMAILS);
+  const { data: commissionStaff, error: staffError } = await commissionQuery;
 
   if (staffError) return NextResponse.json({ error: staffError.message }, { status: 400 });
 

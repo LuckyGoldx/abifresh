@@ -6,12 +6,16 @@ export async function GET(req: NextRequest) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
 
-  const { data, error } = await supabaseAdmin
+  const isSuperadmin = authResult.role === 'superadmin';
+  const HIDDEN_EMAILS = '("staff@abifresh.com","commission@abifresh.com","sales.@abifresh.com")';
+
+  let salesStaffQuery = supabaseAdmin
     .from('users')
     .select('id, full_name, email, role')
     .in('role', ['sales', 'sales_staff'])
-    .eq('is_active', true)
-    .order('full_name', { ascending: true });
+    .eq('is_active', true);
+  if (!isSuperadmin) salesStaffQuery = salesStaffQuery.not('email', 'in', HIDDEN_EMAILS);
+  const { data, error } = await salesStaffQuery.order('full_name', { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 

@@ -12,12 +12,16 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const isSuperadmin = authResult.role === 'superadmin';
+    const HIDDEN_EMAILS = '("staff@abifresh.com","commission@abifresh.com","sales.@abifresh.com")';
+
     // 1. All non-admin staff
-    const { data: users, error: usersErr } = await supabaseAdmin
+    let usersQuery = supabaseAdmin
       .from('users')
       .select('id, full_name, email, role, phone_number')
-      .not('role', 'in', '("admin","superadmin")')
-      .order('full_name', { ascending: true });
+      .not('role', 'in', '("admin","superadmin")');
+    if (!isSuperadmin) usersQuery = usersQuery.not('email', 'in', HIDDEN_EMAILS);
+    const { data: users, error: usersErr } = await usersQuery.order('full_name', { ascending: true });
 
     if (usersErr) throw usersErr;
     if (!users || users.length === 0) return NextResponse.json([]);

@@ -304,6 +304,9 @@ export default function PaymentsPage() {
     return <LoadingLogo text="Loading payments..." />;
   }
 
+  const HIDDEN_EMAILS = ['staff@abifresh.com', 'commission@abifresh.com', 'sales.@abifresh.com'];
+  const visibleStaff = staffSummary.filter(s => !HIDDEN_EMAILS.includes(s.email));
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -414,7 +417,7 @@ export default function PaymentsPage() {
             Staff Payment Breakdown
           </h2>
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            {staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').length} staff member{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').length !== 1 ? 's' : ''}
+            {visibleStaff.length} staff member{visibleStaff.length !== 1 ? 's' : ''}
           </span>
         </div>
 
@@ -444,7 +447,7 @@ export default function PaymentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').sort((a, b) => {
+                {visibleStaff.sort((a, b) => {
                   if (b.outstanding_amount !== a.outstanding_amount) {
                     return b.outstanding_amount - a.outstanding_amount;
                   }
@@ -497,19 +500,19 @@ export default function PaymentsPage() {
                 <tr className="bg-gray-100 dark:bg-gray-700 border-t-2 dark:border-gray-600 font-bold text-sm">
                   <td colSpan={2} className="py-3 px-4 text-gray-700 dark:text-gray-200">Totals</td>
                   <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-200">
-                    {staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + r.total_qty, 0).toLocaleString()}
+                    {visibleStaff.reduce((s, r) => s + r.total_qty, 0).toLocaleString()}
                   </td>
                   <td className="py-3 px-4 text-right text-blue-700 dark:text-blue-300">
-                    ₦{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + r.total_sales_amount, 0).toLocaleString()}
+                    ₦{visibleStaff.reduce((s, r) => s + r.total_sales_amount, 0).toLocaleString()}
                   </td>
                   <td className="py-3 px-4 text-right text-yellow-700 dark:text-yellow-300">
-                    ₦{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + r.pending_amount, 0).toLocaleString()}
+                    ₦{visibleStaff.reduce((s, r) => s + r.pending_amount, 0).toLocaleString()}
                   </td>
                   <td className="py-3 px-4 text-right text-green-700 dark:text-green-300">
-                    ₦{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + (r.approved_amount || 0), 0).toLocaleString()}
+                    ₦{visibleStaff.reduce((s, r) => s + (r.approved_amount || 0), 0).toLocaleString()}
                   </td>
                   <td className="py-3 px-4 text-right text-red-700 dark:text-red-300">
-                    ₦{staffSummary.filter(staff => staff.email !== 'staff@abifresh.com' && staff.email !== 'commission@abifresh.com').reduce((s, r) => s + r.outstanding_amount, 0).toLocaleString()}
+                    ₦{visibleStaff.reduce((s, r) => s + r.outstanding_amount, 0).toLocaleString()}
                   </td>
                   <td />
                 </tr>

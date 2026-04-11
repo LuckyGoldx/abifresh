@@ -19,14 +19,20 @@ export default function DashboardPage() {
     // Redirect to role-specific dashboard
     if (user) {
       switch (user.role) {
+        case 'superadmin':
+          router.push('/superadmin/dashboard');
+          break;
         case 'admin':
           router.push('/admin/dashboard');
           break;
         case 'sales':
+        case 'sales_staff':
           router.push('/sales/dashboard');
           break;
         case 'staff_commission':
+        case 'commission_staff':
         case 'staff_non_commission':
+        case 'non_commission_staff':
           router.push('/staff/dashboard');
           break;
         default:

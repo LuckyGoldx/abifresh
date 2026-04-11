@@ -14,10 +14,15 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 200);
   const offset = Math.max(parseInt(url.searchParams.get('offset') || '0'), 0);
 
+  const isSuperadmin = authResult.role === 'superadmin';
+  const HIDDEN_EMAILS = '("staff@abifresh.com","commission@abifresh.com","sales.@abifresh.com")';
+
   // Fetch users with pagination
-  const { data: users, error } = await supabaseAdmin
+  let usersQuery = supabaseAdmin
     .from('users')
-    .select('*')
+    .select('*');
+  if (!isSuperadmin) usersQuery = usersQuery.not('email', 'in', HIDDEN_EMAILS);
+  const { data: users, error } = await usersQuery
     .range(offset, offset + limit - 1)
     .order('full_name', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
