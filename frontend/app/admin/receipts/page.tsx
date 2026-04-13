@@ -56,7 +56,7 @@ export default function AdminReceiptsPage() {
   const [filterStaff, setFilterStaff] = useState<string>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'>('date-desc');
+  const [sortBy, setSortBy] = useState<'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'location-inside' | 'location-outside'>('date-desc');
   const [mounted, setMounted] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -196,6 +196,12 @@ export default function AdminReceiptsPage() {
           return b.total_amount - a.total_amount;
         case 'amount-asc':
           return a.total_amount - b.total_amount;
+        case 'location-inside':
+          // Inside Jalingo first (sold_outside_jalingo === false/undefined first)
+          return (a.sold_outside_jalingo ? 1 : 0) - (b.sold_outside_jalingo ? 1 : 0);
+        case 'location-outside':
+          // Outside Jalingo first
+          return (b.sold_outside_jalingo ? 1 : 0) - (a.sold_outside_jalingo ? 1 : 0);
         default:
           return 0;
       }
@@ -422,6 +428,8 @@ export default function AdminReceiptsPage() {
               <option value="date-asc">Oldest First</option>
               <option value="amount-desc">Amount (High to Low)</option>
               <option value="amount-asc">Amount (Low to High)</option>
+              <option value="location-inside">Location: Inside Jalingo First</option>
+              <option value="location-outside">Location: Outside Jalingo First</option>
             </select>
           </div>
 
@@ -506,8 +514,11 @@ export default function AdminReceiptsPage() {
                     <th className="px-6 py-3 text-right text-xs font-semibold text-gray-900 dark:text-white uppercase">
                       Amount
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white uppercase">
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-900 dark:text-white uppercase">
                       Items
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 dark:text-white uppercase">
+                      Location
                     </th>
                     <th className="px-6 py-3 text-center text-xs font-semibold text-gray-900 dark:text-white uppercase">
                       Actions
@@ -545,8 +556,21 @@ export default function AdminReceiptsPage() {
                       <td className="px-6 py-4 text-sm font-bold text-gray-900 dark:text-white text-right">
                         ₦{receipt.total_amount.toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {receipt.items_count} items
+                      <td className="px-6 py-4 text-sm text-center">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold text-xs">
+                          {receipt.items_count ?? receipt.receipt_items?.length ?? 0}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {receipt.sold_outside_jalingo ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 whitespace-nowrap">
+                            📍 Outside Jalingo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 whitespace-nowrap">
+                            📍 Inside Jalingo
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex justify-center gap-2">
