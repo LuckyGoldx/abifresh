@@ -668,6 +668,18 @@ export default function AdminReceiptsPage() {
                     {formatReceiptTime(selectedReceipt.created_at)}
                   </p>
                 </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Sale Location</p>
+                  {selectedReceipt.sold_outside_jalingo ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                      📍 Outside Jalingo
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      📍 Inside Jalingo
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Items */}
