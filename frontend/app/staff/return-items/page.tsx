@@ -245,7 +245,7 @@ export default function ReturnItemsPage() {
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 flex items-center gap-2 transition shadow-lg hover:shadow-xl"
+            className="hidden sm:flex px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 items-center gap-2 transition shadow-lg hover:shadow-xl"
           >
             <Plus className="w-5 h-5" />
             Request Return
@@ -290,6 +290,17 @@ export default function ReturnItemsPage() {
             📦 Items in your store
           </p>
         </div>
+      </div>
+
+      {/* Request Return button - mobile only, below stats */}
+      <div className="flex justify-end sm:hidden">
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 flex items-center gap-2 transition shadow-lg hover:shadow-xl"
+        >
+          <Plus className="w-5 h-5" />
+          Request Return
+        </button>
       </div>
 
       {/* Return Requests List */}

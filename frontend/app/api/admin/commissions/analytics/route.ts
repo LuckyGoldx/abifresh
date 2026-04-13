@@ -55,9 +55,10 @@ export async function GET(req: NextRequest) {
     staffTotals[id].units += s.quantity || 0;
   });
   const topPerformers = Object.entries(staffTotals)
+    .filter(([id]) => !!staffMap[id]) // Only include verified commission staff
     .map(([id, totals]) => ({
       staff_id: id,
-      staff_name: staffMap[id]?.full_name || 'Unknown',
+      staff_name: staffMap[id].full_name,
       total_commission: totals.commission,
       total_sales: totals.sales,
       items_sold: totals.units,

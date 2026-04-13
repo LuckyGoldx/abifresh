@@ -550,11 +550,11 @@ export default function AdminCommissionsPage() {
       {/* Summary Cards */}
       {overview && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
-            <div className="flex flex-col gap-3 h-full">
-              <div className="flex-1 min-w-0">
-                <p className="text-green-100 text-xs sm:text-sm truncate">Total Generated</p>
-                <p className="text-xl sm:text-3xl font-bold mt-1 truncate">
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 sm:p-6 text-white">
+            <div className="flex flex-col gap-2 h-full">
+              <div className="flex-1">
+                <p className="text-green-100 text-xs sm:text-sm">Total Generated</p>
+                <p className="text-lg sm:text-3xl font-bold mt-1 break-all leading-tight">
                   {formatCurrency(overview.total_commission_generated)}
                 </p>
               </div>
@@ -562,11 +562,11 @@ export default function AdminCommissionsPage() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
-            <div className="flex flex-col gap-3 h-full">
-              <div className="flex-1 min-w-0">
-                <p className="text-blue-100 text-xs sm:text-sm truncate">Total Paid</p>
-                <p className="text-xl sm:text-3xl font-bold mt-1 truncate">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 sm:p-6 text-white">
+            <div className="flex flex-col gap-2 h-full">
+              <div className="flex-1">
+                <p className="text-blue-100 text-xs sm:text-sm">Total Paid</p>
+                <p className="text-lg sm:text-3xl font-bold mt-1 break-all leading-tight">
                   {formatCurrency(overview.total_commission_paid)}
                 </p>
               </div>
@@ -574,11 +574,11 @@ export default function AdminCommissionsPage() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
-            <div className="flex flex-col gap-3 h-full">
-              <div className="flex-1 min-w-0">
-                <p className="text-orange-100 text-xs sm:text-sm truncate">Pending Payment</p>
-                <p className="text-xl sm:text-3xl font-bold mt-1 truncate">
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 sm:p-6 text-white">
+            <div className="flex flex-col gap-2 h-full">
+              <div className="flex-1">
+                <p className="text-orange-100 text-xs sm:text-sm">Pending Payment</p>
+                <p className="text-lg sm:text-3xl font-bold mt-1 break-all leading-tight">
                   {formatCurrency(overview.total_commission_pending)}
                 </p>
               </div>
@@ -586,11 +586,11 @@ export default function AdminCommissionsPage() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 sm:p-6 text-white overflow-hidden">
-            <div className="flex flex-col gap-3 h-full">
-              <div className="flex-1 min-w-0">
-                <p className="text-purple-100 text-xs sm:text-sm truncate">Commission Staff</p>
-                <p className="text-xl sm:text-3xl font-bold mt-1">{overview.commission_staff_count}</p>
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 sm:p-6 text-white">
+            <div className="flex flex-col gap-2 h-full">
+              <div className="flex-1">
+                <p className="text-purple-100 text-xs sm:text-sm">Commission Staff</p>
+                <p className="text-lg sm:text-3xl font-bold mt-1">{overview.commission_staff_count}</p>
               </div>
               <div className="text-2xl sm:text-4xl opacity-80 text-right">👥</div>
             </div>

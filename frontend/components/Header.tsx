@@ -18,8 +18,8 @@ export default function Header() {
   return (
     <>
       <header className="bg-white dark:bg-slate-800 shadow">
-        <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-3 md:py-4 flex items-center justify-between">
-          <div className="flex-shrink-0 flex items-center">
+        <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-3 md:py-4 flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             {/* Logo on mobile only */}
             <div className="md:hidden">
               <Logo context="header" />
@@ -31,7 +31,7 @@ export default function Header() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="flex items-center space-x-3 sm:space-x-4 flex-shrink-0">
             {/* Notifications */}
             <button 
               onClick={() => setIsNotificationsOpen(true)}

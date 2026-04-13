@@ -29,9 +29,17 @@ export default function Logo({ context = 'sidebar' }: LogoProps) {
   // In desktop view, use pink for & KIDDIES VENTURES in light mode
   const subtextColor = isDesktop && !isDarkMode ? '#ec4899' : (isDarkMode ? '#ffffff' : '#fbbf24');
 
+  const svgStyle = context === 'header'
+    ? { width: '100%', height: 'auto' }
+    : undefined;
+  const svgClass = context === 'header'
+    ? ''
+    : 'w-40 h-20 sm:w-48 sm:h-24 md:w-56 md:h-28 lg:w-64 lg:h-32';
+
   return (
     <svg
-      className="w-40 h-20 sm:w-48 sm:h-24 md:w-56 md:h-28 lg:w-64 lg:h-32"
+      className={svgClass}
+      style={svgStyle}
       viewBox="10 28 240 55"
       xmlns="http://www.w3.org/2000/svg"
     >
