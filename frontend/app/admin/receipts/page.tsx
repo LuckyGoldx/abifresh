@@ -564,11 +564,11 @@ export default function AdminReceiptsPage() {
                       <td className="px-6 py-4 text-sm">
                         {receipt.sold_outside_jalingo ? (
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 whitespace-nowrap">
-                            📍 Outside Jalingo
+                            Outside Jalingo
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 whitespace-nowrap">
-                            📍 Inside Jalingo
+                            Inside Jalingo
                           </span>
                         )}
                       </td>
