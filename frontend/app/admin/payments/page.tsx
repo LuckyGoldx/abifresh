@@ -33,6 +33,7 @@ interface Payment {
   approved_date: string;
   created_at: string;
   rejection_reason?: string;
+  approved_by_name?: string;
 }
 
 interface StaffSummaryRow {
@@ -120,6 +121,7 @@ export default function PaymentsPage() {
       console.log('  - reference_number:', selectedPayment.reference_number);
       console.log('  - receipt_url:', selectedPayment.receipt_url);
       console.log('  - items_paid_for:', selectedPayment.items_paid_for);
+      console.log('  - approved_by_name:', selectedPayment.approved_by_name);
     }
   }, [showDetailsModal, selectedPayment]);
 
@@ -931,6 +933,12 @@ export default function PaymentsPage() {
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Approved Date</p>
                       <p className="font-semibold text-green-600">{new Date(selectedPayment.approved_date).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {selectedPayment.approved_by_name && selectedPayment.status === 'approved' && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Approved By</p>
+                      <p className="font-semibold text-green-600">{selectedPayment.approved_by_name}</p>
                     </div>
                   )}
                 </div>
