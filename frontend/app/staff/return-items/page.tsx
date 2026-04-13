@@ -238,7 +238,7 @@ export default function ReturnItemsPage() {
           <button
             onClick={fetchData}
             disabled={isLoading}
-            className="px-4 py-3 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white rounded-lg font-semibold flex items-center gap-2 transition shadow-lg hover:shadow-xl"
+            className="hidden sm:flex px-4 py-3 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white rounded-lg font-semibold items-center gap-2 transition shadow-lg hover:shadow-xl"
           >
             <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
