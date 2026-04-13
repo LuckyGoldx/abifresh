@@ -13,10 +13,13 @@ async function compressReceipt(file: File): Promise<{ buffer: Buffer; fileName: 
   }
   try {
     const sharp = (await import('sharp')).default;
-    const compressed = await sharp(buffer).webp({ quality: 80 }).toBuffer();
-    const finalBuffer = compressed.length < buffer.length ? compressed : buffer;
-    const newFileName = file.name.replace(/\.[^.]+$/, '.webp');
-    return { buffer: finalBuffer, fileName: newFileName, type: 'image/webp' };
+    const compressed = await sharp(buffer).resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true }).webp({ quality: 70 }).toBuffer();
+    if (compressed.length < buffer.length) {
+      const newFileName = file.name.replace(/\.[^.]+$/, '.webp');
+      return { buffer: compressed, fileName: newFileName, type: 'image/webp' };
+    }
+    // Compressed is larger — keep original
+    return { buffer, fileName: file.name, type: file.type };
   } catch {
     return { buffer, fileName: file.name, type: file.type };
   }
@@ -63,9 +66,9 @@ export async function POST(req: NextRequest) {
     // Upload receipt if provided
     let receipt_url: string | null = null;
     if (receiptFile && receiptFile.size > 0) {
-      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+      const allowed = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp', 'application/pdf'];
       if (!allowed.includes(receiptFile.type)) {
-        return NextResponse.json({ error: 'Receipt must be JPEG, PNG, WebP, or PDF' }, { status: 400 });
+        return NextResponse.json({ error: 'Receipt must be JPEG, PNG, GIF, WebP, or PDF' }, { status: 400 });
       }
       if (receiptFile.size > 10 * 1024 * 1024) {
         return NextResponse.json({ error: 'Receipt must be less than 10MB' }, { status: 400 });
