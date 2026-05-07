@@ -200,8 +200,8 @@ export default function AdminDashboard() {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">{title}</p>
-        <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">{value}</p>
-        {additionalInfo && <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">{additionalInfo}</p>}
+        <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white break-words leading-tight">{value}</p>
+        {additionalInfo && <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 break-words">{additionalInfo}</p>}
       </div>
     </div>
   );

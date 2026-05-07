@@ -302,6 +302,24 @@ export default function PaymentsPage() {
     rejectedAmount: payments.filter(p => p.status === 'rejected').reduce((sum, p) => sum + p.amount, 0),
   };
 
+  /**
+   * Returns true if another payment from the same staff member has the same
+   * amount and was submitted within 5 minutes — flagging likely duplicates.
+   */
+  const isNearDuplicate = (payment: Payment): boolean => {
+    const FIVE_MINUTES = 5 * 60 * 1000;
+    return payments.some(
+      (other) =>
+        other.id !== payment.id &&
+        other.staff_id === payment.staff_id &&
+        Number(other.amount) === Number(payment.amount) &&
+        Math.abs(
+          new Date(other.created_at).getTime() -
+            new Date(payment.created_at).getTime()
+        ) < FIVE_MINUTES
+    );
+  };
+
   if (isLoading) {
     return <LoadingLogo text="Loading payments..." />;
   }
@@ -661,11 +679,22 @@ export default function PaymentsPage() {
                       {formatPaymentMethod(payment.payment_method || payment.payment_type)}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 ${getStatusColor(payment.status)} rounded text-xs flex items-center gap-1 w-fit`}>
-                      {getStatusIcon(payment.status)}
-                      {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
-                    </span>
+                <td className="py-3 px-4">
+                    <div className="flex flex-col gap-1">
+                      <span className={`px-2 py-1 ${getStatusColor(payment.status)} rounded text-xs flex items-center gap-1 w-fit`}>
+                        {getStatusIcon(payment.status)}
+                        {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                      </span>
+                      {isNearDuplicate(payment) && (
+                        <span
+                          title={`Another ₦${Number(payment.amount).toLocaleString()} payment from this staff member was submitted within 5 minutes. Possible duplicate — review before approving.`}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 rounded text-xs font-semibold cursor-help w-fit"
+                        >
+                          <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                          Possible Duplicate
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-sm">
                     <div>
@@ -816,6 +845,21 @@ export default function PaymentsPage() {
               {/* Payment Information Section */}
               <div className="border-b dark:border-gray-700 pb-4">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Payment Information</h3>
+
+                {/* Near-duplicate warning inside modal */}
+                {selectedPayment && isNearDuplicate(selectedPayment) && (
+                  <div className="mb-4 flex items-start gap-3 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">⚠️ Possible Duplicate Payment Detected</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                        Another payment of ₦{Number(selectedPayment.amount).toLocaleString()} from <strong>{selectedPayment.staff_name}</strong> was submitted within 5 minutes of this one.
+                        Please verify this is not an accidental double-submission before approving.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Amount</p>

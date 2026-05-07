@@ -97,6 +97,36 @@ export async function POST(req: NextRequest) {
     const ref_number = reference_number ||
       `PYMT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
+    // ─── Duplicate guard ────────────────────────────────────────────────────
+    // Reject the request if this staff member already submitted a payment for
+    // the exact same amount within the last 60 seconds that is still pending
+    // or approved.  This prevents accidental double-clicks / double-submissions.
+    const sixtySecondsAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const { data: recentDuplicates, error: dupCheckError } = await supabaseAdmin
+      .from('staff_payments')
+      .select('id, amount, status, created_at')
+      .eq('staff_id', authResult.id)
+      .eq('amount', amount)
+      .in('status', ['pending', 'approved'])
+      .gte('created_at', sixtySecondsAgo);
+
+    if (dupCheckError) {
+      // Log but don't block — let the insert proceed if the check itself fails
+      console.error('⚠️ Duplicate check query failed:', dupCheckError.message);
+    } else if (recentDuplicates && recentDuplicates.length > 0) {
+      return NextResponse.json(
+        {
+          error:
+            `A payment of ₦${amount.toLocaleString()} was already submitted ${Math.round((Date.now() - new Date(recentDuplicates[0].created_at).getTime()) / 1000)} seconds ago and is currently ${recentDuplicates[0].status}. ` +
+            `Please check your payment history before resubmitting. If you believe this is an error, wait a moment and try again.`,
+        },
+        { status: 409 }
+      );
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+
+
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from('staff_payments')
       .insert([{

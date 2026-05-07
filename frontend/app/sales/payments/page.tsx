@@ -878,21 +878,29 @@ export default function SalesPaymentsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="btn-primary flex-1 disabled:opacity-50"
+                className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
+                {submitting && (
+                  <svg className="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                )}
                 {submitting ? 'Submitting...' : showPreview ? 'Confirm & Submit' : 'Review Payment'}
               </button>
               {showPreview && (
                 <button
                   type="button"
+                  disabled={submitting}
                   onClick={() => setShowPreview(false)}
-                  className="px-6 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500"
+                  className="px-6 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Edit
                 </button>
               )}
               <button
                 type="button"
+                disabled={submitting}
                 onClick={() => {
                   setShowPaymentForm(false);
                   setShowPreview(false);
@@ -904,7 +912,7 @@ export default function SalesPaymentsPage() {
                   setReceiptFile(null);
                   setReceiptPreview(null);
                 }}
-                className="px-6 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500"
+                className="px-6 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
@@ -976,13 +984,20 @@ export default function SalesPaymentsPage() {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="flex-1 btn-primary disabled:opacity-50"
+                className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
+                {submitting && (
+                  <svg className="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
+                )}
                 {submitting ? 'Submitting...' : 'Confirm & Submit'}
               </button>
               <button
+                disabled={submitting}
                 onClick={() => setShowPreview(false)}
-                className="flex-1 px-6 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500 font-medium"
+                className="flex-1 px-6 py-2 bg-gray-300 dark:bg-gray-600 rounded hover:bg-gray-400 dark:hover:bg-gray-500 font-medium disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Edit
               </button>
