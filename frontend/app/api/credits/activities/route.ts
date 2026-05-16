@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
             const updatedDetails = {
               ...details,
               item_name: itemRes.data?.name || details.item_name || 'Item',
-              creditor_name: storeRes.data?.creditors?.full_name || details.creditor_name || 'Creditor'
+              creditor_name: (Array.isArray(storeRes.data?.creditors) ? storeRes.data?.creditors[0]?.full_name : (storeRes.data?.creditors as any)?.full_name) || details.creditor_name || 'Creditor'
             };
             
             await supabaseAdmin.from('credit_activities').update({ details: updatedDetails }).eq('id', a.id);
