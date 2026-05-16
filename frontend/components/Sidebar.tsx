@@ -9,7 +9,7 @@ import { useNotifications } from '@/context/NotificationContext';
 interface MenuItem {
   label: string;
   href: string;
-  icon: string;
+  icon: any;
   badge?: number;
 }
 
