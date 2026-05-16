@@ -235,8 +235,8 @@ export async function GET(req: NextRequest) {
       let message = 'An activity was recorded';
       
       const details = act.details || {};
-      const creditorName = act.creditors?.full_name || details.creditor_name || 'Creditor';
-      const staffMemberName = act.users?.full_name || 'Staff';
+      const creditorName = (Array.isArray(act.creditors) ? act.creditors[0]?.full_name : (act.creditors as any)?.full_name) || details.creditor_name || 'Creditor';
+      const staffMemberName = (Array.isArray(act.users) ? act.users[0]?.full_name : (act.users as any)?.full_name) || 'Staff';
 
       switch(act.action) {
         case 'CREDIT_GIVEN':

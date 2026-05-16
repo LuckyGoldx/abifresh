@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
           item_id: entry.item_id, 
           item_name: mainItem.name,
           quantity: entry.quantity,
-          creditor_name: storeEntry?.creditors?.full_name || 'Unknown',
+          creditor_name: (Array.isArray(storeEntry?.creditors) ? storeEntry?.creditors[0]?.full_name : (storeEntry?.creditors as any)?.full_name) || 'Unknown',
           credit_store_id: entry.id,
           success: true
         }
