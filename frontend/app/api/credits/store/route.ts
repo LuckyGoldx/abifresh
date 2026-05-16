@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
           credit_store_id: entry.id,
           success: true
         }
-      }).then().catch(() => {});
+      }).then(() => {}, () => {});
     }
 
     // 5. SEND NOTIFICATIONS

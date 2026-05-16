@@ -157,7 +157,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     staff_id: authResult.id,
     action: 'CREDITOR_UPDATED',
     details: updates,
-  }).then().catch(() => {});
+  }).then(() => {}, () => {});
 
   return NextResponse.json(data);
 }

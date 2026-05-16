@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
       staff_id: authResult.id,
       action: 'CREDIT_PAYMENT_MADE',
       details: { amount: Number(amount), payment_method: paymentMethod },
-    }).then().catch(() => {});
+    }).then(() => {}, () => {});
 
     return NextResponse.json(payment, { status: 201 });
   } catch (error: any) {

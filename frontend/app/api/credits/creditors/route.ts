@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
     staff_id: authResult.id,
     action: 'CREDITOR_CREATED',
     details: { full_name, unique_code: uniqueCode },
-  }).then().catch(() => {});
+  }).then(() => {}, () => {});
 
   // SEND NOTIFICATIONS
   try {

@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       staff_id: authResult.id,
       action: 'CREDIT_GIVEN',
       details: { receipt_number: receiptNumber, total_amount: totalAmount, items: saleItems },
-    }).then().catch(() => {});
+    }).then(() => {}, () => {});
 
     // SEND NOTIFICATIONS
     try {
