@@ -35,6 +35,8 @@ interface ComprehensiveReport {
     total_commission_generated: number;
     total_commission_paid: number;
     total_credits_paid: number;
+    total_credits_amount: number;
+    total_creditors: number;
   };
   sales: {
     by_staff: Array<any>;
