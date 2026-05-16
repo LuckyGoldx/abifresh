@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
       item_name: r.item?.name || 'Unknown',
       quantity: r.quantity,
       unit_price: r.unit_price,
+      location: r.location || 'Inside Jalingo',
       status: r.status,
       reject_reason: r.reject_reason,
       receiver_name: r.receiver?.full_name || 'Unknown',
@@ -41,68 +42,16 @@ export async function POST(req: NextRequest) {
   try {
     const { receiver_staff_id, items } = await req.json();
 
-    if (!receiver_staff_id) {
-      return NextResponse.json({ error: 'receiver_staff_id is required' }, { status: 400 });
-    }
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: 'items array is required' }, { status: 400 });
+    if (!receiver_staff_id || !items || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json({ error: 'receiver_staff_id and items array are required' }, { status: 400 });
     }
 
-    // Verify receiver is a sales staff member
-    const { data: receiver } = await supabaseAdmin
-      .from('users')
-      .select('id, full_name, role')
-      .eq('id', receiver_staff_id)
-      .in('role', ['sales', 'sales_staff'])
-      .single();
-
-    if (!receiver) {
-      return NextResponse.json({ error: 'Invalid receiver: must be a sales staff member' }, { status: 400 });
-    }
-
-    const insertedReturns = [];
-    for (const item of items) {
-      const { item_id, quantity, unit_price } = item;
-
-      if (!item_id || !quantity || quantity <= 0) {
-        return NextResponse.json({ error: 'Each item requires item_id and quantity > 0' }, { status: 400 });
-      }
-
-      // Verify staff has enough stock in their store
-      const { data: storeEntry } = await supabaseAdmin
-        .from('staff_store')
-        .select('quantity, quantity_sold')
-        .eq('staff_id', authResult.id)
-        .eq('item_id', item_id)
-        .single();
-
-      const stockAvailable = storeEntry
-        ? (storeEntry.quantity || 0) - (storeEntry.quantity_sold || 0)
-        : 0;
-
-      if (stockAvailable < quantity) {
-        return NextResponse.json(
-          { error: `Insufficient stock for item ${item_id}. Available: ${stockAvailable}` },
-          { status: 400 }
-        );
-      }
-
-      const { data: inserted, error: insertError } = await supabaseAdmin
-        .from('returned_items')
-        .insert([{
-          item_id,
-          requester_staff_id: authResult.id,
-          receiver_staff_id,
-          quantity,
-          unit_price: unit_price || 0,
-          status: 'pending',
-        }])
-        .select()
-        .single();
-
-      if (insertError) return NextResponse.json({ error: insertError.message }, { status: 400 });
-      insertedReturns.push(inserted);
-    }
+    // Use service to create return requests (handles stock verification and location)
+    const insertedReturns = await returnedItemsService.createReturnRequest(
+      authResult.id,
+      receiver_staff_id,
+      items
+    );
 
     // Notify the sales receiver
     await supabaseAdmin.from('notifications').insert([{
@@ -118,6 +67,6 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ error: error.message || 'Failed to create return request' }, { status: 400 });
   }
 }

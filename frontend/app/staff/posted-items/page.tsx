@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { Package, CheckCircle, XCircle, MessageSquare, User, Calendar } from 'lucide-react';
+import { Package, CheckCircle, XCircle, MessageSquare, User, Calendar, Truck, Building2, Clock } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 
 interface PostedItem {
@@ -15,7 +15,26 @@ interface PostedItem {
   posted_by: string;
   staff_comment: string | null;
   notes: string | null;
+  location?: string;
 }
+
+// Toast notification component
+const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+  const icon = type === 'success' ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />;
+
+  return (
+    <div className={`fixed top-4 right-4 ${bgColor} text-white px-4 py-3 rounded shadow-lg flex items-center gap-2 z-[100] animate-pulse`}>
+      {icon}
+      <span>{message}</span>
+    </div>
+  );
+};
 
 export default function PostedItemsPage() {
   const [items, setItems] = useState<PostedItem[]>([]);
@@ -24,6 +43,7 @@ export default function PostedItemsPage() {
   const [comment, setComment] = useState('');
   const [actionType, setActionType] = useState<'accept' | 'reject' | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     fetchPostedItems();
@@ -32,6 +52,7 @@ export default function PostedItemsPage() {
   const fetchPostedItems = async () => {
     try {
       const response = await api.get('/api/staff/posted-items');
+      console.log('📦 [Staff] Received posted items:', response.data);
       setItems(response.data);
     } catch (error) {
       console.error('Failed to fetch posted items:', error);
@@ -47,7 +68,7 @@ export default function PostedItemsPage() {
   };
 
   const confirmAction = async () => {
-    if (!selectedItem || !actionType) return;
+    if (!selectedItem || !actionType || processing) return;
 
     setProcessing(true);
     try {
@@ -55,13 +76,17 @@ export default function PostedItemsPage() {
         comment: comment.trim() || null,
       });
 
-      alert(`Item ${actionType}ed successfully!`);
+      setToast({ message: `Item ${actionType}ed successfully!`, type: 'success' });
+      // Optimistically remove the item from the list so it disappears instantly
+      const processedId = selectedItem.id;
+      setItems(prev => prev.filter(item => item.id !== processedId));
+      
       setSelectedItem(null);
       setActionType(null);
       setComment('');
       fetchPostedItems();
     } catch (error: any) {
-      alert(error.response?.data?.error || `Failed to ${actionType} item`);
+      setToast({ message: error.response?.data?.error || `Failed to ${actionType} item`, type: 'error' });
     } finally {
       setProcessing(false);
     }
@@ -100,6 +125,13 @@ export default function PostedItemsPage() {
 
   return (
     <div className="space-y-6">
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div>
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
           <Package className="w-8 h-8 text-pink-500" />
@@ -111,7 +143,7 @@ export default function PostedItemsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="card bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-500">
           <p className="text-sm text-yellow-700 dark:text-yellow-200">Pending</p>
           <p className="text-3xl font-bold text-yellow-900 dark:text-yellow-100">{pendingItems.length}</p>
@@ -135,6 +167,7 @@ export default function PostedItemsPage() {
                 <th className="text-left py-3 px-4">Date</th>
                 <th className="text-left py-3 px-4">Item Name</th>
                 <th className="text-left py-3 px-4">Quantity</th>
+                <th className="text-left py-3 px-4">Location</th>
                 <th className="text-left py-3 px-4">Posted By</th>
                 <th className="text-left py-3 px-4">Status</th>
                 <th className="text-left py-3 px-4">Actions</th>
@@ -144,15 +177,34 @@ export default function PostedItemsPage() {
               {items.map((item) => (
                 <tr key={item.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
-                      {new Date(item.posted_at).toLocaleDateString()}
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {new Date(item.posted_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(item.posted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
                     </div>
                   </td>
                   <td className="py-3 px-4 font-medium">{item.item_name}</td>
                   <td className="py-3 px-4">
                     <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded font-semibold">
                       {formatQty(item.quantity)}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold text-xs ${item.location === 'Outside Jalingo' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'}`}>
+                      {item.location === 'Outside Jalingo' ? (
+                        <><Truck className="w-3.5 h-3.5" /> Outside Jalingo</>
+                      ) : (
+                        <><Building2 className="w-3.5 h-3.5" /> Inside Jalingo</>
+                      )}
                     </span>
                   </td>
                   <td className="py-3 px-4">
@@ -167,14 +219,16 @@ export default function PostedItemsPage() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleAction(item, 'accept')}
-                          className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm flex items-center gap-1"
+                          disabled={processing}
+                          className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Accept
                         </button>
                         <button
                           onClick={() => handleAction(item, 'reject')}
-                          className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm flex items-center gap-1"
+                          disabled={processing}
+                          className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <XCircle className="w-4 h-4" />
                           Reject
@@ -216,8 +270,11 @@ export default function PostedItemsPage() {
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 <strong>Item:</strong> {selectedItem.item_name}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 <strong>Quantity:</strong> {formatQty(selectedItem.quantity)}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <strong>Location:</strong> {selectedItem.location || 'Inside Jalingo'}
               </p>
               
               <label className="block text-sm font-medium mb-2">

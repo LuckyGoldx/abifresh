@@ -1,0 +1,365 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useAuthStore } from '@/store/auth';
+import api from '@/lib/api';
+import { useRouter, usePathname } from 'next/navigation';
+import {
+  Search, Plus, Edit2, Trash2, X, Mail, Phone, MapPin, Eye, DollarSign, User, RefreshCw, ArrowLeft, AlertCircle, XCircle
+} from 'lucide-react';
+import { Toast, CreditTabs } from '@/components/credits';
+
+export default function ManageCreditorsPage() {
+  const user = useAuthStore((state) => state.user);
+  const router = useRouter();
+  const pathname = usePathname();
+  const [creditors, setCreditors] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCreditor, setEditingCreditor] = useState<any>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const [formData, setFormData] = useState({
+    full_name: '',
+    phone_number: '',
+    email: '',
+    address: '',
+  });
+
+  // Delete Confirmation State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteStep, setDeleteStep] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
+  useEffect(() => {
+    fetchCreditors();
+  }, []);
+
+  const fetchCreditors = async (retryCount = 0) => {
+    try {
+      const res = await api.get('/api/credits/creditors');
+      setCreditors(res.data || []);
+      setToast(null);
+      setIsLoading(false);
+    } catch (error: any) {
+      if (retryCount < 2) {
+        // Silent retry after 1.5s
+        setTimeout(() => fetchCreditors(retryCount + 1), 1500);
+      } else {
+        setToast({ message: 'Connection interrupted. Retrying...', type: 'error' });
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ full_name: '', phone_number: '', email: '', address: '' });
+    setEditingCreditor(null);
+  };
+
+  const handleAdd = async () => {
+    if (!formData.full_name || !formData.phone_number) {
+      setToast({ message: 'Full name and phone number are required', type: 'error' });
+      return;
+    }
+    try {
+      await api.post('/api/credits/creditors', formData);
+      setToast({ message: 'Creditor added successfully', type: 'success' });
+      setShowAddModal(false);
+      resetForm();
+      fetchCreditors();
+    } catch (error: any) {
+      setToast({ message: 'Failed to add creditor', type: 'error' });
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!editingCreditor) return;
+    try {
+      await api.put(`/api/credits/creditors/${editingCreditor.id}`, formData);
+      setToast({ message: 'Creditor updated successfully', type: 'success' });
+      setShowAddModal(false);
+      resetForm();
+      fetchCreditors();
+    } catch (error: any) {
+      setToast({ message: 'Failed to update creditor', type: 'error' });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/credits/creditors/${deleteId}`);
+      setToast({ message: 'Creditor deleted successfully', type: 'success' });
+      setDeleteId(null);
+      setDeleteStep(0);
+      fetchCreditors();
+    } catch (error: any) {
+      setToast({ message: 'Failed to delete creditor', type: 'error' });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const openEditModal = (creditor: any) => {
+    setEditingCreditor(creditor);
+    setFormData({
+      full_name: creditor.full_name || '',
+      phone_number: creditor.phone_number || '',
+      email: creditor.email || '',
+      address: creditor.address || '',
+    });
+    setShowAddModal(true);
+  };
+
+  const filteredCreditors = creditors.filter(c =>
+    c.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.unique_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.phone_number?.includes(searchTerm)
+  );
+
+  if (isLoading) return (
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto text-center py-8">Loading creditors...</div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto">
+        <CreditTabs />
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Manage Creditors</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Add, edit, or remove creditors from the system</p>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search creditors..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              />
+            </div>
+            <button
+              onClick={() => { resetForm(); setShowAddModal(true); }}
+              className="bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-600 flex items-center gap-2"
+            >
+              <Plus size={20} /> Add Creditor
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                  <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Code</th>
+                  <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Name</th>
+                  <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Phone</th>
+                  <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Email</th>
+                  <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Total Credit</th>
+                  <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Paid</th>
+                  <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Outstanding</th>
+                  <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCreditors.map((creditor) => (
+                  <tr key={creditor.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="py-3 px-4 text-sm font-bold text-pink-600 dark:text-pink-400">{creditor.unique_code}</td>
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{creditor.full_name}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{creditor.phone_number || '-'}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{creditor.email || '-'}</td>
+                     <td className="py-3 px-4 text-sm font-bold text-gray-900 dark:text-white">
+                      ₦{Number(creditor.total_credit_amount || 0).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 text-sm font-bold text-green-600">
+                      ₦{Number(creditor.total_paid || 0).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 text-sm font-bold text-red-600">
+                      ₦{Number(creditor.outstanding || 0).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-4 text-sm flex gap-2">
+                      <button onClick={() => {
+                        const base = pathname.split('/')[1];
+                        router.push(`/${base}/creditor/${creditor.id}`);
+                      }} className="text-blue-600 hover:text-blue-800" title="View History">
+                        <Eye size={18} />
+                      </button>
+                      <button onClick={() => openEditModal(creditor)} className="text-yellow-600 hover:text-yellow-800" title="Edit">
+                        <Edit2 size={18} />
+                      </button>
+                      
+                      {isAdmin && (
+                        <button onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }} className="text-red-600 hover:text-red-800" title="Delete">
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {filteredCreditors.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">No creditors found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full p-6 shadow-2xl border dark:border-gray-700 animate-in zoom-in duration-200">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {editingCreditor ? 'Edit Creditor' : 'Add New Creditor'}
+                </h2>
+                <button onClick={() => { setShowAddModal(false); resetForm(); }} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    disabled={editingCreditor && !isAdmin}
+                    className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500 ${editingCreditor && !isAdmin ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  />
+                  {editingCreditor && !isAdmin && (
+                    <p className="text-[10px] text-orange-500 font-bold mt-1">Only admins can edit creditor names</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Phone Number *</label>
+                  <input
+                    type="text"
+                    value={formData.phone_number}
+                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Address</label>
+                  <textarea
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    rows={2}
+                  />
+                </div>
+              </div>
+              <button
+                onClick={editingCreditor ? handleEdit : handleAdd}
+                className="w-full mt-6 bg-pink-500 text-white py-3 rounded-lg font-bold hover:bg-pink-600"
+              >
+                {editingCreditor ? 'Update Creditor' : 'Add Creditor'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STYLISH 3-STEP DELETE MODAL */}
+        {deleteId && deleteStep > 0 && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-8 shadow-2xl border dark:border-gray-700 relative overflow-hidden">
+              {/* Progress Bar */}
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-100 dark:bg-gray-700">
+                <div 
+                  className="h-full bg-red-600 transition-all duration-500" 
+                  style={{ width: `${(deleteStep / 3) * 100}%` }}
+                ></div>
+              </div>
+
+              {deleteStep === 1 && (
+                <div className="animate-in fade-in zoom-in duration-300 text-center">
+                  <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Trash2 className="w-10 h-10 text-red-600" />
+                  </div>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Delete Creditor?</h2>
+                  <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                    This will remove the creditor profile from the active list. Are you sure you want to begin?
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <button onClick={() => setDeleteStep(2)} className="w-full bg-gray-900 dark:bg-black text-white py-4 rounded-2xl font-black hover:bg-gray-800 transition-all">
+                      YES, I AM SURE
+                    </button>
+                    <button onClick={() => { setDeleteId(null); setDeleteStep(0); }} className="w-full text-gray-400 font-bold py-2 hover:text-gray-600">
+                      CANCEL
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {deleteStep === 2 && (
+                <div className="animate-in slide-in-from-right duration-300 text-center">
+                  <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <AlertCircle className="w-10 h-10 text-orange-600" />
+                  </div>
+                  <h2 className="text-2xl font-black text-orange-600 mb-2">Warning</h2>
+                  <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                    All associated credit records for this person will be orphaned or hidden. This action is extremely difficult to reverse.
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <button onClick={() => setDeleteStep(3)} className="w-full bg-orange-600 text-white py-4 rounded-2xl font-black hover:bg-orange-700 transition-all">
+                      I UNDERSTAND THE RISK
+                    </button>
+                    <button onClick={() => setDeleteStep(1)} className="w-full text-gray-400 font-bold py-2 hover:text-gray-600">
+                      GO BACK
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {deleteStep === 3 && (
+                <div className="animate-in slide-in-from-bottom duration-300 text-center">
+                  <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-500/40">
+                    <XCircle className="w-10 h-10 text-white" />
+                  </div>
+                  <h2 className="text-3xl font-black text-red-600 mb-2 italic">FINAL WARNING</h2>
+                  <p className="text-gray-900 dark:text-white font-bold mb-8">
+                    Confirm complete destruction of this creditor record?
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <button 
+                      onClick={handleDelete} 
+                      disabled={isDeleting}
+                      className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-xl hover:bg-red-700 shadow-2xl transition-all disabled:opacity-50"
+                    >
+                      {isDeleting ? 'DELETING...' : 'CONFIRM DELETE'}
+                    </button>
+                    <button onClick={() => setDeleteStep(2)} className="w-full text-gray-400 font-bold py-2 hover:text-gray-600">
+                      WAIT, ABORT!
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      </div>
+    </div>
+  );
+}

@@ -3,8 +3,29 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { api } from '@/lib/api';
-import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag, X, Search } from 'lucide-react';
+import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag, X, Search, History, BarChart, CheckCircle2, XCircle, Clock, RefreshCcw } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
+
+interface PostedHistoryItem {
+  id: string;
+  created_at: string;
+  quantity: number;
+  unit_price: number;
+  status: 'pending' | 'accepted' | 'rejected';
+  reject_reason?: string;
+  item: {
+    name: string;
+    sku: string;
+  };
+  staff: {
+    full_name: string;
+    username: string;
+  };
+  poster: {
+    full_name: string;
+    username: string;
+  };
+}
 
 /**
  * Convert any image URL (old Supabase public URL or new proxy path) to a working proxy URL.
@@ -79,6 +100,7 @@ export default function AdminPostItemsPage() {
   const token = useAuthStore((state) => state.token);
 
   const [mounted, setMounted] = useState(false);
+  const [activeTab, setActiveTab] = useState<'post' | 'history'>('post');
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -92,6 +114,33 @@ export default function AdminPostItemsPage() {
   const [isPosting, setIsPosting] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
+  
+  // Helper to check if selected staff is commission-based
+  const selectedStaffObj = staffList.find(s => s.id === selectedStaff);
+  const isSelectedStaffCommission = !!selectedStaffObj && 
+    selectedStaffObj.role.includes('commission') && 
+    !selectedStaffObj.role.includes('non');
+
+  const [selectedLocation, setSelectedLocation] = useState<string>('Inside Jalingo');
+
+  // Effect to reset location if non-commission staff is selected
+  useEffect(() => {
+    if (selectedStaff && !isSelectedStaffCommission && selectedLocation === 'Outside Jalingo') {
+      setSelectedLocation('Inside Jalingo');
+    }
+  }, [selectedStaff, isSelectedStaffCommission, selectedLocation]);
+  
+  // History states
+  const [history, setHistory] = useState<PostedHistoryItem[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyFilters, setHistoryFilters] = useState({
+    startDate: '',
+    endDate: '',
+    posterId: '',
+    staffId: '',
+    status: '',
+    itemSearch: '',
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -105,12 +154,28 @@ export default function AdminPostItemsPage() {
 
   const loadAllData = async () => {
     try {
+      setIsLoading(true);
       await Promise.all([
         fetchItems(),
         fetchStaff(),
+        fetchHistory(),
       ]);
     } catch (error) {
       console.error('Failed to load data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      setIsHistoryLoading(true);
+      const response = await api.get('/api/admin/post-items');
+      setHistory(response.data);
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    } finally {
+      setIsHistoryLoading(false);
     }
   };
 
@@ -242,13 +307,22 @@ export default function AdminPostItemsPage() {
     try {
       const postData = {
         staff_id: selectedStaff,
-        items: cart.map(item => ({
-          item_id: item.id,
-          quantity: item.post_quantity,
-          unit_price: item.price_jalingo || 0,
-        })),
+        location: selectedLocation.trim(),
+        items: cart.map(item => {
+          const unitPrice = selectedLocation === 'Outside Jalingo' 
+            ? (item.price_outside || item.price_jalingo || 0)
+            : (item.price_jalingo || 0);
+          return {
+            item_id: item.id,
+            quantity: item.post_quantity,
+            unit_price: unitPrice,
+          };
+        }),
         total_items: cart.reduce((sum, item) => sum + item.post_quantity, 0),
       };
+
+      console.log('📤 [Admin] Posting items with data:', postData);
+      alert(`ADMIN POSTING: Target location is "${postData.location}"`);
 
       await api.post('/api/sales/post-items', postData, {
         headers: { 'Authorization': `Bearer ${token}` },
@@ -260,7 +334,7 @@ export default function AdminPostItemsPage() {
       setSelectedStaff('');
       setShowConfirmation(false);
       setShowMobileCart(false);
-      await loadAllData();
+      await Promise.all([fetchItems(), fetchHistory()]);
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'Failed to post items';
       setToast({ message: errorMsg, type: 'error' });
@@ -274,16 +348,83 @@ export default function AdminPostItemsPage() {
     return <div className="text-center py-12 text-gray-600 dark:text-gray-400">Loading...</div>;
   }
 
-  const totalValue = cart.reduce((sum, item) => sum + ((item.price_jalingo || 0) * item.post_quantity), 0);
+  const totalValue = cart.reduce((sum, item) => {
+    const price = selectedLocation === 'Outside Jalingo'
+      ? (item.price_outside || item.price_jalingo || 0)
+      : (item.price_jalingo || 0);
+    return sum + (price * item.post_quantity);
+  }, 0);
+
+  // History Stats
+  const historyStats = {
+    totalPosts: history.length,
+    totalQty: history.reduce((sum, item) => sum + item.quantity, 0),
+    accepted: history.filter(item => item.status === 'accepted').length,
+    acceptedValue: history.filter(item => item.status === 'accepted').reduce((sum, item) => sum + (item.quantity * item.unit_price), 0),
+    rejected: history.filter(item => item.status === 'rejected').length,
+    pending: history.filter(item => item.status === 'pending').length,
+    acceptanceRate: history.length > 0 ? (history.filter(item => item.status === 'accepted').length / history.length) * 100 : 0,
+    rejectionRate: history.length > 0 ? (history.filter(item => item.status === 'rejected').length / history.length) * 100 : 0,
+    uniqueStaff: new Set(history.map(item => item.staff?.username)).size,
+  };
+
+  const filteredHistory = history.filter(item => {
+    const matchesPoster = !historyFilters.posterId || item.poster?.username === historyFilters.posterId;
+    const matchesStaff = !historyFilters.staffId || item.staff?.username === historyFilters.staffId;
+    const matchesStatus = !historyFilters.status || item.status === historyFilters.status;
+    const matchesItem = !historyFilters.itemSearch || 
+      item.item?.name.toLowerCase().includes(historyFilters.itemSearch.toLowerCase()) ||
+      item.item?.sku.toLowerCase().includes(historyFilters.itemSearch.toLowerCase());
+    
+    const itemDateStr = item.created_at.split('T')[0];
+    let matchesDate = true;
+    if (historyFilters.startDate && historyFilters.endDate) {
+      matchesDate = itemDateStr >= historyFilters.startDate && itemDateStr <= historyFilters.endDate;
+    } else if (historyFilters.startDate) {
+      matchesDate = itemDateStr === historyFilters.startDate;
+    } else if (historyFilters.endDate) {
+      matchesDate = itemDateStr === historyFilters.endDate;
+    }
+    
+    return matchesPoster && matchesStaff && matchesStatus && matchesItem && matchesDate;
+  });
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center flex-wrap gap-4">
+      {/* Header & Tabs */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <Send className="w-8 h-8 text-pink-500" />
-          Post Items to Staff
+          Posting Management
         </h1>
+        
+        <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-xl shadow-inner self-stretch md:self-auto">
+          <button
+            onClick={() => setActiveTab('post')}
+            className={`flex-1 md:flex-none px-6 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+              activeTab === 'post' 
+                ? 'bg-white dark:bg-gray-600 text-pink-600 dark:text-pink-400 shadow-sm' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            Post Items
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 md:flex-none px-6 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+              activeTab === 'history' 
+                ? 'bg-white dark:bg-gray-600 text-pink-600 dark:text-pink-400 shadow-sm' 
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            Post History
+          </button>
+        </div>
       </div>
+
+      {activeTab === 'post' ? (
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Items List */}
@@ -376,14 +517,14 @@ export default function AdminPostItemsPage() {
 
         {/* Posting Summary Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 sticky top-4 space-y-4">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 sticky top-4 flex flex-col max-h-[calc(100vh-10rem)] border border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4 flex-shrink-0">
               <Users className="w-5 h-5 text-pink-500" />
               Post Summary
             </h2>
 
             {/* Staff Selection */}
-            <div className="space-y-2">
+            <div className="space-y-2 mb-4 flex-shrink-0">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Select Staff to Post To
               </label>
@@ -402,7 +543,25 @@ export default function AdminPostItemsPage() {
             </div>
 
             {selectedStaff && (
-              <div className="bg-pink-50 dark:bg-pink-900/20 rounded-lg p-3 border border-pink-200 dark:border-pink-800">
+              <div className="space-y-2 mb-4 flex-shrink-0">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Designated Location
+                </label>
+                <select
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-pink-500 transition"
+                >
+                  <option value="Inside Jalingo">🏙️ Inside Jalingo</option>
+                  {isSelectedStaffCommission && (
+                    <option value="Outside Jalingo">🚚 Outside Jalingo</option>
+                  )}
+                </select>
+              </div>
+            )}
+
+            {selectedStaff && (
+              <div className="bg-pink-50 dark:bg-pink-900/20 rounded-lg p-3 border border-pink-200 dark:border-pink-800 mb-4 flex-shrink-0">
                 <p className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>Selected:</strong> {staffList.find(s => s.id === selectedStaff)?.full_name}
                 </p>
@@ -410,7 +569,7 @@ export default function AdminPostItemsPage() {
             )}
 
             {/* Items in Cart */}
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 mb-4 scrollbar-thin scrollbar-thumb-pink-500">
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
                 Items to Post ({cart.length})
               </h3>
@@ -421,7 +580,11 @@ export default function AdminPostItemsPage() {
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <p className="font-semibold text-gray-900 dark:text-white text-sm">{item.name}</p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">₦{(item.price_jalingo || 0).toLocaleString()}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            ₦{(selectedLocation === 'Outside Jalingo' 
+                              ? (item.price_outside || item.price_jalingo || 0) 
+                              : (item.price_jalingo || 0)).toLocaleString()}
+                          </p>
                         </div>
                         <button
                           onClick={() => removeFromCart(item.id)}
@@ -455,7 +618,9 @@ export default function AdminPostItemsPage() {
                         </button>
                       </div>
                       <p className="text-right text-sm font-semibold text-gray-900 dark:text-white mt-1">
-                        ₦{((item.price_jalingo || 0) * item.post_quantity).toLocaleString()}
+                        ₦{((selectedLocation === 'Outside Jalingo' 
+                          ? (item.price_outside || item.price_jalingo || 0) 
+                          : (item.price_jalingo || 0)) * item.post_quantity).toLocaleString()}
                       </p>
                     </div>
                   ))}
@@ -467,7 +632,7 @@ export default function AdminPostItemsPage() {
 
             {/* Summary */}
             {cart.length > 0 && (
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2 flex-shrink-0">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-400">Total Items:</span>
                   <span className="font-semibold text-gray-900 dark:text-white">
@@ -487,7 +652,7 @@ export default function AdminPostItemsPage() {
             <button
               onClick={handlePostItems}
               disabled={cart.length === 0 || !selectedStaff}
-              className="w-full bg-pink-600 hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
+              className="btn-primary w-full mt-4 flex-shrink-0 flex items-center justify-center gap-2"
             >
               <Send className="w-5 h-5" />
               Post Items to Staff
@@ -495,6 +660,221 @@ export default function AdminPostItemsPage() {
           </div>
         </div>
       </div>
+      ) : (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* History Stats Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { label: 'Total Items Posted', value: historyStats.totalPosts.toLocaleString(), icon: <ShoppingBag className="text-blue-500" />, color: 'blue' },
+              { label: 'Total Quantities', value: historyStats.totalQty.toLocaleString(), icon: <BarChart className="text-pink-500" />, color: 'pink' },
+              { label: 'Accepted Value', value: `₦${historyStats.acceptedValue.toLocaleString()}`, icon: <CheckCircle2 className="text-green-500" />, color: 'green' },
+              { label: 'Staff Reached', value: historyStats.uniqueStaff.toLocaleString(), icon: <Users className="text-purple-500" />, color: 'purple' },
+              { label: 'Acceptance Rate', value: `${historyStats.acceptanceRate.toFixed(1)}%`, icon: <CheckCircle2 className="text-blue-500" />, color: 'blue' },
+              { label: 'Rejection Rate', value: `${historyStats.rejectionRate.toFixed(1)}%`, icon: <XCircle className="text-red-500" />, color: 'red' },
+            ].map((stat, i) => (
+              <div key={i} className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+                <div className={`p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50`}>
+                  {stat.icon}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">{stat.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm">
+                <span className="text-sm font-bold text-yellow-600 flex items-center gap-2">
+                   <Clock size={18} /> Pending
+                </span>
+                <span className="text-xl font-black text-gray-900 dark:text-white">{historyStats.pending}</span>
+             </div>
+             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm">
+                <span className="text-sm font-bold text-red-600 flex items-center gap-2">
+                   <XCircle size={18} /> Rejected
+                </span>
+                <span className="text-xl font-black text-gray-900 dark:text-white">{historyStats.rejected}</span>
+             </div>
+             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm">
+                <span className="text-sm font-bold text-green-600 flex items-center gap-2">
+                   <CheckCircle2 size={18} /> Accepted
+                </span>
+                <span className="text-xl font-black text-gray-900 dark:text-white">{historyStats.accepted}</span>
+             </div>
+          </div>
+
+          {/* History Table */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-4">
+               <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <History className="w-5 h-5 text-pink-500" />
+                    Post History
+                  </h2>
+                  <button 
+                    onClick={fetchHistory}
+                    disabled={isHistoryLoading}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition text-gray-500"
+                  >
+                    <RefreshCcw size={18} className={isHistoryLoading ? 'animate-spin' : ''} />
+                  </button>
+               </div>
+
+               {/* Filter Bar */}
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search item or SKU..."
+                      value={historyFilters.itemSearch}
+                      onChange={(e) => setHistoryFilters({...historyFilters, itemSearch: e.target.value})}
+                      className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <select
+                    value={historyFilters.posterId}
+                    onChange={(e) => setHistoryFilters({...historyFilters, posterId: e.target.value})}
+                    className="py-2 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">All Posters</option>
+                    {Array.from(new Set(history.map(h => JSON.stringify({id: h.poster?.username, name: h.poster?.full_name}))))
+                      .map(s => JSON.parse(s))
+                      .map(poster => (
+                        <option key={poster.id} value={poster.id}>{poster.name}</option>
+                      ))
+                    }
+                  </select>
+                  <select
+                    value={historyFilters.staffId}
+                    onChange={(e) => setHistoryFilters({...historyFilters, staffId: e.target.value})}
+                    className="py-2 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">All Recipients</option>
+                    {Array.from(new Set(history.map(h => JSON.stringify({id: h.staff?.username, name: h.staff?.full_name}))))
+                      .map(s => JSON.parse(s))
+                      .map(staff => (
+                        <option key={staff.id} value={staff.id}>{staff.name}</option>
+                      ))
+                    }
+                  </select>
+                  <select
+                    value={historyFilters.status}
+                    onChange={(e) => setHistoryFilters({...historyFilters, status: e.target.value})}
+                    className="py-2 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                  <input
+                    type="date"
+                    value={historyFilters.startDate}
+                    onChange={(e) => setHistoryFilters({...historyFilters, startDate: e.target.value})}
+                    className="py-2 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                  <input
+                    type="date"
+                    value={historyFilters.endDate}
+                    onChange={(e) => setHistoryFilters({...historyFilters, endDate: e.target.value})}
+                    className="py-2 px-3 text-sm border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+               </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <tr>
+                    <th className="px-6 py-4">Item Name</th>
+                    <th className="px-6 py-4">From (Poster)</th>
+                    <th className="px-6 py-4">To (Staff)</th>
+                    <th className="px-6 py-4 text-center">Qty</th>
+                    <th className="px-6 py-4">Value</th>
+                    <th className="px-6 py-4">Date & Time</th>
+                    <th className="px-6 py-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {isHistoryLoading ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-gray-400">Loading history...</td>
+                    </tr>
+                  ) : filteredHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center text-gray-400">No matching history found</td>
+                    </tr>
+                  ) : (
+                    filteredHistory.map((post) => (
+                      <tr key={post.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-sm">
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-900 dark:text-white">{post.item?.name}</p>
+                          <p className="text-xs text-gray-500">{post.item?.sku}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                              {post.poster?.full_name?.substring(0, 1).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 dark:text-white">{post.poster?.full_name}</p>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-tighter">@{post.poster?.username}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-pink-600 dark:text-pink-400 font-bold text-xs">
+                              {post.staff?.full_name?.substring(0, 1).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 dark:text-white">{post.staff?.full_name}</p>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-tighter">@{post.staff?.username}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center font-black text-gray-900 dark:text-white">
+                          {formatQty(post.quantity)}
+                        </td>
+                        <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">
+                          ₦{(post.quantity * post.unit_price).toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-gray-900 dark:text-white">{new Date(post.created_at).toLocaleDateString()}</p>
+                          <p className="text-[10px] text-gray-500">{new Date(post.created_at).toLocaleTimeString()}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          {post.status === 'pending' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 text-[10px] font-bold uppercase">
+                              <Clock size={12} /> Pending
+                            </span>
+                          )}
+                          {post.status === 'accepted' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[10px] font-bold uppercase">
+                              <CheckCircle2 size={12} /> Accepted
+                            </span>
+                          )}
+                          {post.status === 'rejected' && (
+                            <div className="flex flex-col gap-1">
+                               <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold uppercase w-fit">
+                                <XCircle size={12} /> Rejected
+                              </span>
+                              {post.reject_reason && <p className="text-[10px] text-red-500 italic">"{post.reject_reason}"</p>}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toast && (
@@ -536,22 +916,42 @@ export default function AdminPostItemsPage() {
 
             <div className="p-6 space-y-4">
               {/* Staff Selection */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Select Staff to Post To
-                </label>
-                <select
-                  value={selectedStaff}
-                  onChange={(e) => setSelectedStaff(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-pink-500"
-                >
-                  <option value="">Choose a staff member...</option>
-                  {staffList.map((staff) => (
-                    <option key={staff.id} value={staff.id}>
-                      {staff.full_name} ({displayRoleName(staff.role)})
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Select Staff to Post To
+                  </label>
+                  <select
+                    value={selectedStaff}
+                    onChange={(e) => setSelectedStaff(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-pink-500"
+                  >
+                    <option value="">Choose a staff member...</option>
+                    {staffList.map((staff) => (
+                      <option key={staff.id} value={staff.id}>
+                        {staff.full_name} ({displayRoleName(staff.role)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedStaff && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Designated Location
+                    </label>
+                    <select
+                      value={selectedLocation}
+                      onChange={(e) => setSelectedLocation(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-pink-500"
+                    >
+                      <option value="Inside Jalingo">🏙️ Inside Jalingo</option>
+                      {isSelectedStaffCommission && (
+                        <option value="Outside Jalingo">🚚 Outside Jalingo</option>
+                      )}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Cart Items */}
@@ -561,7 +961,11 @@ export default function AdminPostItemsPage() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-white">{item.name}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">₦{(item.price_jalingo || 0).toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          ₦{(selectedLocation === 'Outside Jalingo' 
+                            ? (item.price_outside || item.price_jalingo || 0) 
+                            : (item.price_jalingo || 0)).toLocaleString()}
+                        </p>
                       </div>
                       <button
                         onClick={() => removeFromCart(item.id)}
@@ -595,7 +999,9 @@ export default function AdminPostItemsPage() {
                       </button>
                     </div>
                     <p className="text-right text-lg font-semibold text-gray-900 dark:text-white mt-2">
-                      ₦{((item.price_jalingo || 0) * item.post_quantity).toLocaleString()}
+                      ₦{((selectedLocation === 'Outside Jalingo' 
+                        ? (item.price_outside || item.price_jalingo || 0) 
+                        : (item.price_jalingo || 0)) * item.post_quantity).toLocaleString()}
                     </p>
                   </div>
                 ))}
@@ -660,15 +1066,26 @@ export default function AdminPostItemsPage() {
             </div>
 
             <div className="p-6 space-y-6">
-              {/* Staff Info */}
-              <div className="bg-pink-50 dark:bg-pink-900/20 rounded-lg p-4 border-2 border-pink-200 dark:border-pink-800">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Posting to:</p>
-                <p className="text-2xl font-bold text-pink-600 dark:text-pink-400">
-                  {staffList.find(s => s.id === selectedStaff)?.full_name}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {displayRoleName(staffList.find(s => s.id === selectedStaff)?.role || '')}
-                </p>
+              {/* Staff Info & Location */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-pink-50 dark:bg-pink-900/20 rounded-lg p-4 border-2 border-pink-200 dark:border-pink-800">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Posting to:</p>
+                  <p className="text-xl font-bold text-pink-600 dark:text-pink-400">
+                    {staffList.find(s => s.id === selectedStaff)?.full_name}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    {displayRoleName(staffList.find(s => s.id === selectedStaff)?.role || '')}
+                  </p>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border-2 border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Target Location:</p>
+                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    {selectedLocation === 'Inside Jalingo' ? '🏙️ Inside Jalingo' : '🚚 Outside Jalingo'}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Items will be restricted to this location
+                  </p>
+                </div>
               </div>
 
               {/* Items List */}

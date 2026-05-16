@@ -16,6 +16,10 @@ export function generateReceiptHTML(receipt: {
     price: number;
   }>;
   total_amount: number;
+  creditor?: {
+    name: string;
+    phone?: string;
+  };
 }): string {
   const dateTime = new Date(receipt.timestamp);
   const date = dateTime.toLocaleDateString();
@@ -81,70 +85,74 @@ export function generateReceiptHTML(receipt: {
           .receipt-info {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            gap: 20px;
             margin-bottom: 24px;
+          }
+          .info-box {
             background: #f9fafb;
             padding: 16px;
-            border-radius: 6px;
-            border: 1px solid #e5e7eb;
-          }
-          .info-item {
-            border-right: 1px solid #e5e7eb;
-            padding-right: 16px;
-          }
-          .info-item:nth-child(2n) {
-            border-right: none;
-            padding-right: 0;
+            border-radius: 12px;
+            border: 1px solid #f3f4f6;
           }
           .info-label {
-            font-size: 11px;
-            color: #6b7280;
+            font-size: 10px;
+            color: #9ca3af;
             text-transform: uppercase;
-            font-weight: 600;
-            margin-bottom: 6px;
-          }
-          .info-value {
-            font-size: 14px;
-            font-weight: 600;
-            color: #111827;
-            margin-top: 4px;
-          }
-          .items-section {
-            border-top: 2px solid #fda4af;
-            border-bottom: 2px solid #fda4af;
-            margin-bottom: 24px;
-            overflow: hidden;
-          }
-          .items-header {
-            background: #f9fafb;
-            padding: 12px 20px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            font-weight: 700;
-            font-size: 12px;
-            color: #111827;
-            text-transform: uppercase;
+            font-weight: 800;
+            margin-bottom: 8px;
             letter-spacing: 0.5px;
           }
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 13px;
+          }
+          .row-label {
+            color: #6b7280;
+            font-weight: 500;
+          }
+          .row-value {
+            color: #111827;
+            font-weight: 700;
+          }
+          .items-section {
+            border-top: 2px solid #fce7f3;
+            border-bottom: 2px solid #fce7f3;
+            margin-bottom: 24px;
+          }
+          .items-header {
+            background: #fff5f8;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 900;
+            font-size: 11px;
+            color: #be185d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
           .total-section {
-            background: linear-gradient(to right, #fce7f3, #fbcfe8);
-            border: 1px solid #fbdfe8;
-            border-radius: 6px;
-            padding: 24px;
+            background: #fff5f8;
+            border: 1px solid #fce7f3;
+            border-radius: 16px;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
           }
           .total-label {
-            color: #6b7280;
-            font-size: 14px;
-            margin-bottom: 8px;
-            text-align: right;
+            color: #be185d;
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
           }
           .total-amount {
-            font-size: 32px;
-            font-weight: 700;
-            color: #ec4899;
-            text-align: right;
+            font-size: 28px;
+            font-weight: 900;
+            color: #db2777;
           }
           .receipt-footer {
             text-align: center;
@@ -176,28 +184,46 @@ export function generateReceiptHTML(receipt: {
           <div class="receipt-body">
             <!-- Receipt Info -->
             <div class="receipt-info">
-              <div class="info-item">
-                <div class="info-label">Date</div>
-                <div class="info-value">${date}</div>
+              <div class="info-box">
+                <div class="info-label">Receipt Info</div>
+                <div class="info-row">
+                  <span class="row-label">No:</span>
+                  <span class="row-value">${receipt.receipt_number}</span>
+                </div>
+                <div class="info-row">
+                  <span class="row-label">Date:</span>
+                  <span class="row-value">${date}</span>
+                </div>
+                <div class="info-row">
+                  <span class="row-label">Staff:</span>
+                  <span class="row-value">${receipt.staff_name}</span>
+                </div>
               </div>
-              <div class="info-item">
-                <div class="info-label">Time</div>
-                <div class="info-value">${time}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Staff</div>
-                <div class="info-value">${receipt.staff_name}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Payment</div>
-                <div class="info-value" style="text-transform: capitalize;">${receipt.payment_method}</div>
+              <div class="info-box">
+                <div class="info-label">Creditor Details</div>
+                ${receipt.creditor ? `
+                  <div class="info-row" style="margin-bottom: 2px;">
+                    <span class="row-value" style="font-size: 15px;">${receipt.creditor.name}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="row-label">${receipt.creditor.phone || ''}</span>
+                  </div>
+                  <div class="info-row" style="margin-top: 4px;">
+                    <span class="row-value" style="color: #db2777; font-size: 11px; letter-spacing: -0.5px;">PAYMENT: ${receipt.payment_method.toUpperCase()}</span>
+                  </div>
+                ` : `
+                  <div class="info-row">
+                    <span class="row-label">Method:</span>
+                    <span class="row-value" style="text-transform: capitalize;">${receipt.payment_method}</span>
+                  </div>
+                `}
               </div>
             </div>
 
             <!-- Items -->
             <div class="items-section">
               <div class="items-header">
-                <span style="flex: 1;">Item</span>
+                <span style="flex: 1;">Description</span>
                 <span style="width: 60px; text-align: center;">Qty</span>
                 <span style="width: 100px; text-align: right;">Total</span>
               </div>
@@ -206,8 +232,8 @@ export function generateReceiptHTML(receipt: {
 
             <!-- Total -->
             <div class="total-section">
-              <div class="total-label">Amount Due</div>
-              <div class="total-amount">₦${receipt.total_amount.toLocaleString()}</div>
+              <span class="total-label">Grand Total</span>
+              <span class="total-amount">₦${receipt.total_amount.toLocaleString()}</span>
             </div>
 
             <!-- Footer -->
@@ -236,6 +262,10 @@ export async function printReceipt(receipt: {
     price: number;
   }>;
   total_amount: number;
+  creditor?: {
+    name: string;
+    phone?: string;
+  };
 }) {
   try {
     // Create a temporary container
@@ -304,6 +334,10 @@ export async function downloadReceiptAsPDF(receipt: {
     price: number;
   }>;
   total_amount: number;
+  creditor?: {
+    name: string;
+    phone?: string;
+  };
 }) {
   try {
     // Create a temporary container
@@ -360,6 +394,10 @@ export async function downloadReceiptAsImage(receipt: {
     price: number;
   }>;
   total_amount: number;
+  creditor?: {
+    name: string;
+    phone?: string;
+  };
 }) {
   try {
     // Create a temporary container

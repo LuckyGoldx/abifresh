@@ -5,16 +5,20 @@ import { supabaseAdmin } from '@/lib/server/supabase-admin';
 async function enrichPayments(payments: any[]) {
   if (!payments.length) return [];
   const staffIds = [...new Set(payments.map((p) => p.staff_id))];
+  const approverIds = [...new Set(payments.map((p) => p.approved_by).filter(Boolean))];
+  const allUserIds = [...new Set([...staffIds, ...approverIds])];
+
   const { data: staffMembers } = await supabaseAdmin
     .from('users')
     .select('id, full_name, email, role')
-    .in('id', staffIds);
+    .in('id', allUserIds);
 
   const staffMap: Record<string, any> = {};
   (staffMembers || []).forEach((s: any) => (staffMap[s.id] = s));
 
   return payments.map((p: any) => {
     const staff = staffMap[p.staff_id];
+    const approver = p.approved_by ? staffMap[p.approved_by] : null;
     return {
       id: p.id,
       staff_id: p.staff_id,
@@ -34,6 +38,7 @@ async function enrichPayments(payments: any[]) {
       approved_date: p.approved_date,
       created_at: p.created_at,
       rejection_reason: p.rejection_reason,
+      approved_by_name: approver?.full_name || null,
     };
   });
 }
@@ -51,6 +56,7 @@ export async function GET(req: NextRequest) {
     .eq('status', 'pending')
     // Exclude admin-paid commission records (managed in /admin/commissions)
     .or('payment_type.neq.commission,paid_by.is.null')
+    .neq('payment_type', 'credit_remittance')
     .order('created_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

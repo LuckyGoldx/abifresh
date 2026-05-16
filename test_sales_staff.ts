@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://pbtmfgvtffbunwlgsdui.supabase.co';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBidG1mZ3Z0ZmZidW53bGdzZHVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDU3NjU1NzUsImV4cCI6MjAyMTM0MTU3NX0.6RwCvBvV3DJChJX7t48FzXXI0xfGPL2aLKVpA-K9jWU';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://wkyakaunbejmuzqnvgno.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndreWFrYXVuYmVqbXV6cW52Z25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNjYzMDIsImV4cCI6MjA5Mzk0MjMwMn0.bCkj6hvZcOkXziajxADs_l3h1HJLHMGj3Ux_vKS-8W0';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

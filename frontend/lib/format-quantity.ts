@@ -7,8 +7,10 @@
  * Used across make-sale pages, receipts, and inventory displays.
  */
 export function formatQty(qty: number): string {
-  if (qty % 1 === 0) return qty.toString();
-  const whole = Math.floor(qty);
+  // Use a small epsilon for comparisons to avoid floating point issues (e.g. 1.49999999)
+  const rounded = Math.round(qty * 2) / 2;
+  if (rounded % 1 === 0) return rounded.toString();
+  const whole = Math.floor(rounded);
   return whole === 0 ? '½' : `${whole}½`;
 }
 

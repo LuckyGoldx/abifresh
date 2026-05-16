@@ -479,6 +479,7 @@ export default function AdminStaffStorePage() {
                   <th className="text-left py-2 px-3">SKU</th>
                   <th className="text-left py-2 px-3">Category</th>
                   <th className="text-right py-2 px-3">Price</th>
+                  <th className="text-left py-2 px-3">Location</th>
                   <th className="text-right py-2 px-3">Quantity</th>
                   <th className="text-right py-2 px-3">Sold</th>
                   <th className="text-right py-2 px-3">Available</th>
@@ -503,6 +504,11 @@ export default function AdminStaffStorePage() {
                           <div>₦{(item.items?.price_outside || 0).toLocaleString()}</div>
                         </div>
                       )}
+                    </td>
+                    <td className="py-2 px-3">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${item.location === 'Outside Jalingo' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
+                        {item.location === 'Outside Jalingo' ? 'Outside' : 'Inside'}
+                      </span>
                     </td>
                     <td className="py-2 px-3 text-right font-semibold">{formatQty(item.quantity || 0)}</td>
                     <td className="py-2 px-3 text-right text-green-600 dark:text-green-400">{formatQty(item.quantity_sold || 0)}</td>

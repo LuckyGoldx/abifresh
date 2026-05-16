@@ -67,6 +67,7 @@ export default function PaymentsPage() {
   const [sortBy, setSortBy] = useState('requested_date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [actionInProgress, setActionInProgress] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [outstandingSummary, setOutstandingSummary] = useState<{ outstandingTotal: number } | null>(null);
@@ -116,6 +117,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     if (showDetailsModal && selectedPayment) {
+      setReceiptLoading(true);
       console.log('📋 Admin Payment Details Modal opened with data:', selectedPayment);
       console.log('  - staff_phone:', selectedPayment.staff_phone);
       console.log('  - reference_number:', selectedPayment.reference_number);
@@ -907,15 +909,22 @@ export default function PaymentsPage() {
                   
                   {/* Clickable Receipt Image */}
                   <div 
-                    className="cursor-pointer mb-3"
+                    className="cursor-pointer mb-3 relative min-h-[100px] flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
                     onClick={() => setShowReceiptPreview(true)}
                     title="Click to view fullscreen"
                   >
+                    {receiptLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-50/80 dark:bg-gray-900/80 rounded">
+                        <LoadingLogo text="Loading receipt..." />
+                      </div>
+                    )}
                     <img 
                       src={selectedPayment.receipt_url} 
                       alt="Receipt"
-                      className="max-w-full h-auto border border-gray-200 dark:border-gray-600 rounded"
+                      className={`max-w-full h-auto transition-opacity duration-300 ${receiptLoading ? 'opacity-0' : 'opacity-100'}`}
+                      onLoad={() => setReceiptLoading(false)}
                       onError={(e) => {
+                        setReceiptLoading(false);
                         (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="100"%3E%3Crect fill="%23f0f0f0" width="200" height="100"/%3E%3Ctext x="100" y="50" text-anchor="middle" dy=".3em" fill="%23999"%3EImage not found%3C/text%3E%3C/svg%3E';
                       }}
                     />

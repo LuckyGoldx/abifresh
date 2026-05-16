@@ -1,43 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, hasRole } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
-import sharp from 'sharp';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
- * Compress product image to WebP format with optimized quality
- * Keeps GIFs uncompressed (animated). Returns compressed buffer and new filename with extension.
+ * Compress product image to WebP format.
+ * Uses dynamic sharp import to avoid module-level load failure.
+ * Keeps GIFs uncompressed (preserve animation).
+ * Falls back to original if compression fails or produces larger output.
  */
 async function compressProductImage(file: File): Promise<{ buffer: Buffer; fileName: string; type: string }> {
-  const isGIF = file.type === 'image/gif';
-  
+  const buffer = Buffer.from(await file.arrayBuffer());
+
   // Keep GIFs as-is (preserve animation)
-  if (isGIF) {
-    const buffer = Buffer.from(await file.arrayBuffer());
+  if (file.type === 'image/gif' || !file.type.startsWith('image/')) {
     return { buffer, fileName: file.name, type: file.type };
   }
 
   try {
-    const buffer = Buffer.from(await file.arrayBuffer());
-    
-    // Compress to WebP with 85 quality (higher quality for product images)
-    // Product images need better quality than receipts since customers see them
+    const sharp = (await import('sharp')).default;
     const compressed = await sharp(buffer)
-      .webp({ quality: 85 })
+      .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
       .toBuffer();
 
-    // Use compressed only if it's smaller (usually by 50-75%)
-    const finalBuffer = compressed.length < buffer.length ? compressed : buffer;
-    
-    // Generate filename with .webp extension
-    const newFileName = file.name.replace(/\.[^.]+$/, '.webp');
-    
-    return { buffer: finalBuffer, fileName: newFileName, type: 'image/webp' };
-  } catch (error) {
-    // Fallback: return original if compression fails
-    const buffer = Buffer.from(await file.arrayBuffer());
+    if (compressed.length < buffer.length) {
+      const newFileName = file.name.replace(/\.[^.]+$/, '.webp');
+      return { buffer: compressed, fileName: newFileName, type: 'image/webp' };
+    }
+    // Compressed is larger — keep original
+    return { buffer, fileName: file.name, type: file.type };
+  } catch {
+    // sharp unavailable or failed — keep original
     return { buffer, fileName: file.name, type: file.type };
   }
 }

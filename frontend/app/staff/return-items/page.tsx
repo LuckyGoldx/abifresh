@@ -12,6 +12,7 @@ interface AvailableItem {
   name: string;
   unit_price: number;
   available_quantity: number;
+  location: string;
 }
 
 interface ReturnRequest {
@@ -25,6 +26,7 @@ interface ReturnRequest {
   created_at: string;
   updated_at: string;
   item_id: string;
+  location: string;
 }
 
 interface SalesStaff {
@@ -107,12 +109,12 @@ export default function ReturnItemsPage() {
   };
 
   // Calculate remaining available quantity for an item after selections
-  const getRemainingAvailable = (itemId: string): number => {
-    const item = availableItems.find((i) => i.id === itemId);
+  const getRemainingAvailable = (itemId: string, location: string): number => {
+    const item = availableItems.find((i) => i.id === itemId && i.location === location);
     if (!item) return 0;
     
     const selectedQty = selectedItems
-      .filter((i) => i.item_id === itemId)
+      .filter((i) => i.item_id === itemId && (i as any).location === location)
       .reduce((sum, i) => sum + i.quantity, 0);
     
     return item.available_quantity - selectedQty;
@@ -124,7 +126,7 @@ export default function ReturnItemsPage() {
       const item = availableItems.find((i) => i.id === itemId);
       if (!item) return;
 
-      const existing = selectedItems.find((i) => i.item_id === itemId);
+      const existing = selectedItems.find((i) => i.item_id === itemId && (i as any).location === item.location);
       if (!existing) {
         setSelectedItems([
           ...selectedItems,
@@ -132,21 +134,24 @@ export default function ReturnItemsPage() {
             item_id: itemId,
             quantity: 1,
             unit_price: item.unit_price,
-          },
+            location: item.location,
+          } as any,
         ]);
       }
     } else {
       // Remove item when unchecked
-      handleRemoveItem(itemId);
+      const item = availableItems.find((i) => i.id === itemId);
+      if (!item) return;
+      handleRemoveItem(itemId, item.location);
     }
   };
 
-  const handleRemoveItem = (itemId: string) => {
-    setSelectedItems(selectedItems.filter((i) => i.item_id !== itemId));
+  const handleRemoveItem = (itemId: string, location: string) => {
+    setSelectedItems(selectedItems.filter((i) => !(i.item_id === itemId && (i as any).location === location)));
   };
 
-  const handleQuantityChange = (itemId: string, quantity: number) => {
-    const item = availableItems.find((i) => i.id === itemId);
+  const handleQuantityChange = (itemId: string, location: string, quantity: number) => {
+    const item = availableItems.find((i) => i.id === itemId && i.location === location);
     if (!item) return;
 
     // Validate: quantity must be a positive multiple of 0.5
@@ -167,7 +172,7 @@ export default function ReturnItemsPage() {
 
     setSelectedItems(
       selectedItems.map((i) =>
-        i.item_id === itemId ? { ...i, quantity } : i
+        (i.item_id === itemId && (i as any).location === location) ? { ...i, quantity } : i
       )
     );
   };
@@ -339,6 +344,9 @@ export default function ReturnItemsPage() {
                       Qty
                     </th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">
                       Sent To
                     </th>
                     <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">
@@ -363,6 +371,11 @@ export default function ReturnItemsPage() {
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                         {formatQty(request.quantity)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${request.location === 'Outside Jalingo' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
+                          {request.location === 'Outside Jalingo' ? 'Outside' : 'Inside'}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                         {request.receiver_name}
@@ -508,7 +521,7 @@ export default function ReturnItemsPage() {
                             {item.name}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            ₦{item.unit_price.toLocaleString()} | Available: {formatQty(remainingQuantity)}
+                            ₦{item.unit_price.toLocaleString()} | Available: {formatQty(remainingQuantity)} | <span className="font-bold">{item.location === 'Outside Jalingo' ? 'Outside' : 'Inside'}</span>
                           </p>
                         </div>
                       </div>
@@ -526,15 +539,15 @@ export default function ReturnItemsPage() {
                 </h3>
                 <div className="space-y-3 border border-gray-300 dark:border-gray-600 rounded-lg p-3 max-h-48 overflow-y-auto">
                   {selectedItems.map((selectedItem) => {
-                    const item = availableItems.find((i) => i.id === selectedItem.item_id);
+                    const item = availableItems.find((i) => i.id === selectedItem.item_id && i.location === (selectedItem as any).location);
                     return (
                       <div
-                        key={selectedItem.item_id}
+                        key={`${selectedItem.item_id}_${(selectedItem as any).location}`}
                         className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900 rounded"
                       >
                         <div className="flex-1">
                           <p className="font-medium text-gray-900 dark:text-white">
-                            {item?.name}
+                            {item?.name} <span className="text-xs font-bold text-red-600 dark:text-red-400">({item?.location === 'Outside Jalingo' ? 'Outside' : 'Inside'})</span>
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
@@ -556,7 +569,7 @@ export default function ReturnItemsPage() {
                             / {formatQty(item?.available_quantity || 0)}
                           </span>
                           <button
-                            onClick={() => handleRemoveItem(selectedItem.item_id)}
+                            onClick={() => handleRemoveItem(selectedItem.item_id, (selectedItem as any).location)}
                             className="p-2 text-red-600 hover:bg-red-200 dark:hover:bg-red-900 rounded transition"
                             title="Remove item"
                           >
@@ -639,7 +652,7 @@ export default function ReturnItemsPage() {
                       Item Name
                     </p>
                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {selectedDetailRequest.item_name}
+                      {selectedDetailRequest.item_name} <span className="text-sm font-bold text-blue-600">({selectedDetailRequest.location === 'Outside Jalingo' ? 'Outside' : 'Inside'})</span>
                     </p>
                   </div>
                   <div>

@@ -8,7 +8,6 @@ export async function initializeStorageBuckets() {
   try {
     console.log('🔄 Checking storage buckets...');
 
-    // Check if product-images bucket exists
     const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
 
     if (listError) {
@@ -16,37 +15,33 @@ export async function initializeStorageBuckets() {
       return;
     }
 
-    const productImagesBucket = buckets?.find((b) => b.name === 'product-images');
+    const bucketConfigs = [
+      { name: 'product-images', public: true, fileSizeLimit: 5 * 1024 * 1024 },
+      { name: 'credit-payments', public: true, fileSizeLimit: 5 * 1024 * 1024 },
+    ];
 
-    if (!productImagesBucket) {
-      console.log('📦 product-images bucket does not exist. Creating...');
+    for (const config of bucketConfigs) {
+      const existingBucket = buckets?.find((b) => b.name === config.name);
 
-      // Create the bucket
-      const { data: createData, error: createError } = await supabaseAdmin.storage.createBucket(
-        'product-images',
-        {
-          public: true,
-          fileSizeLimit: 5 * 1024 * 1024, // 5MB
+      if (!existingBucket) {
+        console.log(`📦 ${config.name} bucket does not exist. Creating...`);
+
+        const { error: createError } = await supabaseAdmin.storage.createBucket(
+          config.name,
+          {
+            public: config.public,
+            fileSizeLimit: config.fileSizeLimit,
+          }
+        );
+
+        if (createError) {
+          console.error(`❌ Error creating ${config.name} bucket:`, createError);
+        } else {
+          console.log(`✅ ${config.name} bucket created successfully`);
         }
-      );
-
-      if (createError) {
-        console.error('❌ Error creating bucket:', createError);
-        return;
+      } else {
+        console.log(`✅ ${config.name} bucket already exists`);
       }
-
-      console.log('✅ product-images bucket created successfully');
-
-      // Set up storage policies for the bucket
-      console.log('🔐 Setting up storage policies...');
-
-      // Note: RLS policies are configured via SQL in Supabase
-      // The policies should be set via the SQL migration: INVENTORY_SCHEMA_UPDATE.sql
-      // If you haven't run that migration yet, please do so now.
-
-      console.log('✅ Storage policies configured');
-    } else {
-      console.log('✅ product-images bucket already exists');
     }
   } catch (error: any) {
     console.error('❌ Storage initialization error:', error.message);

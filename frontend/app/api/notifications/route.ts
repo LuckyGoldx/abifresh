@@ -3,14 +3,16 @@ import { verifyAuth } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
 
 function getNotificationCategory(type: string): string {
-  if (['payment_request', 'payment_approved', 'payment_rejected', 'payment_status'].includes(type)) return 'payments';
+  if (['payment_request', 'payment_approved', 'payment_rejected', 'payment_status', 'credit_payment', 'credit_payment_confirmation'].includes(type)) return 'payments';
   if (['posted_items', 'items_posted', 'items_accepted', 'items_rejected', 'posted_item_status'].includes(type)) return 'posted_items';
-  if (['returned_items', 'return_request_sent', 'return_accepted', 'return_rejected', 'return_status'].includes(type)) return 'returns';
+  if (['returned_items', 'return_request_sent', 'return_accepted', 'return_rejected', 'return_status', 'credit_item_returned', 'credit_return_confirmation'].includes(type)) return 'returns';
+  if (['credit_given', 'credit_given_confirmation', 'creditor_added', 'creditor_added_confirmation', 'credit_cancelled', 'credit_cancel_confirmation'].includes(type)) return 'credits';
   return 'system';
 }
 
 function isAdminRole(role: string): boolean {
-  return role === 'admin' || role === 'superadmin';
+  const normalized = role.toLowerCase();
+  return normalized === 'admin' || normalized === 'superadmin';
 }
 
 async function getLastReadAt(userId: string): Promise<string | null> {
@@ -39,7 +41,10 @@ export async function GET(req: NextRequest) {
   const allNotifications: any[] = [];
 
   // ── 1. POSTED ITEMS virtual notifications ──
-  if (userRole.includes('staff') || userRole.includes('commission')) {
+  const isSalesPortal = userRole.toLowerCase().includes('sales') || userRole.toLowerCase().includes('staff');
+  
+  if (isSalesPortal) {
+    // Received items
     const { data: receivedItems } = await supabaseAdmin
       .from('posted_items')
       .select('id, quantity, status, created_at, updated_at, item:item_id(name), posted_by:poster_id(full_name)')
@@ -64,7 +69,7 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  if (userRole.includes('sales')) {
+  if (isSalesPortal) {
     const { data: postedItems } = await supabaseAdmin
       .from('posted_items')
       .select('id, quantity, status, created_at, updated_at, item:item_id(name), staff:staff_id(full_name)')
@@ -187,7 +192,7 @@ export async function GET(req: NextRequest) {
         });
       }
     });
-  } else {
+  } else if (isSalesPortal) {
     const { data: myReturns } = await supabaseAdmin
       .from('returned_items')
       .select('id, quantity, status, created_at, updated_at, item:item_id(name), requester:requester_staff_id(full_name), receiver:receiver_staff_id(full_name)')
@@ -213,14 +218,78 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // ── 4. SYSTEM (DB) notifications ──
+  // ── 4. CREDIT ACTIVITIES historical/virtual notifications ──
+  // This ensures that even activities done before the notification system was robust are visible
+  const { data: creditActivities } = await supabaseAdmin
+    .from('credit_activities')
+    .select('*, creditors(full_name), users:staff_id(full_name)')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  (creditActivities || []).forEach((act: any) => {
+    // Only show to the user who did it (if they are staff) OR to admins
+    const isOwner = act.staff_id === userId;
+    if (isOwner || isAdminRole(userRole)) {
+      let type = 'system';
+      let title = 'Credit Activity';
+      let message = 'An activity was recorded';
+      
+      const details = act.details || {};
+      const creditorName = act.creditors?.full_name || details.creditor_name || 'Creditor';
+      const staffMemberName = act.users?.full_name || 'Staff';
+
+      switch(act.action) {
+        case 'CREDIT_GIVEN':
+          type = 'credit_given';
+          title = '💳 Credit Issued';
+          message = `${isOwner ? 'You' : staffMemberName} issued credit to ${creditorName} (₦${(details.total_amount || 0).toLocaleString()})`;
+          break;
+        case 'CREDIT_PAYMENT_MADE':
+          type = 'credit_payment';
+          title = '💰 Credit Payment';
+          message = `${isOwner ? 'You' : staffMemberName} recorded payment of ₦${(details.amount || 0).toLocaleString()} from ${creditorName}`;
+          break;
+        case 'CREDITOR_CREATED':
+          type = 'creditor_added';
+          title = '👤 New Creditor';
+          message = `${isOwner ? 'You' : staffMemberName} added ${creditorName} as a new creditor`;
+          break;
+        case 'CREDIT_ITEM_RETURNED':
+          type = 'credit_item_returned';
+          title = '🔄 Items Returned';
+          message = `${isOwner ? 'You' : staffMemberName} returned ${details.quantity}x ${details.item_name} from ${creditorName}`;
+          break;
+        case 'CREDIT_CANCELLED':
+          type = 'credit_cancelled';
+          title = '❌ Credit Cancelled';
+          message = `${isOwner ? 'You' : staffMemberName} cancelled credit for ${creditorName}`;
+          break;
+      }
+
+      // De-duplicate: If a real notification exists with this ID/Type, skip this virtual one
+      // (Using action-timestamp as a pseudo-unique ID for virtual activities)
+      const virtualId = `activity-${act.id}`;
+      allNotifications.push({
+        id: virtualId,
+        type,
+        title,
+        message,
+        timestamp: act.created_at,
+        category: 'credits',
+        is_read: true, // Activity log entries are historically "read"
+        is_activity: true
+      });
+    }
+  });
+
+  // ── 5. SYSTEM (DB) notifications ──
   const { data: systemNotifications } = await supabaseAdmin
     .from('notifications')
     .select('*')
     .eq('user_id', userId)
     .neq('type', 'virtual_read_marker')
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(100);
 
   (systemNotifications || []).forEach((n: any) => {
     allNotifications.push({
@@ -232,6 +301,11 @@ export async function GET(req: NextRequest) {
     });
   });
 
-  allNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  return NextResponse.json(allNotifications.slice(0, 100));
+  allNotifications.sort((a, b) => {
+    const timeA = new Date(a.timestamp || 0).getTime();
+    const timeB = new Date(b.timestamp || 0).getTime();
+    return timeB - timeA;
+  });
+
+  return NextResponse.json(allNotifications.slice(0, 150));
 }

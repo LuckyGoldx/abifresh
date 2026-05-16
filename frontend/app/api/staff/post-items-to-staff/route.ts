@@ -11,7 +11,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { staff_id, item_id, quantity, notes } = await req.json();
+    const { staff_id, item_id, quantity, notes, location } = await req.json();
+
+    const itemLocation = location || 'Inside Jalingo';
 
     if (!staff_id || !item_id || !quantity || quantity <= 0) {
       return NextResponse.json({ error: 'staff_id, item_id, and quantity > 0 are required' }, { status: 400 });
@@ -48,6 +50,7 @@ export async function POST(req: NextRequest) {
         item_id,
         quantity,
         unit_price: item.price_jalingo || item.unit_price || 0,
+        location: itemLocation,
         status: 'pending',
         notes: notes || null,
       }])

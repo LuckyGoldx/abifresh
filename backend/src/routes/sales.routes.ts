@@ -65,12 +65,20 @@ router.post('/record', authMiddleware, roleMiddleware('sales', 'sales_staff', 'a
  */
 router.post('/post-items', authMiddleware, roleMiddleware('sales', 'sales_staff', 'admin'), validatePostItems, async (req: AuthRequest, res: Response) => {
   try {
-    const { staff_id, items } = req.body;
+    const { staff_id, items, location } = req.body;
+    
+    console.log('📦 [POST /api/sales/post-items] Received request:', {
+      staff_id,
+      location,
+      items_count: items?.length,
+      first_item: items?.[0]
+    });
 
     const postedItems = await staffStoreService.postItemsToStaff(
       req.user!.id,
       staff_id,
-      items
+      items,
+      location
     );
 
     res.status(201).json({
@@ -401,7 +409,7 @@ router.get('/payments', authMiddleware, roleMiddleware('sales', 'sales_staff', '
         approved_date: payment.approved_date,
         created_at: payment.created_at,
       };
-    });
+    }).filter((p: any) => p.payment_type === 'sale');
 
     console.log('✅ /api/sales/payments returning:', JSON.stringify(payments?.[0], null, 2));
     res.json(payments);
@@ -458,17 +466,19 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
     // Validate payment amount doesn't exceed outstanding balance
     const parsedAmount = parseFloat(amount);
     
-    // Get all sales for this user
+    // Get all sales for this user (EXCLUDING CREDIT)
     const { data: allSales } = await supabaseAdmin
       .from('sales')
       .select('total_amount')
-      .eq('staff_id', req.user!.id);
+      .eq('staff_id', req.user!.id)
+      .neq('payment_method', 'credit');
     
-    // Get all payments (approved + pending) for this user
+    // Get all payments (approved + pending) for this user (ONLY SALES PAYMENTS)
     const { data: allPayments } = await supabaseAdmin
       .from('staff_payments')
       .select('amount, status')
-      .eq('staff_id', req.user!.id);
+      .eq('staff_id', req.user!.id)
+      .eq('payment_type', 'sale');
     
     // Calculate totals
     const totalSalesAmount = (allSales || []).reduce((sum: number, sale: any) => sum + (parseFloat(sale.total_amount) || 0), 0);
@@ -513,7 +523,7 @@ router.post('/payments/request', authMiddleware, roleMiddleware('sales', 'sales_
           staff_email: user?.email,
           staff_phone: user?.phone_number,
           amount: parseFloat(amount),
-          payment_type: 'other',
+          payment_type: 'sale',
           payment_method: payment_method,
           status: 'pending',
           reference_number: finalReferenceNumber,
@@ -583,6 +593,7 @@ router.get('/my-sales-history', authMiddleware, roleMiddleware('sales', 'sales_s
       .from('sales')
       .select('id, receipt_number, total_amount, created_at')
       .eq('staff_id', userId)
+      .neq('payment_method', 'credit')
       .order('created_at', { ascending: false });
 
     if (salesError) throw salesError;
@@ -628,7 +639,8 @@ router.get('/my-sales-history', authMiddleware, roleMiddleware('sales', 'sales_s
     const { data: paymentsData, error: paymentsError } = await supabaseAdmin
       .from('staff_payments')
       .select('id, amount, items_paid_for, status, created_at')
-      .eq('staff_id', req.user!.id);
+      .eq('staff_id', req.user!.id)
+      .eq('payment_type', 'sale');
 
     if (paymentsError) {
       console.error('⚠️ Error fetching payments:', paymentsError);

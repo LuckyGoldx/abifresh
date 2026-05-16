@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Menu, X, PanelLeftClose, PanelLeftOpen, SwitchCamera } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useNotifications } from '@/context/NotificationContext';
 
 interface MenuItem {
@@ -15,16 +15,42 @@ interface MenuItem {
 
 interface SidebarProps {
   menuItems: MenuItem[];
+  creditMenuItems?: MenuItem[];
   role: string;
   isOpen?: boolean;
   setIsOpen?: (open: boolean) => void;
+  creditMode?: boolean;
+  onToggleCreditMode?: () => void;
+  mainBadge?: number;
+  creditBadge?: number;
 }
 
-export default function Sidebar({ menuItems, role, isOpen = true, setIsOpen }: SidebarProps) {
+export default function Sidebar({ 
+  menuItems, 
+  creditMenuItems, 
+  role, 
+  isOpen = true, 
+  setIsOpen, 
+  creditMode = false, 
+  onToggleCreditMode,
+  mainBadge = 0,
+  creditBadge = 0
+}: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [showScrollbar, setShowScrollbar] = useState(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { unreadCount } = useNotifications();
+
+  const items = creditMode && creditMenuItems ? creditMenuItems : menuItems;
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (navRef.current) {
+      navRef.current.scrollTop = 0;
+    }
+  }, [creditMode]);
 
   useEffect(() => {
     const checkDesktop = () => setIsDesktop(window.innerWidth >= 768);
@@ -33,12 +59,36 @@ export default function Sidebar({ menuItems, role, isOpen = true, setIsOpen }: S
     return () => window.removeEventListener('resize', checkDesktop);
   }, []);
 
+  // Flash scrollbar for 2.5s when sidebar opens
+  useEffect(() => {
+    if (isOpen || mobileOpen) {
+      flashScrollbar();
+    }
+  }, [isOpen, mobileOpen]);
+
+  const flashScrollbar = () => {
+    setShowScrollbar(true);
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      setShowScrollbar(false);
+    }, 2500);
+  };
+
+  const handleScroll = () => {
+    flashScrollbar();
+  };
+
   const toggleDesktop = () => {
     if (setIsOpen) setIsOpen(!isOpen);
   };
 
   const desktopStyles: React.CSSProperties = isDesktop
-    ? { transform: 'translateX(0)', position: 'static', width: isOpen ? '16rem' : '0px', minWidth: isOpen ? '16rem' : '0px' }
+    ? { 
+        transform: 'translateX(0)', 
+        position: 'static', 
+        width: isOpen ? '18rem' : '0rem', 
+        minWidth: isOpen ? '18rem' : '0rem' 
+      }
     : {};
 
   return (
@@ -61,69 +111,134 @@ export default function Sidebar({ menuItems, role, isOpen = true, setIsOpen }: S
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 bg-white dark:bg-slate-800 shadow-lg z-40 transition-all duration-300 overflow-hidden ${
-          mobileOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'
+        className={`fixed inset-y-0 left-0 bg-white dark:bg-slate-800 shadow-lg z-40 transition-all duration-300 flex overflow-hidden ${
+          mobileOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72'
         }`}
         style={desktopStyles}
       >
-        {isDesktop && isOpen && (
-          <div className="hidden md:flex absolute top-4 right-2 z-10">
-            <button
-              onClick={toggleDesktop}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition"
-              title="Hide sidebar"
-            >
-              <PanelLeftClose size={18} />
-            </button>
+        {/* MAIN SIDEBAR CONTENT */}
+        <div className={`flex-1 flex flex-col transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none md:hidden'}`}>
+          {isDesktop && isOpen && (
+            <div className="hidden md:flex absolute top-4 right-2 z-10">
+              <button
+                onClick={toggleDesktop}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition"
+                title="Hide sidebar"
+              >
+                <PanelLeftClose size={18} />
+              </button>
+            </div>
+          )}
+
+          <div className="p-6 border-b border-gray-200 dark:border-slate-700 mt-12 md:mt-0 flex items-center space-x-3">
+            <div className="w-10 h-10 bg-pink-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-pink-200 dark:shadow-none flex-shrink-0">
+               A
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-pink-600 whitespace-nowrap">ABIFRESH</h1>
+              <p className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                {role === 'superadmin' ? 'Superadmin Portal' :
+                 role === 'admin' ? 'Admin Portal' :
+                 role === 'sales' || role === 'sales_staff' ? 'Sales Portal' :
+                 role === 'commission_staff' || role === 'staff_commission' ? 'Commission Portal' :
+                 role === 'non_commission_staff' || role === 'staff_non_commission' ? 'Non-Commission Portal' :
+                 'Portal'}
+              </p>
+            </div>
           </div>
-        )}
 
-        <div className="p-6 border-b border-gray-200 dark:border-slate-700 mt-12 md:mt-0">
-          <h1 className="text-xl font-bold text-pink-600 whitespace-nowrap">ABIFRESH</h1>
-          <p className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-            {role === 'superadmin' ? 'Superadmin Portal' :
-             role === 'admin' ? 'Admin Portal' :
-             role === 'sales' || role === 'sales_staff' ? 'Sales Portal' :
-             role === 'commission_staff' || role === 'staff_commission' ? 'Commission Portal' :
-             role === 'non_commission_staff' || role === 'staff_non_commission' ? 'Non-Commission Portal' :
-             'Portal'}
-          </p>
-        </div>
+          <nav 
+            ref={navRef}
+            onScroll={handleScroll}
+            className={`flex-1 mt-2 pt-2 pb-6 px-4 space-y-2 overflow-y-auto min-h-0 scroll-smooth custom-scrollbar ${showScrollbar ? 'show-scroll' : 'hide-scroll'}`}
+            style={{
+              scrollbarWidth: showScrollbar ? 'thin' : 'none',
+              scrollbarColor: showScrollbar ? '#db2777 transparent' : 'transparent transparent'
+            }}
+          >
+            <style jsx>{`
+              .custom-scrollbar::-webkit-scrollbar {
+                width: 4px;
+                display: ${showScrollbar ? 'block' : 'none'};
+              }
+              .custom-scrollbar::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb {
+                background-color: #db2777;
+                border-radius: 20px;
+                opacity: ${showScrollbar ? 1 : 0};
+                transition: opacity 0.3s ease;
+              }
+              .hide-scroll::-webkit-scrollbar {
+                display: none;
+              }
+              .show-scroll::-webkit-scrollbar {
+                display: block;
+              }
+              /* For Firefox and other browsers */
+            `}</style>
+            {items.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+              const isNotifications = item.label === 'Notifications';
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  prefetch={true}
+                  className={`flex items-center justify-between px-4 py-3 rounded-lg transition whitespace-nowrap ${
+                    isActive
+                      ? 'bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300 font-semibold'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-xl">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </div>
+                  {isNotifications && unreadCount > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                  {!isNotifications && (item.badge ?? 0) > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                      {(item.badge ?? 0) > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
 
-        <nav className="py-6 px-4 space-y-2 h-[calc(100vh-180px)] overflow-y-auto">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            const isNotifications = item.label === 'Notifications';
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                prefetch={true}
-                className={`flex items-center justify-between px-4 py-3 rounded-lg transition whitespace-nowrap ${
-                  isActive
-                    ? 'bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300 font-semibold'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700'
+          {creditMenuItems && onToggleCreditMode && (
+            <div className="px-4 py-3 border-t border-gray-200 dark:border-slate-700 mt-auto">
+              <button
+                onClick={onToggleCreditMode}
+                className={`flex items-center justify-center w-full px-4 py-3 rounded-lg transition whitespace-nowrap text-sm font-bold ${
+                  creditMode
+                    ? 'bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-100 dark:border-slate-700'
                 }`}
               >
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">{item.icon}</span>
-                  <span>{item.label}</span>
+                <div className="flex items-center gap-2 relative">
+                  <SwitchCamera className="w-5 h-5" />
+                  <div className="relative">
+                    <span>{creditMode ? 'Main Menu' : 'Credit System'}</span>
+                    
+                    {/* Badge for the OTHER system - Superscript style */}
+                    {((creditMode ? mainBadge : creditBadge) ?? 0) > 0 && (
+                      <span className="absolute -top-2 -right-5 flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white bg-red-600 rounded-full shadow-sm ring-1 ring-white dark:ring-slate-800">
+                        {((creditMode ? mainBadge : creditBadge) ?? 0) > 99 ? '99+' : (creditMode ? mainBadge : creditBadge)}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {isNotifications && unreadCount > 0 && (
-                  <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-                {!isNotifications && (item.badge ?? 0) > 0 && (
-                  <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
-                    {(item.badge ?? 0) > 99 ? '99+' : item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
 
       {mobileOpen && (

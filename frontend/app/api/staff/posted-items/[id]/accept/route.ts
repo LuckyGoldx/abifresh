@@ -39,6 +39,7 @@ export async function POST(
     .select('id, quantity')
     .eq('staff_id', authResult.id)
     .eq('item_id', postedItem.item_id)
+    .eq('location', postedItem.location || 'Inside Jalingo')
     .single();
 
   if (existing) {
@@ -52,6 +53,7 @@ export async function POST(
         staff_id: authResult.id,
         item_id: postedItem.item_id,
         quantity: postedItem.quantity,
+        location: postedItem.location || 'Inside Jalingo',
         posted_from_id: postedItem.poster_id,
         posted_date: postedItem.created_at,
       },

@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         staff_email: user?.email || authResult.email,
         staff_phone: user?.phone_number || null,
         amount: parseFloat(amount),
-        payment_type: paymentType,
+        payment_type: 'sale',
         payment_method,
         status: 'pending',
         reference_number: finalRefNumber,

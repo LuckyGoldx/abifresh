@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
       posted_by: item.posted_by?.full_name || 'Unknown',
       staff_comment: item.staff_comment,
       unit_price: item.unit_price,
+      location: item.location || 'Inside Jalingo',
       commission_per_unit: commission,
       total_commission_if_sold: commission * item.quantity,
     };

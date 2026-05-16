@@ -11,11 +11,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { staff_id, items } = await req.json();
+    const { staff_id, items, location } = await req.json();
 
     if (!staff_id || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'staff_id and items are required' }, { status: 400 });
     }
+
+    const itemLocation = location || 'Inside Jalingo';
 
     const postedItems = [];
     for (const item of items) {
@@ -48,6 +50,7 @@ export async function POST(req: NextRequest) {
             item_id: item.item_id,
             quantity: item.quantity,
             unit_price: item.unit_price,
+            location: itemLocation,
             status: 'pending',
           },
         ])
@@ -75,6 +78,33 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const authResult = await verifyAuth(req);
+  if (authResult instanceof NextResponse) return authResult;
+
+  if (!hasRole(authResult.role, 'sales', 'sales_staff', 'admin')) {
+    return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('posted_items')
+      .select(`
+        *,
+        item:item_id(name, sku),
+        staff:staff_id(full_name, username)
+      `)
+      .eq('poster_id', authResult.id)
+      .order('created_at', { ascending: false });
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

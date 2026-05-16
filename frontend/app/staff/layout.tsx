@@ -6,11 +6,22 @@ import { useAuthStore } from '@/store/auth';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import api from '@/lib/api';
+import { 
+  BarChart3, 
+  PackageSearch, 
+  ShoppingCart, 
+  Undo2, 
+  CreditCard, 
+  Wallet, 
+  FileText, 
+  DollarSign, 
+  Bell 
+} from 'lucide-react';
 
 interface MenuItemWithBadge {
   label: string;
   href: string;
-  icon: string;
+  icon: any;
   badge?: number;
 }
 
@@ -75,18 +86,18 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   }
 
   const menuItems: MenuItemWithBadge[] = [
-    { label: 'Dashboard', href: '/staff/dashboard', icon: '📊' },
-    { label: 'Posted Items', href: '/staff/posted-items', icon: '📥', badge: pendingPostedItemsCount > 0 ? pendingPostedItemsCount : undefined },
-    { label: 'Make Sale', href: '/staff/make-sale', icon: '🛒' },
-    { label: 'Return Items', href: '/staff/return-items', icon: '↩️', badge: pendingReturnCount > 0 ? pendingReturnCount : undefined },
-    { label: 'Make Payment', href: '/staff/payments', icon: '💳' },
-    { label: 'Expenses', href: '/staff/expenses', icon: '💸' },
-    { label: 'Receipts', href: '/staff/receipts', icon: '🧾' },
+    { label: 'Dashboard', href: '/staff/dashboard', icon: <BarChart3 size={20} /> },
+    { label: 'Posted Items', href: '/staff/posted-items', icon: <PackageSearch size={20} />, badge: pendingPostedItemsCount > 0 ? pendingPostedItemsCount : undefined },
+    { label: 'Make Sale', href: '/staff/make-sale', icon: <ShoppingCart size={20} /> },
+    { label: 'Return Items', href: '/staff/return-items', icon: <Undo2 size={20} />, badge: pendingReturnCount > 0 ? pendingReturnCount : undefined },
+    { label: 'Make Payment', href: '/staff/payments', icon: <CreditCard size={20} /> },
+    { label: 'Expenses', href: '/staff/expenses', icon: <Wallet size={20} /> },
+    { label: 'Receipts', href: '/staff/receipts', icon: <FileText size={20} /> },
     // Only show Commissions to commission staff
     ...(['staff_commission', 'commission_staff'].includes(user?.role || '') 
-      ? [{ label: 'Commissions', href: '/staff/commissions', icon: '💰' }]
+      ? [{ label: 'Commissions', href: '/staff/commissions', icon: <DollarSign size={20} /> }]
       : []),
-    { label: 'Notifications', href: '/staff/notifications', icon: '🔔' },
+    { label: 'Notifications', href: '/staff/notifications', icon: <Bell size={20} /> },
   ];
 
   return (

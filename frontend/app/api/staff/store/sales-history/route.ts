@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     .from('staff_sales')
     .select('*, items:item_id(id, name, sku, unit_price, price_jalingo, price_outside)')
     .eq('staff_id', authResult.id)
+    .neq('payment_method', 'credit')
     .order('sale_date', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
     .from('staff_payments')
     .select('amount, status, items_paid_for')
     .eq('staff_id', authResult.id)
-    .or('payment_type.neq.commission,paid_by.is.null');
+    .eq('payment_type', 'sale');
 
   // All-time totals from every sale (before any filtering)
   const allTimeQuantity = (sales || []).reduce((s: number, sale: any) => s + (sale.quantity || 0), 0);

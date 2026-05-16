@@ -3,7 +3,20 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
-import { ShoppingCart, Plus, Minus, Trash2, X, Search, Printer, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { 
+  ShoppingCart, 
+  Plus, 
+  Minus, 
+  Trash2, 
+  X, 
+  Search, 
+  Printer, 
+  Download, 
+  CheckCircle, 
+  AlertCircle,
+  Building2,
+  Truck
+} from 'lucide-react';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 import { formatQty } from '@/lib/format-quantity';
 
@@ -38,6 +51,7 @@ interface Item {
   package_type?: string;
   price_outside?: number;
   image_url?: string;
+  location?: string;
 }
 
 interface CartItem extends Item {
@@ -83,6 +97,9 @@ export default function MakeSalePage() {
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
+  const [showLocationSwitchModal, setShowLocationSwitchModal] = useState(false);
+  const [pendingLocation, setPendingLocation] = useState<'Inside Jalingo' | 'Outside Jalingo' | null>(null);
+  const [activeLocationTab, setActiveLocationTab] = useState<'Inside Jalingo' | 'Outside Jalingo'>('Inside Jalingo');
 
   useEffect(() => {
     setMounted(true);
@@ -113,7 +130,6 @@ export default function MakeSalePage() {
       console.log('Filtered items:', availableItems);
       
       setItems(availableItems);
-      setFilteredItems(availableItems);
     } catch (error) {
       console.error('Failed to fetch items:', error);
     } finally {
@@ -132,18 +148,28 @@ export default function MakeSalePage() {
     }
   };
 
+  useEffect(() => {
+    let filtered = items;
+    
+    // Filter by location tab
+    filtered = filtered.filter(item => 
+      (item.location || 'Inside Jalingo') === activeLocationTab
+    );
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    setFilteredItems(filtered);
+  }, [items, searchQuery, activeLocationTab]);
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    if (!query.trim()) {
-      setFilteredItems(items);
-    } else {
-      const filtered = items.filter(item =>
-        item.name.toLowerCase().includes(query.toLowerCase()) ||
-        item.sku.toLowerCase().includes(query.toLowerCase()) ||
-        item.category.toLowerCase().includes(query.toLowerCase())
-      );
-      setFilteredItems(filtered);
-    }
   };
 
   const addToCart = (item: Item) => {
@@ -215,17 +241,17 @@ export default function MakeSalePage() {
   // Helper function to get the correct price based on globalOutsideJalingo flag
   const getCartItemPrice = (item: CartItem): number => {
     if (globalOutsideJalingo) {
-      return (item.price_outside || 0);
+      return (item.price_outside || item.price_jalingo || item.unit_price || 0);
     }
-    return (item.price_jalingo || 0);
+    return (item.price_jalingo || item.unit_price || 0);
   };
 
   // Helper to get receipt item price based on the receipt's own outside_jalingo flag
   const getReceiptItemPrice = (item: CartItem): number => {
     if (lastReceipt?.outside_jalingo) {
-      return (item.price_outside || 0);
+      return (item.price_outside || item.price_jalingo || item.unit_price || 0);
     }
-    return (item.price_jalingo || 0);
+    return (item.price_jalingo || item.unit_price || 0);
   };
 
   const calculateCartTotal = () => {
@@ -386,16 +412,15 @@ export default function MakeSalePage() {
             <option value="transfer">📱 Transfer</option>
           </select>
 
-          <label className={`flex items-center gap-1.5 whitespace-nowrap ${isCommissionStaff ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+          <label className="flex items-center gap-1.5 whitespace-nowrap cursor-not-allowed opacity-75">
             <input
               type="checkbox"
               checked={globalOutsideJalingo}
-              onChange={(e) => setGlobalOutsideJalingo(e.target.checked)}
-              disabled={!isCommissionStaff}
-              className={`rounded w-4 h-4 ${isCommissionStaff ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+              readOnly
+              className="rounded w-4 h-4 cursor-not-allowed"
             />
             <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-              Outside Jalingo
+              {globalOutsideJalingo ? '📍 Outside Jalingo' : '🏠 Inside Jalingo'}
             </span>
           </label>
         </div>
@@ -434,14 +459,53 @@ export default function MakeSalePage() {
           <ShoppingCart className="w-8 h-8 text-pink-500" />
           Make Sale
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Staff: <span className="font-semibold">{user?.full_name}</span> ({user?.role.replace(/_/g, ' ')})
-        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Items Section */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Tabs for Location Filtering */}
+          <div className="flex space-x-1 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl">
+            <button
+              onClick={() => {
+                if (cart.length > 0 && activeLocationTab !== 'Inside Jalingo') {
+                  setPendingLocation('Inside Jalingo');
+                  setShowLocationSwitchModal(true);
+                } else {
+                  setActiveLocationTab('Inside Jalingo');
+                  setGlobalOutsideJalingo(false);
+                }
+              }}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                activeLocationTab === 'Inside Jalingo'
+                  ? 'bg-white dark:bg-gray-800 text-pink-600 dark:text-pink-400 shadow-sm ring-1 ring-black/5'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              Inside Jalingo
+            </button>
+            <button
+              onClick={() => {
+                if (cart.length > 0 && activeLocationTab !== 'Outside Jalingo') {
+                  setPendingLocation('Outside Jalingo');
+                  setShowLocationSwitchModal(true);
+                } else {
+                  setActiveLocationTab('Outside Jalingo');
+                  setGlobalOutsideJalingo(true);
+                }
+              }}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                activeLocationTab === 'Outside Jalingo'
+                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5'
+                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <Truck className="w-4 h-4" />
+              Outside Jalingo
+            </button>
+          </div>
+
           {/* Search Box */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
             <div className="relative">
@@ -873,6 +937,49 @@ export default function MakeSalePage() {
           type={toast.type}
           onClose={() => setToast(null)}
         />
+      )}
+
+      {/* Location Switch Confirmation Modal */}
+      {showLocationSwitchModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden transform transition-all scale-100 opacity-100">
+            <div className="bg-gradient-to-r from-pink-500 to-pink-600 p-6 text-center">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                <AlertCircle className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">Clear Cart?</h3>
+              <p className="text-pink-100 text-sm">
+                Switching to <span className="font-bold underline decoration-pink-300 decoration-2 underline-offset-2">{pendingLocation}</span> will clear your current cart. Are you sure you want to proceed?
+              </p>
+            </div>
+            
+            <div className="p-6 flex flex-col gap-3 bg-white dark:bg-gray-800">
+              <button
+                onClick={() => {
+                  setCart([]);
+                  if (pendingLocation) {
+                    setActiveLocationTab(pendingLocation);
+                    setGlobalOutsideJalingo(pendingLocation === 'Outside Jalingo');
+                  }
+                  setShowLocationSwitchModal(false);
+                  setPendingLocation(null);
+                }}
+                className="w-full py-4 bg-pink-600 hover:bg-pink-700 text-white rounded-xl font-black text-lg shadow-lg shadow-pink-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                Yes, Clear and Switch
+              </button>
+              <button
+                onClick={() => {
+                  setShowLocationSwitchModal(false);
+                  setPendingLocation(null);
+                }}
+                className="w-full py-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-bold text-lg transition-all active:scale-95"
+              >
+                No, Keep My Cart
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

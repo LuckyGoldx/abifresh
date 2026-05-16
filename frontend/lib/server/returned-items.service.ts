@@ -32,6 +32,7 @@ export class ReturnedItemsService {
       item_id: string;
       quantity: number;
       unit_price: number;
+      location?: string;
     }>
   ): Promise<any[]> {
     const actualRequesterStaffId = await this.resolveStaffIdToUUID(requesterStaffId);
@@ -106,6 +107,7 @@ export class ReturnedItemsService {
             receiver_staff_id: actualReceiverSalesStaffId,
             quantity: item.quantity,
             unit_price: item.unit_price,
+            location: item.location || 'Inside Jalingo',
             status: 'pending',
           },
         ])
@@ -123,8 +125,8 @@ export class ReturnedItemsService {
   /**
    * Accept returned items and move them to active store
    */
-  async acceptReturnedItems(salesStaffId: string, returnedItemIds: string[]): Promise<any[]> {
-    const actualSalesStaffId = await this.resolveStaffIdToUUID(salesStaffId);
+  async acceptReturnedItems(userId: string, returnedItemIds: string[], isAdmin: boolean = false): Promise<any[]> {
+    const actualUserId = await this.resolveStaffIdToUUID(userId);
     const results = [];
 
     for (const returnedItemId of returnedItemIds) {
@@ -137,7 +139,8 @@ export class ReturnedItemsService {
       if (fetchError) throw new Error(`Returned item not found: ${returnedItemId}`);
       if (!returnedItem) throw new Error(`Returned item not found: ${returnedItemId}`);
 
-      if (returnedItem.receiver_staff_id !== actualSalesStaffId) {
+      // Admin can accept any return. Staff can only accept returns sent to them.
+      if (!isAdmin && returnedItem.receiver_staff_id !== actualUserId) {
         throw new Error('Unauthorized: This return was not sent to you');
       }
 
@@ -163,6 +166,7 @@ export class ReturnedItemsService {
         .select('*')
         .eq('staff_id', returnedItem.requester_staff_id)
         .eq('item_id', returnedItem.item_id)
+        .eq('location', returnedItem.location || 'Inside Jalingo')
         .single();
 
       if (staffStoreItem) {
@@ -194,11 +198,12 @@ export class ReturnedItemsService {
    * Reject returned items
    */
   async rejectReturnedItems(
-    salesStaffId: string,
+    userId: string,
     returnedItemIds: string[],
-    rejectReason: string
+    rejectReason: string,
+    isAdmin: boolean = false
   ): Promise<any[]> {
-    const actualSalesStaffId = await this.resolveStaffIdToUUID(salesStaffId);
+    const actualUserId = await this.resolveStaffIdToUUID(userId);
     const results = [];
 
     for (const returnedItemId of returnedItemIds) {
@@ -211,7 +216,8 @@ export class ReturnedItemsService {
       if (fetchError) throw new Error(`Returned item not found: ${returnedItemId}`);
       if (!returnedItem) throw new Error(`Returned item not found: ${returnedItemId}`);
 
-      if (returnedItem.receiver_staff_id !== actualSalesStaffId) {
+      // Admin can reject any return. Staff can only reject returns sent to them.
+      if (!isAdmin && returnedItem.receiver_staff_id !== actualUserId) {
         throw new Error('Unauthorized: This return was not sent to you');
       }
 
@@ -258,6 +264,7 @@ export class ReturnedItemsService {
       item_name: item.item?.name || 'Unknown',
       quantity: item.quantity,
       unit_price: item.item?.price_jalingo || 0,
+      location: item.location || 'Inside Jalingo',
       status: item.status,
       reject_reason: item.reject_reason,
       receiver_name: item.receiver?.full_name || 'Unknown',
@@ -290,10 +297,44 @@ export class ReturnedItemsService {
       item_name: item.item?.name || 'Unknown',
       quantity: item.quantity,
       unit_price: item.item?.price_jalingo || 0,
+      location: item.location || 'Inside Jalingo',
       status: item.status,
       reject_reason: item.reject_reason,
       requester_name: item.requester?.full_name || 'Unknown',
       requester_id: item.requester_staff_id,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+    }));
+  }
+
+  /**
+   * Get all returned items for admin
+   * CRITICAL: Uses price_jalingo (selling price), NOT unit_price (cost price)
+   */
+  async getAllReturns(): Promise<any[]> {
+    const { data, error } = await supabaseAdmin
+      .from('returned_items')
+      .select(`
+        *,
+        item:item_id(id, name, price_jalingo),
+        requester:requester_staff_id(id, full_name),
+        receiver:receiver_staff_id(id, full_name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      item_id: item.item_id,
+      item_name: item.item?.name || 'Unknown',
+      quantity: item.quantity,
+      unit_price: item.item?.price_jalingo || 0,
+      location: item.location || 'Inside Jalingo',
+      status: item.status,
+      reject_reason: item.reject_reason,
+      requester_name: item.requester?.full_name || 'Unknown',
+      receiver_name: item.receiver?.full_name || 'Unknown',
       created_at: item.created_at,
       updated_at: item.updated_at,
     }));
@@ -314,7 +355,7 @@ export class ReturnedItemsService {
     const { data: staffStoreItems, error: storeError } = await supabaseAdmin
       .from('staff_store')
       .select(`
-        id, item_id, quantity, quantity_sold,
+        id, item_id, quantity, quantity_sold, location,
         item:item_id(id, name, price_jalingo)
       `)
       .eq('staff_id', actualId);
@@ -324,7 +365,7 @@ export class ReturnedItemsService {
     // Only subtract PENDING returns (soft-locked). Accepted returns already reduced staff_store.quantity.
     const { data: returnedItems, error: returnError } = await supabaseAdmin
       .from('returned_items')
-      .select('item_id, quantity, status')
+      .select('item_id, quantity, status, location')
       .eq('requester_staff_id', actualId)
       .eq('status', 'pending');
 
@@ -332,13 +373,16 @@ export class ReturnedItemsService {
 
     const lockedQuantities = new Map<string, number>();
     (returnedItems || []).forEach((ret: any) => {
-      const current = lockedQuantities.get(ret.item_id) || 0;
-      lockedQuantities.set(ret.item_id, current + ret.quantity);
+      const key = `${ret.item_id}_${ret.location || 'Inside Jalingo'}`;
+      const current = lockedQuantities.get(key) || 0;
+      lockedQuantities.set(key, current + ret.quantity);
     });
 
     const availableItems = (staffStoreItems || [])
       .map((item: any) => {
-        const lockedQty = lockedQuantities.get(item.item_id) || 0;
+        const itemLoc = item.location || 'Inside Jalingo';
+        const key = `${item.item_id}_${itemLoc}`;
+        const lockedQty = lockedQuantities.get(key) || 0;
         // Real-time available = quantity - quantity_sold - pending/accepted returns
         const netAvailable = (item.quantity || 0) - (item.quantity_sold || 0);
         const remainingQty = Math.max(0, netAvailable - lockedQty);
@@ -350,6 +394,7 @@ export class ReturnedItemsService {
           name: item.item?.name || 'Unknown',
           unit_price: sellingPrice,
           available_quantity: remainingQty,
+          location: itemLoc,
         };
       })
       .filter((item: any) => item.available_quantity > 0);

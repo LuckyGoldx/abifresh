@@ -16,7 +16,7 @@ export async function POST(
 
   const { error: updateError } = await supabaseAdmin
     .from('staff_payments')
-    .update({ status: 'approved', approved_date: new Date().toISOString() })
+    .update({ status: 'approved', approved_date: new Date().toISOString(), approved_by: authResult.id })
     .eq('id', paymentId);
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });

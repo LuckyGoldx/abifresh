@@ -5,6 +5,8 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { formatQty } from '@/lib/format-quantity';
 import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, User, Phone, X, Eye, Maximize2, Download, Camera } from 'lucide-react';
+import StylishSuccessModal from '@/components/StylishSuccessModal';
+import LoadingLogo from '@/components/LoadingLogo';
 
 interface Payment {
   id: string;
@@ -65,9 +67,11 @@ export default function SalesPaymentsPage() {
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false);
   const [selectedPaymentDetails, setSelectedPaymentDetails] = useState<Payment | null>(null);
   const [showPaymentDetailsModal, setShowPaymentDetailsModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(true);
 
   useEffect(() => {
     // Set staff name from auth user
@@ -82,6 +86,7 @@ export default function SalesPaymentsPage() {
 
   useEffect(() => {
     if (showPaymentDetailsModal && selectedPaymentDetails) {
+      setReceiptLoading(true);
       console.log('📋 Payment Details Modal opened with data:', selectedPaymentDetails);
       console.log('  - staff_phone:', selectedPaymentDetails.staff_phone);
       console.log('  - reference_number:', selectedPaymentDetails.reference_number);
@@ -453,7 +458,7 @@ export default function SalesPaymentsPage() {
         throw new Error(errData.error || 'Failed to submit payment request');
       }
       
-      alert('Payment request submitted successfully! Awaiting admin approval.');
+      setShowSuccessModal(true);
       
       // Reset form
       setShowPaymentForm(false);
@@ -1180,14 +1185,38 @@ export default function SalesPaymentsPage() {
               {/* Receipt */}
               {selectedPaymentDetails.receipt_url && (
                 <div>
-                  <label className="text-sm text-gray-500 dark:text-gray-400 mb-2 block">Receipt</label>
+                  <label className="text-sm text-gray-500 dark:text-gray-400 mb-2 block">Receipt Preview</label>
+                  
+                  {/* Clickable Receipt Image */}
+                  <div 
+                    className="cursor-pointer mb-3 relative min-h-[100px] flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
+                    onClick={() => window.open(selectedPaymentDetails.receipt_url!, '_blank')}
+                    title="Click to view fullscreen"
+                  >
+                    {receiptLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center z-10 bg-gray-50/80 dark:bg-gray-900/80 rounded">
+                        <LoadingLogo text="Loading receipt..." />
+                      </div>
+                    )}
+                    <img 
+                      src={selectedPaymentDetails.receipt_url} 
+                      alt="Receipt"
+                      className={`max-w-full h-auto transition-opacity duration-300 ${receiptLoading ? 'opacity-0' : 'opacity-100'}`}
+                      onLoad={() => setReceiptLoading(false)}
+                      onError={(e) => {
+                        setReceiptLoading(false);
+                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="100"%3E%3Crect fill="%23f0f0f0" width="200" height="100"/%3E%3Ctext x="100" y="50" text-anchor="middle" dy=".3em" fill="%23999"%3EImage not found%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                  </div>
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => window.open(selectedPaymentDetails.receipt_url, '_blank')}
                       className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
                     >
                       <Eye className="w-4 h-4" />
-                      View Receipt
+                      View Receipt Fullscreen
                     </button>
                     <button
                       onClick={() => {
@@ -1233,6 +1262,14 @@ export default function SalesPaymentsPage() {
           </div>
         </div>
       )}
+
+      {/* Success Modal */}
+      <StylishSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Payment Submitted!"
+        message="Your payment request has been sent successfully and is now awaiting admin approval. You will be notified once it is cleared."
+      />
     </div>
   );
 }

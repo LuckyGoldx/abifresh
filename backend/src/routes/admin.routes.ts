@@ -229,16 +229,21 @@ router.get('/payments/all', authMiddleware, roleMiddleware('admin'), async (req:
 
     // Fetch staff info for all unique staff_ids
     const staffIds = [...new Set(payments.map(p => p.staff_id))];
+
+    // Also fetch approver info for all unique approved_by ids
+    const approverIds = [...new Set(payments.map((p: any) => p.approved_by).filter(Boolean))];
+    const allUserIds = [...new Set([...staffIds, ...approverIds])];
+
     const { data: staffMembers, error: staffError } = await supabaseAdmin
       .from('users')
       .select('id, full_name, email, role')
-      .in('id', staffIds);
+      .in('id', allUserIds);
 
     if (staffError) {
       console.error('❌ Error fetching staff info:', staffError);
     }
 
-    // Create a map of staff by ID
+    // Create a map of users by ID
     const staffMap: Record<string, any> = {};
     (staffMembers || []).forEach(staff => {
       staffMap[staff.id] = staff;
@@ -247,6 +252,7 @@ router.get('/payments/all', authMiddleware, roleMiddleware('admin'), async (req:
     // Map payments with staff info
     const mappedPayments = payments.map((payment: any) => {
       const staff = staffMap[payment.staff_id];
+      const approver = payment.approved_by ? staffMap[payment.approved_by] : null;
       return {
         id: payment.id,
         staff_id: payment.staff_id,
@@ -266,6 +272,7 @@ router.get('/payments/all', authMiddleware, roleMiddleware('admin'), async (req:
         approved_date: payment.approved_date,
         created_at: payment.created_at,
         rejection_reason: payment.rejection_reason,
+        approved_by_name: approver?.full_name || null,
       };
     });
 
@@ -286,7 +293,7 @@ router.get('/payments/all', authMiddleware, roleMiddleware('admin'), async (req:
 router.post('/payments/:id/approve', authMiddleware, roleMiddleware('admin'), validateApproveRejectPayment, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    await adminService.approvePayment(id);
+    await adminService.approvePayment(id, req.user?.id);
     logSecurity('Payment approved', { paymentId: id, adminId: req.user?.id });
     res.json({ message: 'Payment approved' });
   } catch (error: any) {

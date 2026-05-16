@@ -12,8 +12,10 @@ export class StaffStoreService {
       item_id: string;
       quantity: number;
       unit_price: number;
-    }>
+    }>,
+    location: string = 'Inside Jalingo'
   ): Promise<any[]> {
+    console.log(`🚀 [StaffStoreService.postItemsToStaff] Called with location: "${location}"`);
     // Validate identifiers to prevent PostgREST filter injection
     const validateIdentifier = (id: string): string => {
       if (!id) throw new Error('Invalid identifier: empty');
@@ -105,6 +107,7 @@ export class StaffStoreService {
             staff_id: actualStaffUserId,
             quantity: item.quantity,
             unit_price: item.unit_price,
+            location: location || 'Inside Jalingo',
             status: 'pending',
           },
         ])
@@ -120,23 +123,23 @@ export class StaffStoreService {
     await this.createNotification(
       actualStaffUserId,
       'posted_items',
-      'New Items Posted',
-      `You have received ${items.length} item(s) for sale`
+      `New Items Posted (${location})`,
+      `You have received ${items.length} item(s) for sale in ${location}`
     );
 
     // Create notification for sales person to show in recent activities
     await this.createNotification(
       actualSalesPersonId,
       'items_posted',
-      `Items posted to ${staffData?.full_name || 'Staff'}`,
-      `${items.length} item(s) posted to ${staffData?.full_name || 'Staff'}`
+      `Items posted to ${staffData?.full_name || 'Staff'} (${location})`,
+      `${items.length} item(s) posted to ${staffData?.full_name || 'Staff'} for ${location}`
     );
 
     // Notify admins about items posted
     await this.notifyAdmins(
       'posted_items',
-      `📦 Items Posted`,
-      `Sales posted ${items.length} item(s) to ${staffData?.full_name || 'Staff'}`
+      `📦 Items Posted (${location})`,
+      `Sales posted ${items.length} item(s) to ${staffData?.full_name || 'Staff'} for ${location}`
     );
 
     // Log activity for sales person
@@ -145,6 +148,7 @@ export class StaffStoreService {
       staff_name: staffData?.full_name || 'Staff',
       items_count: items.length,
       total_quantity: items.reduce((sum, i) => sum + i.quantity, 0),
+      location: location,
     });
 
     return postedItemsData;
@@ -189,6 +193,10 @@ export class StaffStoreService {
         throw new Error('Unauthorized: This item was not posted to you');
       }
 
+      if (postedItem.status !== 'pending') {
+        throw new Error(`This item has already been ${postedItem.status}`);
+      }
+
       console.log(`   Item ID: ${postedItem.item_id}, Quantity: ${postedItem.quantity}`);
 
       posterIdForActivity = postedItem.poster_id;
@@ -200,6 +208,7 @@ export class StaffStoreService {
         .select('*')
         .eq('staff_id', staffId)
         .eq('item_id', postedItem.item_id)
+        .eq('location', postedItem.location || 'Inside Jalingo')
         .single();
 
       console.log(`   Existing entry: ${existing ? 'YES' : 'NO'}`);
@@ -238,6 +247,7 @@ export class StaffStoreService {
               staff_id: staffId,
               item_id: postedItem.item_id,
               quantity: postedItem.quantity,
+              location: postedItem.location || 'Inside Jalingo',
               posted_from_id: postedItem.poster_id,
               posted_date: postedItem.created_at,
             },
@@ -355,6 +365,12 @@ export class StaffStoreService {
         .single();
 
       if (fetchError) throw new Error(`Posted item not found: ${postedItemId}`);
+      if (postedItem.staff_id !== staffId) {
+        throw new Error('Unauthorized: This item was not posted to you');
+      }
+      if (postedItem.status !== 'pending') {
+        throw new Error(`This item has already been ${postedItem.status}`);
+      }
 
       posterIdForActivity = postedItem.poster_id;
 
@@ -538,6 +554,7 @@ export class StaffStoreService {
             package_type: itemData?.package_type || '',
             quantity: actualAvailable,
             commission: itemData?.commission || 0,
+            location: storeItem.location || 'Inside Jalingo',
             posted_date: storeItem.posted_date,
             posted_by: userData?.full_name || 'Unknown',
           };
@@ -592,6 +609,7 @@ export class StaffStoreService {
       .select('*')
       .eq('staff_id', staffId)
       .eq('item_id', itemId)
+      .eq('location', soldOutsideJalingo ? 'Outside Jalingo' : 'Inside Jalingo')
       .single();
 
     if (storeError) throw new Error(`Item not in staff store`);
@@ -650,7 +668,11 @@ export class StaffStoreService {
     let sale: any = null;
     let saleError: any = null;
 
-    const fullInsertData = { ...baseInsertData, sold_outside_jalingo: soldOutsideJalingo };
+    const fullInsertData = { 
+      ...baseInsertData, 
+      sold_outside_jalingo: soldOutsideJalingo,
+      location: soldOutsideJalingo ? 'Outside Jalingo' : 'Inside Jalingo'
+    };
     const result1 = await supabaseAdmin
       .from('staff_sales')
       .insert([fullInsertData])

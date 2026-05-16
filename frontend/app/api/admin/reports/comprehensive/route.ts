@@ -370,6 +370,40 @@ export async function GET(req: NextRequest) {
   const topStaff = Array.from(salesByStaff.values()).sort((a, b) => b.total_amount - a.total_amount).slice(0, 5);
   const topItems = Array.from(itemsSold.values()).sort((a, b) => b.total_revenue - a.total_revenue).slice(0, 5);
 
+  // Fetch Credits Data
+  let totalCreditsAmount = 0;
+  let totalCreditsPaid = 0;
+  let totalCreditors = 0;
+
+  // 1. Total Creditors (Count all active creditors)
+  const { count: creditorsCount } = await supabaseAdmin
+    .from('creditors')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_active', true);
+  totalCreditors = creditorsCount || 0;
+
+  // 2. Credit Sales in period (Only non-cancelled)
+  let creditSalesQuery = supabaseAdmin
+    .from('credit_sales')
+    .select('total_amount')
+    .neq('status', 'cancelled')
+    .gte('created_at', fromISO)
+    .lte('created_at', toISO);
+  if (filteredStaffIds.length > 0) creditSalesQuery = creditSalesQuery.in('staff_id', filteredStaffIds);
+  const { data: creditSalesData } = await creditSalesQuery;
+  totalCreditsAmount = (creditSalesData || []).reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
+
+  // 3. Credit Payments in period (Only approved)
+  let creditPaymentsQuery = supabaseAdmin
+    .from('credit_payments')
+    .select('amount')
+    .eq('status', 'approved')
+    .gte('created_at', fromISO)
+    .lte('created_at', toISO);
+  if (filteredStaffIds.length > 0) creditPaymentsQuery = creditPaymentsQuery.in('staff_id', filteredStaffIds);
+  const { data: creditPaymentsData } = await creditPaymentsQuery;
+  totalCreditsPaid = (creditPaymentsData || []).reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
+
   return NextResponse.json({
     summary: {
       total_transactions: receipts.length, total_sales: totalRevenue, total_expenses: totalExpenses,
@@ -377,6 +411,9 @@ export async function GET(req: NextRequest) {
       total_cost_price_sold: totalCostPriceSold,
       total_commission_generated: totalCommissionGenerated,
       total_commission_paid: totalCommissionPaid,
+      total_credits_amount: totalCreditsAmount,
+      total_credits_paid: totalCreditsPaid,
+      total_creditors: totalCreditors,
     },
     sales: {
       by_staff: Array.from(salesByStaff.values()),

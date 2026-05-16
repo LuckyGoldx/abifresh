@@ -153,6 +153,10 @@ export const validatePostItems = [
   body('items.*.unit_price')
     .isFloat({ min: 0 })
     .withMessage('Each item must have a valid unit_price'),
+  body('location')
+    .optional()
+    .isIn(['Inside Jalingo', 'Outside Jalingo'])
+    .withMessage('Location must be either Inside Jalingo or Outside Jalingo'),
   handleValidationErrors,
 ];
 

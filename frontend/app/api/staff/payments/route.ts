@@ -10,8 +10,7 @@ export async function GET(req: NextRequest) {
     .from('staff_payments')
     .select('*')
     .eq('staff_id', authResult.id)
-    // Exclude admin-paid commissions (displayed in Commissions page)
-    .or('payment_type.neq.commission,paid_by.is.null')
+    .eq('payment_type', 'sale')
     .order('created_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

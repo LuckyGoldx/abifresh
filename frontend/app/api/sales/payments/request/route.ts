@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
         staff_name,
         amount,
         payment_method,
-        payment_type: 'commission',
+        payment_type: 'sale',
         status: 'pending',
         reference_number: ref_number,
         notes,

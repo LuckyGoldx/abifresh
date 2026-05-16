@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
         id,
         quantity,
         quantity_sold,
+        location,
         items:item_id(id, name, sku, category, unit_price, commission, brand, package_type, price_jalingo, price_outside, image_url)
       `)
       .eq('staff_id', authResult.id),
@@ -52,6 +53,7 @@ export async function GET(req: NextRequest) {
         commission: entry.items?.commission || 0,
         image_url: entry.items?.image_url || null,
         quantity: available,
+        location: entry.location || 'Inside Jalingo',
       };
     })
     .filter((item: any) => item.id && item.quantity > 0);

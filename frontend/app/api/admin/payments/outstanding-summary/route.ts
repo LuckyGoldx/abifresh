@@ -57,7 +57,8 @@ export async function GET(req: NextRequest) {
       .from('staff_payments')
       .select('amount, status')
       .in('status', ['approved', 'pending'])
-      .or('payment_type.neq.commission,paid_by.is.null');
+      .or('payment_type.neq.commission,paid_by.is.null')
+      .neq('payment_type', 'credit_remittance');
 
     if (paymentsError) throw paymentsError;
 

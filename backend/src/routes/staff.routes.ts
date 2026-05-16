@@ -57,6 +57,8 @@ router.get('/posted-items', authMiddleware, async (req: AuthRequest, res: Respon
       .eq('staff_id', req.user!.id)
       .order('created_at', { ascending: false });
 
+    console.log('🔍 [RAW DB] First posted item from Supabase:', JSON.stringify(data?.[0], null, 2));
+
     if (error) throw error;
 
     const postedItems = (data || []).map((item: any) => {
@@ -74,6 +76,7 @@ router.get('/posted-items', authMiddleware, async (req: AuthRequest, res: Respon
         staff_comment: item.staff_comment,
         notes: item.notes,
         unit_price: item.unit_price,
+        location: item.location || 'Inside Jalingo',
         commission_per_unit: commission,
         total_commission_if_sold: totalCommission,
       };
@@ -111,7 +114,8 @@ router.get('/posted-items/pending-count', authMiddleware, async (req: AuthReques
  */
 router.post('/post-item', authMiddleware, validatePostItem, async (req: AuthRequest, res: Response) => {
   try {
-    const { item_id, quantity } = req.body;
+    const { item_id, quantity, location } = req.body;
+    const itemLocation = location || 'Inside Jalingo';
 
     const { data, error } = await supabaseAdmin
       .from('posted_items')
@@ -121,6 +125,7 @@ router.post('/post-item', authMiddleware, validatePostItem, async (req: AuthRequ
           receiver_staff_id: req.user!.id,
           item_id,
           quantity,
+          location: itemLocation,
           status: 'pending',
         },
       ])
@@ -668,7 +673,8 @@ router.post('/notifications/:id/read', authMiddleware, async (req: AuthRequest, 
  */
 router.post('/post-items-to-staff', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { staff_id, item_id, quantity, notes } = req.body;
+    const { staff_id, item_id, quantity, notes, location } = req.body;
+    const itemLocation = location || 'Inside Jalingo';
 
     if (!staff_id || !item_id || !quantity) {
       return res.status(400).json({ error: 'staff_id, item_id, and quantity are required' });
@@ -702,6 +708,7 @@ router.post('/post-items-to-staff', authMiddleware, async (req: AuthRequest, res
           receiver_staff_id: staff_id,
           item_id,
           quantity,
+          location: itemLocation,
           status: 'pending',
           notes: notes || null,
         },

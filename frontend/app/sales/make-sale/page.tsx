@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
-import { ShoppingCart, Plus, Minus, Trash2, X, Search, Send, Printer, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, Search, Send, Printer, Download, CheckCircle, AlertCircle, Building2, Truck, ShoppingBag } from 'lucide-react';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 import { formatQty } from '@/lib/format-quantity';
 
@@ -79,6 +79,7 @@ export default function MakeSalePage() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [logisticPrice, setLogisticPrice] = useState(0);
   const [selectedStaffForPost, setSelectedStaffForPost] = useState<string | null>(null);
+  const [selectedLocationForPost, setSelectedLocationForPost] = useState<'Inside Jalingo' | 'Outside Jalingo'>('Inside Jalingo');
   const [showPostModal, setShowPostModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   
@@ -98,6 +99,19 @@ export default function MakeSalePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
+
+  // Helper to check if selected staff for posting is commission-based
+  const selectedStaffObjForPost = staffList.find(s => s.id === selectedStaffForPost);
+  const isSelectedStaffCommissionForPost = !!selectedStaffObjForPost && 
+    selectedStaffObjForPost.role.includes('commission') && 
+    !selectedStaffObjForPost.role.includes('non');
+
+  // Effect to reset location if non-commission staff is selected in the post modal
+  useEffect(() => {
+    if (selectedStaffForPost && !isSelectedStaffCommissionForPost && selectedLocationForPost === 'Outside Jalingo') {
+      setSelectedLocationForPost('Inside Jalingo');
+    }
+  }, [selectedStaffForPost, isSelectedStaffCommissionForPost, selectedLocationForPost]);
 
   useEffect(() => {
     setMounted(true);
@@ -236,7 +250,7 @@ export default function MakeSalePage() {
   // Helper function to get the correct price based on globalOutsideJalingo flag
   const getCartItemPrice = (item: CartItem): number => {
     if (globalOutsideJalingo) {
-      return (item.price_outside || 0);
+      return (item.price_outside || item.price_jalingo || 0);
     }
     return (item.price_jalingo || 0);
   };
@@ -244,7 +258,7 @@ export default function MakeSalePage() {
   // Helper to get receipt item price based on the receipt's own outside_jalingo flag
   const getReceiptItemPrice = (item: CartItem): number => {
     if (lastReceipt?.outside_jalingo) {
-      return (item.price_outside || 0);
+      return (item.price_outside || item.price_jalingo || 0);
     }
     return (item.price_jalingo || 0);
   };
@@ -346,9 +360,9 @@ export default function MakeSalePage() {
       setToast({ message: 'Please select a staff member and add items', type: 'error' });
       return;
     }
-    const invalidPost = cart.find(item => !item.sale_quantity || item.sale_quantity < 1 || item.sale_quantity % 1 !== 0);
+    const invalidPost = cart.find(item => !item.sale_quantity || item.sale_quantity < 0.5 || item.sale_quantity % 0.5 !== 0);
     if (invalidPost || Object.keys(quantityInputs).length > 0) {
-      setToast({ message: 'Items must be posted in whole bags only (no half bags when posting to staff)', type: 'error' });
+      setToast({ message: 'Items must be posted in multiples of 0.5 bags', type: 'error' });
       return;
     }
 
@@ -356,12 +370,18 @@ export default function MakeSalePage() {
     try {
       const postData = {
         staff_id: selectedStaffForPost,
-        items: cart.map(item => ({
-          item_id: item.id,
-          name: item.name,
-          quantity: item.sale_quantity,
-          unit_price: getCartItemPrice(item),
-        })),
+        location: selectedLocationForPost,
+        items: cart.map(item => {
+          const unitPrice = selectedLocationForPost === 'Outside Jalingo'
+            ? (item.price_outside || item.price_jalingo || 0)
+            : (item.price_jalingo || 0);
+          return {
+            item_id: item.id,
+            name: item.name,
+            quantity: item.sale_quantity,
+            unit_price: unitPrice,
+          };
+        }),
       };
 
       await api.post('/api/sales/post-items', postData, {
@@ -505,9 +525,6 @@ export default function MakeSalePage() {
           <ShoppingCart className="w-8 h-8 text-pink-500" />
           Make Sale
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Staff: <span className="font-semibold">{user?.full_name}</span> ({user?.role.replace(/_/g, ' ')})
-        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -807,13 +824,74 @@ export default function MakeSalePage() {
                 </select>
               </div>
 
+              {selectedStaffForPost && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Select Posting Location
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelectedLocationForPost('Inside Jalingo')}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all ${
+                        selectedLocationForPost === 'Inside Jalingo'
+                          ? 'border-pink-500 bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-300'
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <Building2 className="w-4 h-4" />
+                      <span className="text-sm font-bold">Inside Jalingo</span>
+                    </button>
+                    {isSelectedStaffCommissionForPost && (
+                      <button
+                        onClick={() => setSelectedLocationForPost('Outside Jalingo')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg border-2 transition-all ${
+                          selectedLocationForPost === 'Outside Jalingo'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                            : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-500 hover:border-blue-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        <Truck className="w-4 h-4" />
+                        <span className="text-sm font-bold">Outside Jalingo</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Items to Post:</p>
-                <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
-                  {cart.map((item) => (
-                    <li key={item.id}>• {item.name} ×{formatQty(item.sale_quantity)}</li>
-                  ))}
-                </ul>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {cart.map((item) => {
+                    const price = selectedLocationForPost === 'Outside Jalingo'
+                      ? (item.price_outside || item.price_jalingo || 0)
+                      : (item.price_jalingo || 0);
+                    return (
+                      <div key={item.id} className="flex justify-between items-center text-sm border-b border-gray-200 dark:border-gray-600 pb-1 last:border-0">
+                        <div className="text-gray-700 dark:text-gray-300">
+                          <span className="font-bold tracking-tighter"> {item.name} </span>
+                          <span className="text-[10px] opacity-75 ml-1">×{formatQty(item.sale_quantity)}</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-black text-gray-900 dark:text-white">₦{(price * item.sale_quantity).toLocaleString()}</p>
+                          <p className="text-[9px] text-gray-500 uppercase tracking-tighter">@ ₦{price.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Total for Post Modal */}
+                <div className="mt-3 pt-2 border-t-2 border-gray-300 dark:border-gray-600 flex justify-between items-center">
+                  <span className="text-xs font-black uppercase text-gray-500">Post Total</span>
+                  <span className="text-lg font-black text-pink-600 dark:text-pink-400">
+                    ₦{cart.reduce((sum, item) => {
+                      const price = selectedLocationForPost === 'Outside Jalingo'
+                        ? (item.price_outside || item.price_jalingo || 0)
+                        : (item.price_jalingo || 0);
+                      return sum + (price * item.sale_quantity);
+                    }, 0).toLocaleString()}
+                  </span>
+                </div>
               </div>
 
               <div className="flex gap-3">

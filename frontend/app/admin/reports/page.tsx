@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import {
   TrendingUp, Download, Filter, Calendar, User, Package, DollarSign,
-  Users, Activity, ShoppingCart, Warehouse, AlertCircle, Eye
+  Users, Activity, ShoppingCart, Warehouse, AlertCircle, Eye, CreditCard
 } from 'lucide-react';
 import LoadingLogo from '@/components/LoadingLogo';
 
@@ -76,7 +76,7 @@ export default function ComprehensiveReportsPage() {
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [report, setReport] = useState<ComprehensiveReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'expenses' | 'inventory' | 'performance'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'expenses' | 'inventory' | 'performance' | 'credits'>('overview');
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
   const [filters, setFilters] = useState<ReportFilters>({
@@ -401,6 +401,14 @@ export default function ComprehensiveReportsPage() {
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Commission Paid</p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-emerald-600 break-words">₦{(report?.summary.total_commission_paid || 0).toLocaleString()}</p>
           <User className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-500 opacity-20 self-end flex-shrink-0" />
+        </div>
+      </div>
+
+      <div className="card border-l-4 border-l-pink-500 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Paid Credits</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-pink-600 break-words">₦{(report?.summary.total_credits_paid || 0).toLocaleString()}</p>
+          <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-pink-500 opacity-20 self-end flex-shrink-0" />
         </div>
       </div>
     </div>
@@ -1008,9 +1016,96 @@ export default function ComprehensiveReportsPage() {
     </div>
   );
 
-  if (isLoading) {
-    return <LoadingLogo text="Loading reports..." />;
-  }
+
+
+  const renderCreditsTab = () => (
+    <div className="space-y-6">
+      {/* Credits Summary KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="card border-l-4 border-l-pink-600 overflow-hidden">
+          <div className="flex flex-col gap-2">
+            <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Credits Amount</p>
+            <p className="text-lg sm:text-2xl md:text-3xl font-bold text-pink-700 dark:text-pink-400 break-words">₦{(report?.summary.total_credits_amount || 0).toLocaleString()}</p>
+            <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-pink-600 opacity-20 self-end flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="card border-l-4 border-l-blue-600 overflow-hidden">
+          <div className="flex flex-col gap-2">
+            <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Credits Paid</p>
+            <p className="text-lg sm:text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-400 break-words">₦{(report?.summary.total_credits_paid || 0).toLocaleString()}</p>
+            <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 opacity-20 self-end flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="card border-l-4 border-l-orange-600 overflow-hidden">
+          <div className="flex flex-col gap-2">
+            <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Credits Outstanding</p>
+            <p className="text-lg sm:text-2xl md:text-3xl font-bold text-orange-700 dark:text-orange-400 break-words">₦{((report?.summary.total_credits_amount || 0) - (report?.summary.total_credits_paid || 0)).toLocaleString()}</p>
+            <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 opacity-20 self-end flex-shrink-0" />
+          </div>
+        </div>
+
+        <div className="card border-l-4 border-l-purple-600 overflow-hidden">
+          <div className="flex flex-col gap-2">
+            <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Creditors</p>
+            <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-700 dark:text-purple-400 break-words">{report?.summary.total_creditors || 0}</p>
+            <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 opacity-20 self-end flex-shrink-0" />
+          </div>
+        </div>
+      </div>
+
+      {/* Credits Information */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+          <CreditCard className="w-5 h-5 text-pink-500" />
+          Credit System Summary
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Total Credits (Items Sold on Credit)</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">₦{(report?.summary.total_credits_amount || 0).toLocaleString()}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              Total value of items given on credit to all creditors
+            </p>
+          </div>
+          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Amount Recovered (Paid)</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">₦{(report?.summary.total_credits_paid || 0).toLocaleString()}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              Total amount creditors have paid back
+            </p>
+          </div>
+          <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Outstanding Balance</p>
+            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">₦{((report?.summary.total_credits_amount || 0) - (report?.summary.total_credits_paid || 0)).toLocaleString()}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              Total amount still owed by creditors
+            </p>
+          </div>
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Collection Rate</p>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+              {report?.summary.total_credits_amount && report.summary.total_credits_amount > 0 
+                ? ((((report?.summary.total_credits_paid || 0) / (report?.summary.total_credits_amount || 1)) * 100).toFixed(1))
+                : '0'}%
+            </p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+              Percentage of credits recovered
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Message */}
+      <div className="card bg-blue-50 dark:bg-blue-900/20 border-l-4 border-l-blue-500">
+        <p className="text-sm text-blue-800 dark:text-blue-300">
+          <strong>Note:</strong> The credits system tracks all items given to customers on credit, payments received, and outstanding balances.
+          Visit the <strong>Credit Management</strong> page to manage creditors, view payment history, and process credit payments.
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div ref={reportRef} className="space-y-6 bg-white dark:bg-gray-900 p-6 rounded-lg">
@@ -1051,6 +1146,7 @@ export default function ComprehensiveReportsPage() {
             { id: 'expenses', label: 'Expenses', icon: AlertCircle },
             { id: 'inventory', label: 'Inventory', icon: Warehouse },
             { id: 'performance', label: 'Performance', icon: TrendingUp },
+            { id: 'credits', label: 'Credits', icon: CreditCard },
           ].map(tab => {
             const Icon = tab.icon;
             return (
@@ -1084,14 +1180,13 @@ export default function ComprehensiveReportsPage() {
         )}
       </div>
 
-      {/* Tab Content */}
       {activeTab === 'overview' && renderOverviewTab()}
       {activeTab === 'sales' && renderSalesTab()}
       {activeTab === 'expenses' && renderExpensesTab()}
       {activeTab === 'inventory' && renderInventoryTab()}
       {activeTab === 'performance' && renderPerformanceTab()}
+      {activeTab === 'credits' && renderCreditsTab()}
 
-      {/* Staff Detail Modal */}
       {showDetailsModal && selectedStaffDetail && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">

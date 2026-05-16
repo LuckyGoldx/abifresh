@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
       .from('sales')
       .select('id, receipt_number, total_amount, created_at')
       .eq('staff_id', userId)
+      .neq('payment_method', 'credit')
       .order('created_at', { ascending: false });
 
     if (salesError) throw salesError;
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
       .from('staff_payments')
       .select('id, amount, items_paid_for, status, created_at')
       .eq('staff_id', userId)
-      .or('payment_type.neq.commission,paid_by.is.null');
+      .eq('payment_type', 'sale');
 
     const approvedPayments = (paymentsData || []).filter((p: any) => p.status === 'approved');
     const pendingPayments = (paymentsData || []).filter((p: any) => p.status === 'pending');

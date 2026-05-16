@@ -170,10 +170,10 @@ export class AdminService {
   /**
    * Approve payment
    */
-  async approvePayment(paymentId: string): Promise<void> {
+  async approvePayment(paymentId: string, adminId?: string): Promise<void> {
     const { error: updateError } = await supabaseAdmin
       .from('staff_payments')
-      .update({ status: 'approved', approved_date: new Date().toISOString() })
+      .update({ status: 'approved', approved_date: new Date().toISOString(), ...(adminId ? { approved_by: adminId } : {}) })
       .eq('id', paymentId);
 
     if (updateError) throw updateError;
@@ -1052,6 +1052,32 @@ export class AdminService {
         staff.profit_loss = staff.total_revenue - staff.total_expenses;
       });
 
+      // Fetch credit data for reports
+      let totalCreditsAmount = 0;
+      let totalCreditsPaid = 0;
+      let totalCreditors = 0;
+      try {
+        const { data: creditSales } = await supabaseAdmin
+          .from('credit_sales')
+          .select('total_amount')
+          .neq('status', 'cancelled');
+        totalCreditsAmount = creditSales?.reduce((sum, s) => sum + parseFloat(s.total_amount), 0) || 0;
+
+        const { data: approvedPayments } = await supabaseAdmin
+          .from('credit_payments')
+          .select('amount')
+          .eq('status', 'approved');
+        totalCreditsPaid = approvedPayments?.reduce((sum, p) => sum + parseFloat(p.amount), 0) || 0;
+
+        const { data: creditors } = await supabaseAdmin
+          .from('creditors')
+          .select('id')
+          .eq('is_active', true);
+        totalCreditors = creditors?.length || 0;
+      } catch (err) {
+        console.warn('⚠️ Could not fetch credit data for reports:', err);
+      }
+
       console.log(`✅ Report generation complete`);
 
       return {
@@ -1062,6 +1088,9 @@ export class AdminService {
           total_profit: totalProfit,
           total_items_sold: totalItemsSold,
           avg_transaction: avgTransaction,
+          total_credits_amount: totalCreditsAmount,
+          total_credits_paid: totalCreditsPaid,
+          total_creditors: totalCreditors,
         },
         sales: {
           by_staff: Array.from(salesByStaff.values()),
