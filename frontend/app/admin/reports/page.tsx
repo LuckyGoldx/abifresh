@@ -34,6 +34,7 @@ interface ComprehensiveReport {
     total_cost_price_sold: number;
     total_commission_generated: number;
     total_commission_paid: number;
+    total_credits_paid: number;
   };
   sales: {
     by_staff: Array<any>;
