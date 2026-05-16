@@ -46,24 +46,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'receiver_staff_id and items array are required' }, { status: 400 });
     }
 
-    // Use service to create return requests (handles stock verification and location)
-    const insertedReturns = await returnedItemsService.createReturnRequest(
-      authResult.id,
+    const returnEntries = items.map((item: any) => ({
+      requester_staff_id: authResult.id,
       receiver_staff_id,
-      items
-    );
+      item_id: item.item_id,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      location: item.location || 'Inside Jalingo',
+      status: 'pending',
+    }));
+
+    const { data: insertedReturns, error } = await supabaseAdmin
+      .from('returned_items')
+      .insert(returnEntries)
+      .select();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
     // Notify the sales receiver
     await supabaseAdmin.from('notifications').insert([{
       user_id: receiver_staff_id,
       type: 'items_return_request',
       title: '↩️ Return Request',
-      message: `${authResult.full_name || 'Staff'} has requested to return ${insertedReturns.length} item(s) to you`,
+      message: `${authResult.full_name || 'Staff'} has requested to return ${(insertedReturns || []).length} item(s) to you`,
       is_read: false,
     }]);
 
     return NextResponse.json(
-      { message: 'Return request created successfully', returns: insertedReturns },
+      { message: 'Return request created successfully', returns: insertedReturns || [] },
       { status: 201 }
     );
   } catch (error: any) {

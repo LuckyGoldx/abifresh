@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     
-    return NextResponse.json({ message: 'Remittance confirmed successfully', count: data?.length });
+    return NextResponse.json({ message: 'Remittance confirmed successfully', count: paymentIds.length });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

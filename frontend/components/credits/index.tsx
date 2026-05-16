@@ -96,8 +96,8 @@ export function getActivityDescription(activity: Activity): string {
 }
 
 export const ActivityLog = ({ activities }: { activities: Activity[] }) => {
-  const [selectedActivity, setSelectedActivity] = (useState as any)<Activity | null>(null);
-  const [fullScreenImage, setFullScreenImage] = (useState as any)<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-4">

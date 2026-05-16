@@ -28,7 +28,7 @@ export default function SalesCreditPaymentsPage() {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [referenceNumber, setReferenceNumber] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online' | 'bank_deposit' | 'pos'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online' | 'bank_deposit' | 'pos' | string>('cash');
   const [notes, setNotes] = useState('');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);

@@ -560,6 +560,7 @@ export default function ReturnItemsPage() {
                             onChange={(e) =>
                               handleQuantityChange(
                                 selectedItem.item_id,
+                                (selectedItem as any).location || 'Inside Jalingo',
                                 parseFloat(e.target.value) || 0.5
                               )
                             }
