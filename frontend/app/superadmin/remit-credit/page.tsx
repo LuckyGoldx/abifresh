@@ -1,3 +1,2 @@
 'use client';
-import Page from '@/app/sales/remit-credit/page';
-export default Page;
+export { default } from '@/app/admin/credit-payments/page';

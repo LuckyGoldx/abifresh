@@ -30,7 +30,8 @@ import {
   ScrollText,
   Activity,
   Save,
-  Undo2
+  Undo2,
+  Monitor
 } from 'lucide-react';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
