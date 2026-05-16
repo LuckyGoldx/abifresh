@@ -116,7 +116,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       staff_id: authResult.id,
       action: 'PAYMENT_APPROVED',
       details: { amount: payment.amount },
-    }).then().catch(() => {});
+    }).then(() => {}, () => {});
 
     return NextResponse.json({ message: 'Payment approved successfully' });
   } catch (error: any) {

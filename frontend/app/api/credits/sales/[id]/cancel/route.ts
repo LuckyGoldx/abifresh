@@ -63,7 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       staff_id: authResult.id,
       action: 'CREDIT_CANCELLED',
       details: { receipt_number: creditSale.receipt_number },
-    }).then().catch(() => {});
+    }).then(() => {}, () => {});
 
     // SEND NOTIFICATIONS
     try {

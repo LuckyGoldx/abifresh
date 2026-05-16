@@ -178,7 +178,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         receipt_url,
         items_paid_count: paid_items?.length || 0 
       },
-    }).then().catch(() => {});
+    }).then(() => {}, () => {});
 
     // SEND NOTIFICATIONS
     try {

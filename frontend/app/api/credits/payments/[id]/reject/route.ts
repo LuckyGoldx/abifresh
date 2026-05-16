@@ -27,7 +27,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       staff_id: authResult.id,
       action: 'PAYMENT_REJECTED',
       details: { amount: payment.amount, reason },
-    }).then().catch(() => {});
+    }).then(() => {}, () => {});
 
     return NextResponse.json({ message: 'Payment rejected' });
   } catch (error: any) {
