@@ -656,13 +656,15 @@ router.get('/my-sales-history', authMiddleware, roleMiddleware('sales', 'sales_s
     let approvedPaymentAmount = 0;
     let pendingPaymentAmount = 0;
 
+    const paidOrPendingQuantities = new Map<string, number>();
+
     if (paymentsData) {
       paymentsData.forEach((payment: any) => {
         // Amount totals
         if (payment.status === 'approved') approvedPaymentAmount += payment.amount || 0;
         else if (payment.status === 'pending') pendingPaymentAmount += payment.amount || 0;
 
-        // Sale-level filtering
+        // Sale-level filtering and quantity tracking
         if (payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
           payment.items_paid_for.forEach((paidItem: any) => {
             // Support both {sale_ids:[...]} and legacy {sale_id:'...'}
@@ -671,12 +673,39 @@ router.get('/my-sales-history', authMiddleware, roleMiddleware('sales', 'sales_s
               : paidItem.sale_id
               ? [paidItem.sale_id]
               : [];
+            
             saleIds.forEach((saleId: string) => {
               if (!saleId) return;
               if (payment.status === 'approved') approvedSaleIds.add(saleId);
               else if (payment.status === 'pending') pendingSaleIds.add(saleId);
               else if (payment.status === 'rejected') rejectedSaleIds.add(saleId);
             });
+
+            if (saleIds.length > 0 && (payment.status === 'approved' || payment.status === 'pending')) {
+              if (saleIds.length === 1) {
+                const sid = saleIds[0];
+                const existingQty = paidOrPendingQuantities.get(sid) || 0;
+                paidOrPendingQuantities.set(sid, existingQty + (parseFloat(paidItem.quantity) || 0));
+              } else {
+                let remainingToAllocate = parseFloat(paidItem.quantity) || 0;
+                for (const sid of saleIds) {
+                  if (remainingToAllocate <= 0) break;
+                  const originalItem = salesItemsData?.find((si: any) => si.id === sid);
+                  if (originalItem) {
+                    const origQty = parseFloat(originalItem.quantity) || 0;
+                    const alreadyAllocated = paidOrPendingQuantities.get(sid) || 0;
+                    const cap = Math.max(0, origQty - alreadyAllocated);
+                    const allocation = Math.min(cap, remainingToAllocate);
+                    paidOrPendingQuantities.set(sid, alreadyAllocated + allocation);
+                    remainingToAllocate -= allocation;
+                  }
+                }
+                if (remainingToAllocate > 0 && saleIds[0]) {
+                  const sid = saleIds[0];
+                  paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + remainingToAllocate);
+                }
+              }
+            }
           });
         }
       });
@@ -686,19 +715,23 @@ router.get('/my-sales-history', authMiddleware, roleMiddleware('sales', 'sales_s
 
     // Map sales items to the expected format
     const allSales = (salesItemsData || []).map((item: any) => {
-      const quantity = parseInt(item.quantity) || 0;
+      const originalQuantity = parseFloat(item.quantity) || 0;
       const unitPrice = parseFloat(item.unit_price) || 0;
-      // Calculate total_amount from quantity and unit_price
-      const totalAmount = quantity * unitPrice;
-      const isApproved = approvedSaleIds.has(item.id);
-      const isPending = pendingSaleIds.has(item.id);
+      const paidOrPendingQty = paidOrPendingQuantities.get(item.id) || 0;
+      const remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
+      
+      // Calculate total_amount from remaining quantity and unit_price
+      const totalAmount = remainingQuantity * unitPrice;
+      const isApproved = remainingQuantity === 0 && (approvedSaleIds.has(item.id) || !pendingSaleIds.has(item.id));
+      const isPending = remainingQuantity === 0 && pendingSaleIds.has(item.id);
       const isRejected = rejectedSaleIds.has(item.id);
       
       return {
         id: item.id,
         item_id: item.item_id,
         item_name: item.items?.name || 'Unknown Item',
-        quantity: quantity,
+        quantity: remainingQuantity,
+        original_quantity: originalQuantity,
         unit_price: unitPrice,
         total_amount: totalAmount,
         sale_date: item.created_at,
@@ -709,21 +742,21 @@ router.get('/my-sales-history', authMiddleware, roleMiddleware('sales', 'sales_s
     });
 
     // Calculate stats
-    // Display items = items that are NOT approved and NOT pending (only truly unpaid)
-    const displayItems = allSales.filter(item => !item.isApproved && !item.isPending);
+    // Display items = items that have remaining unpaid quantity
+    const displayItems = allSales.filter(item => item.quantity > 0);
     const totalQuantity = displayItems.reduce((sum, item) => sum + item.quantity, 0);
     const totalSalesAmount = displayItems.reduce((sum, item) => sum + item.total_amount, 0);
     
-    // For all-time totals
-    const allTimeQuantity = allSales.reduce((sum, item) => sum + item.quantity, 0);
-    const allTimeTotalSales = allSales.reduce((sum, item) => sum + item.total_amount, 0);
-    const paidQuantity = allSales.filter(item => item.isApproved).reduce((sum, item) => sum + item.quantity, 0);
+    // For all-time totals - use the original quantity for historical calculation
+    const allTimeQuantity = (salesItemsData || []).reduce((sum: number, item: any) => sum + (parseFloat(item.quantity) || 0), 0);
+    const allTimeTotalSales = (salesItemsData || []).reduce((sum: number, item: any) => sum + ((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)), 0);
+    const paidQuantity = allSales.filter(item => item.isApproved).reduce((sum, item) => sum + item.original_quantity, 0);
     
     // Today's sales calculation
     const today = new Date().toISOString().split('T')[0];
-    const todaysSales = allSales.filter(item => item.sale_date.startsWith(today));
-    const todaysTotalQuantity = todaysSales.reduce((sum, item) => sum + item.quantity, 0);
-    const todaysTotalAmount = todaysSales.reduce((sum, item) => sum + item.total_amount, 0);
+    const todaysSales = (salesItemsData || []).filter((item: any) => item.created_at.startsWith(today));
+    const todaysTotalQuantity = todaysSales.reduce((sum: number, item: any) => sum + (parseFloat(item.quantity) || 0), 0);
+    const todaysTotalAmount = todaysSales.reduce((sum: number, item: any) => sum + ((parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0)), 0);
     
     // Outstanding amount calculation
     const outstandingAmount = Math.max(0, allTimeTotalSales - approvedPaymentAmount - pendingPaymentAmount);
@@ -737,7 +770,7 @@ router.get('/my-sales-history', authMiddleware, roleMiddleware('sales', 'sales_s
     console.log(`   - Outstanding: ₦${outstandingAmount}`);
     
     res.json({
-      allItems: displayItems, // Only show items NOT in pending or approved state
+      allItems: displayItems, // Only show items NOT fully paid or pending
       stats: {
         // Today's sales
         todaysTotalQuantity: todaysTotalQuantity,
@@ -775,6 +808,8 @@ router.get('/expenses', authMiddleware, async (req: AuthRequest, res: Response) 
       amount: expense.amount,
       category: expense.expense_type,
       description: expense.description,
+      admin_notes: expense.admin_notes || '',
+      status: expense.status || 'pending',
       expense_date: expense.expense_date,
       created_at: expense.created_at,
     }));
@@ -785,10 +820,7 @@ router.get('/expenses', authMiddleware, async (req: AuthRequest, res: Response) 
   }
 });
 
-/**
- * Create expense
- */
-router.post('/expenses/create', authMiddleware, validateExpense, async (req: AuthRequest, res: Response) => {
+const handleCreateExpense = async (req: AuthRequest, res: Response) => {
   try {
     const { amount, category, description, expense_date } = req.body;
 
@@ -796,7 +828,7 @@ router.post('/expenses/create', authMiddleware, validateExpense, async (req: Aut
     console.log('🔍 [SALES EXPENSE CREATE] Received request:');
     console.log('  Raw amount:', amount, `(type: ${typeof amount})`);
     console.log('  Parsed amount:', parseFloat(amount), `(type: ${typeof parseFloat(amount)})`);
-    console.log('  Amount string:', amount.toString());
+    console.log('  Amount string:', amount ? amount.toString() : '');
     console.log('  Category:', category);
     console.log('  Expense date:', expense_date);
 
@@ -821,7 +853,10 @@ router.post('/expenses/create', authMiddleware, validateExpense, async (req: Aut
     console.error('  ❌ Error creating expense:', error.message);
     res.status(400).json({ error: error.message });
   }
-});
+};
+
+router.post('/expenses/create', authMiddleware, validateExpense, handleCreateExpense);
+router.post('/expenses', authMiddleware, validateExpense, handleCreateExpense);
 
 /**
  * Get all returned items for sales staff

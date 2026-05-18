@@ -758,6 +758,8 @@ export class StaffStoreService {
     let approvedPaymentAmount = 0;
     let pendingPaymentAmount = 0;
 
+    const paidOrPendingQuantities = new Map<string, number>();
+
     if (paymentsData) {
       paymentsData.forEach((payment: any) => {
         // Amount totals
@@ -779,6 +781,32 @@ export class StaffStoreService {
               else if (payment.status === 'pending') pendingSaleIds.add(saleId);
               else if (payment.status === 'rejected') rejectedSaleIds.add(saleId);
             });
+
+            if (saleIds.length > 0 && (payment.status === 'approved' || payment.status === 'pending')) {
+              if (saleIds.length === 1) {
+                const sid = saleIds[0];
+                const existingQty = paidOrPendingQuantities.get(sid) || 0;
+                paidOrPendingQuantities.set(sid, existingQty + (parseFloat(paidItem.quantity) || 0));
+              } else {
+                let remainingToAllocate = parseFloat(paidItem.quantity) || 0;
+                for (const sid of saleIds) {
+                  if (remainingToAllocate <= 0) break;
+                  const originalSale = sales?.find((s: any) => s.id === sid);
+                  if (originalSale) {
+                    const origQty = parseFloat(originalSale.quantity) || 0;
+                    const alreadyAllocated = paidOrPendingQuantities.get(sid) || 0;
+                    const cap = Math.max(0, origQty - alreadyAllocated);
+                    const allocation = Math.min(cap, remainingToAllocate);
+                    paidOrPendingQuantities.set(sid, alreadyAllocated + allocation);
+                    remainingToAllocate -= allocation;
+                  }
+                }
+                if (remainingToAllocate > 0 && saleIds[0]) {
+                  const sid = saleIds[0];
+                  paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + remainingToAllocate);
+                }
+              }
+            }
           });
         }
       });
@@ -806,8 +834,32 @@ export class StaffStoreService {
     }));
 
     // Calculate stats
-    // Display items = items that are NOT approved and NOT pending (only truly unpaid)
-    const unpaidSales = allSales.filter((item: any) => !item.isApproved && !item.isPending);
+    // unpaidSalesRaw = all sales with remaining unpaid quantity
+    const unpaidSalesRaw = (sales || []).map((sale: any) => {
+      const originalQuantity = parseFloat(sale.quantity) || 0;
+      const paidOrPendingQty = paidOrPendingQuantities.get(sale.id) || 0;
+      const remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
+      const unitPrice = parseFloat(sale.unit_price) || 0;
+      
+      return {
+        id: sale.id,
+        item_id: sale.item_id,
+        item_name: sale.items?.name || 'Unknown',
+        quantity: remainingQuantity,
+        original_quantity: originalQuantity,
+        unit_price: unitPrice,
+        total_amount: remainingQuantity * unitPrice,
+        payment_method: sale.payment_method || 'cash',
+        receipt_number: sale.receipt_number || '',
+        sold_outside_jalingo: sale.sold_outside_jalingo || false,
+        sale_date: sale.sale_date,
+        isApproved: remainingQuantity === 0,
+        isPending: remainingQuantity === 0 && pendingSaleIds.has(sale.id),
+        isRejected: rejectedSaleIds.has(sale.id),
+      };
+    });
+
+    const unpaidSales = unpaidSalesRaw.filter((item: any) => item.quantity > 0);
 
     // Group unpaid sales: same item sold at the SAME unit price gets combined into one row.
     // Items sold at different prices (e.g. inside-Jalingo vs outside-Jalingo + logistics)

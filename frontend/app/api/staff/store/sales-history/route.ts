@@ -37,37 +37,82 @@ export async function GET(req: NextRequest) {
     .reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
   const outstandingAmount = Math.max(0, allTimeTotalAmount - approvedAmount - pendingAmount);
 
-  // Collect sale IDs that are already in a pending or approved payment
-  // items_paid_for stores { sale_ids: string[], item_id, ... }
-  const lockedSaleIds = new Set<string>();
-  (payments || [])
-    .filter((p: any) => p.status === 'pending' || p.status === 'approved')
-    .forEach((p: any) => {
-      (p.items_paid_for || []).forEach((item: any) => {
-        (item.sale_ids || []).forEach((sid: string) => { if (sid) lockedSaleIds.add(String(sid)); });
-      });
-    });
+  const approvedSaleIds = new Set<string>();
+  const pendingSaleIds = new Set<string>();
+  const rejectedSaleIds = new Set<string>();
+  const paidOrPendingQuantities = new Map<string, number>();
 
-  // Build allItems grouped by item_id — skip any sale already in a pending/approved payment
+  if (payments) {
+    payments.forEach((payment: any) => {
+      if (payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
+        payment.items_paid_for.forEach((paidItem: any) => {
+          const saleIds = Array.isArray(paidItem.sale_ids)
+            ? paidItem.sale_ids
+            : paidItem.sale_id
+            ? [paidItem.sale_id]
+            : [];
+
+          saleIds.forEach((saleId: string) => {
+            if (!saleId) return;
+            if (payment.status === 'approved') approvedSaleIds.add(saleId);
+            else if (payment.status === 'pending') pendingSaleIds.add(saleId);
+            else if (payment.status === 'rejected') rejectedSaleIds.add(saleId);
+          });
+
+          if (saleIds.length > 0 && (payment.status === 'approved' || payment.status === 'pending')) {
+            if (saleIds.length === 1) {
+              const sid = saleIds[0];
+              const existingQty = paidOrPendingQuantities.get(sid) || 0;
+              paidOrPendingQuantities.set(sid, existingQty + (parseFloat(paidItem.quantity) || 0));
+            } else {
+              let remainingToAllocate = parseFloat(paidItem.quantity) || 0;
+              for (const sid of saleIds) {
+                if (remainingToAllocate <= 0) break;
+                const originalItem = sales?.find((si: any) => si.id === sid);
+                if (originalItem) {
+                  const origQty = parseFloat(originalItem.quantity) || 0;
+                  const alreadyAllocated = paidOrPendingQuantities.get(sid) || 0;
+                  const cap = Math.max(0, origQty - alreadyAllocated);
+                  const allocation = Math.min(cap, remainingToAllocate);
+                  paidOrPendingQuantities.set(sid, alreadyAllocated + allocation);
+                  remainingToAllocate -= allocation;
+                }
+              }
+              if (remainingToAllocate > 0 && saleIds[0]) {
+                const sid = saleIds[0];
+                paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + remainingToAllocate);
+              }
+            }
+          }
+        });
+      }
+    });
+  }
+
+  // Build allItems grouped by item_id — compute proper remaining quantity
   const groupedMap = new Map<string, any>();
   for (const sale of sales || []) {
-    if (lockedSaleIds.has(String(sale.id))) continue;
+    const originalQuantity = parseFloat(sale.quantity) || 0;
+    const paidOrPendingQty = paidOrPendingQuantities.get(sale.id) || 0;
+    const remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
+
+    if (remainingQuantity <= 0) continue;
 
     const key = sale.item_id;
     if (groupedMap.has(key)) {
       const existing = groupedMap.get(key);
-      existing.quantity += sale.quantity;
-      existing.total_amount += parseFloat(sale.total_amount) || 0;
+      existing.quantity += remainingQuantity;
+      existing.total_amount += remainingQuantity * (parseFloat(sale.unit_price) || 0);
       existing.sale_ids.push(sale.id);
     } else {
       groupedMap.set(key, {
         id: sale.id,
         item_id: sale.item_id,
         item_name: sale.items?.name || 'Unknown',
-        quantity: sale.quantity,
+        quantity: remainingQuantity,
         unit_price: parseFloat(sale.unit_price) || 0,
         price_jalingo: sale.items?.price_jalingo || parseFloat(sale.unit_price) || 0,
-        total_amount: parseFloat(sale.total_amount) || 0,
+        total_amount: remainingQuantity * (parseFloat(sale.unit_price) || 0),
         sale_date: sale.sale_date,
         sale_ids: [sale.id],
         sold_outside_jalingo: sale.sold_outside_jalingo || false,

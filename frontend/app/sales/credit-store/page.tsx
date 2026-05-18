@@ -164,26 +164,32 @@ export default function CreditStorePage() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-8 mb-8 border-b border-gray-100 dark:border-gray-700">
-          <button 
-            onClick={() => setActiveTab('inventory')}
-            className={`pb-4 text-sm font-black transition-all relative ${
-              activeTab === 'inventory' ? 'text-pink-600 dark:text-pink-400' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-            }`}
-          >
-            CURRENT INVENTORY
-            {activeTab === 'inventory' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-pink-600 rounded-full" />}
-          </button>
-          <button 
-            onClick={() => setActiveTab('history')}
-            className={`pb-4 text-sm font-black transition-all relative ${
-              activeTab === 'history' ? 'text-pink-600 dark:text-pink-400' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-            }`}
-          >
-            RETURN HISTORY
-            {activeTab === 'history' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-pink-600 rounded-full" />}
-          </button>
+        {/* Tabs Switcher */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex p-1.5 bg-gray-100/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl gap-1 border border-gray-200/50 dark:border-gray-700/40 shadow-sm w-full sm:w-auto">
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`flex-1 sm:flex-none py-2 px-6 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                activeTab === 'inventory'
+                  ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
+                  : 'text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400'
+              }`}
+            >
+              <Package className={`w-4 h-4 transition-colors ${activeTab === 'inventory' ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+              <span>Current Inventory</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`flex-1 sm:flex-none py-2 px-6 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                activeTab === 'history'
+                  ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
+                  : 'text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400'
+              }`}
+            >
+              <RefreshCcw className={`w-4 h-4 transition-colors ${activeTab === 'history' ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+              <span>Return History</span>
+            </button>
+          </div>
         </div>
 
         {/* Main List */}

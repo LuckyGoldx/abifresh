@@ -55,10 +55,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Get item details for commission calculation
+      // Get item details for commission calculation and cost price
       const { data: itemData } = await supabaseAdmin
         .from('items')
-        .select('commission, name')
+        .select('commission, name, unit_price')
         .eq('id', item_id)
         .single();
 
@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
           item_id,
           quantity,
           unit_price,
+          cost_price: itemData?.unit_price || 0,
           total_amount: totalAmount,
           commission: commissionEarned,
           location: itemLocation,

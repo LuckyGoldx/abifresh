@@ -3,7 +3,7 @@ import { verifyAuth } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
 
 function getNotificationCategory(type: string): string {
-  if (['payment_request', 'payment_approved', 'payment_rejected', 'payment_status', 'credit_payment', 'credit_payment_confirmation'].includes(type)) return 'payments';
+  if (['payment_request', 'payment_approved', 'payment_rejected', 'payment_status', 'credit_payment', 'credit_payment_confirmation', 'expense_request', 'expense_approved', 'expense_rejected', 'expense_status'].includes(type)) return 'payments';
   if (['posted_items', 'items_posted', 'items_accepted', 'items_rejected', 'posted_item_status'].includes(type)) return 'posted_items';
   if (['returned_items', 'return_request_sent', 'return_accepted', 'return_rejected', 'return_status', 'credit_item_returned', 'credit_return_confirmation'].includes(type)) return 'returns';
   if (['credit_given', 'credit_given_confirmation', 'creditor_added', 'creditor_added_confirmation', 'credit_cancelled', 'credit_cancel_confirmation'].includes(type)) return 'credits';
@@ -146,6 +146,53 @@ export async function GET(req: NextRequest) {
         });
       }
     });
+
+    // ── 2.5 STAFF EXPENSES virtual notifications for Admins ──
+    const { data: allStaffExpenses } = await supabaseAdmin
+      .from('staff_expenses')
+      .select('*, staff:staff_id(full_name, role)')
+      .order('updated_at', { ascending: false })
+      .limit(45);
+
+    (allStaffExpenses || []).forEach((exp: any) => {
+      const staffRole = exp.staff?.role?.toLowerCase();
+      // Exclude self-recorded admin and superadmin expenses
+      if (staffRole === 'admin' || staffRole === 'superadmin') return;
+
+      const isRecent = exp.updated_at && new Date(exp.updated_at) > new Date(fortyEightHoursAgo);
+      const isPending = exp.status === 'pending';
+
+      if (isPending || isRecent) {
+        const timestamp = exp.updated_at || exp.created_at;
+        const virtualId = `expense-admin-${exp.id}`;
+        const staffName = exp.staff?.full_name || 'Staff';
+        const formattedAmount = (exp.expense_amount || 0).toLocaleString();
+        
+        let title = '';
+        let message = '';
+        if (isPending) {
+          title = `💸 Expense Request from ${staffName}`;
+          message = `₦${formattedAmount} for ${exp.expense_category} — pending approval`;
+        } else if (exp.status === 'approved') {
+          title = `✅ Expense Approved — ${staffName}`;
+          message = `₦${formattedAmount} for ${exp.expense_category} has been approved`;
+        } else {
+          title = `❌ Expense Disapproved — ${staffName}`;
+          message = `₦${formattedAmount} for ${exp.expense_category} has been disapproved`;
+        }
+
+        allNotifications.push({
+          id: virtualId,
+          type: 'expense_status',
+          title,
+          message,
+          status: exp.status,
+          timestamp,
+          category: 'payments',
+          is_read: readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false),
+        });
+      }
+    });
   } else {
     const { data: payments } = await supabaseAdmin
       .from('staff_payments')
@@ -162,6 +209,30 @@ export async function GET(req: NextRequest) {
         title: `Payment ${payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}`,
         message: `₦${(payment.amount || 0).toLocaleString()} payment ${payment.status}${payment.notes ? ': ' + payment.notes : ''}`,
         status: payment.status, amount: payment.amount, timestamp, category: 'payments',
+        is_read: readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false),
+      });
+    });
+
+    // ── 2.5 STAFF EXPENSES virtual pending notifications for Staff themselves ──
+    const { data: myExpenses } = await supabaseAdmin
+      .from('staff_expenses')
+      .select('*')
+      .eq('staff_id', userId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    (myExpenses || []).forEach((exp: any) => {
+      const timestamp = exp.created_at;
+      const virtualId = `expense-staff-${exp.id}`;
+      allNotifications.push({
+        id: virtualId,
+        type: 'expense_status',
+        title: `💸 Expense Request Pending`,
+        message: `Your expense request of ₦${(exp.expense_amount || 0).toLocaleString()} for ${exp.expense_category} is pending review`,
+        status: 'pending',
+        timestamp,
+        category: 'payments',
         is_read: readVirtualIds.has(virtualId) || (lastReadAt ? new Date(timestamp) <= new Date(lastReadAt) : false),
       });
     });

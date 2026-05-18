@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
         expense_amount: parseFloat(amount.toString()),
         description: description || null,
         expense_date: expense_date || new Date().toISOString().split('T')[0],
+        status: 'approved',
       })
       .select()
       .single();

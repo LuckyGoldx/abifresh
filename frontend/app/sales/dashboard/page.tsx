@@ -4,11 +4,6 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { Package, DollarSign, TrendingUp, CheckCircle, AlertCircle, ArrowUp, Users, Clock, X } from 'lucide-react';
-import MakeSalePage from '../make-sale/page';
-import AvailableItemsPage from '../items/page';
-import UnavailableItemsPage from '../unavailable/page';
-import PostItemsPage from '../post-items/page';
-import ReceiptsPage from '../receipts/page';
 import { formatQty } from '@/lib/format-quantity';
 
 // Toast notification component
@@ -91,8 +86,6 @@ interface Activity {
 export default function SalesDashboard() {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'make-sale' | 'available' | 'unavailable' | 'post-items' | 'receipts'>('dashboard');
-
   const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [unavailableItems, setUnavailableItems] = useState<Item[]>([]);
@@ -590,254 +583,178 @@ export default function SalesDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Dashboard Stats - Only show on dashboard tab */}
-      {/* Dashboard Stats - Only show on dashboard tab */}
-      {activeTab === 'dashboard' && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Today's Items Sold</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatQty(stats?.today_items_sold || 0)}</p>
-              </div>
-              <Package className="w-8 h-8 text-pink-500" />
+      {/* Dashboard Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Today's Items Sold</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatQty(stats?.today_items_sold || 0)}</p>
             </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Today's Amount</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">₦{(stats?.today_amount_sold || 0).toLocaleString()}</p>
-              </div>
-              <svg className="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-                <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="16" fontWeight="bold">₦</text>
-              </svg>
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Available Items</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.available_items_count || 0}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-blue-500" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Unavailable Items</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{unavailableItems.length}</p>
-              </div>
-              <X className="w-8 h-8 text-red-500" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Posted Items (Accepted)</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{postedItemsStats?.accepted_items || 0}</p>
-                <p className="text-xs text-gray-500 mt-1">{formatQty(postedItemsStats?.accepted_quantity || 0)} qty</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-purple-500" />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Posted Items (Total)</p>
-                <p className="text-3xl font-bold text-gray-900 dark:text-white">{postedItemsStats?.total_posted_items || 0}</p>
-                <p className="text-xs text-gray-500 mt-1">{formatQty(postedItemsStats?.total_posted_quantity || 0)} qty</p>
-              </div>
-              <Users className="w-8 h-8 text-orange-500" />
-            </div>
+            <Package className="w-8 h-8 text-pink-500" />
           </div>
         </div>
-      )}
 
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 border-b dark:border-gray-700">
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`px-4 py-2 font-semibold transition ${
-            activeTab === 'dashboard'
-              ? 'border-b-2 border-pink-600 text-pink-600'
-              : 'text-gray-600 dark:text-gray-400 hover:text-pink-600'
-          }`}
-        >
-          📊 Dashboard
-        </button>
-        <button
-          onClick={() => setActiveTab('make-sale')}
-          className={`px-4 py-2 font-semibold transition ${
-            activeTab === 'make-sale'
-              ? 'border-b-2 border-pink-600 text-pink-600'
-              : 'text-gray-600 dark:text-gray-400 hover:text-pink-600'
-          }`}
-        >
-          💰 Make Sale
-        </button>
-        <button
-          onClick={() => setActiveTab('available')}
-          className={`px-4 py-2 font-semibold transition ${
-            activeTab === 'available'
-              ? 'border-b-2 border-pink-600 text-pink-600'
-              : 'text-gray-600 dark:text-gray-400 hover:text-pink-600'
-          }`}
-        >
-          ✅ Available Items
-        </button>
-        <button
-          onClick={() => setActiveTab('unavailable')}
-          className={`px-4 py-2 font-semibold transition ${
-            activeTab === 'unavailable'
-              ? 'border-b-2 border-pink-600 text-pink-600'
-              : 'text-gray-600 dark:text-gray-400 hover:text-pink-600'
-          }`}
-        >
-          ❌ Unavailable Items
-        </button>
-        <button
-          onClick={() => setActiveTab('post-items')}
-          className={`px-4 py-2 font-semibold transition ${
-            activeTab === 'post-items'
-              ? 'border-b-2 border-pink-600 text-pink-600'
-              : 'text-gray-600 dark:text-gray-400 hover:text-pink-600'
-          }`}
-        >
-          📤 Post Items
-        </button>
-        <button
-          onClick={() => setActiveTab('receipts')}
-          className={`px-4 py-2 font-semibold transition ${
-            activeTab === 'receipts'
-              ? 'border-b-2 border-pink-600 text-pink-600'
-              : 'text-gray-600 dark:text-gray-400 hover:text-pink-600'
-          }`}
-        >
-          🧾 Receipts
-        </button>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Today's Amount</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">₦{(stats?.today_amount_sold || 0).toLocaleString()}</p>
+            </div>
+            <svg className="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+              <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="16" fontWeight="bold">₦</text>
+            </svg>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Available Items</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.available_items_count || 0}</p>
+            </div>
+            <CheckCircle className="w-8 h-8 text-blue-500" />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Unavailable Items</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{unavailableItems.length}</p>
+            </div>
+            <X className="w-8 h-8 text-red-500" />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Posted Items (Accepted)</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{postedItemsStats?.accepted_items || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">{formatQty(postedItemsStats?.accepted_quantity || 0)} qty</p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-purple-500" />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Posted Items (Total)</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{postedItemsStats?.total_posted_items || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">{formatQty(postedItemsStats?.total_posted_quantity || 0)} qty</p>
+            </div>
+            <Users className="w-8 h-8 text-orange-500" />
+          </div>
+        </div>
       </div>
 
-      {/* Tab Content */}
-      {activeTab === 'make-sale' && <MakeSalePage />}
-      {activeTab === 'available' && <AvailableItemsPage />}
-      {activeTab === 'unavailable' && <UnavailableItemsPage />}
-      {activeTab === 'post-items' && <PostItemsPage />}
-      {activeTab === 'receipts' && <ReceiptsPage />}
-
-      {/* Recent Activities Section - Below Tab Navigation */}
-      {activeTab === 'dashboard' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-6 h-6 text-pink-500" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Activities</h2>
-          </div>
-
-          {activities.length > 0 ? (
-            <>
-              <div className="space-y-3">
-                {activities.slice((currentActivityPage - 1) * 10, currentActivityPage * 10).map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-start gap-4 pb-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 p-3 rounded transition"
-                  >
-                    <div className="mt-1">
-                      {activity.type === 'sale' ? (
-                        <div className="w-5 h-5 text-green-500 font-bold text-lg flex items-center justify-center">₦</div>
-                      ) : activity.type === 'post-items' ? (
-                        <TrendingUp className="w-5 h-5 text-blue-500" />
-                      ) : (
-                        <ArrowUp className="w-5 h-5 text-gray-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 dark:text-white">
-                        {activity.title}
-                      </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {activity.description}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        {activity.timestamp.toLocaleTimeString('en-NG', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                        })} • {activity.timestamp.toLocaleDateString('en-NG')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      {activity.amount && (
-                        <p className="font-bold text-green-600 dark:text-green-400">
-                          ₦{activity.amount.toLocaleString()}
-                        </p>
-                      )}
-                      {activity.itemCount && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {formatQty(activity.itemCount)} item{activity.itemCount !== 1 ? 's' : ''}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pagination Controls - Always show for consistency */}
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Showing {(currentActivityPage - 1) * 10 + 1} to {Math.min(currentActivityPage * 10, activities.length)} of {activities.length} activities
-                </div>
-                {activities.length > 10 && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setCurrentActivityPage(Math.max(1, currentActivityPage - 1))}
-                      disabled={currentActivityPage === 1}
-                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition"
-                    >
-                      Previous
-                    </button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.ceil(activities.length / 10) }).map((_, idx) => {
-                        const pageNum = idx + 1;
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setCurrentActivityPage(pageNum)}
-                            className={`px-3 py-1 rounded transition ${
-                              currentActivityPage === pageNum
-                                ? 'bg-pink-600 text-white'
-                                : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <button
-                      onClick={() => setCurrentActivityPage(Math.min(Math.ceil(activities.length / 10), currentActivityPage + 1))}
-                      disabled={currentActivityPage === Math.ceil(activities.length / 10)}
-                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition"
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-              <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No activities yet. Start making sales or posting items!</p>
-            </div>
-          )}
+      {/* Recent Activities Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock className="w-6 h-6 text-pink-500" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Activities</h2>
         </div>
-      )}
+
+        {activities.length > 0 ? (
+          <>
+            <div className="space-y-3">
+              {activities.slice((currentActivityPage - 1) * 10, currentActivityPage * 10).map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-start gap-4 pb-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 p-3 rounded transition"
+                >
+                  <div className="mt-1">
+                    {activity.type === 'sale' ? (
+                      <div className="w-5 h-5 text-green-500 font-bold text-lg flex items-center justify-center">₦</div>
+                    ) : activity.type === 'post-items' ? (
+                      <TrendingUp className="w-5 h-5 text-blue-500" />
+                    ) : (
+                      <ArrowUp className="w-5 h-5 text-gray-500" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      {activity.title}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {activity.description}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      {activity.timestamp.toLocaleTimeString('en-NG', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                      })} • {activity.timestamp.toLocaleDateString('en-NG')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    {activity.amount && (
+                      <p className="font-bold text-green-600 dark:text-green-400">
+                        ₦{activity.amount.toLocaleString()}
+                      </p>
+                    )}
+                    {activity.itemCount && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {formatQty(activity.itemCount)} item{activity.itemCount !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls - Always show for consistency */}
+            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Showing {(currentActivityPage - 1) * 10 + 1} to {Math.min(currentActivityPage * 10, activities.length)} of {activities.length} activities
+              </div>
+              {activities.length > 10 && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentActivityPage(Math.max(1, currentActivityPage - 1))}
+                    disabled={currentActivityPage === 1}
+                    className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition"
+                  >
+                    Previous
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.ceil(activities.length / 10) }).map((_, idx) => {
+                      const pageNum = idx + 1;
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentActivityPage(pageNum)}
+                          className={`px-3 py-1 rounded transition ${
+                            currentActivityPage === pageNum
+                              ? 'bg-pink-600 text-white'
+                              : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <button
+                    onClick={() => setCurrentActivityPage(Math.min(Math.ceil(activities.length / 10), currentActivityPage + 1))}
+                    disabled={currentActivityPage === Math.ceil(activities.length / 10)}
+                    className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+            <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>No activities yet. Start making sales or posting items!</p>
+          </div>
+        )}
+      </div>
 
       {/* Toast Notification */}
       {toast && (

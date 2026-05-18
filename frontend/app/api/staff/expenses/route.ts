@@ -10,19 +10,28 @@ export async function GET(req: NextRequest) {
     .from('staff_expenses')
     .select('*')
     .eq('staff_id', authResult.id)
-    .order('expense_date', { ascending: false });
+    .order('expense_date', { ascending: false })
+    .order('created_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  const expenses = (data || []).map((exp: any) => ({
-    id: exp.id,
-    staff_id: exp.staff_id,
-    expense_type: exp.expense_category,
-    amount: exp.expense_amount,
-    description: exp.description,
-    expense_date: exp.expense_date,
-    created_at: exp.created_at,
-  }));
+  // Map DB columns back to frontend-friendly names and parse admin note
+  const expenses = (data || []).map((exp: any) => {
+    const parts = exp.description ? exp.description.split('\n\n[Admin Note]: ') : [];
+    return {
+      id: exp.id,
+      staff_id: exp.staff_id,
+      category: exp.expense_category,
+      expense_type: exp.expense_category,
+      amount: exp.expense_amount,
+      description: parts[0] || '',
+      admin_notes: parts[1] || '',
+      status: exp.status || 'pending',
+      expense_date: exp.expense_date,
+      created_at: exp.created_at,
+      updated_at: exp.updated_at,
+    };
+  });
 
   return NextResponse.json(expenses);
 }

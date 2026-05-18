@@ -2,7 +2,10 @@ import axios from 'axios';
 
 // Empty string = use relative URLs (Next.js API routes at /app/api/).
 // Set NEXT_PUBLIC_API_URL=http://localhost:5000 to fall back to Express backend.
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+let API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+if (API_URL.includes('your-vercel-domain')) {
+  API_URL = '';
+}
 
 export const api = axios.create({
   baseURL: API_URL,

@@ -8,17 +8,6 @@ interface CreateExpenseParams {
   expense_date?: string;
 }
 
-interface Expense {
-  id: string;
-  staff_id: string;
-  expense_category: string;
-  expense_amount: number;
-  description: string;
-  expense_date: string;
-  created_at: string;
-  updated_at: string;
-}
-
 class ExpensesService {
   /**
    * Create a new expense
@@ -38,6 +27,26 @@ class ExpensesService {
       console.log('  Expense type:', expense_type);
       console.log('  Expense date:', expense_date);
 
+      // Fetch staff member name and role
+      let staffName = 'Staff';
+      let userRole = 'staff';
+      try {
+        const { data: staffMember } = await supabaseAdmin
+          .from('users')
+          .select('full_name, role')
+          .eq('id', staff_id)
+          .single();
+        if (staffMember) {
+          if (staffMember.full_name) staffName = staffMember.full_name;
+          if (staffMember.role) userRole = staffMember.role.toLowerCase();
+        }
+      } catch (err: any) {
+        console.error('⚠️ Could not fetch staff details:', err.message);
+      }
+
+      const isClientAdmin = userRole === 'admin' || userRole === 'superadmin';
+      const defaultStatus = isClientAdmin ? 'approved' : 'pending';
+
       const { data, error } = await supabaseAdmin
         .from('staff_expenses')
         .insert({
@@ -46,6 +55,7 @@ class ExpensesService {
           expense_amount: parsedAmount,  // DB column is expense_amount
           description: description || null,
           expense_date: expense_date || new Date().toISOString().split('T')[0],
+          status: defaultStatus,
         })
         .select()
         .single();
@@ -55,9 +65,34 @@ class ExpensesService {
         throw error;
       }
 
-      console.log('✅ Expense inserted and returned from Supabase:');
-      console.log('  Data:', data);
-      console.log('  expense_amount:', data.expense_amount, `(type: ${typeof data.expense_amount})`);
+      console.log('✅ Expense inserted and returned from Supabase:', data);
+
+      // Fetch all admins and superadmins - only if the creator is NOT an admin/superadmin!
+      if (!isClientAdmin) {
+        try {
+          const { data: admins } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .in('role', ['admin', 'superadmin']);
+
+          if (admins && admins.length > 0) {
+            const notifications = admins.map((admin: any) => ({
+              user_id: admin.id,
+              type: 'expense_request',
+              title: '💸 New Expense Request (Pending)',
+              message: `${staffName} submitted an expense of ₦${parsedAmount?.toLocaleString()} for ${expense_type}. (Pending)`,
+              action_url: `/admin/expenses?id=${data.id}`,
+              is_read: false,
+            }));
+
+            await supabaseAdmin.from('notifications').insert(notifications);
+            console.log(`✅ Sent expense_request notification to ${admins.length} admins`);
+          }
+        } catch (err: any) {
+          console.error('⚠️ Could not create admin notifications:', err.message);
+        }
+      }
+
       return data;
     } catch (error: any) {
       console.error('❌ ExpensesService.createExpense error:', error.message);
@@ -81,18 +116,24 @@ class ExpensesService {
         return [];
       }
 
-      // Map DB column names back to frontend-friendly names
-      return (data || []).map((exp: any) => ({
-        id: exp.id,
-        staff_id: exp.staff_id,
-        expense_type: exp.expense_category,  // Map back for frontend
-        amount: exp.expense_amount,          // Map back for frontend
-        description: exp.description,
-        expense_date: exp.expense_date,
-        status: exp.status,
-        created_at: exp.created_at,
-        updated_at: exp.updated_at,
-      }));
+      // Map DB column names back to frontend-friendly names and parse admin note
+      return (data || []).map((exp: any) => {
+        const parts = exp.description ? exp.description.split('\n\n[Admin Note]: ') : [];
+        return {
+          id: exp.id,
+          staff_id: exp.staff_id,
+          expense_type: exp.expense_category,  // Map back for frontend
+          amount: exp.expense_amount,          // Map back for frontend
+          description: parts[0] || '',
+          admin_notes: parts[1] || '',
+          expense_date: exp.expense_date,
+          status: exp.status || 'pending',
+          approved_by: exp.approved_by,
+          approved_date: exp.approved_date,
+          created_at: exp.created_at,
+          updated_at: exp.updated_at,
+        };
+      });
     } catch (error: any) {
       console.error('❌ ExpensesService.getExpensesByStaff error:', error.message);
       return [];
@@ -119,18 +160,24 @@ class ExpensesService {
         return [];
       }
 
-      // Map DB column names back to frontend-friendly names
-      return (data || []).map((exp: any) => ({
-        id: exp.id,
-        staff_id: exp.staff_id,
-        expense_type: exp.expense_category,
-        amount: exp.expense_amount,
-        description: exp.description,
-        expense_date: exp.expense_date,
-        status: exp.status,
-        created_at: exp.created_at,
-        updated_at: exp.updated_at,
-      }));
+      // Map DB column names back to frontend-friendly names and parse admin note
+      return (data || []).map((exp: any) => {
+        const parts = exp.description ? exp.description.split('\n\n[Admin Note]: ') : [];
+        return {
+          id: exp.id,
+          staff_id: exp.staff_id,
+          expense_type: exp.expense_category,
+          amount: exp.expense_amount,
+          description: parts[0] || '',
+          admin_notes: parts[1] || '',
+          expense_date: exp.expense_date,
+          status: exp.status || 'pending',
+          approved_by: exp.approved_by,
+          approved_date: exp.approved_date,
+          created_at: exp.created_at,
+          updated_at: exp.updated_at,
+        };
+      });
     } catch (error: any) {
       console.error('❌ ExpensesService.getAllExpenses error:', error.message);
       return [];
@@ -138,12 +185,14 @@ class ExpensesService {
   }
 
   /**
-   * Get total expenses for a staff member
+   * Get total expenses for a staff member (only approved ones!)
    */
   async getTotalExpenses(staff_id: string): Promise<number> {
     try {
       const expenses = await this.getExpensesByStaff(staff_id);
-      return expenses.reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
+      return expenses
+        .filter(exp => exp.status === 'approved')
+        .reduce((sum, exp) => sum + parseFloat(exp.amount.toString()), 0);
     } catch (error: any) {
       console.error('❌ ExpensesService.getTotalExpenses error:', error.message);
       return 0;
@@ -152,3 +201,4 @@ class ExpensesService {
 }
 
 export default new ExpensesService();
+

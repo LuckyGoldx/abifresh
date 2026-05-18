@@ -464,46 +464,48 @@ export default function MakeSalePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Items Section */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Tabs for Location Filtering */}
-          <div className="flex space-x-1 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl">
-            <button
-              onClick={() => {
-                if (cart.length > 0 && activeLocationTab !== 'Inside Jalingo') {
-                  setPendingLocation('Inside Jalingo');
-                  setShowLocationSwitchModal(true);
-                } else {
-                  setActiveLocationTab('Inside Jalingo');
-                  setGlobalOutsideJalingo(false);
-                }
-              }}
-              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
-                activeLocationTab === 'Inside Jalingo'
-                  ? 'bg-white dark:bg-gray-800 text-pink-600 dark:text-pink-400 shadow-sm ring-1 ring-black/5'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              Inside Jalingo
-            </button>
-            <button
-              onClick={() => {
-                if (cart.length > 0 && activeLocationTab !== 'Outside Jalingo') {
-                  setPendingLocation('Outside Jalingo');
-                  setShowLocationSwitchModal(true);
-                } else {
-                  setActiveLocationTab('Outside Jalingo');
-                  setGlobalOutsideJalingo(true);
-                }
-              }}
-              className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
-                activeLocationTab === 'Outside Jalingo'
-                  ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-black/5'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-              }`}
-            >
-              <Truck className="w-4 h-4" />
-              Outside Jalingo
-            </button>
+          {/* Tabs for Location Filtering (Segmented Control) */}
+          <div className="flex justify-center mb-4">
+            <div className="inline-flex p-1.5 bg-gray-100/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl gap-1 border border-gray-200/50 dark:border-gray-700/40 shadow-sm w-full">
+              <button
+                onClick={() => {
+                  if (cart.length > 0 && activeLocationTab !== 'Inside Jalingo') {
+                    setPendingLocation('Inside Jalingo');
+                    setShowLocationSwitchModal(true);
+                  } else {
+                    setActiveLocationTab('Inside Jalingo');
+                    setGlobalOutsideJalingo(false);
+                  }
+                }}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                  activeLocationTab === 'Inside Jalingo'
+                    ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
+                    : 'text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400'
+                }`}
+              >
+                <Building2 className={`w-4 h-4 transition-colors ${activeLocationTab === 'Inside Jalingo' ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+                <span>Inside Jalingo</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (cart.length > 0 && activeLocationTab !== 'Outside Jalingo') {
+                    setPendingLocation('Outside Jalingo');
+                    setShowLocationSwitchModal(true);
+                  } else {
+                    setActiveLocationTab('Outside Jalingo');
+                    setGlobalOutsideJalingo(true);
+                  }
+                }}
+                className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                  activeLocationTab === 'Outside Jalingo'
+                    ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
+                    : 'text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400'
+                }`}
+              >
+                <Truck className={`w-4 h-4 transition-colors ${activeLocationTab === 'Outside Jalingo' ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+                <span>Outside Jalingo</span>
+              </button>
+            </div>
           </div>
 
           {/* Search Box */}

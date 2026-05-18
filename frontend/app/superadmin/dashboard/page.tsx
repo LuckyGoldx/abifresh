@@ -300,27 +300,29 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 bg-white dark:bg-slate-800 rounded-xl p-2 shadow">
-        {[
-          { key: 'overview', label: 'Overview', icon: '📊' },
-          { key: 'sales', label: 'Sales & Receipts', icon: '💰' },
-          { key: 'staff-analytics', label: 'Staff Analytics', icon: '👥' },
-          { key: 'system', label: 'System Monitor', icon: '🖥️' },
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-              activeTab === tab.key
-                ? 'bg-pink-500 text-white shadow'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700'
-            }`}
-          >
-            <span>{tab.icon}</span>
-            <span>{tab.label}</span>
-          </button>
-        ))}
+      {/* Tab Navigation (Segmented Control) */}
+      <div className="flex justify-center mb-6">
+        <div className="inline-flex flex-wrap p-1.5 bg-gray-100/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl gap-1 border border-gray-200/50 dark:border-gray-700/40 shadow-sm w-full sm:w-auto">
+          {[
+            { key: 'overview', label: 'Overview', icon: '📊' },
+            { key: 'sales', label: 'Sales & Receipts', icon: '💰' },
+            { key: 'staff-analytics', label: 'Staff Analytics', icon: '👥' },
+            { key: 'system', label: 'System Monitor', icon: '🖥️' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`flex-1 sm:flex-none py-2 px-5 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                activeTab === tab.key
+                  ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
+                  : 'text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ==================== OVERVIEW TAB ==================== */}

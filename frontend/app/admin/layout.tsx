@@ -25,7 +25,8 @@ import {
   History,
   RefreshCcw,
   ClipboardList,
-  Undo2
+  Undo2,
+  TrendingUp
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -39,6 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
   const [pendingCreditRemittanceCount, setPendingCreditRemittanceCount] = useState(0);
   const [unreadCreditNotificationsCount, setUnreadCreditNotificationsCount] = useState(0);
+  const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
 
   const pathname = usePathname();
   const { unreadCount } = useNotifications();
@@ -68,14 +70,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const fetchData = useCallback(async () => {
     try {
-      const [payRes, creditPayRes, notifRes] = await Promise.all([
+      const [payRes, creditPayRes, notifRes, expRes] = await Promise.all([
         api.get('/api/admin/payments/pending-count'),
         api.get('/api/credits/payments/pending-count'),
-        api.get('/api/notifications')
+        api.get('/api/notifications'),
+        api.get('/api/admin/expenses')
       ]);
 
       setPendingPaymentsCount(payRes.data.count || 0);
       setPendingCreditRemittanceCount(creditPayRes.data.count || 0);
+
+      const pendingExpenses = (expRes.data || []).filter((e: any) => {
+        const role = e.staff_role?.toLowerCase() || '';
+        return e.status === 'pending' && role !== 'admin' && role !== 'superadmin';
+      }).length;
+      setPendingExpensesCount(pendingExpenses);
 
       const CREDIT_NOTIFICATION_TYPES = [
         'credit_item_returned',
@@ -147,9 +156,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Payments', href: '/admin/payments', icon: <CreditCard size={20} />, badge: pendingPaymentsCount },
     { label: 'Receipts', href: '/admin/receipts', icon: <FileText size={20} /> },
     { label: 'Commissions', href: '/admin/commissions', icon: <DollarSign size={20} /> },
-    { label: 'Expenses Tracker', href: '/admin/expenses', icon: <ClipboardList size={20} /> },
+    { label: 'Expenses Tracker', href: '/admin/expenses', icon: <ClipboardList size={20} />, badge: pendingExpensesCount > 0 ? pendingExpensesCount : undefined },
     { label: 'My Expenses', href: '/admin/my-expenses', icon: <DollarSign size={20} /> },
     { label: 'Reports', href: '/admin/reports', icon: <BarChart3 size={20} /> },
+    { label: 'Sales Analysis', href: '/admin/sales-analysis', icon: <TrendingUp size={20} /> },
     { label: 'Items', href: '/admin/items', icon: <ShoppingBag size={20} /> },
     { label: 'Restock Orders', href: '/admin/orders', icon: <ShoppingCart size={20} /> },
     { label: 'Staff Management', href: '/admin/staff', icon: <Users size={20} /> },

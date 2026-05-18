@@ -324,14 +324,18 @@ export class AdminService {
           const user = exp.users;
           console.log(`🔍 Expense staff info:`, { staff_id: exp.staff_id, user_name: user?.full_name });
           
+          const parts = exp.description ? exp.description.split('\n\n[Admin Note]: ') : [];
           return {
             id: exp.id,
             staff_id: exp.staff_id,
             expense_type: exp.expense_category,
             amount: exp.expense_amount,
-            description: exp.description,
+            description: parts[0] || '',
+            admin_notes: parts[1] || '',
             expense_date: exp.expense_date,
-            status: exp.status,
+            status: exp.status || 'pending',
+            approved_by: exp.approved_by,
+            approved_date: exp.approved_date,
             created_at: exp.created_at,
             updated_at: exp.updated_at,
             staff_name: user?.full_name || 'Unknown Staff',
@@ -421,6 +425,166 @@ export class AdminService {
       console.log('⚠️ Returning raw expenses due to error');
       return await expensesService.getAllExpenses(staffId);
     }
+  }
+
+  /**
+   * Approve an expense
+   */
+  async approveExpense(expenseId: string, adminId?: string, adminNotes?: string): Promise<void> {
+    // 1. Fetch current expense
+    const { data: expense, error: fetchError } = await supabaseAdmin
+      .from('staff_expenses')
+      .select('staff_id, expense_amount, expense_category, description')
+      .eq('id', expenseId)
+      .single();
+
+    if (fetchError || !expense) {
+      throw new Error(`Expense not found: ${fetchError?.message || 'Unknown error'}`);
+    }
+
+    // Append admin notes to description if provided
+    let finalDescription = expense.description || '';
+    if (adminNotes && adminNotes.trim().length > 0) {
+      finalDescription = `${finalDescription}\n\n[Admin Note]: ${adminNotes.trim()}`;
+    }
+
+    // 2. Update expense status to approved
+    const { error: updateError } = await supabaseAdmin
+      .from('staff_expenses')
+      .update({ 
+        status: 'approved', 
+        approved_date: new Date().toISOString(), 
+        approved_by: adminId || null,
+        description: finalDescription
+      })
+      .eq('id', expenseId);
+
+    if (updateError) throw updateError;
+
+    // Get admin user info if possible for notification message
+    let adminName = 'Admin';
+    if (adminId) {
+      const { data: adminUser } = await supabaseAdmin
+        .from('users')
+        .select('full_name')
+        .eq('id', adminId)
+        .single();
+      if (adminUser?.full_name) adminName = adminUser.full_name;
+    }
+
+    // 3. Update existing notifications of type 'expense_request' for this expense
+    const { data: existingNotifications } = await supabaseAdmin
+      .from('notifications')
+      .select('id, message')
+      .eq('type', 'expense_request')
+      .like('action_url', `%${expenseId}%`);
+
+    if (existingNotifications && existingNotifications.length > 0) {
+      await Promise.all(existingNotifications.map(notification => {
+        const originalMsg = notification.message || '';
+        const cleanMsg = originalMsg.replace(/\(Pending\)/g, '').replace(/Pending/g, '').trim();
+        const updatedMessage = `${cleanMsg} (Approved by ${adminName})`;
+        
+        return supabaseAdmin
+          .from('notifications')
+          .update({
+            title: '💸 Expense Approved',
+            message: updatedMessage
+          })
+          .eq('id', notification.id);
+      }));
+    }
+
+    // 4. Create new notification for the staff member
+    await supabaseAdmin.from('notifications').insert([
+      {
+        user_id: expense.staff_id,
+        type: 'expense_approved',
+        title: '✅ Expense Approved',
+        message: `Your expense request of ₦${expense.expense_amount?.toLocaleString() || '0'} for ${expense.expense_category} has been approved. ${adminNotes ? `Admin Note: ${adminNotes}` : ''}`,
+        is_read: false,
+      },
+    ]);
+  }
+
+  /**
+   * Reject / Disapprove an expense
+   */
+  async rejectExpense(expenseId: string, adminId?: string, reason?: string): Promise<void> {
+    const finalReason = reason || 'No reason provided';
+    
+    // 1. Fetch current expense
+    const { data: expense, error: fetchError } = await supabaseAdmin
+      .from('staff_expenses')
+      .select('staff_id, expense_amount, expense_category, description')
+      .eq('id', expenseId)
+      .single();
+
+    if (fetchError || !expense) {
+      throw new Error(`Expense not found: ${fetchError?.message || 'Unknown error'}`);
+    }
+
+    // Append admin notes to description
+    let finalDescription = expense.description || '';
+    finalDescription = `${finalDescription}\n\n[Admin Note]: ${finalReason.trim()}`;
+
+    // 2. Update expense status to disapproved
+    const { error: updateError } = await supabaseAdmin
+      .from('staff_expenses')
+      .update({ 
+        status: 'disapproved', 
+        approved_date: new Date().toISOString(), 
+        approved_by: adminId || null,
+        description: finalDescription
+      })
+      .eq('id', expenseId);
+
+    if (updateError) throw updateError;
+
+    // Get admin user info
+    let adminName = 'Admin';
+    if (adminId) {
+      const { data: adminUser } = await supabaseAdmin
+        .from('users')
+        .select('full_name')
+        .eq('id', adminId)
+        .single();
+      if (adminUser?.full_name) adminName = adminUser.full_name;
+    }
+
+    // 3. Update existing notifications of type 'expense_request' for this expense
+    const { data: existingNotifications } = await supabaseAdmin
+      .from('notifications')
+      .select('id, message')
+      .eq('type', 'expense_request')
+      .like('action_url', `%${expenseId}%`);
+
+    if (existingNotifications && existingNotifications.length > 0) {
+      await Promise.all(existingNotifications.map(notification => {
+        const originalMsg = notification.message || '';
+        const cleanMsg = originalMsg.replace(/\(Pending\)/g, '').replace(/Pending/g, '').trim();
+        const updatedMessage = `${cleanMsg} (Disapproved by ${adminName})`;
+        
+        return supabaseAdmin
+          .from('notifications')
+          .update({
+            title: '❌ Expense Disapproved',
+            message: updatedMessage
+          })
+          .eq('id', notification.id);
+      }));
+    }
+
+    // 4. Create new notification for the staff member
+    await supabaseAdmin.from('notifications').insert([
+      {
+        user_id: expense.staff_id,
+        type: 'expense_rejected',
+        title: '❌ Expense Disapproved',
+        message: `Your expense request of ₦${expense.expense_amount?.toLocaleString() || '0'} for ${expense.expense_category} has been disapproved. Reason: ${finalReason}`,
+        is_read: false,
+      },
+    ]);
   }
 
   /**
@@ -645,6 +809,7 @@ export class AdminService {
       let expensesQuery = supabaseAdmin
         .from('staff_expenses')
         .select('*')
+        .eq('status', 'approved')
         .gte('expense_date', from.toISOString().split('T')[0])
         .lte('expense_date', to.toISOString().split('T')[0]);
 
@@ -1126,6 +1291,393 @@ export class AdminService {
       };
     } catch (error: any) {
       console.error('❌ Error generating comprehensive report:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get sales analysis report aggregating all items sold by all staff
+   */
+  async getSalesAnalysisReport(filters: {
+    dateRange: 'today' | 'yesterday' | 'week' | 'month' | 'custom' | 'all';
+    customFrom?: string;
+    customTo?: string;
+    staffId?: string;
+    staffRole?: string;
+  }): Promise<any> {
+    try {
+      console.log(`\n🚀 === Generating Sales Analysis Report ===`);
+      console.log(`   Filters:`, filters);
+
+      const { dateRange, customFrom, customTo, staffId, staffRole } = filters;
+
+      // Calculate date range
+      const now = new Date();
+      let fromDate = new Date();
+      let toDate = new Date();
+      let applyDateFilter = true;
+
+      switch (dateRange) {
+        case 'all':
+          applyDateFilter = false;
+          break;
+        case 'today':
+          fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          break;
+        case 'yesterday':
+          fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+          toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+          break;
+        case 'week':
+          // Start of current week (7 days ago)
+          fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          fromDate.setHours(0, 0, 0, 0);
+          toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          break;
+        case 'month':
+          // Start of current month
+          fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+          break;
+        case 'custom':
+          if (customFrom) fromDate = new Date(customFrom);
+          if (customTo) {
+            toDate = new Date(customTo);
+            toDate.setHours(23, 59, 59, 999);
+          }
+          break;
+      }
+
+      const fromISO = applyDateFilter ? fromDate.toISOString() : 'N/A';
+      const toISO = applyDateFilter ? toDate.toISOString() : 'N/A';
+      console.log(`   Date Range: ${fromISO} to ${toISO}`);
+
+      // 1. Fetch all users to create a lookup map
+      const { data: users, error: usersError } = await supabaseAdmin
+        .from('users')
+        .select('id, full_name, email, role');
+      
+      if (usersError) throw usersError;
+      const userMap = new Map<string, any>(users.map(u => [u.id, u]));
+
+      // Get matching staff IDs based on filters
+      let targetStaffIds: string[] | null = null;
+
+      if (staffId) {
+        targetStaffIds = [staffId];
+      } else if (staffRole) {
+        // Find staff matching staffRole
+        const roleVariants: Record<string, string[]> = {
+          commission:     ['commission_staff', 'staff_commission'],
+          non_commission: ['non_commission_staff', 'staff_non_commission'],
+          sales:          ['sales', 'sales_staff'],
+          admin:          ['admin'],
+          superadmin:     ['superadmin'],
+        };
+        const allowedRoles = roleVariants[staffRole] || [staffRole];
+        targetStaffIds = users
+          .filter(u => allowedRoles.includes(u.role))
+          .map(u => u.id);
+        
+        console.log(`   Role filter "${staffRole}" matched ${targetStaffIds.length} users`);
+      }
+
+      // 2. Fetch all items
+      const { data: items, error: itemsError } = await supabaseAdmin
+        .from('items')
+        .select('id, name, sku, category, unit_price, brand, package_type, price_jalingo, price_outside');
+      
+      if (itemsError) throw itemsError;
+
+      // 3. Fetch staff_sales (for commission/non-commission staff)
+      let staffSalesQuery = supabaseAdmin
+        .from('staff_sales')
+        .select('id, staff_id, item_id, quantity, unit_price, total_amount, sale_date');
+
+      if (applyDateFilter) {
+        staffSalesQuery = staffSalesQuery
+          .gte('sale_date', fromISO)
+          .lte('sale_date', toISO);
+      }
+
+      if (targetStaffIds !== null) {
+        if (targetStaffIds.length === 0) {
+          staffSalesQuery = staffSalesQuery.in('staff_id', ['00000000-0000-0000-0000-000000000000']);
+        } else {
+          staffSalesQuery = staffSalesQuery.in('staff_id', targetStaffIds);
+        }
+      }
+
+      const { data: staffSales, error: staffSalesError } = await staffSalesQuery;
+      if (staffSalesError) throw staffSalesError;
+
+      // 4. Fetch sales and sales_items (for sales portal staff / admins)
+      let salesQuery = supabaseAdmin
+        .from('sales')
+        .select('id, staff_id, created_at, payment_method');
+
+      if (applyDateFilter) {
+        salesQuery = salesQuery
+          .gte('created_at', fromISO)
+          .lte('created_at', toISO);
+      }
+
+      if (targetStaffIds !== null) {
+        if (targetStaffIds.length === 0) {
+          salesQuery = salesQuery.in('staff_id', ['00000000-0000-0000-0000-000000000000']);
+        } else {
+          salesQuery = salesQuery.in('staff_id', targetStaffIds);
+        }
+      }
+
+      const { data: sales, error: salesError } = await salesQuery;
+      if (salesError) throw salesError;
+
+      let salesItems: any[] = [];
+      if (sales && sales.length > 0) {
+        const saleIds = sales.map(s => s.id);
+        const { data: itemsData, error: itemsDataError } = await supabaseAdmin
+          .from('sales_items')
+          .select('id, sale_id, item_id, quantity, unit_price, logistics_fee')
+          .in('sale_id', saleIds);
+        
+        if (itemsDataError) throw itemsDataError;
+        salesItems = itemsData || [];
+      }
+
+      // Map sales to their parent information
+      const salesMap = new Map<string, any>(sales?.map(s => [s.id, s]) || []);
+
+      // 5. Aggregate Sales Data
+      // We will create a list of all items and aggregate their sales.
+      const itemAnalysisMap = new Map<string, any>();
+
+      // Initialize with all items
+      items.forEach(item => {
+        itemAnalysisMap.set(item.id, {
+          item_id: item.id,
+          item_name: item.name,
+          sku: item.sku || 'N/A',
+          category: item.category || 'General',
+          brand: item.brand || 'N/A',
+          package_type: item.package_type || 'N/A',
+          unit_price: item.unit_price || 0,
+          price_jalingo: item.price_jalingo || 0,
+          price_outside: item.price_outside || 0,
+          total_quantity_sold: 0,
+          total_revenue: 0,
+          total_transactions: 0,
+          staff_breakdown: {} as Record<string, any>,
+        });
+      });
+
+      let totalRevenue = 0;
+      let totalQuantitySold = 0;
+      const soldItemsSet = new Set<string>();
+
+      // A. Process staff_sales (Commission/Non-commission staff)
+      staffSales?.forEach(sale => {
+        const itemId = sale.item_id;
+        const staffId = sale.staff_id;
+        const qty = sale.quantity || 0;
+        const amount = sale.total_amount || (qty * (sale.unit_price || 0));
+
+        totalRevenue += amount;
+        totalQuantitySold += qty;
+        if (qty > 0) soldItemsSet.add(itemId);
+
+        // Aggregate for specific item
+        let analysis = itemAnalysisMap.get(itemId);
+        if (!analysis) {
+          // Fallback if item was deleted from DB but remains in sales
+          analysis = {
+            item_id: itemId,
+            item_name: `Deleted Item (${itemId})`,
+            sku: 'N/A',
+            category: 'N/A',
+            brand: 'N/A',
+            package_type: 'N/A',
+            unit_price: sale.unit_price || 0,
+            price_jalingo: sale.unit_price || 0,
+            price_outside: sale.unit_price || 0,
+            total_quantity_sold: 0,
+            total_revenue: 0,
+            total_transactions: 0,
+            staff_breakdown: {} as Record<string, any>,
+          };
+          itemAnalysisMap.set(itemId, analysis);
+        }
+
+        analysis.total_quantity_sold += qty;
+        analysis.total_revenue += amount;
+        analysis.total_transactions += 1;
+
+        // Staff Breakdown
+        const staff = userMap.get(staffId);
+        const staffName = staff?.full_name || `Staff (${staffId.substring(0, 8)})`;
+        const staffRoleStr = staff?.role || 'unknown';
+
+        if (!analysis.staff_breakdown[staffId]) {
+          analysis.staff_breakdown[staffId] = {
+            staff_id: staffId,
+            staff_name: staffName,
+            staff_role: staffRoleStr,
+            quantity_sold: 0,
+            total_revenue: 0,
+            transactions_count: 0,
+          };
+        }
+
+        analysis.staff_breakdown[staffId].quantity_sold += qty;
+        analysis.staff_breakdown[staffId].total_revenue += amount;
+        analysis.staff_breakdown[staffId].transactions_count += 1;
+      });
+
+      // B. Process sales_items (Sales portal staff / Admins)
+      salesItems.forEach(saleItem => {
+        const itemId = saleItem.item_id;
+        const saleId = saleItem.sale_id;
+        const parentSale = salesMap.get(saleId);
+        if (!parentSale) return;
+
+        const staffId = parentSale.staff_id;
+        const qty = saleItem.quantity || 0;
+        const amount = qty * (saleItem.unit_price || 0);
+
+        totalRevenue += amount;
+        totalQuantitySold += qty;
+        if (qty > 0) soldItemsSet.add(itemId);
+
+        // Aggregate for specific item
+        let analysis = itemAnalysisMap.get(itemId);
+        if (!analysis) {
+          analysis = {
+            item_id: itemId,
+            item_name: `Deleted Item (${itemId})`,
+            sku: 'N/A',
+            category: 'N/A',
+            brand: 'N/A',
+            package_type: 'N/A',
+            unit_price: saleItem.unit_price || 0,
+            price_jalingo: saleItem.unit_price || 0,
+            price_outside: saleItem.unit_price || 0,
+            total_quantity_sold: 0,
+            total_revenue: 0,
+            total_transactions: 0,
+            staff_breakdown: {} as Record<string, any>,
+          };
+          itemAnalysisMap.set(itemId, analysis);
+        }
+
+        analysis.total_quantity_sold += qty;
+        analysis.total_revenue += amount;
+        analysis.total_transactions += 1;
+
+        // Staff Breakdown
+        const staff = userMap.get(staffId);
+        const staffName = staff?.full_name || `Staff (${staffId.substring(0, 8)})`;
+        const staffRoleStr = staff?.role || 'unknown';
+
+        if (!analysis.staff_breakdown[staffId]) {
+          analysis.staff_breakdown[staffId] = {
+            staff_id: staffId,
+            staff_name: staffName,
+            staff_role: staffRoleStr,
+            quantity_sold: 0,
+            total_revenue: 0,
+            transactions_count: 0,
+          };
+        }
+
+        analysis.staff_breakdown[staffId].quantity_sold += qty;
+        analysis.staff_breakdown[staffId].total_revenue += amount;
+        analysis.staff_breakdown[staffId].transactions_count += 1;
+      });
+
+      // Total transactions count is unique sale IDs from sales plus count of staffSales
+      const uniqueSalesIds = new Set(salesItems.map(si => si.sale_id));
+      const totalTransactions = uniqueSalesIds.size + (staffSales?.length || 0);
+
+      // Convert staff breakdowns from objects to arrays
+      const itemsList = Array.from(itemAnalysisMap.values()).map(item => {
+        return {
+          ...item,
+          staff_breakdown: Object.values(item.staff_breakdown).sort((a: any, b: any) => b.total_revenue - a.total_revenue),
+        };
+      });
+
+      // Group sales by day for chart data (combining staff_sales and sales)
+      const salesByDayMap = new Map<string, { date: string; revenue: number; transactions: number }>();
+      
+      staffSales?.forEach(sale => {
+        const dateStr = new Date(sale.sale_date).toISOString().split('T')[0];
+        const current = salesByDayMap.get(dateStr) || { date: dateStr, revenue: 0, transactions: 0 };
+        current.revenue += sale.total_amount || (sale.quantity * (sale.unit_price || 0));
+        current.transactions += 1;
+        salesByDayMap.set(dateStr, current);
+      });
+
+      const processedSalesForDay = new Set<string>();
+      salesItems.forEach(saleItem => {
+        const parentSale = salesMap.get(saleItem.sale_id);
+        if (!parentSale) return;
+        const dateStr = new Date(parentSale.created_at).toISOString().split('T')[0];
+        const current = salesByDayMap.get(dateStr) || { date: dateStr, revenue: 0, transactions: 0 };
+        current.revenue += saleItem.quantity * (saleItem.unit_price || 0);
+        if (!processedSalesForDay.has(parentSale.id)) {
+          current.transactions += 1;
+          processedSalesForDay.add(parentSale.id);
+        }
+        salesByDayMap.set(dateStr, current);
+      });
+
+      const salesTrend = Array.from(salesByDayMap.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // Staff summary for breakdown charts
+      const staffSummaryMap = new Map<string, { staff_id: string; name: string; role: string; quantity: number; revenue: number; transactions: number }>();
+      
+      itemsList.forEach(item => {
+        item.staff_breakdown.forEach((sb: any) => {
+          const current = staffSummaryMap.get(sb.staff_id) || {
+            staff_id: sb.staff_id,
+            name: sb.staff_name,
+            role: sb.staff_role,
+            quantity: 0,
+            revenue: 0,
+            transactions: 0
+          };
+          current.quantity += sb.quantity_sold;
+          current.revenue += sb.total_revenue;
+          current.transactions += sb.transactions_count;
+          staffSummaryMap.set(sb.staff_id, current);
+        });
+      });
+
+      const staffPerformance = Array.from(staffSummaryMap.values()).sort((a, b) => b.revenue - a.revenue);
+
+      return {
+        stats: {
+          totalAmountSold: totalRevenue,
+          totalTransactions: totalTransactions,
+          totalItemsSold: soldItemsSet.size,
+          totalQuantitySold: totalQuantitySold,
+        },
+        items: itemsList.sort((a, b) => b.total_quantity_sold - a.total_quantity_sold),
+        staffPerformance,
+        salesTrend,
+        filters: {
+          dateRange,
+          customFrom,
+          customTo,
+          staffId,
+          staffRole,
+          resolvedFrom: fromISO,
+          resolvedTo: toISO,
+        }
+      };
+    } catch (error: any) {
+      console.error('❌ Error generating sales analysis report:', error);
       throw error;
     }
   }

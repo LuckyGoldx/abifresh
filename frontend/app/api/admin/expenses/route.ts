@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
 
   const combined = (allExpenses || []).map((e: any) => {
     const staff = staffMap[e.staff_id];
+    const parts = e.description ? e.description.split('\n\n[Admin Note]: ') : [];
     return {
       id: e.id,
       staff_id: e.staff_id,
@@ -39,7 +40,8 @@ export async function GET(req: NextRequest) {
       staff_phone: staff?.phone_number || '',
       expense_type: e.expense_category || 'Other',
       amount: parseFloat(e.expense_amount) || 0,
-      description: e.description || '',
+      description: parts[0] || '',
+      admin_notes: parts[1] || '',
       expense_date: e.expense_date,
       status: e.status || 'approved',
       created_at: e.created_at,

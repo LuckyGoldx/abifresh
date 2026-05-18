@@ -109,7 +109,7 @@ export async function GET(req: NextRequest) {
   const { data: receiptItems } = receiptIdList.length > 0
     ? await supabaseAdmin
         .from('receipt_items')
-        .select('*, items(id, name, category)')
+        .select('*, items(id, name, category, unit_price)')
         .in('receipt_id', receiptIdList)
     : { data: [] };
 
@@ -220,16 +220,14 @@ export async function GET(req: NextRequest) {
   const totalItemsSold = (receiptItems || []).reduce((sum: number, ri: any) => sum + (ri.quantity || 0), 0);
   const avgTransaction = receipts.length > 0 ? totalRevenue / receipts.length : 0;
 
-  // Cost price map: item_id -> unit_price (purchase/cost price)
-  const itemCostMap = new Map<string, number>();
-  (allItems || []).forEach((item: any) => itemCostMap.set(item.id, item.unit_price || 0));
-
-  // Total cost price sold = SUM(items.unit_price * receipt_items.quantity) for ALL sales.
-  // receipt_items is the single source of truth: ALL staff types (commission_staff,
-  // non_commission_staff, sales) write to receipts+receipt_items on every checkout.
-  // Using receipt_items.quantity × items.unit_price (cost/purchase price from inventory).
+  // Calculate Total Cost Price Sold using immutable transaction-time cost_price
+  // with dynamic fallback to items.unit_price for complete safety
   const totalCostPriceSold = (receiptItems || []).reduce((sum: number, ri: any) => {
-    const costPrice = itemCostMap.get(ri.item_id) || 0;
+    // Use historical cost_price first. If null or 0, fall back to items.unit_price, then 0.
+    const costPrice = ri.cost_price !== null && ri.cost_price !== undefined && parseFloat(ri.cost_price) > 0
+      ? parseFloat(ri.cost_price)
+      : (parseFloat(ri.items?.unit_price) || 0);
+      
     return sum + costPrice * (ri.quantity || 0);
   }, 0);
 

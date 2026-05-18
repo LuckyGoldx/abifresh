@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
           sale_id: saleData.id,
           item_id: item.id,
           quantity: item.sale_quantity || 1,
-          unit_price: unitPrice,
+          unit_price: item.unit_price || unitPrice,
+          cost_price: unitPrice,
         },
       ]);
 

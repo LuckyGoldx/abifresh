@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import { useNotifications } from '@/context/NotificationContext';
 import { Toaster } from 'sonner';
 import api from '@/lib/api';
 import { 
@@ -31,7 +32,8 @@ import {
   Activity,
   Save,
   Undo2,
-  Monitor
+  Monitor,
+  TrendingUp
 } from 'lucide-react';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
@@ -46,6 +48,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
   const [pendingCreditRemittanceCount, setPendingCreditRemittanceCount] = useState(0);
   const [unreadCreditNotificationsCount, setUnreadCreditNotificationsCount] = useState(0);
+  const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
+
+  const { unreadCount } = useNotifications();
+  
+  // Calculate badges for the toggle button
+  const mainBadge = unreadCount;
+  const creditBadge = unreadCreditNotificationsCount;
 
   useEffect(() => {
     const creditRoutes = [
@@ -70,14 +79,21 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
   const fetchData = useCallback(async () => {
     try {
-      const [payRes, creditPayRes, notifRes] = await Promise.all([
+      const [payRes, creditPayRes, notifRes, expRes] = await Promise.all([
         api.get('/api/admin/payments/pending-count'),
         api.get('/api/credits/payments/pending-count'),
-        api.get('/api/notifications')
+        api.get('/api/notifications'),
+        api.get('/api/admin/expenses')
       ]);
 
       setPendingPaymentsCount(payRes.data.count || 0);
       setPendingCreditRemittanceCount(creditPayRes.data.count || 0);
+
+      const pendingExpenses = (expRes.data || []).filter((e: any) => {
+        const role = e.staff_role?.toLowerCase() || '';
+        return e.status === 'pending' && role !== 'admin' && role !== 'superadmin';
+      }).length;
+      setPendingExpensesCount(pendingExpenses);
 
       const CREDIT_NOTIFICATION_TYPES = [
         'credit_item_returned',
@@ -151,9 +167,10 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     { label: 'Credit Management', href: '/superadmin/credits', icon: <CreditCard size={20} /> },
     { label: 'Receipts', href: '/superadmin/receipts', icon: <FileText size={20} /> },
     { label: 'Commissions', href: '/superadmin/commissions', icon: <DollarSign size={20} /> },
-    { label: 'Expenses Tracker', href: '/superadmin/expenses', icon: <ClipboardList size={20} /> },
+    { label: 'Expenses Tracker', href: '/superadmin/expenses', icon: <ClipboardList size={20} />, badge: pendingExpensesCount > 0 ? pendingExpensesCount : undefined },
     { label: 'My Expenses', href: '/superadmin/my-expenses', icon: <DollarSign size={20} /> },
     { label: 'Reports', href: '/superadmin/reports', icon: <BarChart3 size={20} /> },
+    { label: 'Sales Analysis', href: '/superadmin/sales-analysis', icon: <TrendingUp size={20} /> },
     { label: 'Items', href: '/superadmin/items', icon: <ShoppingBag size={20} /> },
     
     // Superadmin Exclusive
@@ -197,6 +214,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
               router.push('/superadmin/credits');
             }
           }}
+          mainBadge={mainBadge}
+          creditBadge={creditBadge}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header />

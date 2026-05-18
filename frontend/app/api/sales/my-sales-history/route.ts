@@ -56,21 +56,55 @@ export async function GET(req: NextRequest) {
       .eq('staff_id', userId)
       .eq('payment_type', 'sale');
 
-    const approvedPayments = (paymentsData || []).filter((p: any) => p.status === 'approved');
-    const pendingPayments = (paymentsData || []).filter((p: any) => p.status === 'pending');
+    const approvedSaleIds = new Set<string>();
+    const pendingSaleIds = new Set<string>();
+    const rejectedSaleIds = new Set<string>();
+    const paidOrPendingQuantities = new Map<string, number>();
 
-    const paidItemIds = new Set<string>();
-    const pendingItemIds = new Set<string>();
+    if (paymentsData) {
+      paymentsData.forEach((payment: any) => {
+        if (payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
+          payment.items_paid_for.forEach((paidItem: any) => {
+            const saleIds: string[] = Array.isArray(paidItem.sale_ids)
+              ? paidItem.sale_ids
+              : paidItem.sale_id
+              ? [paidItem.sale_id]
+              : [];
 
-    // items_paid_for stores { sale_ids: string[], item_id, ... } — iterate sale_ids, not item.id
-    for (const payment of approvedPayments) {
-      (payment.items_paid_for || []).forEach((item: any) => {
-        (item.sale_ids || []).forEach((sid: string) => { if (sid) paidItemIds.add(String(sid)); });
-      });
-    }
-    for (const payment of pendingPayments) {
-      (payment.items_paid_for || []).forEach((item: any) => {
-        (item.sale_ids || []).forEach((sid: string) => { if (sid) pendingItemIds.add(String(sid)); });
+            saleIds.forEach((saleId: string) => {
+              if (!saleId) return;
+              if (payment.status === 'approved') approvedSaleIds.add(saleId);
+              else if (payment.status === 'pending') pendingSaleIds.add(saleId);
+              else if (payment.status === 'rejected') rejectedSaleIds.add(saleId);
+            });
+
+            if (saleIds.length > 0 && (payment.status === 'approved' || payment.status === 'pending')) {
+              if (saleIds.length === 1) {
+                const sid = saleIds[0];
+                const existingQty = paidOrPendingQuantities.get(sid) || 0;
+                paidOrPendingQuantities.set(sid, existingQty + (parseFloat(paidItem.quantity) || 0));
+              } else {
+                let remainingToAllocate = parseFloat(paidItem.quantity) || 0;
+                for (const sid of saleIds) {
+                  if (remainingToAllocate <= 0) break;
+                  const originalItem = salesItemsData?.find((si: any) => si.id === sid);
+                  if (originalItem) {
+                    const origQty = parseFloat(originalItem.quantity) || 0;
+                    const alreadyAllocated = paidOrPendingQuantities.get(sid) || 0;
+                    const cap = Math.max(0, origQty - alreadyAllocated);
+                    const allocation = Math.min(cap, remainingToAllocate);
+                    paidOrPendingQuantities.set(sid, alreadyAllocated + allocation);
+                    remainingToAllocate -= allocation;
+                  }
+                }
+                if (remainingToAllocate > 0 && saleIds[0]) {
+                  const sid = saleIds[0];
+                  paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + remainingToAllocate);
+                }
+              }
+            }
+          });
+        }
       });
     }
 
@@ -83,42 +117,55 @@ export async function GET(req: NextRequest) {
     let allTimeTotalAmount = 0;
     let paidQuantity = 0;
 
-    const allItems = (salesItemsData || []).map((item: any) => {
+    const allSales = (salesItemsData || []).map((item: any) => {
       const itemObj = Array.isArray(item.items) ? item.items[0] : item.items;
-      const totalAmount = item.quantity * item.unit_price;
+      const originalQuantity = parseFloat(item.quantity) || 0;
+      const paidOrPendingQty = paidOrPendingQuantities.get(item.id) || 0;
+      const remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
+      
+      const unitPrice = parseFloat(item.unit_price) || 0;
+      const totalAmount = remainingQuantity * unitPrice;
+      const originalTotalAmount = originalQuantity * unitPrice;
       const saleDate = new Date(item.created_at);
-      const isApproved = paidItemIds.has(item.id);
-      const isPending = pendingItemIds.has(item.id);
 
-      allTimeQuantity += item.quantity;
-      allTimeTotalAmount += totalAmount;
+      const isApproved = remainingQuantity === 0 && (approvedSaleIds.has(item.id) || !pendingSaleIds.has(item.id));
+      const isPending = remainingQuantity === 0 && pendingSaleIds.has(item.id);
+      const isRejected = rejectedSaleIds.has(item.id);
+
+      allTimeQuantity += originalQuantity;
+      allTimeTotalAmount += originalTotalAmount;
 
       if (saleDate >= today) {
-        todaysTotalQuantity += item.quantity;
-        todaysTotalAmount += totalAmount;
+        todaysTotalQuantity += originalQuantity;
+        todaysTotalAmount += originalTotalAmount;
       }
 
-      if (isApproved) paidQuantity += item.quantity;
+      if (isApproved) paidQuantity += originalQuantity;
 
       return {
         id: item.id,
         item_id: item.item_id,
         item_name: itemObj?.name || 'Unknown',
-        quantity: item.quantity,
-        unit_price: item.unit_price,
+        quantity: remainingQuantity,
+        original_quantity: originalQuantity,
+        unit_price: unitPrice,
         total_amount: totalAmount,
         sale_date: item.created_at,
         isApproved,
         isPending,
-        isRejected: false,
+        isRejected,
       };
     });
 
-    // Filter: return items not in approved or pending state
-    const unpaidItems = allItems.filter((item: any) => !item.isApproved && !item.isPending);
+    // Filter: return items that have outstanding unpaid quantity (remaining > 0)
+    const unpaidItems = allSales.filter((item: any) => item.quantity > 0);
 
-    const approvedAmount = approvedPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-    const pendingAmount = pendingPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+    const approvedAmount = (paymentsData || [])
+      .filter((p: any) => p.status === 'approved')
+      .reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
+    const pendingAmount = (paymentsData || [])
+      .filter((p: any) => p.status === 'pending')
+      .reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
     const outstandingAmount = allTimeTotalAmount - approvedAmount - pendingAmount;
 
     return NextResponse.json({
@@ -130,7 +177,7 @@ export async function GET(req: NextRequest) {
         allTimeTotalAmount,
         paidQuantity,
         totalQuantity: allTimeQuantity,
-        totalItems: allItems.length,
+        totalItems: allSales.length,
         totalSalesAmount: allTimeTotalAmount,
         outstandingAmount: Math.max(0, outstandingAmount),
       },

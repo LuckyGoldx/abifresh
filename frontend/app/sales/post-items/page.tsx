@@ -398,29 +398,31 @@ export default function PostItemsPage() {
           Posting Management
         </h1>
         
-        <div className="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-xl shadow-inner self-stretch md:self-auto">
-          <button
-            onClick={() => setActiveTab('post')}
-            className={`flex-1 md:flex-none px-6 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-              activeTab === 'post' 
-                ? 'bg-white dark:bg-gray-600 text-pink-600 dark:text-pink-400 shadow-sm' 
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-            }`}
-          >
-            <Plus className="w-4 h-4" />
-            Post Items
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex-1 md:flex-none px-6 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
-              activeTab === 'history' 
-                ? 'bg-white dark:bg-gray-600 text-pink-600 dark:text-pink-400 shadow-sm' 
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-            }`}
-          >
-            <History className="w-4 h-4" />
-            Posted History
-          </button>
+        <div className="flex justify-center w-full md:w-auto">
+          <div className="inline-flex p-1.5 bg-gray-100/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl gap-1 border border-gray-200/50 dark:border-gray-700/40 shadow-sm self-stretch md:self-auto">
+            <button
+              onClick={() => setActiveTab('post')}
+              className={`py-2 px-6 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                activeTab === 'post'
+                  ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
+                  : 'text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400'
+              }`}
+            >
+              <Plus className={`w-4 h-4 transition-colors ${activeTab === 'post' ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+              <span>Post Items</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`py-2 px-6 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
+                activeTab === 'history'
+                  ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
+                  : 'text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400'
+              }`}
+            >
+              <History className={`w-4 h-4 transition-colors ${activeTab === 'history' ? 'text-white' : 'text-gray-400 dark:text-gray-500'}`} />
+              <span>Posted History</span>
+            </button>
+          </div>
         </div>
       </div>
 

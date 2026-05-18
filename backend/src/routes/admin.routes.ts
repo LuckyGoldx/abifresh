@@ -357,6 +357,40 @@ router.get('/reports/comprehensive', authMiddleware, roleMiddleware('admin'), as
 });
 
 /**
+ * Get sales analysis report
+ */
+router.get('/reports/sales-analysis', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const dateRange = (req.query.dateRange as string || 'month') as any;
+    const customFrom = req.query.customFrom as string | undefined;
+    const customTo = req.query.customTo as string | undefined;
+    const staffId = req.query.staffId as string | undefined;
+    const staffRole = req.query.staffRole as string | undefined;
+
+    console.log(`📥 GET /api/admin/reports/sales-analysis - Query params:`, {
+      dateRange,
+      customFrom,
+      customTo,
+      staffId,
+      staffRole,
+    });
+
+    const report = await adminService.getSalesAnalysisReport({
+      dateRange,
+      customFrom,
+      customTo,
+      staffId,
+      staffRole,
+    });
+    res.json(report);
+  } catch (error: any) {
+    console.error('❌ Sales analysis report error:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
+/**
  * Update staff - can edit name, username, email, phone, role, location, and password
  */
 router.put('/staff/:id', authMiddleware, roleMiddleware('admin'), validateUpdateStaff, async (req: AuthRequest, res: Response) => {
@@ -784,6 +818,36 @@ router.get('/expenses', authMiddleware, roleMiddleware('admin'), async (req: Aut
     res.json(expenses);
   } catch (error: any) {
     console.error('❌ Error fetching expenses:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Approve expense
+ */
+router.post('/expenses/:id/approve', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { notes } = req.body;
+    await adminService.approveExpense(id, req.user!.id, notes);
+    res.json({ message: 'Expense approved successfully' });
+  } catch (error: any) {
+    console.error('❌ Error approving expense:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Disapprove/Reject expense
+ */
+router.post('/expenses/:id/reject', authMiddleware, roleMiddleware('admin'), async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    await adminService.rejectExpense(id, req.user!.id, reason);
+    res.json({ message: 'Expense rejected successfully' });
+  } catch (error: any) {
+    console.error('❌ Error rejecting expense:', error);
     res.status(400).json({ error: error.message });
   }
 });

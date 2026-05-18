@@ -487,6 +487,8 @@ router.get('/expenses', authMiddleware, async (req: AuthRequest, res: Response) 
       amount: expense.amount,
       category: expense.expense_type,
       description: expense.description,
+      admin_notes: expense.admin_notes || '',
+      status: expense.status || 'pending',
       expense_date: expense.expense_date,
       created_at: expense.created_at,
     }));

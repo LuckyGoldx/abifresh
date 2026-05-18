@@ -185,11 +185,12 @@ router.post('/payments', authMiddleware, roleMiddleware('sales', 'admin', 'super
     }
 
     // Handle receipt file upload
-    let receiptUrl = null;
+    let receiptUrl: string | undefined = undefined;
     if (req.files && (req.files.receipt as any)) {
       const receiptFile = req.files.receipt as any;
       const fileName = `credit-payments/${creditorId}/${Date.now()}-${receiptFile.name}`;
-      receiptUrl = await StorageService.uploadReceipt(receiptFile.data, fileName);
+      const uploaded = await StorageService.uploadReceipt(receiptFile.data, fileName);
+      receiptUrl = uploaded || undefined;
     }
 
     const payment = await creditService.recordCreditPayment(
