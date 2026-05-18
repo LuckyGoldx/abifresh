@@ -5,21 +5,26 @@ import { supabaseAdmin } from '@/lib/server/supabase-admin';
 async function enrichPayments(payments: any[]) {
   if (!payments.length) return [];
   const staffIds = [...new Set(payments.map((p) => p.staff_id))];
+  const approverIds = [...new Set(payments.map((p) => p.approved_by).filter(Boolean))];
+  const allUserIds = [...new Set([...staffIds, ...approverIds])];
+
   const { data: staffMembers } = await supabaseAdmin
     .from('users')
     .select('id, full_name, email, role')
-    .in('id', staffIds);
+    .in('id', allUserIds);
 
   const staffMap: Record<string, any> = {};
   (staffMembers || []).forEach((s: any) => (staffMap[s.id] = s));
 
   return payments.map((p: any) => {
     const staff = staffMap[p.staff_id];
+    const approver = p.approved_by ? staffMap[p.approved_by] : null;
     return {
       ...p,
       staff_name: staff?.full_name || p.staff_name || 'Unknown',
       staff_email: staff?.email,
       staff_role: staff?.role,
+      approved_by_name: approver?.full_name || null,
     };
   });
 }

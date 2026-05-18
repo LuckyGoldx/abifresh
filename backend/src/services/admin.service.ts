@@ -170,10 +170,10 @@ export class AdminService {
   /**
    * Approve payment
    */
-  async approvePayment(paymentId: string): Promise<void> {
+  async approvePayment(paymentId: string, adminId?: string): Promise<void> {
     const { error: updateError } = await supabaseAdmin
       .from('staff_payments')
-      .update({ status: 'approved', approved_date: new Date().toISOString() })
+      .update({ status: 'approved', approved_date: new Date().toISOString(), ...(adminId ? { approved_by: adminId } : {}) })
       .eq('id', paymentId);
 
     if (updateError) throw updateError;

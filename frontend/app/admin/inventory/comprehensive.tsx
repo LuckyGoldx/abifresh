@@ -9,6 +9,43 @@ import type { ProductVariant } from '@/lib/productCatalog';
 import { toast } from 'sonner';
 import { formatQty } from '@/lib/format-quantity';
 
+/** Compress an image file client-side to WebP before uploading. Falls back to original on failure. */
+function compressImageClientSide(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/') || file.type === 'image/gif') {
+      resolve(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => resolve(file);
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onerror = () => resolve(file);
+      img.onload = () => {
+        const MAX = 1920;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+          else { width = Math.round(width * MAX / height); height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (blob && blob.size < file.size) {
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' }));
+          } else {
+            resolve(file);
+          }
+        }, 'image/webp', 0.82);
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 interface Item {
   id: string;
   name: string;
@@ -1024,16 +1061,17 @@ function AddEditModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Preview
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
-
-    // Upload
     setUploading(true);
     try {
+      // Compress image client-side before uploading
+      const fileToUpload = await compressImageClientSide(file);
+
+      // Show preview
+      const previewUrl = URL.createObjectURL(fileToUpload);
+      setImagePreview(previewUrl);
+
       const fd = new FormData();
-      fd.append('image', file);
+      fd.append('image', fileToUpload);
 
       const res = await api.post('/api/inventory/upload-image', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },

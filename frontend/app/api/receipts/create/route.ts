@@ -36,12 +36,18 @@ export async function POST(req: NextRequest) {
   }
 
   // Create receipt items
-  const itemsToInsert = await Promise.all((items as any[]).map(async (item: any) => {
-    let itemName = item.item_name || item.name || '';
-    if (!itemName && item.item_id) {
-      const { data: dbItem } = await supabaseAdmin.from('items').select('name').eq('id', item.item_id).single();
-      itemName = dbItem?.name || 'Unknown';
-    }
+  const itemIds = items.map((i: any) => i.item_id).filter(Boolean);
+  const { data: dbItems } = itemIds.length > 0 
+    ? await supabaseAdmin.from('items').select('id, name, unit_price').in('id', itemIds)
+    : { data: [] };
+
+  const dbItemsMap = new Map<string, { name: string; unit_price: number }>();
+  (dbItems || []).forEach((i: any) => dbItemsMap.set(i.id, { name: i.name, unit_price: i.unit_price || 0 }));
+
+  const itemsToInsert = (items as any[]).map((item: any) => {
+    const dbItem = dbItemsMap.get(item.item_id);
+    const itemName = item.item_name || item.name || dbItem?.name || 'Unknown';
+    const costPrice = dbItem?.unit_price || 0;
     return {
       receipt_id: receipt.id,
       item_id: item.item_id,
@@ -49,8 +55,9 @@ export async function POST(req: NextRequest) {
       quantity: item.quantity,
       unit_price: item.unit_price,
       total_price: item.total_price,
+      cost_price: costPrice,
     };
-  }));
+  });
 
   // Try inserting with item_name; if column missing (schema cache issue), retry without it
   let itemsError = (await supabaseAdmin.from('receipt_items').insert(itemsToInsert)).error;

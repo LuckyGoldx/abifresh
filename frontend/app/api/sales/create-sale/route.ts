@@ -34,14 +34,24 @@ export async function POST(req: NextRequest) {
 
     if (saleError) return NextResponse.json({ error: saleError.message }, { status: 400 });
 
+    // Fetch all items' cost prices in one database call for performance
+    const itemIds = items.map((i: any) => i.item_id).filter(Boolean);
+    const { data: dbItems } = itemIds.length > 0 
+      ? await supabaseAdmin.from('items').select('id, unit_price').in('id', itemIds)
+      : { data: [] };
+    const dbCostsMap = new Map<string, number>();
+    (dbItems || []).forEach((i: any) => dbCostsMap.set(i.id, i.unit_price || 0));
+
     // Create sales_items records and reduce active_store_quantity
     for (const item of items) {
+      const costPrice = dbCostsMap.get(item.item_id) || 0;
       const { error: itemError } = await supabaseAdmin.from('sales_items').insert([
         {
           sale_id: saleData.id,
           item_id: item.item_id,
           quantity: item.quantity,
           unit_price: item.unit_price,
+          cost_price: costPrice,
           logistics_fee: item.logistics_fee || 0,
         },
       ]);
