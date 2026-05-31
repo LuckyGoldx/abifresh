@@ -107,7 +107,6 @@ export class ReturnedItemsService {
             receiver_staff_id: actualReceiverSalesStaffId,
             quantity: item.quantity,
             unit_price: item.unit_price,
-            location: item.location || 'Inside Jalingo',
             status: 'pending',
           },
         ])
@@ -363,9 +362,10 @@ export class ReturnedItemsService {
     if (storeError) throw storeError;
 
     // Only subtract PENDING returns (soft-locked). Accepted returns already reduced staff_store.quantity.
+    // Note: returned_items table does NOT have a location column, so locking is by item_id only.
     const { data: returnedItems, error: returnError } = await supabaseAdmin
       .from('returned_items')
-      .select('item_id, quantity, status, location')
+      .select('item_id, quantity, status')
       .eq('requester_staff_id', actualId)
       .eq('status', 'pending');
 
@@ -373,16 +373,14 @@ export class ReturnedItemsService {
 
     const lockedQuantities = new Map<string, number>();
     (returnedItems || []).forEach((ret: any) => {
-      const key = `${ret.item_id}_${ret.location || 'Inside Jalingo'}`;
-      const current = lockedQuantities.get(key) || 0;
-      lockedQuantities.set(key, current + ret.quantity);
+      const current = lockedQuantities.get(ret.item_id) || 0;
+      lockedQuantities.set(ret.item_id, current + ret.quantity);
     });
 
     const availableItems = (staffStoreItems || [])
       .map((item: any) => {
         const itemLoc = item.location || 'Inside Jalingo';
-        const key = `${item.item_id}_${itemLoc}`;
-        const lockedQty = lockedQuantities.get(key) || 0;
+        const lockedQty = lockedQuantities.get(item.item_id) || 0;
         // Real-time available = quantity - quantity_sold - pending/accepted returns
         const netAvailable = (item.quantity || 0) - (item.quantity_sold || 0);
         const remainingQty = Math.max(0, netAvailable - lockedQty);

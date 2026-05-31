@@ -3,15 +3,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Wallet, Plus, Calendar, TrendingDown } from 'lucide-react';
-
-interface Expense {
-  id: string;
-  amount: number;
-  category: string;
-  description: string;
-  expense_date: string;
-  created_at: string;
-}
+import type { Expense } from '@/types';
 
 const expenseCategories = [
   'Rent',
@@ -91,7 +83,19 @@ export default function AdminExpensesPage() {
   }, {} as Record<string, number>);
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading expenses...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -72,7 +72,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { data: payment, error: paymentError } = await supabaseAdmin.from('credit_payments').insert({
+    const isAdmin = authResult.role === 'admin' || authResult.role === 'superadmin';
+
+    const paymentPayload: any = {
       creditor_id: creditorId,
       credit_sale_id: creditSaleId,
       staff_id: authResult.id,
@@ -84,8 +86,17 @@ export async function POST(req: NextRequest) {
       status: 'approved',
       approved_by: authResult.id,
       approved_date: new Date().toISOString(),
-      remittance_status: null,
-    }).select().single();
+    };
+
+    if (isAdmin) {
+      paymentPayload.remittance_status = 'confirmed';
+      paymentPayload.remittance_confirmed_by = authResult.id;
+      paymentPayload.remittance_confirmed_at = new Date().toISOString();
+    } else {
+      paymentPayload.remittance_status = null;
+    }
+
+    const { data: payment, error: paymentError } = await supabaseAdmin.from('credit_payments').insert(paymentPayload).select().single();
 
     if (paymentError) return NextResponse.json({ error: paymentError.message }, { status: 400 });
 
@@ -102,7 +113,7 @@ export async function POST(req: NextRequest) {
       // Auto-allocate payment to items if none were selected
       const { data: saleItems } = await supabaseAdmin
         .from('credit_sale_items')
-        .select('*')
+        .select('*, item:item_id(price_jalingo)')
         .eq('credit_sale_id', creditSaleId);
       
       if (saleItems && saleItems.length > 0) {
@@ -115,14 +126,15 @@ export async function POST(req: NextRequest) {
         let remainingAmount = Number(amount);
         for (const item of saleItems) {
           if (remainingAmount <= 0) break;
+          const sellingPrice = item.item?.price_jalingo || item.unit_price;
+          const effectiveTotal = Number(item.quantity) * sellingPrice;
           const itemExisting = allExisting?.filter(e => e.credit_sale_item_id === item.id) || [];
           const paidAmount = itemExisting.reduce((sum, e) => sum + Number(e.amount), 0);
-          const itemRemaining = Math.max(0, Number(item.total_price) - paidAmount);
+          const itemRemaining = Math.max(0, effectiveTotal - paidAmount);
           
           if (itemRemaining > 0) {
             const pay = Math.min(remainingAmount, itemRemaining);
-            // Calculate quantity proportionally
-            const payQty = (pay / Number(item.total_price)) * Number(item.quantity);
+            const payQty = (pay / effectiveTotal) * Number(item.quantity);
             paymentItems.push({
               credit_payment_id: payment.id,
               credit_sale_item_id: item.id,
@@ -142,9 +154,16 @@ export async function POST(req: NextRequest) {
 
       // Reconcile balances and store status (Strict Business / 75% Rule)
       for (const pi of paymentItems) {
-        const { data: saleItem } = await supabaseAdmin.from('credit_sale_items').select('*').eq('id', pi.credit_sale_item_id).single();
+        const { data: saleItem } = await supabaseAdmin
+          .from('credit_sale_items')
+          .select('*, item:item_id(price_jalingo)')
+          .eq('id', pi.credit_sale_item_id)
+          .single();
         if (saleItem) {
-          const newPaidQty = Number(saleItem.quantity_paid || 0) + Number(pi.quantity);
+          const sellingPrice = saleItem.item?.price_jalingo || saleItem.unit_price;
+          const effectiveTotal = Number(saleItem.quantity) * sellingPrice;
+          const payQty = effectiveTotal > 0 ? (Number(pi.amount) / effectiveTotal) * Number(saleItem.quantity) : 0;
+          const newPaidQty = Number(saleItem.quantity_paid || 0) + payQty;
           await supabaseAdmin.from('credit_sale_items')
             .update({ quantity_paid: newPaidQty })
             .eq('id', pi.credit_sale_item_id);

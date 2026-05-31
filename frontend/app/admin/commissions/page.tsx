@@ -1,71 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import LoadingLogo from '@/components/LoadingLogo';
 import { formatQty } from '@/lib/format-quantity';
-
-interface StaffCommission {
-  staff_id: string;
-  staff_name: string;
-  staff_email: string;
-  staff_username: string;
-  total_commission_generated: number;
-  total_commission_paid: number;
-  commission_pending: number;
-  total_sales: number;
-  items_sold: number;
-}
-
-interface CommissionOverview {
-  total_commission_generated: number;
-  total_commission_paid: number;
-  total_commission_pending: number;
-  commission_staff_count: number;
-  staff_commissions: StaffCommission[];
-}
-
-interface CommissionPayment {
-  id: string;
-  staff_id: string;
-  staff_name: string;
-  staff_email: string;
-  amount: number;
-  status: string;
-  notes: string;
-  created_at: string;
-  approved_date: string;
-}
-
-interface TopPerformer {
-  staff_id: string;
-  staff_name: string;
-  total_commission: number;
-  total_sales: number;
-  items_sold: number;
-}
-
-interface CommissionTrend {
-  date: string;
-  commission: number;
-}
-
-interface TopCommissionItem {
-  item_id: string;
-  item_name: string;
-  category: string;
-  commission_per_unit: number;
-  quantity_sold: number;
-  total_commission: number;
-}
-
-interface CommissionAnalytics {
-  top_performers: TopPerformer[];
-  commission_trends: CommissionTrend[];
-  items_with_highest_commission: TopCommissionItem[];
-  period_days: number;
-}
+import type {
+  StaffCommission,
+  CommissionOverview,
+  CommissionPayment,
+  CommissionAnalytics,
+} from '@/types';
 
 const getPeriodDays = (period: string): number => {
   switch (period) {
@@ -156,9 +101,6 @@ export default function AdminCommissionsPage() {
   const [analyticsEndDate, setAnalyticsEndDate] = useState('');
   const [paymentAmountError, setPaymentAmountError] = useState('');
   
-  const token = useAuthStore((state) => state.token);
-
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
   useEffect(() => {
     fetchData();
@@ -186,9 +128,7 @@ export default function AdminCommissionsPage() {
 
   const fetchOverview = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/admin/commissions/overview`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get('/api/admin/commissions/overview');
       setOverview(response.data);
     } catch (error) {
       console.error('Error fetching commission overview:', error);
@@ -197,9 +137,7 @@ export default function AdminCommissionsPage() {
 
   const fetchPayments = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/admin/commissions/payments`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get('/api/admin/commissions/payments');
       setPayments(response.data);
     } catch (error) {
       console.error('Error fetching commission payments:', error);
@@ -233,10 +171,9 @@ export default function AdminCommissionsPage() {
         period = getPeriodDays(analyticsPeriodCode);
       }
       
-      const response = await axios.get(
-        `${API_BASE_URL}/api/admin/commissions/analytics`,
+      const response = await api.get(
+        '/api/admin/commissions/analytics',
         {
-          headers: { Authorization: `Bearer ${token}` },
           params: {
             startDate,
             endDate,
@@ -267,15 +204,12 @@ export default function AdminCommissionsPage() {
     setPaymentAmountError('');
     setProcessingPayment(true);
     try {
-      await axios.post(
-        `${API_BASE_URL}/api/admin/commissions/pay`,
+      await api.post(
+        '/api/admin/commissions/pay',
         {
           staff_id: selectedStaff.staff_id,
           amount: amount,
           notes: paymentNotes || `Commission payment for ${selectedStaff.staff_name}`,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
         }
       );
 

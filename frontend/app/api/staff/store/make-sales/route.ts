@@ -37,13 +37,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `Item ${item_id} not found in your store at ${itemLocation}` }, { status: 404 });
       }
 
-      // Subtract any quantities locked in pending/accepted returns for this location
+      // Subtract any quantities locked in pending returns
+      // Note: returned_items table does NOT have a location column, so locking is by item_id only.
       const { data: pendingReturns } = await supabaseAdmin
         .from('returned_items')
         .select('quantity')
         .eq('requester_staff_id', authResult.id)
         .eq('item_id', item_id)
-        .eq('location', itemLocation)
         .eq('status', 'pending');
 
       const lockedQty = (pendingReturns || []).reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);

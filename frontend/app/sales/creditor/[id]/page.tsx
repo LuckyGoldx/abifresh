@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   X,
   Eye,
-  DollarSign,
   Printer,
   Download,
   Upload,
@@ -76,6 +75,10 @@ export default function CreditorDetailsPage() {
   const [showPaymentReceiptModal, setShowPaymentReceiptModal] = useState(false);
   const [selectedPaymentReceipt, setSelectedPaymentReceipt] = useState<any>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [historyTab, setHistoryTab] = useState<'credit' | 'payment'>('credit');
+  const [creditPage, setCreditPage] = useState(1);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const perPage = 10;
 
   useEffect(() => {
     fetchCreditorDetails();
@@ -106,6 +109,23 @@ export default function CreditorDetailsPage() {
     setReceiptPreview(null);
     setShowPaymentModal(true);
   };
+
+  // Auto-generate reference for cash, clear for pos/transfer
+  useEffect(() => {
+    if (!showPaymentModal) return;
+    const now = new Date();
+    const ts = now.getFullYear().toString() +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      String(now.getDate()).padStart(2, '0') + '-' +
+      String(now.getHours()).padStart(2, '0') +
+      String(now.getMinutes()).padStart(2, '0') +
+      String(now.getSeconds()).padStart(2, '0');
+    if (paymentForm.paymentMethod === 'cash') {
+      setPaymentForm(f => ({ ...f, referenceNumber: `CASH-${ts}` }));
+    } else {
+      setPaymentForm(f => ({ ...f, referenceNumber: '' }));
+    }
+  }, [paymentForm.paymentMethod, showPaymentModal]);
 
   const handleSubmitPayment = async () => {
     if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
@@ -148,30 +168,41 @@ export default function CreditorDetailsPage() {
   };
 
   const handleViewReceipt = (sale: any) => {
+    const items = sale.credit_sale_items?.map((item: any) => {
+      const paidQty = item.quantity_paid || 0;
+      const totalQty = item.quantity || 0;
+      let itemStatus = sale.status;
+
+      if (paidQty >= totalQty && totalQty > 0) {
+        itemStatus = 'paid';
+      }
+
+      return {
+        name: item.item_name,
+        sale_quantity: totalQty,
+        paid_quantity: paidQty,
+        price: item.item?.price_jalingo || item.unit_price,
+        status: itemStatus,
+        paid_percentage: item.paid_percentage || 0
+      };
+    }) || [];
+
+    const allPaid = items.length > 0 && items.every((i: any) => i.paid_percentage >= 100);
+    const hasPayment = items.some((i: any) => i.paid_quantity > 0);
+
+    let receiptStatus = sale.status || 'active';
+    if (receiptStatus !== 'cancelled') {
+      if (allPaid) receiptStatus = 'paid';
+      else if (hasPayment) receiptStatus = 'partially_paid';
+    }
+
     const formattedReceipt = {
       receipt_number: sale.receipt_number,
       timestamp: sale.created_at,
       staff_name: sale.users?.full_name || 'Staff',
       payment_method: 'Credit',
-      items: sale.credit_sale_items?.map((item: any) => {
-        const paidQty = item.quantity_paid || 0;
-        const totalQty = item.quantity || 0;
-        let itemStatus = sale.status;
-
-        // If item is fully paid, mark it as paid even if sale is cancelled
-        if (paidQty >= totalQty && totalQty > 0) {
-          itemStatus = 'paid';
-        }
-
-        return {
-          name: item.item_name,
-          sale_quantity: totalQty,
-          paid_quantity: paidQty,
-          price: item.unit_price,
-          status: itemStatus,
-          paid_percentage: item.paid_percentage || 0
-        };
-      }) || [],
+      items,
+      receipt_status: receiptStatus,
       total_amount: sale.total_amount,
       creditor: {
         name: creditor.full_name,
@@ -201,8 +232,16 @@ export default function CreditorDetailsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -241,7 +280,7 @@ export default function CreditorDetailsPage() {
                 onClick={() => handleOpenPayment()}
                 className="bg-green-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-600 shadow-sm flex items-center gap-2"
               >
-                <DollarSign className="w-5 h-5" />
+                <span className="text-lg font-black text-white">₦</span>
                 Record Payment
               </button>
             )}
@@ -324,85 +363,92 @@ export default function CreditorDetailsPage() {
           </div>
         </div>
 
-        {/* Second Row: Credit History Section */}
+        {/* History Section with Tabs */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Package className="w-6 h-6 text-pink-500" />
-              Credit History
-            </h3>
+          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setHistoryTab('credit'); setCreditPage(1); }}
+                className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${
+                  historyTab === 'credit' ? 'bg-pink-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Credit History
+              </button>
+              <button
+                onClick={() => { setHistoryTab('payment'); setPaymentPage(1); }}
+                className={`px-6 py-2 text-sm font-bold rounded-lg transition-all ${
+                  historyTab === 'payment' ? 'bg-pink-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Payment History
+              </button>
+            </div>
           </div>
-          <div className="p-6">
+
+          {historyTab === 'credit' ? (
+          <div className="overflow-x-auto">
             {creditor.credit_sales && creditor.credit_sales.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {creditor.credit_sales.map((sale: any) => (
-                  <div key={sale.id} className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition-shadow">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="bg-pink-100 dark:bg-pink-900/40 p-2 rounded-lg shrink-0">
-                          <FileText className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-mono text-sm font-bold text-gray-900 dark:text-white truncate" title={sale.receipt_number}>{sale.receipt_number}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{new Date(sale.created_at).toLocaleString()}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center flex-wrap sm:flex-nowrap justify-end gap-3 sm:gap-4 shrink-0">
-                        <div className="text-right shrink-0">
-                          <p className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold tracking-tighter">Amount</p>
-                          <p className="text-sm font-black text-gray-900 dark:text-white">₦{parseFloat(sale.total_amount).toLocaleString()}</p>
-                        </div>
-                        
-                        <div>
+              <>
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-gray-900/50 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b dark:border-gray-700">
+                    <th className="py-4 px-6">Date</th>
+                    <th className="py-4 px-6">Receipt</th>
+                    <th className="py-4 px-6">Amount</th>
+                    <th className="py-4 px-6">Paid</th>
+                    <th className="py-4 px-6">Balance</th>
+                    <th className="py-4 px-6">Status</th>
+                    <th className="py-4 px-6">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+                  {creditor.credit_sales.slice((creditPage - 1) * perPage, creditPage * perPage).map((sale: any) => {
+                    const paid = Number(sale.paid_amount || 0);
+                    const balance = Number(sale.total_amount) - paid;
+                    return (
+                      <tr key={sale.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td className="py-4 px-6 text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">{new Date(sale.created_at).toLocaleString()}</td>
+                        <td className="py-4 px-6 text-sm font-mono font-bold text-gray-900 dark:text-white">{sale.receipt_number}</td>
+                        <td className="py-4 px-6 text-sm font-bold text-gray-900 dark:text-white">₦{Number(sale.total_amount).toLocaleString()}</td>
+                        <td className="py-4 px-6 text-sm font-bold text-green-600">₦{paid.toLocaleString()}</td>
+                        <td className="py-4 px-6 text-sm font-bold text-red-600">₦{balance.toLocaleString()}</td>
+                        <td className="py-4 px-6">
                           <span className={`px-2 py-1 rounded text-[10px] font-black tracking-widest ${
                             (sale.status || 'active') === 'active' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400' : 
                             sale.status === 'paid' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 
+                            sale.status === 'partially_paid' ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400' :
                             'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'
                           }`}>
                             {sale.status === 'cancelled' && (sale.paid_amount || 0) > 0 
                               ? 'CANCELLED (PARTIALLY PAID)' 
                               : (sale.status || 'active').toUpperCase()}
                           </span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleViewReceipt(sale)}
-                            className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="View Receipt"
-                          >
-                            <Eye className="w-5 h-5" />
-                          </button>
-
-                          {sale.status === 'active' && (
-                            <button
-                              onClick={() => handleOpenPayment(sale.id)}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Record Payment"
-                            >
-                              <DollarSign className="w-5 h-5" />
-                            </button>
-                          )}
-                          
-                          {sale.status !== 'cancelled' && sale.status !== 'paid' && (Number(sale.paid_amount || 0) <= 0) && (
-                            <button
-                              onClick={() => {
-                                setSelectedSaleId(sale.id);
-                                setShowCancelModal(true);
-                              }}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Cancel Credit"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => handleViewReceipt(sale)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="View Receipt"><Eye className="w-4 h-4" /></button>
+                            {(sale.status === 'active' || sale.status === 'partially_paid') && (
+                              <button onClick={() => handleOpenPayment(sale.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Record Payment"><span className="text-base font-black">₦</span></button>
+                            )}
+                            {sale.status !== 'cancelled' && sale.status !== 'paid' && (
+                              <button onClick={() => { setSelectedSaleId(sale.id); setShowCancelModal(true); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Cancel Credit"><X className="w-4 h-4" /></button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {Math.ceil(creditor.credit_sales.length / perPage) > 1 && (
+                <div className="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
+                  <button disabled={creditPage === 1} onClick={() => setCreditPage(p => p - 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Previous</button>
+                  <span className="px-4 py-2 text-xs font-black">Page {creditPage} of {Math.ceil(creditor.credit_sales.length / perPage)}</span>
+                  <button disabled={creditPage >= Math.ceil(creditor.credit_sales.length / perPage)} onClick={() => setCreditPage(p => p + 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Next</button>
+                </div>
+              )}
+              </>
             ) : (
               <div className="text-center py-12 text-gray-500">
                 <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
@@ -410,64 +456,62 @@ export default function CreditorDetailsPage() {
               </div>
             )}
           </div>
-        </div>
-
-        {/* Third Row: Payment History Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <DollarSign className="w-6 h-6 text-green-500" />
-              Payment History
-            </h3>
-          </div>
-          <div className="p-6">
+          ) : (
+          <div className="overflow-x-auto">
             {creditor.payment_history && creditor.payment_history.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {creditor.payment_history.map((payment: any) => (
-                  <div key={payment.id} className="bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700 p-4 relative overflow-hidden group">
-                    <div className={`absolute top-0 right-0 w-16 h-16 -mr-8 -mt-8 rotate-45 ${
-                      payment.status === 'approved' ? 'bg-green-500' : 
-                      payment.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
-                    } opacity-10 group-hover:opacity-20 transition-opacity`}></div>
-                    
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-2xl font-black text-gray-900 dark:text-white">₦{parseFloat(payment.amount).toLocaleString()}</p>
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold mt-1 ${
-                          (payment.status || 'pending') === 'approved' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : 
-                          payment.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400' : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'
+              <>
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-gray-900/50 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b dark:border-gray-700">
+                    <th className="py-4 px-6">Date</th>
+                    <th className="py-4 px-6">Amount</th>
+                    <th className="py-4 px-6">Method</th>
+                    <th className="py-4 px-6">Reference</th>
+                    <th className="py-4 px-6">Status</th>
+                    <th className="py-4 px-6">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+                  {creditor.payment_history.slice((paymentPage - 1) * perPage, paymentPage * perPage).map((payment: any) => (
+                    <tr key={payment.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                      <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{new Date(payment.created_at).toLocaleString()}</td>
+                      <td className="py-4 px-6 text-sm font-bold text-gray-900 dark:text-white">₦{Number(payment.amount).toLocaleString()}</td>
+                      <td className="py-4 px-6 text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">{payment.payment_method?.replace(/_/g, ' ')}</td>
+                      <td className="py-4 px-6 text-sm font-mono text-gray-500 dark:text-gray-400">{payment.reference_number || 'N/A'}</td>
+                      <td className="py-4 px-6">
+                        <span className={`px-2 py-1 rounded text-[10px] font-black tracking-widest ${
+                          payment.status === 'approved' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
+                          payment.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400' :
+                          'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'
                         }`}>
                           {(payment.status || 'pending').toUpperCase()}
                         </span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">{new Date(payment.created_at).toLocaleDateString()}</p>
-                        <p className="text-xs font-mono font-bold text-gray-400">{payment.reference_number || 'NO REF'}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                        <Activity className="w-3 h-3" />
-                        {payment.payment_method.replace('_', ' ').toUpperCase()}
-                      </p>
-                      <button 
-                        onClick={() => handleViewPaymentReceipt(payment)}
-                        className="text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 text-xs font-bold flex items-center gap-1"
-                      >
-                        <Eye className="w-3 h-3" /> VIEW RECEIPT
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <button onClick={() => handleViewPaymentReceipt(payment)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors" title="View Receipt">
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {Math.ceil(creditor.payment_history.length / perPage) > 1 && (
+                <div className="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
+                  <button disabled={paymentPage === 1} onClick={() => setPaymentPage(p => p - 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Previous</button>
+                  <span className="px-4 py-2 text-xs font-black">Page {paymentPage} of {Math.ceil(creditor.payment_history.length / perPage)}</span>
+                  <button disabled={paymentPage >= Math.ceil(creditor.payment_history.length / perPage)} onClick={() => setPaymentPage(p => p + 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Next</button>
+                </div>
+              )}
+              </>
             ) : (
               <div className="text-center py-12 text-gray-500">
-                <DollarSign className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                <span className="w-12 h-12 mx-auto mb-4 opacity-20 text-3xl text-gray-400 dark:text-gray-500 font-black flex items-center justify-center">₦</span>
                 <p>No payments recorded for this creditor.</p>
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 
@@ -477,7 +521,7 @@ export default function CreditorDetailsPage() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border dark:border-gray-700">
             <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-pink-50/30 dark:bg-pink-900/10">
               <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
-                <DollarSign className="w-6 h-6 text-pink-500" />
+                <span className="w-6 h-6 text-pink-500 text-xl font-black flex items-center justify-center">₦</span>
                 Record Payment
               </h3>
               <button onClick={() => setShowPaymentModal(false)} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">
@@ -504,32 +548,45 @@ export default function CreditorDetailsPage() {
                         finalAmount = maxOutstanding.toString();
                       }
 
-                      // FIFO Selection across all receipts
-                      let runningSum = 0;
-                      const newSelected: any[] = [];
-                      
-                      if (finalAmount !== '' && Number(finalAmount) > 0) {
-                        const amt = Number(finalAmount);
-                        const allUnpaidItems = (creditor.credit_sales || [])
-                          .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-                          .flatMap((sale: any) => (sale.credit_sale_items || [])
-                            .filter((item: any) => Number(item.quantity) > Number(item.quantity_paid))
-                            .map((item: any) => ({ ...item, saleId: sale.id }))
-                          );
+                       // FIFO Selection across all receipts
+                       let runningSum = 0;
+                       const newSelected: any[] = [];
+                       
+                       if (finalAmount !== '' && Number(finalAmount) > 0) {
+                         const amt = Number(finalAmount);
+                         const allUnpaidItems = (creditor.credit_sales || [])
+                           .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                           .flatMap((sale: any) => (sale.credit_sale_items || [])
+                             .filter((item: any) => Number(item.quantity) > Number(item.quantity_paid))
+                             .map((item: any) => ({ ...item, saleId: sale.id }))
+                           );
 
-                        for (const item of allUnpaidItems) {
-                          if (runningSum >= amt) break;
-                          
-                          const itemRemaining = Number(item.total_price);
-                          newSelected.push({ 
-                            creditSaleItemId: item.id, 
-                            itemId: item.item_id, 
-                            quantity: Number(item.quantity) - Number(item.quantity_paid), 
-                            amount: item.total_price 
-                          });
-                          runningSum += itemRemaining;
-                        }
-                      }
+                         for (const item of allUnpaidItems) {
+                           if (runningSum >= amt) break;
+                           
+                           const remaining = item.remaining_amount ?? (() => {
+                             const sellingPrice = item.item?.price_jalingo || item.unit_price;
+                             const effectiveTotal = Number(item.quantity) * sellingPrice;
+                             const alreadyPaidAmt = Number(item.quantity) > 0
+                               ? (Number(item.quantity_paid) / Number(item.quantity)) * effectiveTotal
+                               : 0;
+                             return Math.max(0, effectiveTotal - alreadyPaidAmt);
+                           })();
+
+                           const payAmount = Math.min(remaining, amt - runningSum);
+                           const unitPrice = item.item?.price_jalingo || item.unit_price;
+                           const effectiveTotal = unitPrice * Number(item.quantity);
+                           const payQty = effectiveTotal > 0 ? (payAmount / effectiveTotal) * Number(item.quantity) : 0;
+                           
+                           newSelected.push({ 
+                             creditSaleItemId: item.id, 
+                             itemId: item.item_id, 
+                             quantity: payQty, 
+                             amount: payAmount
+                           });
+                           runningSum += payAmount;
+                         }
+                       }
 
                       setPaymentForm({ 
                         ...paymentForm, 
@@ -577,11 +634,22 @@ export default function CreditorDetailsPage() {
                               onChange={(e) => {
                                 let newSelected = [...paymentForm.selectedItems];
                                 if (e.target.checked) {
+                                  const remaining = item.remaining_amount ?? (() => {
+                                    const sellingPrice = item.item?.price_jalingo || item.unit_price;
+                                    const effectiveTotal = Number(item.quantity) * sellingPrice;
+                                    const alreadyPaidAmt = Number(item.quantity) > 0
+                                      ? (Number(item.quantity_paid) / Number(item.quantity)) * effectiveTotal
+                                      : 0;
+                                    return Math.max(0, effectiveTotal - alreadyPaidAmt);
+                                  })();
+                                  const unitPrice = item.item?.price_jalingo || item.unit_price;
+                                  const effectiveTotal = unitPrice * Number(item.quantity);
+                                  const payQty = effectiveTotal > 0 ? (remaining / effectiveTotal) * Number(item.quantity) : 0;
                                   newSelected.push({ 
                                     creditSaleItemId: item.id, 
                                     itemId: item.item_id, 
-                                    quantity: Number(item.quantity) - Number(item.quantity_paid), 
-                                    amount: item.total_price 
+                                    quantity: payQty, 
+                                    amount: remaining 
                                   });
                                 } else {
                                   newSelected = newSelected.filter((si: any) => si.creditSaleItemId !== item.id);
@@ -602,9 +670,17 @@ export default function CreditorDetailsPage() {
                                 <span className="text-xs font-bold text-gray-600 dark:text-gray-400">{formatQty(Number(item.quantity) - Number(item.quantity_paid))}</span>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-sm font-black text-gray-900 dark:text-white">₦{parseFloat(item.total_price || '0').toLocaleString()}</p>
-                            </div>
+                             <div className="text-right">
+                               <p className="text-sm font-black text-gray-900 dark:text-white">₦{(() => {
+                                 if (item.remaining_amount != null) return Number(item.remaining_amount).toLocaleString();
+                                 const sellingPrice = item.item?.price_jalingo || item.unit_price;
+                                 const effectiveTotal = Number(item.quantity) * sellingPrice;
+                                 const alreadyPaidAmt = Number(item.quantity) > 0
+                                   ? (Number(item.quantity_paid) / Number(item.quantity)) * effectiveTotal
+                                   : 0;
+                                 return Math.max(0, effectiveTotal - alreadyPaidAmt).toLocaleString();
+                               })()}</p>
+                             </div>
                           </label>
                         );
                       })
@@ -642,18 +718,6 @@ export default function CreditorDetailsPage() {
               </div>
 
               {paymentForm.paymentMethod !== 'cash' && (
-                <div>
-                  <label className="block text-xs font-black text-gray-500 dark:text-gray-400 uppercase mb-2">Reference Number</label>
-                  <input
-                    type="text"
-                    value={paymentForm.referenceNumber}
-                    onChange={(e) => setPaymentForm({ ...paymentForm, referenceNumber: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-4 focus:ring-pink-500/10 focus:border-pink-500 transition-all font-mono text-gray-900 dark:text-white"
-                    placeholder="TX-123456789"
-                  />
-                </div>
-              )}
-
               <div>
                 <label className="block text-xs font-black text-gray-500 dark:text-gray-400 uppercase mb-2">Upload Receipt</label>
                 <div 
@@ -669,6 +733,7 @@ export default function CreditorDetailsPage() {
                 </div>
                 <input ref={receiptInputRef} type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => e.target.files && setReceiptFile(e.target.files[0])} />
               </div>
+              )}
             </div>
 
             <div className="p-6 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 flex gap-4">
@@ -692,9 +757,9 @@ export default function CreditorDetailsPage() {
               <Trash2 className="w-8 h-8" />
             </div>
             <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Cancel Credit?</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
-              This action will mark the credit sale as cancelled and return the associated items to the active store. This cannot be undone.
-            </p>
+              <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                This will cancel the credit sale. Any items with partial payment (75% or less paid) will be returned to the active store (only the unpaid portion). Items with more than 75% payment cannot be returned.
+              </p>
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleCancelSale}
@@ -767,8 +832,15 @@ export default function CreditorDetailsPage() {
                         <p className="text-gray-900 dark:text-white font-black text-sm sm:text-xl tracking-tighter truncate">{selectedReceipt.creditor?.name}</p>
                         <p className="text-gray-600 dark:text-gray-300 font-bold text-[10px] sm:text-sm">{selectedReceipt.creditor?.phone}</p>
                         <div className="mt-2 sm:mt-3 pt-1.5 sm:pt-2 border-t border-gray-100 dark:border-gray-700">
-                           <span className="inline-block bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest">
-                             CREDIT
+                           <span className={`inline-block px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-widest ${
+                             selectedReceipt.receipt_status === 'paid' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
+                             selectedReceipt.receipt_status === 'partially_paid' ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400' :
+                             selectedReceipt.receipt_status === 'cancelled' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
+                             'bg-pink-100 dark:bg-pink-900/40 text-pink-700 dark:text-pink-300'
+                           }`}>
+                             {selectedReceipt.receipt_status === 'cancelled' ? 'CANCELLED' :
+                              selectedReceipt.receipt_status === 'paid' ? 'PAID' :
+                              selectedReceipt.receipt_status === 'partially_paid' ? 'PARTIALLY PAID' : 'CREDIT'}
                            </span>
                         </div>
                       </div>
@@ -796,8 +868,8 @@ export default function CreditorDetailsPage() {
                                       PAID
                                     </span>
                                   ) : item.paid_quantity > 0 && (
-                                    <span className="text-[9px] font-black bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                                      {item.paid_percentage}% PAID
+                                    <span className="text-[9px] font-black bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                                      {item.paid_percentage}% PAID — PARTIALLY PAID
                                     </span>
                                   )}
                                   {item.status === 'cancelled' && (item.sale_quantity - item.paid_quantity) > 0 && (
@@ -810,8 +882,8 @@ export default function CreditorDetailsPage() {
                             </div>
                             <div className="w-24 text-center">
                               {item.status !== 'cancelled' && item.paid_quantity > 0 && (
-                                <span className={`text-[10px] font-bold ${item.paid_percentage >= 100 ? 'text-green-600' : 'text-blue-600'}`}>
-                                  {item.paid_percentage >= 100 ? 'PAID' : `${item.paid_percentage}% PAID`}
+                                <span className={`text-[10px] font-bold ${item.paid_percentage >= 100 ? 'text-green-600' : 'text-yellow-600'}`}>
+                                  {item.paid_percentage >= 100 ? 'PAID' : `${item.paid_percentage}% PAID — PARTIALLY PAID`}
                                 </span>
                               )}
                             </div>
@@ -915,7 +987,7 @@ const PaymentReceiptModal = ({ isOpen, onClose, payment, creditorName, onPreview
       <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 border dark:border-gray-700">
         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-green-50/30 dark:bg-green-900/10">
           <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
-            <DollarSign className="w-6 h-6 text-green-500" />
+            <span className="w-6 h-6 text-green-500 text-xl font-black flex items-center justify-center">₦</span>
             Payment Receipt
           </h3>
           <button onClick={onClose} className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded-full transition-colors">

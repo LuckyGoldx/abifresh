@@ -5,6 +5,8 @@ import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { Package, DollarSign, TrendingUp, CheckCircle, AlertCircle, ArrowUp, Users, Clock, X } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
+import type { Item, SaleCartItem, StaffInfo, SalesDashboardStats, Receipt, Activity } from '@/types';
+import { SkeletonStatGrid, SkeletonTable, SkeletonChart } from '@/components/Skeleton';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
@@ -24,65 +26,6 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   );
 };
 
-interface Item {
-  id: string;
-  name: string;
-  sku: string;
-  price_jalingo: number;
-  unit_price?: number;
-  active_store_quantity: number;
-  main_store_quantity: number;
-  commission: number;
-  category: string;
-  brand?: string;
-  package_type?: string;
-  price_outside?: number;
-  image_url?: string;
-}
-
-interface CartItem extends Item {
-  sale_quantity: number;
-  payment_method: 'cash' | 'pos' | 'transfer';
-  sold_outside_jalingo: boolean;
-}
-
-interface Staff {
-  id: string;
-  full_name: string;
-  username: string;
-  role: string;
-}
-
-interface DashboardStats {
-  today_items_sold: number;
-  today_amount_sold: number;
-  all_time_items_sold: number;
-  all_time_amount_sold: number;
-  available_items_count: number;
-}
-
-interface Receipt {
-  id: string;
-  receipt_number: string;
-  total_amount: number;
-  created_at: string;
-  items: any[];
-  staff_name?: string;
-  date?: Date;
-  payment_method?: string;
-}
-
-interface Activity {
-  id: string;
-  type: 'sale' | 'post-items' | 'receipt';
-  title: string;
-  description: string;
-  amount?: number;
-  itemCount?: number;
-  timestamp: Date;
-  staffName: string;
-}
-
 export default function SalesDashboard() {
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
@@ -90,17 +33,17 @@ export default function SalesDashboard() {
   const [items, setItems] = useState<Item[]>([]);
   const [unavailableItems, setUnavailableItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<SaleCartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [staffList, setStaffList] = useState<StaffInfo[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [logisticPrice, setLogisticPrice] = useState(0);
   const [selectedStaffForPost, setSelectedStaffForPost] = useState<string | null>(null);
   const [showPostModal, setShowPostModal] = useState(false);
   const [showReceiptsModal, setShowReceiptsModal] = useState(false);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [stats, setStats] = useState<SalesDashboardStats | null>(null);
   const [currentReceipt, setCurrentReceipt] = useState<any | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -141,7 +84,7 @@ export default function SalesDashboard() {
       const response = await api.get('/api/inventory/active-store', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      const available = response.data.filter((item: Item) => item.active_store_quantity > 0);
+      const available = response.data.filter((item: Item) => (item.active_store_quantity ?? 0) > 0);
       setItems(available);
       setFilteredItems(available);
     } catch (error) {
@@ -222,7 +165,7 @@ export default function SalesDashboard() {
       const response = await api.get('/api/admin/staff', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      setStaffList(response.data.filter((s: Staff) => s.id !== user?.id));
+      setStaffList(response.data.filter((s: StaffInfo) => s.id !== user?.id));
     } catch (error) {
       console.error('Failed to fetch staff:', error);
     }
@@ -301,7 +244,7 @@ export default function SalesDashboard() {
       });
 
       // Sort by timestamp (newest first)
-      allActivities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      allActivities.sort((a, b) => b.timestamp!.getTime() - a.timestamp!.getTime());
 
       // Keep only last 10 activities
       setActivities(allActivities.slice(0, 10));
@@ -339,7 +282,7 @@ export default function SalesDashboard() {
 
   const addToCart = (item: Item) => {
     const existing = cart.find(c => c.id === item.id);
-    if (existing && existing.sale_quantity < item.active_store_quantity) {
+    if (existing && existing.sale_quantity < (item.active_store_quantity ?? 0)) {
       setCart(cart.map(c => c.id === item.id ? { ...c, sale_quantity: c.sale_quantity + 1 } : c));
       setToast({ message: `${item.name} quantity increased`, type: 'success' });
     } else if (!existing) {
@@ -413,7 +356,7 @@ export default function SalesDashboard() {
       });
 
       // Generate receipt
-      const receipt = {
+      const receipt: Receipt = {
         id: response.data.sale_id,
         receipt_number: response.data.receipt_number || `REC-${Date.now()}`,
         date: new Date(),
@@ -428,7 +371,7 @@ export default function SalesDashboard() {
         })),
         logistics_fee: cart[0].sold_outside_jalingo ? logisticPrice * cart.reduce((sum, item) => sum + item.sale_quantity, 0) : 0,
         total_amount: calculateCartTotal(),
-        payment_method: cart[0].payment_method,
+        payment_method: (cart[0].payment_method as 'cash' | 'pos' | 'transfer') || 'cash',
       };
 
       setCurrentReceipt(receipt);
@@ -500,7 +443,7 @@ export default function SalesDashboard() {
                 <div class="receipt-number">#${receipt.receipt_number}</div>
               </div>
               <div class="items">
-                ${receipt.items.map((item: any) => `
+                ${receipt.items?.map((item: any) => `
                   <div class="item">
                     <span>${item.name} x${formatQty(item.quantity)}</span>
                     <span>₦${item.subtotal.toLocaleString()}</span>
@@ -578,7 +521,22 @@ export default function SalesDashboard() {
   };
 
   if (!mounted || isLoading) {
-    return <div className="text-center py-12 text-gray-600 dark:text-gray-400">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4 space-y-6">
+        <div className="animate-pulse">
+          <img src="/favicon.svg" alt="" className="w-20 h-20" />
+        </div>
+        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+          <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold">Abifreshing...</span>
+        </div>
+        <div className="w-full max-w-6xl space-y-6">
+          <SkeletonStatGrid count={4} />
+          <SkeletonChart />
+          <SkeletonTable rows={5} cols={5} />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -682,11 +640,11 @@ export default function SalesDashboard() {
                       {activity.description}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                      {activity.timestamp.toLocaleTimeString('en-NG', {
+                      {activity.timestamp!.toLocaleTimeString('en-NG', {
                         hour: '2-digit',
                         minute: '2-digit',
                         second: '2-digit',
-                      })} • {activity.timestamp.toLocaleDateString('en-NG')}
+                      })} • {activity.timestamp!.toLocaleDateString('en-NG')}
                     </p>
                   </div>
                   <div className="text-right">

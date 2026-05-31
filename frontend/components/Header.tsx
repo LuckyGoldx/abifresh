@@ -46,10 +46,10 @@ export default function Header() {
               )}
             </button>
 
-            {/* Theme Toggle */}
+            {/* Theme Toggle - hidden on mobile (moved to sidebar) */}
             <button
               onClick={toggleTheme}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-pink-500 transition"
+              className="hidden md:block p-2 text-gray-600 dark:text-gray-400 hover:text-pink-500 transition"
             >
               {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
             </button>

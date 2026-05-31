@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { api } from '@/lib/api';
+import api from '@/lib/api';
 import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag, X, Search, History, BarChart, CheckCircle2, XCircle, Clock, RefreshCcw } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
+import { SkeletonTwoColumnPage, SkeletonTable } from '@/components/Skeleton';
 
 interface PostedHistoryItem {
   id: string;
@@ -65,30 +66,10 @@ const displayRoleName = (role: string): string => {
   return roleMap[role] || role.replace(/_/g, ' ');
 };
 
-interface Item {
-  id: string;
-  name: string;
-  sku: string;
-  price_jalingo: number;
-  unit_price?: number;
-  active_store_quantity: number;
-  commission: number;
-  category: string;
-  brand?: string;
-  package_type?: string;
-  price_outside?: number;
-  image_url?: string;
-}
+import type { Item, Staff } from '@/types';
 
 interface CartItem extends Item {
   post_quantity: number;
-}
-
-interface Staff {
-  id: string;
-  full_name: string;
-  username: string;
-  role: string;
 }
 
 export default function PostItemsPage() {
@@ -346,7 +327,11 @@ export default function PostItemsPage() {
   };
 
   if (!mounted || isLoading) {
-    return <div className="text-center py-12 text-gray-600 dark:text-gray-400">Loading...</div>;
+    return (
+      <div className="p-4 md:p-6">
+        <SkeletonTwoColumnPage />
+      </div>
+    );
   }
 
   const totalValue = cart.reduce((sum, item) => {
@@ -597,7 +582,7 @@ export default function PostItemsPage() {
                       </div>
                       <div className="flex items-center gap-2 bg-white dark:bg-gray-600 rounded px-2 py-1">
                         <button
-                          onClick={() => updateQuantity(item.id, item.post_quantity - 1)}
+                          onClick={() => updateQuantity(item.id, item.post_quantity - 0.5)}
                           className="text-gray-600 dark:text-gray-300 hover:text-pink-600 transition"
                         >
                           <Minus className="w-4 h-4" />
@@ -608,11 +593,12 @@ export default function PostItemsPage() {
                           onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
                           onBlur={() => handleQuantityBlur(item.id, item.active_store_quantity)}
                           className="w-8 text-center bg-transparent text-gray-900 dark:text-white font-semibold"
-                          min="1"
+                          min="0.5"
                           max={item.active_store_quantity}
+                          step="0.5"
                         />
                         <button
-                          onClick={() => updateQuantity(item.id, item.post_quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.post_quantity + 0.5)}
                           disabled={item.post_quantity >= item.active_store_quantity}
                           className="text-gray-600 dark:text-gray-300 hover:text-pink-600 disabled:opacity-50 transition"
                         >
@@ -955,7 +941,7 @@ export default function PostItemsPage() {
                     </div>
                     <div className="flex items-center gap-3 bg-white dark:bg-gray-600 rounded px-3 py-2">
                       <button
-                        onClick={() => updateQuantity(item.id, item.post_quantity - 1)}
+                        onClick={() => updateQuantity(item.id, item.post_quantity - 0.5)}
                         className="text-gray-600 dark:text-gray-300 hover:text-pink-600"
                       >
                         <Minus className="w-5 h-5" />
@@ -966,11 +952,12 @@ export default function PostItemsPage() {
                         onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
                         onBlur={() => handleQuantityBlur(item.id, item.active_store_quantity)}
                         className="w-12 text-center bg-transparent text-gray-900 dark:text-white font-semibold text-lg"
-                        min="1"
+                        min="0.5"
                         max={item.active_store_quantity}
+                        step="0.5"
                       />
                       <button
-                        onClick={() => updateQuantity(item.id, item.post_quantity + 1)}
+                        onClick={() => updateQuantity(item.id, item.post_quantity + 0.5)}
                         disabled={item.post_quantity >= item.active_store_quantity}
                         className="text-gray-600 dark:text-gray-300 hover:text-pink-600 disabled:opacity-50"
                       >

@@ -4,32 +4,12 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToast } from '@/context/ToastContext';
 import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User, Eye, EyeOff, Trash2, Shield, Lock, RefreshCw } from 'lucide-react';
+import type { Staff, StaffStats } from '@/types';
 
 const generateRandomPassword = () => {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!&';
   return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 };
-
-interface Staff {
-  id: string;
-  email: string;
-  full_name: string;
-  username: string;
-  phone_number?: string;
-  role: string;
-  store_location: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-interface StaffStats {
-  total: number;
-  superadmin: number;
-  admin: number;
-  sales_staff: number;
-  commission_staff: number;
-  non_commission_staff: number;
-}
 
 const displayRoleName = (role: string): string => {
   const roleMap: { [key: string]: string } = {
@@ -212,7 +192,7 @@ export default function SuperAdminStaffPage() {
     }
     if (selectedRole) result = result.filter(m => m.role === selectedRole);
     if (sortBy === 'registered') {
-      result = [...result].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      result = [...result].sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
     } else if (sortBy === 'role') {
       const roleOrder: { [key: string]: number } = { superadmin: 0, admin: 1, commission_staff: 2, staff_commission: 2, sales_staff: 3, sales: 3, non_commission_staff: 4, staff_non_commission: 4 };
       result = [...result].sort((a, b) => (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99));
@@ -222,7 +202,19 @@ export default function SuperAdminStaffPage() {
 
   const filteredStaff = getFilteredAndSortedStaff();
 
-  if (isLoading) return <div className="text-center py-12">Loading staff...</div>;
+  if (isLoading) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-pulse">
+          <img src="/favicon.svg" alt="" className="w-20 h-20" />
+        </div>
+        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+          <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold">Abifreshing...</span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -425,7 +417,7 @@ export default function SuperAdminStaffPage() {
                     ) : member.store_location}
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{formatRegistrationDate(member.created_at)}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{formatRegistrationDate(member.created_at!)}</span>
                   </td>
                   <td className="py-3 px-4">
                     {editingMemberId === member.id ? (
@@ -477,7 +469,7 @@ export default function SuperAdminStaffPage() {
                     ) : (
                       <div className="flex gap-2">
                         <button onClick={() => handleEditClick(member)} className="text-blue-600 hover:text-blue-800" title="Edit staff"><Edit className="w-4 h-4" /></button>
-                        <button onClick={() => handleToggleStatus(member.id, member.is_active)} className={member.is_active ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'} title={member.is_active ? 'Deactivate' : 'Activate'}>
+                        <button onClick={() => handleToggleStatus(member.id, member.is_active!)} className={member.is_active ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'} title={member.is_active ? 'Deactivate' : 'Activate'}>
                           {member.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                         </button>
                         <button onClick={() => handleDeleteClick(member.id, member.full_name)} className="text-red-600 hover:text-red-800" title="Delete staff"><Trash2 className="w-4 h-4" /></button>

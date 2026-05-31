@@ -6,51 +6,16 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import api from '@/lib/api';
 import { Users, DollarSign, Package, TrendingUp, Search, Eye, X, ShoppingCart, Wallet, Clock, Banknote, ArrowRightLeft } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { SkeletonPage } from '@/components/Skeleton';
 import { formatQty } from '@/lib/format-quantity';
-
-interface DashboardStats {
-  today_sales: number;
-  today_amount: number;
-  today_items?: number;
-  total_sales: number;
-  total_amount: number;
-  total_items: number;
-  total_staff: number;
-  pending_approvals: number;
-  pending_amount: number;
-}
-
-interface ReceiptItem {
-  id: string;
-  item_id: string | { name: string; price_jalingo?: number; price_outside?: number };
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-}
-
-interface Receipt {
-  id: string;
-  receipt_number: string;
-  total_amount: number;
-  payment_method: 'cash' | 'pos' | 'transfer';
-  items_count: number;
-  created_at: string;
-  staff_id: string;
-  sold_outside_jalingo?: boolean;
-  receipt_items?: ReceiptItem[];
-}
-
-interface StaffInfo {
-  id: string;
-  full_name: string;
-  username: string;
-  role: string;
-}
+import { formatDate, formatTime } from '@/lib/format-date';
+import StatCard from '@/components/StatCard';
+import type { AdminDashboardStats, Receipt, ReceiptItem, StaffInfo } from '@/types';
 
 export default function AdminDashboard() {
   const { token } = useAuthStore();
   const router = useRouter();
-  const [stats, setStats] = useState<DashboardStats>({
+  const [stats, setStats] = useState<AdminDashboardStats>({
     today_sales: 0,
     today_amount: 0,
     total_sales: 0,
@@ -190,41 +155,6 @@ export default function AdminDashboard() {
     }
   }, [token]);
 
-  const StatCard = ({ icon: Icon, title, value, color, onClick, additionalInfo }: any) => (
-    <div 
-      className={`card flex flex-col md:flex-row items-center md:space-x-4 text-center md:text-left ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
-      onClick={onClick}
-    >
-      <div className={`${color} p-2 md:p-3 rounded-lg flex-shrink-0`}>
-        <Icon className="w-5 md:w-6 h-5 md:h-6 text-white" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">{title}</p>
-        <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white break-words leading-tight">{value}</p>
-        {additionalInfo && <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 break-words">{additionalInfo}</p>}
-      </div>
-    </div>
-  );
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-NG', { 
-      year: 'numeric', 
-      month: '2-digit', 
-      day: '2-digit',
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-NG', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    });
-  };
-
   // Filter and sort receipts based on search, date filters, and sort order
   const filteredReceipts = receipts
     .filter(receipt => {
@@ -277,7 +207,7 @@ export default function AdminDashboard() {
   }, [searchQuery, sortOrder, filterType, selectedDate, dateRangeStart, dateRangeEnd, selectedStaff]);
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading dashboard...</div>;
+    return <SkeletonPage />;
   }
 
   return (
@@ -480,9 +410,9 @@ export default function AdminDashboard() {
                       <div className="text-xs text-gray-500">{formatTime(receipt.created_at)}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                      <div className="font-medium">{staffMap[receipt.staff_id]?.full_name || 'Unknown'}</div>
-                      <div className="text-xs text-gray-500">{staffMap[receipt.staff_id]?.username || ''}</div>
-                    </td>
+                     <div className="font-medium">{staffMap[receipt.staff_id!]?.full_name || 'Unknown'}</div>
+                     <div className="text-xs text-gray-500">{staffMap[receipt.staff_id!]?.username || ''}</div>
+                   </td>
                     <td className="px-4 py-3">
                       <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs font-semibold capitalize">
                         {receipt.payment_method}
@@ -647,18 +577,18 @@ export default function AdminDashboard() {
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-bold text-lg">
-                      {staffMap[selectedReceipt.staff_id]?.full_name?.charAt(0) || 'S'}
+                      {staffMap[selectedReceipt.staff_id!]?.full_name?.charAt(0) || 'S'}
                     </span>
                   </div>
                   <div>
                     <p className="font-bold text-gray-900 dark:text-white">
-                      {staffMap[selectedReceipt.staff_id]?.full_name || 'Unknown Staff'}
+                      {staffMap[selectedReceipt.staff_id!]?.full_name || 'Unknown Staff'}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      @{staffMap[selectedReceipt.staff_id]?.username || 'unknown'}
+                      @{staffMap[selectedReceipt.staff_id!]?.username || 'unknown'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-500 capitalize">
-                      {staffMap[selectedReceipt.staff_id]?.role || 'Staff'}
+                      {staffMap[selectedReceipt.staff_id!]?.role || 'Staff'}
                     </p>
                   </div>
                 </div>

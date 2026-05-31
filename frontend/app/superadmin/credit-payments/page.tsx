@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
-import { CreditCard, CheckCircle, Clock, XCircle, Eye, X, FileText, Download, AlertTriangle } from 'lucide-react';
+import { CreditCard, CheckCircle, Clock, XCircle, Eye, X, FileText, Download, AlertTriangle, Loader2, Users } from 'lucide-react';
 import { CreditTabs } from '@/components/credits';
 
 export default function SuperAdminCreditPaymentsPage() {
+  const router = useRouter();
   const [payments, setPayments] = useState<any[]>([]);
   const [filteredPayments, setFilteredPayments] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({
@@ -23,10 +25,26 @@ export default function SuperAdminCreditPaymentsPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [actionInProgress, setActionInProgress] = useState(false);
+  const [activeTab, setActiveTab] = useState<'remittances' | 'auto-remitted' | 'breakdown'>('remittances');
+  const [autoRemitted, setAutoRemitted] = useState<any[]>([]);
+  const [autoRemittedStats, setAutoRemittedStats] = useState({ total: 0, count: 0 });
+  const [autoRemittedLoading, setAutoRemittedLoading] = useState(false);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [autoRemPage, setAutoRemPage] = useState(1);
+  const perPage = 15;
+  const [staffSummary, setStaffSummary] = useState<any[]>([]);
+  const [staffSummaryLoading, setStaffSummaryLoading] = useState(false);
 
   useEffect(() => {
     fetchPayments();
+    fetchStaffSummary();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'auto-remitted') {
+      fetchAutoRemitted();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     filterPayments();
@@ -42,6 +60,32 @@ export default function SuperAdminCreditPaymentsPage() {
       console.error('Failed to fetch payments:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAutoRemitted = async () => {
+    try {
+      setAutoRemittedLoading(true);
+      const res = await api.get('/api/credits/payments/admin/auto-remitted');
+      setAutoRemitted(res.data.payments || []);
+      setAutoRemittedStats(res.data.stats || { total: 0, count: 0 });
+      setAutoRemPage(1);
+    } catch (err) {
+      console.error('Failed to fetch auto-remitted payments:', err);
+    } finally {
+      setAutoRemittedLoading(false);
+    }
+  };
+
+  const fetchStaffSummary = async () => {
+    try {
+      setStaffSummaryLoading(true);
+      const res = await api.get('/api/credits/payments/admin/staff-summary');
+      setStaffSummary((res.data || []).filter((s: any) => s.total_collected > 0));
+    } catch (err) {
+      console.error('Failed to fetch staff summary:', err);
+    } finally {
+      setStaffSummaryLoading(false);
     }
   };
 
@@ -91,7 +135,19 @@ export default function SuperAdminCreditPaymentsPage() {
   };
 
   if (isLoading) {
-    return <div className="text-center py-12 text-gray-500">Loading superadmin oversight...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -108,7 +164,50 @@ export default function SuperAdminCreditPaymentsPage() {
         </button>
       </div>
 
-      <div className="card border-l-4 border-l-pink-500 bg-pink-50 dark:bg-pink-900 cursor-pointer hover:shadow-lg hover:scale-105 transition-all">
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setActiveTab('remittances')}
+          className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${
+            activeTab === 'remittances'
+              ? 'border-pink-500 text-pink-600 dark:text-pink-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+          }`}
+        >
+          All Remittances
+        </button>
+        <button
+          onClick={() => setActiveTab('auto-remitted')}
+          className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${
+            activeTab === 'auto-remitted'
+              ? 'border-pink-500 text-pink-600 dark:text-pink-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+          }`}
+        >
+          My Remitted
+        </button>
+        <button
+          onClick={() => setActiveTab('breakdown')}
+          className={`px-6 py-3 font-bold text-sm transition-all border-b-2 ${
+            activeTab === 'breakdown'
+              ? 'border-pink-500 text-pink-600 dark:text-pink-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+          }`}
+        >
+          Staff Breakdown
+        </button>
+      </div>
+
+      {activeTab === 'remittances' && (
+      <>
+
+      <div 
+        onClick={() => {
+          setActiveTab('breakdown');
+          setTimeout(() => {
+            document.getElementById('credit-tabs-nav')?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }}
+        className="card border-l-4 border-l-pink-500 bg-pink-50 dark:bg-pink-900 cursor-pointer hover:shadow-lg hover:scale-105 transition-all">
         <div className="flex items-start gap-3">
           <div className="p-3 bg-pink-100 dark:bg-pink-800 rounded-full">
             <AlertTriangle className="w-6 h-6 text-pink-600 dark:text-pink-300" />
@@ -146,12 +245,12 @@ export default function SuperAdminCreditPaymentsPage() {
             type="text"
             placeholder="Search by staff or reference..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setPaymentsPage(1); }}
             className="flex-1 px-4 py-2 border-2 border-gray-100 rounded-xl focus:border-pink-500 focus:ring-0"
           />
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => { setStatusFilter(e.target.value); setPaymentsPage(1); }}
             className="px-4 py-2 border-2 border-gray-100 rounded-xl focus:border-pink-500 focus:ring-0 font-bold text-gray-700"
           >
             <option value="all">All Statuses</option>
@@ -174,7 +273,7 @@ export default function SuperAdminCreditPaymentsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white dark:bg-gray-900">
-              {filteredPayments.map((payment) => (
+              {filteredPayments.slice((paymentsPage - 1) * perPage, paymentsPage * perPage).map((payment) => (
                 <tr key={payment.id} className="hover:bg-gray-50 transition-colors">
                   <td className="py-4 px-4 font-bold text-gray-900 dark:text-white">{payment.staff_name}</td>
                   <td className="py-4 px-4 font-black text-pink-600">₦{Number(payment.amount).toLocaleString()}</td>
@@ -202,6 +301,13 @@ export default function SuperAdminCreditPaymentsPage() {
             </tbody>
           </table>
         </div>
+      {Math.ceil(filteredPayments.length / perPage) > 1 && (
+        <div className="flex justify-center gap-2 px-6 pb-4">
+          <button disabled={paymentsPage === 1} onClick={() => setPaymentsPage(p => p - 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Previous</button>
+          <span className="px-4 py-2 text-xs font-black">Page {paymentsPage} of {Math.ceil(filteredPayments.length / perPage)}</span>
+          <button disabled={paymentsPage >= Math.ceil(filteredPayments.length / perPage)} onClick={() => setPaymentsPage(p => p + 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Next</button>
+        </div>
+      )}
       </div>
 
       {showDetailsModal && selectedPayment && (
@@ -280,9 +386,9 @@ export default function SuperAdminCreditPaymentsPage() {
                     ) : (
                       <img src={selectedPayment.receipt_url} alt="Receipt" className="object-cover h-full w-full hover:scale-105 transition-transform duration-500" />
                     )}
-                  </div>
-                </div>
-              )}
+        </div>
+      </div>
+      )}
             </div>
 
             {selectedPayment.status === 'pending' && (
@@ -315,6 +421,154 @@ export default function SuperAdminCreditPaymentsPage() {
             <img src={selectedPayment.receipt_url} alt="Receipt Full" className="max-w-full max-h-[95vh] object-contain rounded-xl shadow-2xl" />
           )}
         </div>
+      )}
+      </>
+      )}
+
+      {activeTab === 'auto-remitted' && (
+      <div className="card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-black flex items-center gap-2 text-gray-900 dark:text-white">
+            <CheckCircle className="w-6 h-6 text-green-500" />
+            My Remitted Payments
+          </h2>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-gray-500 uppercase">Total</p>
+              <p className="text-2xl font-black text-green-600">₦{autoRemittedStats.total.toLocaleString()}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-bold text-gray-500 uppercase">Count</p>
+              <p className="text-2xl font-black text-gray-900">{autoRemittedStats.count}</p>
+            </div>
+          </div>
+        </div>
+        <p className="text-sm text-gray-500">
+          Payments you recorded directly that were automatically confirmed.
+        </p>
+        <div className="overflow-x-auto rounded-xl border border-gray-100">
+          {autoRemittedLoading ? (
+            <div className="py-12 text-center text-gray-400 flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+              <span className="font-bold">Loading...</span>
+            </div>
+          ) : autoRemitted.length === 0 ? (
+            <div className="py-12 text-center text-gray-400">
+              <CheckCircle className="w-10 h-10 mx-auto mb-3 text-green-300" />
+              <p className="font-bold">No auto remitted payments yet</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th className="text-left py-4 px-4 font-bold text-gray-600">Creditor</th>
+                  <th className="text-left py-4 px-4 font-bold text-gray-600">Receipt</th>
+                  <th className="text-right py-4 px-4 font-bold text-gray-600">Amount</th>
+                  <th className="text-left py-4 px-4 font-bold text-gray-600">Method</th>
+                  <th className="text-left py-4 px-4 font-bold text-gray-600">Date</th>
+                  <th className="text-left py-4 px-4 font-bold text-gray-600">Reference</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white dark:bg-gray-900">
+                {autoRemitted.slice((autoRemPage - 1) * perPage, autoRemPage * perPage).map((payment) => (
+                  <tr key={payment.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-4 font-bold text-gray-900">{payment.creditors?.full_name || 'Unknown'}</td>
+                    <td className="py-4 px-4 font-mono text-sm text-pink-600 font-bold">
+                      {(Array.isArray(payment.credit_sales) ? payment.credit_sales[0]?.receipt_number : payment.credit_sales?.receipt_number) || 'N/A'}
+                    </td>
+                    <td className="py-4 px-4 font-black text-green-600 text-right">₦{Number(payment.amount).toLocaleString()}</td>
+                    <td className="py-4 px-4 font-bold text-gray-600 uppercase">{payment.payment_method}</td>
+                    <td className="py-4 px-4 font-medium text-gray-500">{new Date(payment.remittance_confirmed_at || payment.created_at).toLocaleString()}</td>
+                    <td className="py-4 px-4 font-mono text-sm text-gray-500">{payment.reference_number || 'N/A'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      {autoRemitted.length > 0 && Math.ceil(autoRemitted.length / perPage) > 1 && (
+        <div className="flex justify-center gap-2 px-6 pb-4">
+          <button disabled={autoRemPage === 1} onClick={() => setAutoRemPage(p => p - 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Previous</button>
+          <span className="px-4 py-2 text-xs font-black">Page {autoRemPage} of {Math.ceil(autoRemitted.length / perPage)}</span>
+          <button disabled={autoRemPage >= Math.ceil(autoRemitted.length / perPage)} onClick={() => setAutoRemPage(p => p + 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Next</button>
+        </div>
+      )}
+      </div>
+      )}
+
+      {activeTab === 'breakdown' && (
+      <div className="card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <h2 className="text-xl font-black mb-6 flex items-center gap-2 text-gray-900 dark:text-white">
+          <Users className="w-6 h-6 text-pink-500" />
+          Credit Payment Breakdown
+        </h2>
+        <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-gray-900/50 border-b dark:border-gray-700">
+                <th className="text-left py-4 px-4 font-bold text-gray-600 dark:text-gray-400">Staff Member</th>
+                <th className="text-right py-4 px-4 font-bold text-gray-600 dark:text-gray-400">Total Collected</th>
+                <th className="text-right py-4 px-4 font-bold text-gray-600 dark:text-gray-400">Pending</th>
+                <th className="text-right py-4 px-4 font-bold text-gray-600 dark:text-gray-400">Approved</th>
+                <th className="text-right py-4 px-4 font-bold text-gray-600 dark:text-gray-400">Outstanding</th>
+                <th className="text-center py-4 px-4 font-bold text-gray-600 dark:text-gray-400">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white dark:bg-gray-900">
+              {staffSummaryLoading ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-gray-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+                      <span className="font-bold">Loading staff summary...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : staffSummary.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-gray-400 dark:text-gray-500">No staff data available.</td>
+                </tr>
+              ) : (
+                  [...staffSummary].sort((a, b) => {
+                    if (a.outstanding_amount !== b.outstanding_amount) return b.outstanding_amount - a.outstanding_amount;
+                    if (a.pending_remittance !== b.pending_remittance) return b.pending_remittance - a.pending_remittance;
+                    return b.total_collected - a.total_collected;
+                  }).map((s) => (
+                  <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="py-4 px-4">
+                      <p className="font-bold text-gray-900 dark:text-white">{s.full_name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">{s.email}</p>
+                    </td>
+                    <td className="py-4 px-4 text-right font-bold text-blue-600 dark:text-blue-400">₦{s.total_collected.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-right font-bold text-yellow-600 dark:text-yellow-400">₦{s.pending_remittance.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-right font-bold text-green-600 dark:text-green-400">₦{s.approved_remittance.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-right font-black text-red-600 dark:text-red-400">₦{s.outstanding_amount.toLocaleString()}</td>
+                    <td className="py-4 px-4 text-center">
+                      <button 
+                        onClick={() => router.push(`/admin/credit-payments/staff/${s.id}`)}
+                        className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-pink-100 dark:hover:bg-pink-900/40 text-gray-600 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 rounded-lg transition-all"
+                        title="View Details"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            <tfoot className="bg-gray-50 dark:bg-gray-900/80 font-black border-t dark:border-gray-700 text-gray-900 dark:text-white">
+              <tr>
+                <td className="py-4 px-4">TOTALS</td>
+                <td className="py-4 px-4 text-right">₦{staffSummary.reduce((sum, s) => sum + s.total_collected, 0).toLocaleString()}</td>
+                <td className="py-4 px-4 text-right text-yellow-600 dark:text-yellow-400">₦{staffSummary.reduce((sum, s) => sum + s.pending_remittance, 0).toLocaleString()}</td>
+                <td className="py-4 px-4 text-right text-green-600 dark:text-green-400">₦{staffSummary.reduce((sum, s) => sum + s.approved_remittance, 0).toLocaleString()}</td>
+                <td className="py-4 px-4 text-right text-red-600 dark:text-red-400">₦{staffSummary.reduce((sum, s) => sum + s.outstanding_amount, 0).toLocaleString()}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
       )}
     </div>
   );

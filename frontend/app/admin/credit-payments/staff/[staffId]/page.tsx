@@ -207,10 +207,6 @@ export default function StaffCreditDetailPage() {
             </p>
           </div>
         </div>
-        <button onClick={fetchData} className="px-5 py-3 bg-pink-600 text-white font-black rounded-xl hover:bg-pink-700 transition shadow-lg shadow-pink-100 dark:shadow-none flex items-center justify-center gap-2">
-          <Loader2 className={`w-4 h-4 ${isLoading ? 'animate-spin' : 'hidden'}`} />
-          Refresh Records
-        </button>
       </div>
 
       {/* Stats Grid */}
@@ -289,7 +285,7 @@ export default function StaffCreditDetailPage() {
                 {paginatedCollections.map((item: any) => (
                   <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                     <td className="py-4 px-4 text-sm text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                      {new Date(item.created_at).toLocaleDateString()}
+                      {new Date(item.created_at).toLocaleString()}
                     </td>
                     <td className="py-4 px-4 font-bold text-gray-900 dark:text-white">{item.creditors?.full_name}</td>
                     <td className="py-4 px-4">
@@ -358,40 +354,51 @@ export default function StaffCreditDetailPage() {
               {remittances.length} Total
             </div>
           </div>
-          <div className="p-4 md:p-6 space-y-4 max-h-[800px] overflow-y-auto custom-scrollbar">
-            {paginatedHistory.map((remittance: any) => (
-              <div 
-                key={remittance.id} 
-                onClick={() => { setSelectedRemittance(remittance); setShowRemittanceModal(true); }}
-                className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-pink-200 cursor-pointer transition-all group grid grid-cols-1 md:grid-cols-12 items-center gap-4"
-              >
-                {/* Col 1: Amount & Date */}
-                <div className="md:col-span-4 space-y-1">
-                  <p className="text-xl font-black text-gray-900 dark:text-white">₦{Number(remittance.amount).toLocaleString()}</p>
-                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{new Date(remittance.created_at).toLocaleString()}</p>
-                </div>
-                
-                {/* Col 2: Status (Aligned) */}
-                <div className="md:col-span-3 flex justify-start md:justify-center">
-                  <span className={`px-4 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider min-w-[90px] text-center ${
-                    remittance.status === 'approved' ? 'bg-green-100 text-green-700' :
-                    remittance.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                    'bg-yellow-100 text-yellow-700'
-                  }`}>
-                    {remittance.status}
-                  </span>
-                </div>
-
-                {/* Col 3: Reference & Icon */}
-                <div className="md:col-span-5 flex items-center justify-end gap-3 text-xs font-bold text-gray-400 group-hover:text-pink-600 transition-colors">
-                  <span className="truncate">Ref: {remittance.reference_number || 'N/A'}</span>
-                  <Eye className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              </div>
-            ))}
-            {remittances.length === 0 && (
-              <div className="py-12 text-center text-gray-500 dark:text-gray-400 italic">No remittance history found.</div>
-            )}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800/50 text-[10px] uppercase tracking-wider text-gray-500 font-black">
+                  <th className="py-4 px-4 border-b dark:border-gray-800">Amount</th>
+                  <th className="py-4 px-4 border-b dark:border-gray-800">Status</th>
+                  <th className="py-4 px-4 border-b dark:border-gray-800">Date</th>
+                  <th className="py-4 px-4 border-b dark:border-gray-800">Method</th>
+                  <th className="py-4 px-4 border-b dark:border-gray-800">Reference</th>
+                  <th className="py-4 px-4 text-right border-b dark:border-gray-800">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {paginatedHistory.map((remittance: any) => (
+                  <tr key={remittance.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors cursor-pointer" onClick={() => { setSelectedRemittance(remittance); setShowRemittanceModal(true); }}>
+                    <td className="py-4 px-4 font-black text-gray-900 dark:text-white whitespace-nowrap">₦{Number(remittance.amount).toLocaleString()}</td>
+                    <td className="py-4 px-4 whitespace-nowrap">
+                      <span className={`inline-block px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                        remittance.status === 'approved' ? 'bg-green-100 text-green-700' :
+                        remittance.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {remittance.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">{new Date(remittance.created_at).toLocaleString()}</td>
+                    <td className="py-4 px-4 font-bold text-gray-600 dark:text-gray-400 uppercase whitespace-nowrap">{remittance.payment_method}</td>
+                    <td className="py-4 px-4 font-mono text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">{remittance.reference_number || 'N/A'}</td>
+                    <td className="py-4 px-4 text-right whitespace-nowrap">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedRemittance(remittance); setShowRemittanceModal(true); }}
+                        className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-pink-100 dark:hover:bg-pink-900/40 text-gray-500 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 rounded-lg transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {remittances.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-16 text-center text-gray-500 dark:text-gray-400 italic">No remittance history found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
           {totalHistoryPages > 1 && (
             <div className="p-4 border-t dark:border-gray-800 flex justify-center gap-2">

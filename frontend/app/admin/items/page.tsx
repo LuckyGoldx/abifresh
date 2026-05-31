@@ -45,23 +45,7 @@ function compressImageClientSide(file: File): Promise<File> {
   });
 }
 
-interface Item {
-  id: string;
-  name: string;
-  sku: string;
-  category: string;
-  unit_price: number;
-  commission: number;
-  brand?: string;
-  package_type?: string;
-  price_jalingo?: number;
-  price_outside?: number;
-  image_url?: string;
-  created_at: string;
-  main_store_quantity?: number;
-  active_store_quantity?: number;
-  is_available?: boolean;
-}
+import type { Item } from '@/types';
 
 type ModalType = 'add' | 'edit' | null;
 
@@ -435,7 +419,19 @@ export default function ItemsPage() {
   );
 
   if (isLoading) {
-    return <div className="text-center py-12 text-gray-600 dark:text-gray-400">Loading items...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

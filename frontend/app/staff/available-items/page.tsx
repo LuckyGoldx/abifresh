@@ -5,17 +5,7 @@ import api from '@/lib/api';
 import { Package, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 
-interface PostedItem {
-  id: string;
-  item_id: string;
-  item_name: string;
-  quantity: number;
-  status: 'pending' | 'accepted' | 'rejected';
-  posted_at: string;
-  posted_by: string;
-  staff_comment?: string;
-  notes?: string;
-}
+import type { PostedItem } from '@/types';
 
 export default function AvailableItemsPage() {
   const [postedItems, setPostedItems] = useState<PostedItem[]>([]);
@@ -104,7 +94,19 @@ export default function AvailableItemsPage() {
   };
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading posted items...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const pendingItems = postedItems.filter(i => i.status === 'pending');

@@ -2,58 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import axios from 'axios';
+import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import LoadingLogo from '@/components/LoadingLogo';
 import { formatQty } from '@/lib/format-quantity';
-
-interface Staff {
-  id: string;
-  full_name: string;
-  email: string;
-  username: string;
-  role: string;
-}
-
-interface ReceiptItem {
-  item_id: string;
-  item_name: string;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-  commission_per_unit: number;
-  total_commission: number;
-}
-
-interface Receipt {
-  id: string;
-  receipt_number: string;
-  total_amount: number;
-  payment_method: string;
-  sold_outside_jalingo: boolean;
-  created_at: string;
-  commission: number;
-  items: ReceiptItem[];
-}
-
-interface CommissionByItem {
-  item_id: string;
-  item_name: string;
-  category: string;
-  quantity_sold: number;
-  total_sales: number;
-  commission_per_unit: number;
-  total_commission: number;
-}
-
-interface StaffCommissionDetails {
-  staff: Staff;
-  total_commission: number;
-  total_sales: number;
-  total_items_sold: number;
-  receipts: Receipt[];
-  commission_by_item: CommissionByItem[];
-}
+import { formatDateTime, formatDateShort } from '@/lib/format-date';
+import type { StaffCommissionDetails } from '@/types';
 
 const getDateRange = (period: string): { start: string; end: string } => {
   const now = new Date();
@@ -112,9 +66,6 @@ export default function StaffCommissionDetailPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [viewMode, setViewMode] = useState<'receipts' | 'items'>('receipts');
   
-  const token = useAuthStore((state) => state.token);
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
-
   useEffect(() => {
     if (staffId) {
       fetchDetails();
@@ -140,12 +91,9 @@ export default function StaffCommissionDetailPage() {
       if (startDate) params.startDate = startDate;
       if (endDate) params.endDate = endDate;
 
-      const response = await axios.get(
-        `${API_BASE_URL}/api/admin/commissions/staff/${staffId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-          params,
-        }
+      const response = await api.get(
+        `/api/admin/commissions/staff/${staffId}`,
+        { params }
       );
       setDetails(response.data);
     } catch (error) {
@@ -158,24 +106,6 @@ export default function StaffCommissionDetailPage() {
 
   const formatCurrency = (amount: number) => {
     return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const formatDateShort = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   if (loading) {
@@ -391,7 +321,7 @@ export default function StaffCommissionDetailPage() {
                       {receipt.receipt_number}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatDate(receipt.created_at)} • {receipt.payment_method?.toUpperCase() || 'N/A'}
+                      {formatDateTime(receipt.created_at)} • {receipt.payment_method?.toUpperCase() || 'N/A'}
                       {receipt.sold_outside_jalingo && ' • Outside Jalingo'}
                     </p>
                   </div>

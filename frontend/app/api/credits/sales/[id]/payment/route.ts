@@ -65,21 +65,31 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // Record the payment
+    const isAdmin = authResult.role === 'admin' || authResult.role === 'superadmin';
+
+    const paymentPayload: any = {
+      creditor_id: sale.creditor_id,
+      credit_sale_id: saleId,
+      staff_id: authResult.id,
+      amount: Number(amount),
+      payment_method: payment_method || 'cash',
+      reference_number: reference_number || null,
+      notes: note || null,
+      receipt_url: receipt_url || null,
+      status: 'approved',
+      approved_by: authResult.id,
+      approved_date: new Date().toISOString(),
+    };
+
+    if (isAdmin) {
+      paymentPayload.remittance_status = 'confirmed';
+      paymentPayload.remittance_confirmed_by = authResult.id;
+      paymentPayload.remittance_confirmed_at = new Date().toISOString();
+    }
+
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from('credit_payments')
-      .insert({
-        creditor_id: sale.creditor_id,
-        credit_sale_id: saleId,
-        staff_id: authResult.id,
-        amount: Number(amount),
-        payment_method: payment_method || 'cash',
-        reference_number: reference_number || null,
-        notes: note || null,
-        receipt_url: receipt_url || null,
-        status: 'approved',
-        approved_by: authResult.id,
-        approved_date: new Date().toISOString(),
-      })
+      .insert(paymentPayload)
       .select()
       .single();
 
@@ -91,7 +101,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // Auto-allocate payment to items and reconcile (Strict Business / 75% Rule)
     const { data: saleItems } = await supabaseAdmin
       .from('credit_sale_items')
-      .select('*')
+      .select('*, item:item_id(price_jalingo)')
       .eq('credit_sale_id', saleId);
     
     const paymentItems = [];
@@ -111,13 +121,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
       for (const item of targetItems) {
         if (remainingAmount <= 0) break;
+        const sellingPrice = item.item?.price_jalingo || item.unit_price;
+        const effectiveTotal = Number(item.quantity) * sellingPrice;
         const itemExisting = allExisting?.filter(e => e.credit_sale_item_id === item.id) || [];
         const alreadyPaidAmount = itemExisting.reduce((sum, e) => sum + Number(e.amount), 0);
-        const itemRemaining = Math.max(0, Number(item.total_price) - alreadyPaidAmount);
+        const itemRemaining = Math.max(0, effectiveTotal - alreadyPaidAmount);
         
         if (itemRemaining > 0) {
           const pay = Math.min(remainingAmount, itemRemaining);
-          const payQty = (pay / Number(item.total_price)) * Number(item.quantity);
+          const payQty = (pay / effectiveTotal) * Number(item.quantity);
           
           paymentItems.push({
             credit_payment_id: payment.id,

@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, PanelLeftClose, PanelLeftOpen, SwitchCamera } from 'lucide-react';
+import { Menu, X, PanelLeftClose, PanelLeftOpen, SwitchCamera, Sun, Moon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useNotifications } from '@/context/NotificationContext';
+import { useThemeStore } from '@/store/auth';
 
 interface MenuItem {
   label: string;
   href: string;
-  icon: any;
+  icon: React.ReactNode;
   badge?: number;
 }
 
@@ -42,6 +43,8 @@ export default function Sidebar({
   const [showScrollbar, setShowScrollbar] = useState(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { unreadCount } = useNotifications();
+  const theme = useThemeStore((state) => state.theme);
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
 
   const items = creditMode && creditMenuItems ? creditMenuItems : menuItems;
   const navRef = useRef<HTMLElement>(null);
@@ -94,10 +97,10 @@ export default function Sidebar({
   return (
     <>
       <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-pink-500 text-white rounded-lg"
+        onClick={() => setMobileOpen(true)}
+        className={`md:hidden fixed top-4 left-4 z-50 p-2 bg-pink-500 text-white rounded-lg ${mobileOpen ? 'hidden' : ''}`}
       >
-        {mobileOpen ? <X /> : <Menu />}
+        <Menu />
       </button>
 
       {isDesktop && !isOpen && (
@@ -130,7 +133,31 @@ export default function Sidebar({
             </div>
           )}
 
-          <div className="p-6 border-b border-gray-200 dark:border-slate-700 mt-12 md:mt-0 flex items-center space-x-3">
+          {/* Mobile top bar: theme toggle + portal title + close button */}
+          <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700">
+            <button
+              onClick={toggleTheme}
+              className="p-1 text-gray-600 dark:text-gray-400 hover:text-pink-500 transition"
+            >
+              {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+              {role === 'superadmin' ? 'Superadmin Portal' :
+               role === 'admin' ? 'Admin Portal' :
+               role === 'sales' || role === 'sales_staff' ? 'Sales Portal' :
+               role === 'commission_staff' || role === 'staff_commission' ? 'Commission Portal' :
+               role === 'non_commission_staff' || role === 'staff_non_commission' ? 'Non-Commission Portal' :
+               'Portal'}
+            </span>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="p-1 text-gray-600 dark:text-gray-400 hover:text-pink-500 transition"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="hidden md:flex p-6 border-b border-gray-200 dark:border-slate-700 mt-2 md:mt-0 items-center space-x-3">
             <div className="w-10 h-10 bg-pink-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-pink-200 dark:shadow-none flex-shrink-0">
                A
             </div>
@@ -176,7 +203,6 @@ export default function Sidebar({
               .show-scroll::-webkit-scrollbar {
                 display: block;
               }
-              /* For Firefox and other browsers */
             `}</style>
             {items.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -238,6 +264,7 @@ export default function Sidebar({
               </button>
             </div>
           )}
+
         </div>
       </aside>
 

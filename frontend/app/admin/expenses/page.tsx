@@ -6,7 +6,6 @@ import {
   DollarSign, Search, Filter, BarChart3, TrendingUp, Eye, Download, X, 
   Calendar, User, FileText, Phone, MapPin, Wallet, Tag, Check, Ban, Loader2
 } from 'lucide-react';
-import LoadingLogo from '@/components/LoadingLogo';
 import { useToast } from '@/context/ToastContext';
 
 interface ExpenseItem {
@@ -335,7 +334,19 @@ export default function ExpensesPage() {
   const pageItems = activeTabExpenses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (isLoading) {
-    return <LoadingLogo text="Loading comprehensive expenses..." />;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

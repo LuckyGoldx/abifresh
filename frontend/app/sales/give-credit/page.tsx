@@ -75,6 +75,7 @@ export default function GiveCreditPage() {
           itemName: item.name,
           quantity: Math.min(0.5, item.active_store_quantity),
           unitPrice: Number(item.price_jalingo) || 0,
+          costPrice: Number(item.unit_price) || 0,
           maxQuantity: item.active_store_quantity,
           name: item.name,
           price_jalingo: item.price_jalingo,
@@ -118,6 +119,7 @@ export default function GiveCreditPage() {
           itemName: item.itemName,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          costPrice: item.costPrice,
         })),
         notes,
       });
@@ -137,13 +139,14 @@ export default function GiveCreditPage() {
       };
 
       setLastReceipt(receiptData);
+      setShowReviewModal(false);
+      setShowMobileCartModal(false);
       setShowReceiptModal(true);
 
       setToast({ message: 'Credit given successfully!', type: 'success' });
       setCart([]);
       setSelectedCreditor('');
       setNotes('');
-      setShowMobileCartModal(false);
     } catch (error: any) {
       setToast({ message: 'Failed to give credit: ' + (error.response?.data?.error || error.message), type: 'error' });
     } finally {
@@ -229,8 +232,16 @@ export default function GiveCreditPage() {
   );
 
   if (isLoading) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto text-center py-8 dark:text-gray-400">Loading...</div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-pulse">
+          <img src="/favicon.svg" alt="" className="w-20 h-20" />
+        </div>
+        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+          <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold">Abifreshing...</span>
+        </div>
+      </div>
     </div>
   );
 
@@ -485,7 +496,7 @@ export default function GiveCreditPage() {
                   Back to Edit
                 </button>
                 <button
-                  onClick={() => { setShowReviewModal(false); handleSubmit(); }}
+                  onClick={handleSubmit}
                   disabled={isSubmitting}
                   className="flex-1 py-3 px-4 bg-pink-600 text-white rounded-lg font-bold hover:bg-pink-700 transition-colors shadow-md flex items-center justify-center disabled:opacity-50"
                 >

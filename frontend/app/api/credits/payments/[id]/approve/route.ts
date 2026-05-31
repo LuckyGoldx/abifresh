@@ -43,7 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       // Robust FIFO Auto-Allocation fallback
       const { data: saleItems } = await supabaseAdmin
         .from('credit_sale_items')
-        .select('*')
+        .select('*, item:item_id(price_jalingo)')
         .eq('credit_sale_id', payment.credit_sale_id);
       
       if (saleItems && saleItems.length > 0) {
@@ -59,13 +59,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         for (const si of saleItems) {
           if (remainingAmount <= 0) break;
+          const sellingPrice = si.item?.price_jalingo || si.unit_price;
+          const effectiveTotal = Number(si.quantity) * sellingPrice;
           const itemExisting = allExisting?.filter(e => e.credit_sale_item_id === si.id) || [];
           const alreadyPaidAmt = itemExisting.reduce((sum, e) => sum + Number(e.amount), 0);
-          const itemBalance = Math.max(0, Number(si.total_price) - alreadyPaidAmt);
+          const itemBalance = Math.max(0, effectiveTotal - alreadyPaidAmt);
 
           if (itemBalance > 0) {
             const pay = Math.min(remainingAmount, itemBalance);
-            const payQty = (pay / Number(si.total_price)) * Number(si.quantity);
+            const payQty = (pay / effectiveTotal) * Number(si.quantity);
             
             newPaymentItems.push({
               credit_payment_id: params.id,

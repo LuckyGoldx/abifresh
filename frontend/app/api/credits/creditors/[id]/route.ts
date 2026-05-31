@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const isSalesStaff = authResult.role === 'sales' || authResult.role === 'sales_staff';
 
   // Fetch sales and payments
-  let salesQuery = supabaseAdmin.from('credit_sales').select('*, users(full_name), credit_sale_items(*)').eq('creditor_id', params.id).order('created_at', { ascending: false });
+  let salesQuery = supabaseAdmin.from('credit_sales').select('*, users(full_name), credit_sale_items(*, item:item_id(price_jalingo))').eq('creditor_id', params.id).order('created_at', { ascending: false });
   let paymentsQuery = supabaseAdmin.from('credit_payments').select('*, staff:users!credit_payments_staff_id_fkey(full_name)').eq('creditor_id', params.id).order('created_at', { ascending: false });
 
   // IF Sales Staff, only fetch THEIR sales
@@ -34,15 +34,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
   
   // Fetch payment items to calculate individual item paid quantities
-  const paymentIds = allPayments.map(p => p.id);
-  const { data: allPaymentItems } = paymentIds.length > 0 
-    ? await supabaseAdmin.from('credit_payment_items').select('*').in('credit_payment_id', paymentIds)
+  const approvedPaymentIds = allPayments.filter(p => p.status === 'approved').map(p => p.id);
+  const { data: allPaymentItems } = approvedPaymentIds.length > 0 
+    ? await supabaseAdmin.from('credit_payment_items').select('*').in('credit_payment_id', approvedPaymentIds)
     : { data: [] };
 
   // 1. Lifetime Totals
-  const lifetimeTotalCredited = allSales.reduce((sum, s) => sum + Number(s.total_amount), 0);
+  const nonCancelledSales = allSales.filter(s => s.status !== 'cancelled');
+  const lifetimeTotalCredited = nonCancelledSales.reduce((sum, s) => sum + Number(s.total_amount), 0);
   const lifetimeTotalPaid = allPayments.filter(p => p.status === 'approved').reduce((sum, p) => sum + Number(p.amount), 0);
-  const lifetimeTotalQuantity = allSales.reduce((sum, s) => sum + Number(s.total_quantity), 0);
+  const lifetimeTotalQuantity = nonCancelledSales.reduce((sum, s) => sum + Number(s.total_quantity), 0);
 
   // 2. Outstanding & Active Quantity
   let outstanding = 0;
@@ -65,8 +66,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       // Fallback: If sale is fully paid, item is paid
       if (s.status === 'paid') itemPaidQty = Number(item.quantity);
       
-      const itemRemainingQty = Math.max(0, Number(item.quantity) - itemPaidQty);
-      activeCreditQuantity += itemRemainingQty;
+      const isFullyPaid = itemPaidQty >= Number(item.quantity);
+      if (!isFullyPaid) {
+        activeCreditQuantity += Number(item.quantity);
+      }
     });
   });
 
@@ -119,7 +122,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           ...item,
           quantity_paid: itemPaidQty,
           paid_percentage: Math.round(paidPercentage),
-          returnable_quantity: returnableQty
+          returnable_quantity: returnableQty,
+          paid_amount: itemPaidAmt,
+          remaining_amount: Math.max(0, Number(item.total_price) - itemPaidAmt)
         };
       });
 

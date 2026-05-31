@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 import { formatQty } from '@/lib/format-quantity';
+import { SkeletonTwoColumnPage } from '@/components/Skeleton';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
@@ -38,21 +39,7 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   );
 };
 
-interface Item {
-  id: string;
-  name: string;
-  sku: string;
-  price_jalingo: number;
-  unit_price?: number;
-  quantity: number;
-  commission: number;
-  category: string;
-  brand?: string;
-  package_type?: string;
-  price_outside?: number;
-  image_url?: string;
-  location?: string;
-}
+import type { Item } from '@/types';
 
 interface CartItem extends Item {
   sale_quantity: number;
@@ -346,7 +333,11 @@ export default function MakeSalePage() {
   };
 
   if (!mounted || isLoading) {
-    return <div className="text-center py-12 text-gray-600 dark:text-gray-400">Loading...</div>;
+    return (
+      <div className="p-4 md:p-6">
+        <SkeletonTwoColumnPage />
+      </div>
+    );
   }
 
   // Render function for cart content (called as function, not as <Component/>, to preserve scroll position)

@@ -6,47 +6,7 @@ import { useRouter } from 'next/navigation';
 import { CreditCard, CheckCircle, Clock, XCircle, Search, Filter, BarChart3, TrendingUp, Eye, Download, X, FileText, Phone, MapPin, AlertTriangle, Users } from 'lucide-react';
 import LoadingLogo from '@/components/LoadingLogo';
 import { formatQty } from '@/lib/format-quantity';
-
-interface PaymentItem {
-  item_id: string;
-  item_name: string;
-  quantity: number;
-  amount: number;
-}
-
-interface Payment {
-  id: string;
-  staff_id: string;
-  staff_name: string;
-  staff_email: string;
-  staff_role: string;
-  staff_phone?: string;
-  amount: number;
-  payment_type: string;
-  payment_method?: string;
-  status: string;
-  notes: string;
-  reference_number?: string;
-  items_paid_for?: PaymentItem[];
-  receipt_url?: string;
-  requested_date: string;
-  approved_date: string;
-  created_at: string;
-  rejection_reason?: string;
-  approved_by_name?: string;
-}
-
-interface StaffSummaryRow {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  total_qty: number;
-  total_sales_amount: number;
-  pending_amount: number;
-  approved_amount: number;
-  outstanding_amount: number;
-}
+import type { Payment, StaffSummaryRow } from '@/types';
 
 export default function PaymentsPage() {
   const router = useRouter();
@@ -196,12 +156,12 @@ export default function PaymentsPage() {
     // Date range filter
     if (dateRange.from) {
       const fromDate = new Date(dateRange.from);
-      filtered = filtered.filter(p => new Date(p.requested_date) >= fromDate);
+      filtered = filtered.filter(p => new Date(p.requested_date!) >= fromDate);
     }
     if (dateRange.to) {
       const toDate = new Date(dateRange.to);
       toDate.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(p => new Date(p.requested_date) <= toDate);
+      filtered = filtered.filter(p => new Date(p.requested_date!) <= toDate);
     }
 
     // Sorting
@@ -323,7 +283,19 @@ export default function PaymentsPage() {
   };
 
   if (isLoading) {
-    return <LoadingLogo text="Loading payments..." />;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const HIDDEN_EMAILS = ['staff@abifresh.com', 'commission@abifresh.com', 'sales.@abifresh.com'];
@@ -700,7 +672,7 @@ export default function PaymentsPage() {
                   </td>
                   <td className="py-3 px-4 text-sm">
                     <div>
-                      <p className="text-gray-900 dark:text-white">{new Date(payment.requested_date).toLocaleString()}</p>
+                      <p className="text-gray-900 dark:text-white">{new Date(payment.requested_date!).toLocaleString()}</p>
                     </div>
                   </td>
                   <td className="py-3 px-4">
@@ -976,7 +948,7 @@ export default function PaymentsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Requested Date</p>
-                    <p className="font-semibold text-gray-800 dark:text-white">{new Date(selectedPayment.requested_date).toLocaleString()}</p>
+                    <p className="font-semibold text-gray-800 dark:text-white">{new Date(selectedPayment.requested_date!).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Created Date</p>

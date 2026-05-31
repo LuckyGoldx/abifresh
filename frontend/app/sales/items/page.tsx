@@ -5,21 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { CheckCircle, Package } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
-
-interface Item {
-  id: string;
-  name: string;
-  sku: string;
-  active_store_quantity: number;
-  price_jalingo: number;
-  unit_price?: number;
-  category: string;
-  brand?: string;
-  package_type?: string;
-  price_outside?: number;
-  image_url?: string;
-  commission?: number;
-}
+import type { Item } from '@/types';
 
 export default function AvailableItemsPage() {
   const token = useAuthStore((state) => state.token);
@@ -37,7 +23,7 @@ export default function AvailableItemsPage() {
       const response = await api.get('/api/inventory/active-store', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      setItems(response.data.filter((item: Item) => item.active_store_quantity > 0));
+      setItems(response.data.filter((item: Item) => item.active_store_quantity! > 0));
     } catch (error) {
       console.error('Failed to fetch items:', error);
     } finally {
@@ -46,7 +32,19 @@ export default function AvailableItemsPage() {
   };
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading items...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -71,7 +69,7 @@ export default function AvailableItemsPage() {
             </div>
             <div className="flex justify-between items-center mt-4">
               <p className="text-2xl font-bold text-pink-600">₦{(item.price_jalingo || 0).toLocaleString()}</p>
-              <p className="text-sm text-green-600 dark:text-green-400">Stock: {formatQty(item.active_store_quantity)}</p>
+              <p className="text-sm text-green-600 dark:text-green-400">Stock: {formatQty(item.active_store_quantity!)}</p>
             </div>
           </div>
         ))}

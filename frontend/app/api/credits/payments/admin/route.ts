@@ -31,17 +31,26 @@ export async function GET(req: NextRequest) {
       if (r.status === 'rejected') rejectedAmount += (Number(r.amount) || 0);
     });
 
-    // 2. Calculate TOTAL outstanding across all staff (where remittance_status is NULL)
+    // 2. Calculate TOTAL outstanding across sales staff (where remittance_status is NULL)
+    const { data: salesStaff } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .in('role', ['sales', 'sales_staff']);
+
+    const salesStaffIds = (salesStaff || []).map(u => u.id);
+
     const { data: unremitted, error: unremittedError } = await supabaseAdmin
       .from('credit_payments')
-      .select('amount')
+      .select('amount, staff_id')
       .is('remittance_status', null);
 
     if (unremittedError) throw unremittedError;
 
     let outstandingAmount = 0;
     (unremitted || []).forEach(u => {
-      outstandingAmount += Number(u.amount || 0);
+      if (salesStaffIds.includes(u.staff_id)) {
+        outstandingAmount += Number(u.amount || 0);
+      }
     });
 
     return NextResponse.json({

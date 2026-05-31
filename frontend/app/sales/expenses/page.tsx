@@ -4,17 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Wallet, Plus, Calendar, TrendingDown, Eye, Loader2 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
-
-interface Expense {
-  id: string;
-  amount: number;
-  category: string;
-  description: string;
-  admin_notes?: string;
-  status: string; // 'pending' | 'approved' | 'disapproved'
-  expense_date: string;
-  created_at: string;
-}
+import type { Expense } from '@/types';
 
 const expenseCategories = [
   'Transport',
@@ -103,9 +93,16 @@ export default function ExpensesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 space-y-4">
-        <Loader2 className="w-10 h-10 text-pink-500 animate-spin" />
-        <span className="text-gray-600 dark:text-gray-400 font-medium">Loading expenses...</span>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
       </div>
     );
   }

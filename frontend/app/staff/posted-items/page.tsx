@@ -5,18 +5,7 @@ import api from '@/lib/api';
 import { Package, CheckCircle, XCircle, MessageSquare, User, Calendar, Truck, Building2, Clock } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 
-interface PostedItem {
-  id: string;
-  item_id: string;
-  item_name: string;
-  quantity: number;
-  status: 'pending' | 'accepted' | 'rejected';
-  posted_at: string;
-  posted_by: string;
-  staff_comment: string | null;
-  notes: string | null;
-  location?: string;
-}
+import type { PostedItem } from '@/types';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
@@ -120,7 +109,19 @@ export default function PostedItemsPage() {
   const rejectedItems = items.filter(i => i.status === 'rejected');
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading posted items...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

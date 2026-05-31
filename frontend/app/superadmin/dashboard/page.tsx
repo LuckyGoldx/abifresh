@@ -4,57 +4,18 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import api from '@/lib/api';
-import { Users, DollarSign, Package, TrendingUp, Search, Eye, X, ShoppingCart, Wallet, Clock, Banknote, ArrowRightLeft, Shield, Activity, AlertTriangle, Server, UserCheck, UserX, Database } from 'lucide-react';
+import { Users, DollarSign, Package, TrendingUp, Search, Eye, X, ShoppingCart, Wallet, Clock, Banknote, ArrowRightLeft, Shield, Activity, AlertTriangle, Server, UserCheck, UserX, Database, BarChart3, Monitor, ScrollText, CreditCard, Receipt as ReceiptIcon, FileText } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { formatQty } from '@/lib/format-quantity';
-
-interface DashboardStats {
-  today_sales: number;
-  today_amount: number;
-  today_items?: number;
-  total_sales: number;
-  total_amount: number;
-  total_items: number;
-  total_staff: number;
-  pending_approvals: number;
-  pending_amount: number;
-  active_users: number;
-  inactive_users: number;
-}
-
-interface ReceiptItem {
-  id: string;
-  item_id: string | { name: string; price_jalingo?: number; price_outside?: number };
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-}
-
-interface Receipt {
-  id: string;
-  receipt_number: string;
-  total_amount: number;
-  payment_method: 'cash' | 'pos' | 'transfer';
-  items_count: number;
-  created_at: string;
-  staff_id: string;
-  sold_outside_jalingo?: boolean;
-  receipt_items?: ReceiptItem[];
-}
-
-interface StaffInfo {
-  id: string;
-  full_name: string;
-  username: string;
-  role: string;
-  is_active?: boolean;
-}
+import { formatDate, formatTime } from '@/lib/format-date';
+import StatCard from '@/components/StatCard';
+import type { SuperAdminDashboardStats, Receipt, ReceiptItem, StaffInfo } from '@/types';
 
 export default function SuperAdminDashboard() {
   const { token, user } = useAuthStore();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'staff-analytics' | 'system'>('overview');
-  const [stats, setStats] = useState<DashboardStats>({
+  const [stats, setStats] = useState<SuperAdminDashboardStats>({
     today_sales: 0,
     today_amount: 0,
     total_sales: 0,
@@ -208,38 +169,16 @@ export default function SuperAdminDashboard() {
   const staffPerformance = (() => {
     const perf: { [id: string]: { name: string; amount: number; count: number } } = {};
     receipts.forEach(r => {
-      if (!perf[r.staff_id]) {
-        perf[r.staff_id] = { name: staffMap[r.staff_id]?.full_name || 'Unknown', amount: 0, count: 0 };
+      if (!perf[r.staff_id!]) {
+        perf[r.staff_id!] = { name: staffMap[r.staff_id!]?.full_name || 'Unknown', amount: 0, count: 0 };
       }
-      perf[r.staff_id].amount += r.total_amount || 0;
-      perf[r.staff_id].count++;
+      perf[r.staff_id!].amount += r.total_amount || 0;
+      perf[r.staff_id!].count++;
     });
     return Object.values(perf).sort((a, b) => b.amount - a.amount).slice(0, 5);
   })();
 
   const PIE_COLORS = ['#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#6366f1'];
-
-  const StatCard = ({ icon: Icon, title, value, color, onClick, additionalInfo, badge }: any) => (
-    <div
-      className={`card flex flex-col md:flex-row items-center md:space-x-4 text-center md:text-left ${onClick ? 'cursor-pointer hover:shadow-lg transition-shadow' : ''}`}
-      onClick={onClick}
-    >
-      <div className={`${color} p-2 md:p-3 rounded-lg flex-shrink-0`}>
-        <Icon className="w-5 md:w-6 h-5 md:h-6 text-white" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">{title}</p>
-        <div className="flex items-center justify-center md:justify-start gap-2">
-          <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white truncate">{value}</p>
-          {badge && <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300">{badge}</span>}
-        </div>
-        {additionalInfo && <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">{additionalInfo}</p>}
-      </div>
-    </div>
-  );
-
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-NG', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
-  const formatTime = (dateString: string) => new Date(dateString).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit', timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone });
 
   const filteredReceipts = receipts
     .filter(receipt => {
@@ -266,10 +205,13 @@ export default function SuperAdminDashboard() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading Superadmin Dashboard...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center gap-4">
+        <div className="animate-pulse">
+          <img src="/favicon.svg" alt="" className="w-20 h-20" />
+        </div>
+        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+          <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold">Abifreshing...</span>
         </div>
       </div>
     );
@@ -304,10 +246,10 @@ export default function SuperAdminDashboard() {
       <div className="flex justify-center mb-6">
         <div className="inline-flex flex-wrap p-1.5 bg-gray-100/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl gap-1 border border-gray-200/50 dark:border-gray-700/40 shadow-sm w-full sm:w-auto">
           {[
-            { key: 'overview', label: 'Overview', icon: '📊' },
-            { key: 'sales', label: 'Sales & Receipts', icon: '💰' },
-            { key: 'staff-analytics', label: 'Staff Analytics', icon: '👥' },
-            { key: 'system', label: 'System Monitor', icon: '🖥️' },
+            { key: 'overview', label: 'Overview', icon: <BarChart3 size={18} /> },
+            { key: 'sales', label: 'Sales & Receipts', icon: <ReceiptIcon size={18} /> },
+            { key: 'staff-analytics', label: 'Staff Analytics', icon: <Users size={18} /> },
+            { key: 'system', label: 'System Monitor', icon: <Monitor size={18} /> },
           ].map(tab => (
             <button
               key={tab.key}
@@ -377,14 +319,14 @@ export default function SuperAdminDashboard() {
             <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Quick Actions</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Manage Users', href: '/superadmin/users', icon: '🔐', desc: 'View, activate, deactivate users' },
-                { label: 'Audit Logs', href: '/superadmin/audit-logs', icon: '📜', desc: 'Track all system activities' },
-                { label: 'System Health', href: '/superadmin/system-health', icon: '💓', desc: 'Monitor system performance' },
-                { label: 'Manage Staff', href: '/superadmin/staff', icon: '👥', desc: 'Staff details & roles' },
-                { label: 'Payments', href: '/superadmin/payments', icon: '💳', desc: 'Approve pending payments' },
-                { label: 'Reports', href: '/superadmin/reports', icon: '📈', desc: 'Comprehensive reports' },
-                { label: 'Inventory', href: '/superadmin/inventory', icon: '📦', desc: 'Stock levels & items' },
-                { label: 'Backup', href: '/superadmin/backup', icon: '💾', desc: 'Database backup & export' },
+                { label: 'Manage Users', href: '/superadmin/users', icon: <Shield size={24} />, desc: 'View, activate, deactivate users' },
+                { label: 'Audit Logs', href: '/superadmin/audit-logs', icon: <ScrollText size={24} />, desc: 'Track all system activities' },
+                { label: 'System Health', href: '/superadmin/system-health', icon: <Activity size={24} />, desc: 'Monitor system performance' },
+                { label: 'Manage Staff', href: '/superadmin/staff', icon: <Users size={24} />, desc: 'Staff details & roles' },
+                { label: 'Payments', href: '/superadmin/payments', icon: <CreditCard size={24} />, desc: 'Approve pending payments' },
+                { label: 'Reports', href: '/superadmin/reports', icon: <TrendingUp size={24} />, desc: 'Comprehensive reports' },
+                { label: 'Inventory', href: '/superadmin/inventory', icon: <Package size={24} />, desc: 'Stock levels & items' },
+                { label: 'Backup', href: '/superadmin/backup', icon: <Database size={24} />, desc: 'Database backup & export' },
               ].map(action => (
                 <div
                   key={action.href}
@@ -483,8 +425,8 @@ export default function SuperAdminDashboard() {
                           <div className="text-xs text-gray-500">{formatTime(receipt.created_at)}</div>
                         </td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                          <div className="font-medium">{staffMap[receipt.staff_id]?.full_name || 'Unknown'}</div>
-                          <div className="text-xs text-gray-500">@{staffMap[receipt.staff_id]?.username || ''}</div>
+                          <div className="font-medium">{staffMap[receipt.staff_id!]?.full_name || 'Unknown'}</div>
+                          <div className="text-xs text-gray-500">@{staffMap[receipt.staff_id!]?.username || ''}</div>
                         </td>
                         <td className="px-4 py-3">
                           <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs font-semibold capitalize">{receipt.payment_method}</span>
@@ -711,11 +653,11 @@ export default function SuperAdminDashboard() {
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Generated By</h3>
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-bold text-lg">{staffMap[selectedReceipt.staff_id]?.full_name?.charAt(0) || 'S'}</span>
+                    <span className="text-white font-bold text-lg">{staffMap[selectedReceipt.staff_id!]?.full_name?.charAt(0) || 'S'}</span>
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900 dark:text-white">{staffMap[selectedReceipt.staff_id]?.full_name || 'Unknown Staff'}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">@{staffMap[selectedReceipt.staff_id]?.username || 'unknown'}</p>
+                    <p className="font-bold text-gray-900 dark:text-white">{staffMap[selectedReceipt.staff_id!]?.full_name || 'Unknown Staff'}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">@{staffMap[selectedReceipt.staff_id!]?.username || 'unknown'}</p>
                   </div>
                 </div>
               </div>

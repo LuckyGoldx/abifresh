@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS credit_sale_items (
     quantity DECIMAL(12,2) NOT NULL,
     unit_price DECIMAL(12,2) NOT NULL,
     total_price DECIMAL(12,2) NOT NULL,
-    quantity_paid DECIMAL(12,2) NOT NULL DEFAULT 0,
+    cost_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+    quantity_paid DECIMAL(12,6) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -103,7 +104,7 @@ CREATE TABLE IF NOT EXISTS credit_payment_items (
     credit_payment_id UUID NOT NULL REFERENCES credit_payments(id) ON DELETE CASCADE,
     credit_sale_item_id UUID NOT NULL REFERENCES credit_sale_items(id),
     item_id UUID NOT NULL REFERENCES items(id),
-    quantity DECIMAL(12,2) NOT NULL,
+    quantity DECIMAL(12,6) NOT NULL,
     amount DECIMAL(12,2) NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
@@ -169,3 +170,10 @@ DO $$ BEGIN
   CREATE POLICY "Service role full access credit_activities" ON credit_activities FOR ALL USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Migration: Add cost_price column to credit_sale_items (for existing databases)
+ALTER TABLE credit_sale_items ADD COLUMN IF NOT EXISTS cost_price DECIMAL(12,2) NOT NULL DEFAULT 0;
+
+-- Migration: Increase quantity precision to prevent rounding errors in payment allocation
+ALTER TABLE credit_sale_items ALTER COLUMN quantity_paid TYPE DECIMAL(12,6);
+ALTER TABLE credit_payment_items ALTER COLUMN quantity TYPE DECIMAL(12,6);

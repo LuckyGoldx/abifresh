@@ -226,8 +226,16 @@ export default function SalesCreditPaymentsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6 flex items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400 font-medium">Loading credit payments...</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -357,7 +365,7 @@ export default function SalesCreditPaymentsPage() {
                               />
                             </td>
                             <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{item.creditors?.full_name || 'Unknown'}</td>
-                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{new Date(item.created_at).toLocaleDateString()}</td>
+                            <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{new Date(item.created_at).toLocaleString()}</td>
                             <td className="py-3 px-4 text-right font-black text-gray-900 dark:text-white">₦{Number(item.amount).toLocaleString()}</td>
                           </tr>
                         ))}
@@ -466,39 +474,53 @@ export default function SalesCreditPaymentsPage() {
       )}
 
       {/* History List */}
-      <div className="space-y-4 mt-8">
+      <div className="mt-8">
         <h3 className="text-xl font-black text-gray-800 dark:text-white mb-6">Remittance History</h3>
         {remittances.length > 0 ? (
-          remittances.map((remit) => (
-            <div key={remit.id} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm flex items-center justify-between">
-              <div>
-                <p className="text-lg font-black text-gray-900 dark:text-white">₦{Number(remit.amount).toLocaleString()}</p>
-                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  <span className="font-bold text-gray-700 dark:text-gray-300 uppercase">{remit.payment_method}</span>
-                  <span>•</span>
-                  <span>{new Date(remit.created_at).toLocaleDateString()}</span>
-                  <span>•</span>
-                  <span>Ref: {remit.reference_number || 'N/A'}</span>
-                </div>
-              </div>
-              <div>
-                <span className={`px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider ${
-                  remit.status === 'approved' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
-                  remit.status === 'rejected' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
-                  'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400'
-                }`}>
-                  {remit.status}
-                </span>
-                <button
-                  onClick={() => { setSelectedPayment(remit); setShowDetailsModal(true); }}
-                  className="p-2 ml-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors"
-                  title="View Details"
-                >
-                  <Eye className="w-5 h-5" />
-                </button>
-              </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-900/80 border-b dark:border-gray-700">
+                <tr>
+                  <th className="text-left py-4 px-5 font-bold text-gray-600 dark:text-gray-400">Amount</th>
+                  <th className="text-left py-4 px-5 font-bold text-gray-600 dark:text-gray-400">Method</th>
+                  <th className="text-left py-4 px-5 font-bold text-gray-600 dark:text-gray-400">Date</th>
+                  <th className="text-left py-4 px-5 font-bold text-gray-600 dark:text-gray-400">Reference</th>
+                  <th className="text-left py-4 px-5 font-bold text-gray-600 dark:text-gray-400">Status</th>
+                  <th className="text-right py-4 px-5 font-bold text-gray-600 dark:text-gray-400">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {remittances.map((remit) => (
+                  <tr key={remit.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="py-4 px-5 font-black text-gray-900 dark:text-white">₦{Number(remit.amount).toLocaleString()}</td>
+                    <td className="py-4 px-5 font-bold text-gray-700 dark:text-gray-300 uppercase">{remit.payment_method}</td>
+                    <td className="py-4 px-5 text-gray-500 dark:text-gray-400">{new Date(remit.created_at).toLocaleString()}</td>
+                    <td className="py-4 px-5 font-mono text-gray-500 dark:text-gray-400">{remit.reference_number || 'N/A'}</td>
+                    <td className="py-4 px-5">
+                      <span className={`inline-block px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider ${
+                        remit.status === 'approved' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
+                        remit.status === 'rejected' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
+                        'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400'
+                      }`}>
+                        {remit.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-5 text-right">
+                      <button
+                        onClick={() => { setSelectedPayment(remit); setShowDetailsModal(true); }}
+                        className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-lg transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             </div>
-          ))
+          </div>
         ) : (
           <div className="text-center py-10 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
             <p className="text-gray-500 dark:text-gray-400 font-medium">No remittance history found.</p>

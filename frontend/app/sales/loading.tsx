@@ -1,5 +1,5 @@
-import LoadingLogo from '@/components/LoadingLogo';
+import { SkeletonTwoColumnPage } from '@/components/Skeleton';
 
 export default function Loading() {
-  return <LoadingLogo text="Loading sales portal..." />;
+  return <SkeletonTwoColumnPage />;
 }

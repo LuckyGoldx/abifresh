@@ -2,47 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
-import { api } from '@/lib/api';
+import api from '@/lib/api';
 import { FileText, Download, Printer, Search, Filter, Eye } from 'lucide-react';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 import { formatQty } from '@/lib/format-quantity';
-
-interface ReceiptItem {
-  id: string;
-  item_id: string | { name: string; price_jalingo?: number; price_outside?: number };
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-}
-
-interface Receipt {
-  id: string;
-  receipt_number: string;
-  total_amount: number;
-  payment_method: 'cash' | 'pos' | 'transfer';
-  items_count: number;
-  created_at: string;
-  sold_outside_jalingo?: boolean;
-  receipt_items?: ReceiptItem[];
-}
-
-const formatReceiptDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-NG', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-};
-
-const formatReceiptTime = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString('en-NG', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-};
+import { formatReceiptDate, formatReceiptTime } from '@/lib/format-date';
+import type { Receipt, ReceiptItem } from '@/types';
 
 export default function StaffReceiptsPage() {
   const { user, token } = useAuthStore();
@@ -165,10 +130,18 @@ export default function StaffReceiptsPage() {
     }
   };
 
-  if (!mounted) {
+  if (!mounted || isLoading) {
     return (
-      <div className="text-center py-12 text-gray-600 dark:text-gray-400">
-        Loading...
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -229,11 +202,7 @@ export default function StaffReceiptsPage() {
       </div>
 
       {/* Receipts Table */}
-      {isLoading ? (
-        <div className="text-center py-12 text-gray-600 dark:text-gray-400">
-          Loading receipts...
-        </div>
-      ) : filteredReceipts.length === 0 ? (
+      {filteredReceipts.length === 0 ? (
         <div className="text-center py-12 text-gray-600 dark:text-gray-400">
           No receipts found
         </div>

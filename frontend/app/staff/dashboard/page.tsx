@@ -5,44 +5,12 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { Package, DollarSign, TrendingUp, AlertCircle, Bell, CheckCircle2, ShoppingBag } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
-
-interface StaffDashboard {
-  total_items_sold: number;
-  total_amount_sold: number;
-  total_posted_items: number;
-  pending_payment_count: number;
-  pending_posted_items: number;
-  pending_payment_amount: number;
-  approved_amount: number;
-  total_expenses: number;
-  unread_notifications: number;
-  total_commission: number;
-  paid_commission: number;
-  is_commission_staff: boolean;
-}
-
-interface Sale {
-  id: string;
-  item_id: string;
-  item_name?: string;
-  items?: {
-    id: string;
-    name: string;
-    sku: string;
-  };
-  quantity: number;
-  /** Actual per-unit sold price (price_jalingo OR price_outside+logistics). NOT items.unit_price. */
-  unit_price: number;
-  total_amount: number;
-  payment_method: string;
-  sale_date: string;
-  receipt_number: string;
-  sold_outside_jalingo: boolean;
-}
+import { SkeletonStatGrid, SkeletonTable } from '@/components/Skeleton';
+import type { StaffDashboardData, Sale } from '@/types';
 
 export default function StaffDashboard() {
   const user = useAuthStore((state) => state.user);
-  const [dashboard, setDashboard] = useState<StaffDashboard | null>(null);
+  const [dashboard, setDashboard] = useState<StaffDashboardData | null>(null);
   const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [availableItems, setAvailableItems] = useState({ count: 0, total_quantity: 0 });
@@ -95,7 +63,19 @@ export default function StaffDashboard() {
   }, []);
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading dashboard...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const StatCard = ({ icon: Icon, title, value, color, subtitle }: any) => (

@@ -9,14 +9,7 @@ import {
   X, FileText, Phone, DollarSign, AlertTriangle, User, Package,
 } from 'lucide-react';
 import LoadingLogo from '@/components/LoadingLogo';
-
-interface StaffInfo {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  phone_number?: string;
-}
+import type { StaffInfo, Payment } from '@/types';
 
 interface Stats {
   allTimeQty: number;
@@ -24,32 +17,6 @@ interface Stats {
   approvedAmount: number;
   pendingAmount: number;
   outstandingAmount: number;
-}
-
-interface PaymentItem {
-  item_id: string;
-  item_name: string;
-  quantity: number;
-  amount: number;
-}
-
-interface Payment {
-  id: string;
-  staff_id: string;
-  staff_name?: string;
-  staff_phone?: string;
-  amount: number;
-  payment_type: string;
-  payment_method?: string;
-  status: string;
-  notes?: string;
-  reference_number?: string;
-  items_paid_for?: PaymentItem[];
-  receipt_url?: string;
-  requested_date: string;
-  approved_date?: string;
-  created_at: string;
-  rejection_reason?: string;
 }
 
 interface UnpaidItem {
@@ -204,7 +171,19 @@ export default function StaffPaymentDetailPage() {
     setRejectReason('');
   };
 
-  if (isLoading) return <LoadingLogo text="Loading staff details..." />;
+  if (isLoading) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-pulse">
+          <img src="/favicon.svg" alt="" className="w-20 h-20" />
+        </div>
+        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+          <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold">Abifreshing...</span>
+        </div>
+      </div>
+    </div>
+  );
 
   if (error || !data) {
     return (

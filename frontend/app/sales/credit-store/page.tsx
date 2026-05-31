@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
-import { Search, Package, ArrowLeftRight, User, RefreshCcw, CheckCircle2, ChevronRight, Store, AlertCircle, X, Calendar } from 'lucide-react';
+import { Search, Package, ArrowLeftRight, User, RefreshCcw, CheckCircle2, ChevronRight, Store, AlertCircle, X, Calendar, ArrowUpDown } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 import { Toast, CreditTabs } from '@/components/credits';
 
 export default function CreditStorePage() {
+  const user = useAuthStore((state) => state.user);
   const [storeItems, setStoreItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +23,17 @@ export default function CreditStorePage() {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [isModalLoading, setIsModalLoading] = useState(false);
   const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
+  const [invPage, setInvPage] = useState(1);
+  const [histPage, setHistPage] = useState(1);
+  const perPage = 15;
+  const [datePreset, setDatePreset] = useState<'today' | 'yesterday' | 'all' | 'this_week' | 'this_month' | 'custom' | 'range'>('all');
+  const [customDate, setCustomDate] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [staffFilter, setStaffFilter] = useState('');
+  const [sortField, setSortField] = useState<'date' | 'staff'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   useEffect(() => {
     fetchStoreItems();
@@ -48,6 +60,53 @@ export default function CreditStorePage() {
     item.item_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.creditors?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const getDateRange = () => {
+    const now = new Date();
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (datePreset === 'today') return { from: startOfDay(now), to: new Date(startOfDay(now).getTime() + 86400000 - 1) };
+    if (datePreset === 'yesterday') { const s = startOfDay(new Date(now.getTime() - 86400000)); return { from: s, to: new Date(s.getTime() + 86400000 - 1) }; }
+    if (datePreset === 'this_week') { const day = now.getDay(); const s = startOfDay(new Date(now.getTime() - (day === 0 ? 6 : day - 1) * 86400000)); return { from: s, to: new Date(startOfDay(now).getTime() + 86400000 - 1) }; }
+    if (datePreset === 'this_month') { const s = new Date(now.getFullYear(), now.getMonth(), 1); return { from: s, to: new Date(startOfDay(now).getTime() + 86400000 - 1) }; }
+    if (datePreset === 'custom' && customDate) { const s = startOfDay(new Date(customDate)); return { from: s, to: new Date(s.getTime() + 86400000 - 1) }; }
+    if (datePreset === 'range' && dateFrom && dateTo) { const s = startOfDay(new Date(dateFrom)); return { from: s, to: new Date(dateTo + 'T23:59:59') }; }
+    return { from: null, to: null };
+  };
+
+  const filterByDate = (item: any) => {
+    const range = getDateRange();
+    if (!range.from) return true;
+    const d = new Date(item.credit_sale_items?.credit_sales?.created_at || item.created_at || item.updated_at).getTime();
+    return (!range.from || d >= range.from.getTime()) && (!range.to || d <= range.to.getTime());
+  };
+
+  const filterByStaff = (item: any) => {
+    if (!staffFilter) return true;
+    return item.credit_sale_items?.credit_sales?.users?.full_name === staffFilter;
+  };
+
+  const sortItems = (items: any[]) => {
+    return items.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortField === 'date') {
+        const da = new Date(a.credit_sale_items?.credit_sales?.created_at || a.created_at || a.updated_at).getTime();
+        const db = new Date(b.credit_sale_items?.credit_sales?.created_at || b.created_at || b.updated_at).getTime();
+        return dir * (da - db);
+      }
+      if (sortField === 'staff') {
+        return dir * ((a.credit_sale_items?.credit_sales?.users?.full_name || '').localeCompare(b.credit_sale_items?.credit_sales?.users?.full_name || ''));
+      }
+      return 0;
+    });
+  };
+
+  const invItems = sortItems(filteredItems.filter(i => i.status !== 'returned').filter(filterByDate).filter(filterByStaff));
+  const totalInvPages = Math.ceil(invItems.length / perPage);
+  const paginatedInv = invItems.slice((invPage - 1) * perPage, invPage * perPage);
+
+  const histItems = sortItems(filteredItems.filter(i => i.status === 'returned').filter(filterByDate).filter(filterByStaff));
+  const totalHistPages = Math.ceil(histItems.length / perPage);
+  const paginatedHist = histItems.slice((histPage - 1) * perPage, histPage * perPage);
 
   // Items available for return (must not be already returned/paid, AND either marked returnable OR from cancelled sale)
   const returnableItems = storeItems.filter(item => {
@@ -119,29 +178,29 @@ export default function CreditStorePage() {
       <div className="max-w-7xl mx-auto">
         <CreditTabs />
 
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
+        <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4 mb-8">
+          <div className="w-full sm:w-auto">
             <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Credit Store</h1>
             <p className="text-gray-500 dark:text-gray-400 font-medium">Track items currently held by creditors and manage inventory returns</p>
           </div>
           <button 
             onClick={() => setShowReturnModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-pink-600 text-white rounded-xl font-black hover:bg-pink-700 transition-all shadow-xl shadow-pink-200"
+            className="flex items-center gap-2 px-6 py-3 bg-pink-600 text-white rounded-xl font-black hover:bg-pink-700 transition-all shadow-xl shadow-pink-200 shrink-0"
           >
             <RefreshCcw size={18} />
-            RETURN TO SHOP
+            RETURN TO STORE
           </button>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
             <div className="w-12 h-12 bg-pink-50 dark:bg-pink-900/30 rounded-xl flex items-center justify-center text-pink-600 dark:text-pink-400 mb-4">
               <Package size={24} />
             </div>
             <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Total Items on Credit</p>
             <h2 className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-              {formatQty(storeItems.filter(i => i.status === 'active').reduce((acc, curr) => acc + curr.quantity, 0))}
+              {formatQty(storeItems.filter(i => i.status === 'active' || i.status === 'partially_paid').reduce((acc, curr) => acc + curr.quantity, 0))}
             </h2>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
@@ -150,7 +209,7 @@ export default function CreditStorePage() {
             </div>
             <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Active Creditors</p>
             <h2 className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-              {new Set(storeItems.filter(i => i.status === 'active').map(i => i.creditor_id)).size}
+              {new Set(storeItems.filter(i => i.status === 'active' || i.status === 'partially_paid').map(i => i.creditor_id)).size}
             </h2>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
@@ -159,7 +218,7 @@ export default function CreditStorePage() {
             </div>
             <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Returned to Shop</p>
             <h2 className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-              {storeItems.filter(i => i.status === 'returned').length}
+              {formatQty(storeItems.filter(i => i.status === 'returned').reduce((acc, curr) => acc + curr.quantity, 0))}
             </h2>
           </div>
         </div>
@@ -168,7 +227,7 @@ export default function CreditStorePage() {
         <div className="flex justify-center mb-8">
           <div className="inline-flex p-1.5 bg-gray-100/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl gap-1 border border-gray-200/50 dark:border-gray-700/40 shadow-sm w-full sm:w-auto">
             <button
-              onClick={() => setActiveTab('inventory')}
+              onClick={() => { setActiveTab('inventory'); setInvPage(1); }}
               className={`flex-1 sm:flex-none py-2 px-6 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
                 activeTab === 'inventory'
                   ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
@@ -179,7 +238,7 @@ export default function CreditStorePage() {
               <span>Current Inventory</span>
             </button>
             <button
-              onClick={() => setActiveTab('history')}
+              onClick={() => { setActiveTab('history'); setHistPage(1); }}
               className={`flex-1 sm:flex-none py-2 px-6 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
                 activeTab === 'history'
                   ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
@@ -194,87 +253,139 @@ export default function CreditStorePage() {
 
         {/* Main List */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden">
-          {activeTab === 'inventory' ? (
-            <>
-          <div className="p-6 border-b border-gray-50 dark:border-gray-700 flex flex-col md:flex-row justify-between items-center gap-4">
+          {/* Search & Filter */}
+          <div className="p-6 border-b border-gray-50 dark:border-gray-700 space-y-3">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search items or creditors..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setInvPage(1); setHistPage(1); }}
                 className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border-none rounded-xl focus:ring-2 focus:ring-pink-500 font-medium text-sm transition-all text-gray-900 dark:text-white"
               />
             </div>
-            <div className="flex gap-2">
-              <span className="px-3 py-1 bg-pink-50 text-pink-600 rounded-full text-[10px] font-black tracking-widest uppercase">Live View</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</span>
+                <select
+                  value={datePreset}
+                  onChange={e => { setDatePreset(e.target.value as any); setInvPage(1); setHistPage(1); }}
+                  className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="this_week">This Week</option>
+                  <option value="this_month">This Month</option>
+                  <option value="custom">Custom Date</option>
+                  <option value="range">Date Range</option>
+                </select>
+                {datePreset === 'custom' && (
+                  <input type="date" value={customDate} onChange={e => { setCustomDate(e.target.value); setInvPage(1); setHistPage(1); }} className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                )}
+                {datePreset === 'range' && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setInvPage(1); setHistPage(1); }} className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                    <span className="text-[10px] font-bold text-gray-500">—</span>
+                    <input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setInvPage(1); setHistPage(1); }} className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+                  </div>
+                )}
+              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Staff</span>
+                  <select
+                    value={staffFilter}
+                    onChange={e => { setStaffFilter(e.target.value); setInvPage(1); setHistPage(1); }}
+                    className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold"
+                  >
+                    <option value="">All</option>
+                    {[...new Set(storeItems.map(i => i.credit_sale_items?.credit_sales?.users?.full_name).filter(Boolean))].map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="flex items-center gap-1 ml-auto">
+                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sort:</span>
+                <button
+                  onClick={() => { if (sortField !== 'date') setSortField('date'); else setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }}
+                  className={`px-2.5 py-1.5 text-[10px] font-bold rounded-lg border transition-colors flex items-center gap-1 uppercase tracking-wider ${sortField === 'date' ? 'bg-pink-50 dark:bg-pink-900/30 border-pink-300 dark:border-pink-700 text-pink-700 dark:text-pink-400' : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'}`}
+                >
+                  <ArrowUpDown size={11} />
+                  Date {sortField === 'date' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => { if (sortField !== 'staff') setSortField('staff'); else setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }}
+                    className={`px-2.5 py-1.5 text-[10px] font-bold rounded-lg border transition-colors flex items-center gap-1 uppercase tracking-wider ${sortField === 'staff' ? 'bg-pink-50 dark:bg-pink-900/30 border-pink-300 dark:border-pink-700 text-pink-700 dark:text-pink-400' : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'}`}
+                  >
+                    <ArrowUpDown size={11} />
+                    Staff {sortField === 'staff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-
+          {activeTab === 'inventory' ? (
+            <>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b dark:border-gray-700">
+                  <th className="py-4 px-6">Date Issued</th>
                   <th className="py-4 px-6">Item Details</th>
                   <th className="py-4 px-6">Creditor</th>
-                  <th className="py-4 px-6">Quantity</th>
+                  <th className="py-4 px-6">Qty</th>
                   <th className="py-4 px-6">Source Receipt</th>
+                  {isAdmin && <th className="py-4 px-6">Staff</th>}
                   <th className="py-4 px-6">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                {filteredItems.filter(i => i.status !== 'returned').map((item) => (
+                {paginatedInv.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors group">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-400 dark:text-gray-500 group-hover:bg-pink-100 dark:group-hover:bg-pink-900/30 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-all">
-                          <Package size={20} />
-                        </div>
-                        <span className="font-bold text-gray-900 dark:text-white">{item.item_name}</span>
-                      </div>
+                    <td className="py-4 px-6 whitespace-nowrap">
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{new Date(item.credit_sale_items?.credit_sales?.created_at || item.created_at).toLocaleString()}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                        <User size={14} className="text-gray-400 dark:text-gray-500" />
-                        {item.creditors?.full_name}
-                      </div>
+                      <span className="font-bold text-gray-900 dark:text-white">{item.item_name}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-black text-gray-900 dark:text-white">
-                        {formatQty(item.quantity)}
-                      </span>
+                      <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">{item.creditors?.full_name}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <button 
-                        onClick={() => handleViewReceipt(item)}
+                      <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm font-black text-gray-900 dark:text-white">{formatQty(item.quantity)}</span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <button onClick={() => handleViewReceipt(item)}
                         className="text-xs font-black text-pink-600 hover:underline decoration-2 underline-offset-4"
-                      >
-                        {item.credit_sale_items?.credit_sales?.receipt_number || 'N/A'}
-                      </button>
+                      >{item.credit_sale_items?.credit_sales?.receipt_number || 'N/A'}</button>
                     </td>
+                    {isAdmin && <td className="py-4 px-6"><span className="text-sm font-semibold text-gray-500 dark:text-gray-400">{item.credit_sale_items?.credit_sales?.users?.full_name}</span></td>}
                     <td className="py-4 px-6">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${
-                        (item.status === 'active' && item.credit_sale_items?.credit_sales?.status !== 'cancelled') ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
-                        (item.status === 'available for return' || item.credit_sale_items?.credit_sales?.status === 'cancelled') ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' :
-                        item.status === 'returned' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
-                        'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {item.credit_sale_items?.credit_sales?.status === 'cancelled' 
-                          ? 'Available for Return' 
-                          : item.status?.replace(/_/g, ' ')}
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${(item.status === 'active' && item.credit_sale_items?.credit_sales?.status !== 'cancelled') ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : (item.status === 'available for return' || item.credit_sale_items?.credit_sales?.status === 'cancelled') ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' : item.status === 'returned' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                        {item.credit_sale_items?.credit_sales?.status === 'cancelled' ? 'Available for Return' : item.status?.replace(/_/g, ' ')}
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {filteredItems.filter(i => i.status !== 'returned').length === 0 && (
+            {invItems.length === 0 && (
               <div className="py-20 text-center">
                 <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Package className="w-10 h-10 text-gray-200 dark:text-gray-700" />
                 </div>
                 <p className="text-gray-400 dark:text-gray-500 font-bold uppercase text-xs tracking-widest">No active items in credit store</p>
+              </div>
+            )}
+            {totalInvPages > 1 && (
+              <div className="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
+                <button disabled={invPage === 1} onClick={() => setInvPage(p => p - 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Previous</button>
+                <span className="px-4 py-2 text-xs font-black">Page {invPage} of {totalInvPages}</span>
+                <button disabled={invPage === totalInvPages} onClick={() => setInvPage(p => p + 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Next</button>
               </div>
             )}
           </div>
@@ -289,46 +400,43 @@ export default function CreditStorePage() {
                     <th className="py-4 px-6">Creditor</th>
                     <th className="py-4 px-6">Quantity</th>
                     <th className="py-4 px-6">Source Receipt</th>
+                    {isAdmin && <th className="py-4 px-6">Staff</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                  {storeItems.filter(i => i.status === 'returned').map((item) => (
+                  {paginatedHist.map((item) => (
                     <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors group">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400">
-                          <Calendar size={14} className="text-gray-400 dark:text-gray-500" />
-                          {new Date(item.updated_at || item.created_at).toLocaleDateString()}
-                        </div>
+                      <td className="py-4 px-6 whitespace-nowrap">
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">{new Date(item.updated_at || item.created_at).toLocaleString()}</span>
                       </td>
                       <td className="py-4 px-6">
                         <span className="font-bold text-gray-900 dark:text-white">{item.item_name}</span>
                       </td>
-                      <td className="py-4 px-6 text-sm font-bold text-gray-600 dark:text-gray-400">
-                        {item.creditors?.full_name}
+                      <td className="py-4 px-6 text-sm font-bold text-gray-600 dark:text-gray-400">{item.creditors?.full_name}</td>
+                      <td className="py-4 px-6">
+                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-black">{formatQty(item.quantity)}</span>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-black">
-                          {formatQty(item.quantity)}
-                        </span>
+                        <button onClick={() => handleViewReceipt(item)} className="text-xs font-black text-pink-600 hover:underline decoration-2 underline-offset-4">{item.credit_sale_items?.credit_sales?.receipt_number || 'N/A'}</button>
                       </td>
-                      <td className="py-4 px-6">
-                        <button 
-                          onClick={() => handleViewReceipt(item)}
-                          className="text-xs font-black text-pink-600 hover:underline decoration-2 underline-offset-4"
-                        >
-                          {item.credit_sale_items?.credit_sales?.receipt_number || 'N/A'}
-                        </button>
-                      </td>
+                      {isAdmin && <td className="py-4 px-6"><span className="text-sm font-semibold text-gray-500 dark:text-gray-400">{item.credit_sale_items?.credit_sales?.users?.full_name}</span></td>}
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {storeItems.filter(i => i.status === 'returned').length === 0 && (
+              {histItems.length === 0 && (
                 <div className="py-20 text-center">
                   <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <RefreshCcw className="w-10 h-10 text-gray-200 dark:text-gray-700" />
                   </div>
                   <p className="text-gray-400 dark:text-gray-500 font-bold uppercase text-xs tracking-widest">No return history found</p>
+                </div>
+              )}
+              {totalHistPages > 1 && (
+                <div className="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
+                  <button disabled={histPage === 1} onClick={() => setHistPage(p => p - 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Previous</button>
+                  <span className="px-4 py-2 text-xs font-black">Page {histPage} of {totalHistPages}</span>
+                  <button disabled={histPage === totalHistPages} onClick={() => setHistPage(p => p + 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Next</button>
                 </div>
               )}
             </div>
@@ -428,7 +536,7 @@ export default function CreditStorePage() {
                   disabled={isReturning}
                   className="w-full py-4 bg-pink-600 text-white rounded-2xl font-black text-lg hover:bg-pink-700 shadow-xl shadow-pink-200 transition-all disabled:opacity-50"
                 >
-                  {isReturning ? 'RETURNING...' : 'YES, RETURN TO SHOP'}
+                  {isReturning ? 'RETURNING...' : 'YES, RETURN TO STORE'}
                 </button>
                 <button 
                   onClick={() => setShowConfirmModal(false)}

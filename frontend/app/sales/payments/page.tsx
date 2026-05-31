@@ -8,33 +8,7 @@ import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, File
 import StylishSuccessModal from '@/components/StylishSuccessModal';
 import LoadingLogo from '@/components/LoadingLogo';
 
-interface Payment {
-  id: string;
-  staff_name: string;
-  staff_phone?: string;
-  amount: number;
-  items_paid_for: any[];
-  reference_number: string;
-  payment_method: string;
-  payment_type: string;
-  status: 'pending' | 'approved' | 'rejected';
-  approved_amount: number;
-  notes: string;
-  receipt_url?: string;
-  created_at: string;
-  approved_date: string;
-}
-
-interface Sale {
-  id: string;
-  item_id: string;
-  item_name: string;
-  quantity: number;
-  price_jalingo: number;
-  unit_price?: number;
-  total_amount: number;
-  sale_date: string;
-}
+import type { Payment, Sale } from '@/types';
 
 export default function SalesPaymentsPage() {
   const user = useAuthStore((state) => state.user);
@@ -581,7 +555,19 @@ export default function SalesPaymentsPage() {
   const pendingPayments = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + (parseFloat(p.amount as any) || 0), 0);
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading payments...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

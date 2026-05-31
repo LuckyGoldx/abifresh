@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  Search, Plus, Edit2, Trash2, X, Mail, Phone, MapPin, Eye, DollarSign, User, RefreshCw, ArrowLeft, AlertCircle, XCircle
+  Search, Plus, Edit2, Trash2, X, Mail, Phone, MapPin, Eye, DollarSign, User, RefreshCw, ArrowLeft, AlertCircle, XCircle, MoreHorizontal
 } from 'lucide-react';
 import { Toast, CreditTabs } from '@/components/credits';
 
@@ -31,12 +31,22 @@ export default function ManageCreditorsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteStep, setDeleteStep] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [creditorsPage, setCreditorsPage] = useState(1);
+  const perPage = 15;
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
   useEffect(() => {
     fetchCreditors();
   }, []);
+
+  useEffect(() => {
+    if (!openActionId) return;
+    const close = () => setOpenActionId(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [openActionId]);
 
   const fetchCreditors = async (retryCount = 0) => {
     try {
@@ -46,7 +56,6 @@ export default function ManageCreditorsPage() {
       setIsLoading(false);
     } catch (error: any) {
       if (retryCount < 2) {
-        // Silent retry after 1.5s
         setTimeout(() => fetchCreditors(retryCount + 1), 1500);
       } else {
         setToast({ message: 'Connection interrupted. Retrying...', type: 'error' });
@@ -54,6 +63,15 @@ export default function ManageCreditorsPage() {
       }
     }
   };
+
+  const filteredCreditors = creditors.filter(c =>
+    c.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.unique_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.phone_number?.includes(searchTerm)
+  );
+
+  const totalCreditorPages = Math.ceil(filteredCreditors.length / perPage);
+  const paginatedCreditors = filteredCreditors.slice((creditorsPage - 1) * perPage, creditorsPage * perPage);
 
   const resetForm = () => {
     setFormData({ full_name: '', phone_number: '', email: '', address: '' });
@@ -116,15 +134,17 @@ export default function ManageCreditorsPage() {
     setShowAddModal(true);
   };
 
-  const filteredCreditors = creditors.filter(c =>
-    c.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.unique_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.phone_number?.includes(searchTerm)
-  );
-
   if (isLoading) return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto text-center py-8">Loading creditors...</div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-pulse">
+          <img src="/favicon.svg" alt="" className="w-20 h-20" />
+        </div>
+        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+          <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold">Abifreshing...</span>
+        </div>
+      </div>
     </div>
   );
 
@@ -145,7 +165,7 @@ export default function ManageCreditorsPage() {
                 type="text"
                 placeholder="Search creditors..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCreditorsPage(1); }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
@@ -172,7 +192,7 @@ export default function ManageCreditorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCreditors.map((creditor) => (
+                {paginatedCreditors.map((creditor) => (
                   <tr key={creditor.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <td className="py-3 px-4 text-sm font-bold text-pink-600 dark:text-pink-400">{creditor.unique_code}</td>
                     <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{creditor.full_name}</td>
@@ -187,32 +207,51 @@ export default function ManageCreditorsPage() {
                     <td className="py-3 px-4 text-sm font-bold text-red-600">
                       ₦{Number(creditor.outstanding || 0).toLocaleString()}
                     </td>
-                    <td className="py-3 px-4 text-sm flex gap-2">
-                      <button onClick={() => {
-                        const base = pathname.split('/')[1];
-                        router.push(`/${base}/creditor/${creditor.id}`);
-                      }} className="text-blue-600 hover:text-blue-800" title="View History">
-                        <Eye size={18} />
-                      </button>
-                      <button onClick={() => openEditModal(creditor)} className="text-yellow-600 hover:text-yellow-800" title="Edit">
-                        <Edit2 size={18} />
-                      </button>
-                      
-                      {isAdmin && (
-                        <button onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }} className="text-red-600 hover:text-red-800" title="Delete">
-                          <Trash2 size={18} />
+                    <td className="py-3 px-4 text-sm">
+                      {/* Mobile: Dropdown */}
+                      <div className="relative lg:hidden">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setOpenActionId(openActionId === creditor.id ? null : creditor.id); }}
+                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                          title="Actions"
+                        >
+                          <MoreHorizontal size={18} className="text-gray-600 dark:text-gray-400" />
                         </button>
-                      )}
+                        {openActionId === creditor.id && (
+                          <div className="absolute right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg border dark:border-gray-700 py-1 z-50 min-w-[140px]" onClick={e => e.stopPropagation()}>
+                            <button onClick={() => { setOpenActionId(null); const base = pathname.split('/')[1]; router.push(`/${base}/creditor/${creditor.id}`); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-bold transition-colors"><Eye size={16} /> View</button>
+                            <button onClick={() => { setOpenActionId(null); openEditModal(creditor); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 font-bold transition-colors"><Edit2 size={16} /> Edit</button>
+                            {isAdmin && (
+                              <button onClick={() => { setOpenActionId(null); setDeleteId(creditor.id); setDeleteStep(1); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold transition-colors"><Trash2 size={16} /> Delete</button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {/* Desktop: Inline Icons */}
+                      <div className="hidden lg:flex gap-2">
+                        <button onClick={() => { const base = pathname.split('/')[1]; router.push(`/${base}/creditor/${creditor.id}`); }} className="text-blue-600 hover:text-blue-800" title="View History"><Eye size={18} /></button>
+                        <button onClick={() => openEditModal(creditor)} className="text-yellow-600 hover:text-yellow-800" title="Edit"><Edit2 size={18} /></button>
+                        {isAdmin && (
+                          <button onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }} className="text-red-600 hover:text-red-800" title="Delete"><Trash2 size={18} /></button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
                 {filteredCreditors.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">No creditors found.</td>
+                    <td colSpan={8} className="py-8 text-center text-gray-500 dark:text-gray-400">No creditors found.</td>
                   </tr>
                 )}
               </tbody>
             </table>
+            {totalCreditorPages > 1 && (
+              <div className="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
+                <button disabled={creditorsPage === 1} onClick={() => setCreditorsPage(p => p - 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Previous</button>
+                <span className="px-4 py-2 text-xs font-black">Page {creditorsPage} of {totalCreditorPages}</span>
+                <button disabled={creditorsPage >= totalCreditorPages} onClick={() => setCreditorsPage(p => p + 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Next</button>
+              </div>
+            )}
           </div>
         </div>
 

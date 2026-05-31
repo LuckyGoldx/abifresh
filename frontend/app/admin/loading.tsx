@@ -1,5 +1,5 @@
-import LoadingLogo from '@/components/LoadingLogo';
+import { SkeletonPage } from '@/components/Skeleton';
 
 export default function Loading() {
-  return <LoadingLogo text="Loading admin dashboard..." />;
+  return <SkeletonPage />;
 }

@@ -4,26 +4,7 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useToast } from '@/context/ToastContext';
 import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User, Eye, EyeOff, Trash2 } from 'lucide-react';
-
-interface Staff {
-  id: string;
-  email: string;
-  full_name: string;
-  username: string;
-  phone_number?: string;
-  role: string;
-  store_location: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-interface StaffStats {
-  total: number;
-  sales_staff: number;
-  commission_staff: number;
-  non_commission_staff: number;
-  admin: number;
-}
+import type { Staff, StaffStats } from '@/types';
 
 // Helper function to display role names nicely
 const displayRoleName = (role: string): string => {
@@ -272,7 +253,7 @@ export default function StaffManagementPage() {
 
     // Sort
     if (sortBy === 'registered') {
-      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      result.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
     } else if (sortBy === 'role') {
       const roleOrder: { [key: string]: number } = {
         'admin': 0,
@@ -289,7 +270,19 @@ export default function StaffManagementPage() {
   const filteredStaff = getFilteredAndSortedStaff();
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading staff...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -625,7 +618,7 @@ export default function StaffManagementPage() {
                   </td>
                   <td className="py-3 px-4">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatRegistrationDate(member.created_at)}
+                      {formatRegistrationDate(member.created_at!)}
                     </span>
                   </td>
                   <td className="py-3 px-4">
@@ -690,7 +683,7 @@ export default function StaffManagementPage() {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => handleToggleStatus(member.id, member.is_active)}
+                          onClick={() => handleToggleStatus(member.id, member.is_active!)}
                           className={member.is_active ? 'text-red-600 hover:text-red-800' : 'text-green-600 hover:text-green-800'}
                           title={member.is_active ? 'Deactivate staff' : 'Activate staff'}
                         >

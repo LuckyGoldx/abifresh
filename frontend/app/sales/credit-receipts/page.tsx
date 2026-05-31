@@ -1,18 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
-import { Search, Eye, X, Printer, Download } from 'lucide-react';
+import { Search, Eye, X, Printer, Download, ArrowUpDown } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 import { Toast, CreditTabs } from '@/components/credits';
 
 export default function CreditReceiptsPage() {
+  const user = useAuthStore((state) => state.user);
   const [receipts, setReceipts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [sortField, setSortField] = useState<'date' | 'staff'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [datePreset, setDatePreset] = useState<'today' | 'yesterday' | 'all' | 'this_week' | 'this_month' | 'custom' | 'range'>('all');
+  const [customDate, setCustomDate] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [staffFilter, setStaffFilter] = useState('');
+  const [receiptsPage, setReceiptsPage] = useState(1);
+  const perPage = 15;
 
   useEffect(() => {
     fetchReceipts();
@@ -35,10 +46,58 @@ export default function CreditReceiptsPage() {
     }
   };
 
-  const filteredReceipts = receipts.filter(r =>
-    r.receipt_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.creditors?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getDateRange = () => {
+    const now = new Date();
+    const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (datePreset === 'today') {
+      const s = startOfDay(now);
+      return { from: s, to: new Date(s.getTime() + 86400000 - 1) };
+    }
+    if (datePreset === 'yesterday') {
+      const s = startOfDay(new Date(now.getTime() - 86400000));
+      return { from: s, to: new Date(s.getTime() + 86400000 - 1) };
+    }
+    if (datePreset === 'this_week') {
+      const day = now.getDay();
+      const s = startOfDay(new Date(now.getTime() - (day === 0 ? 6 : day - 1) * 86400000));
+      return { from: s, to: new Date(startOfDay(now).getTime() + 86400000 - 1) };
+    }
+    if (datePreset === 'this_month') {
+      const s = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: s, to: new Date(startOfDay(now).getTime() + 86400000 - 1) };
+    }
+    if (datePreset === 'custom' && customDate) {
+      const s = startOfDay(new Date(customDate));
+      return { from: s, to: new Date(s.getTime() + 86400000 - 1) };
+    }
+    if (datePreset === 'range' && dateFrom && dateTo) {
+      const s = startOfDay(new Date(dateFrom));
+      const e = new Date(dateTo + 'T23:59:59');
+      return { from: s, to: e };
+    }
+    return { from: null, to: null };
+  };
+
+  const filteredReceipts = receipts
+    .filter(r => {
+      const range = getDateRange();
+      const d = new Date(r.created_at).getTime();
+      const staffName = r.users?.full_name;
+      return (r.receipt_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.creditors?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (!range.from || d >= range.from.getTime()) &&
+        (!range.to || d <= range.to.getTime()) &&
+        (!staffFilter || staffName === staffFilter);
+    })
+    .sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      if (sortField === 'date') return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      if (sortField === 'staff') return dir * ((a.users?.full_name || '').localeCompare(b.users?.full_name || ''));
+      return 0;
+    });
+
+  const totalReceiptsPages = Math.ceil(filteredReceipts.length / perPage);
+  const paginatedReceipts = filteredReceipts.slice((receiptsPage - 1) * perPage, receiptsPage * perPage);
 
   const handleViewReceipt = (receipt: any) => {
     const formattedReceipt = {
@@ -61,8 +120,16 @@ export default function CreditReceiptsPage() {
   };
 
   if (isLoading) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto text-center py-8 dark:text-gray-400">Loading receipts...</div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-pulse">
+          <img src="/favicon.svg" alt="" className="w-20 h-20" />
+        </div>
+        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+          <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold">Abifreshing...</span>
+        </div>
+      </div>
     </div>
   );
 
@@ -75,17 +142,100 @@ export default function CreditReceiptsPage() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Credit Receipts</h2>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search receipts..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-500"
-              />
+          <div className="space-y-3 mb-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Credit Receipts</h2>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search receipts..."
+                  value={searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setReceiptsPage(1); }}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-pink-500"
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</span>
+                <select
+                  value={datePreset}
+                  onChange={e => setDatePreset(e.target.value as any)}
+                  className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="this_week">This Week</option>
+                  <option value="this_month">This Month</option>
+                  <option value="custom">Custom Date</option>
+                  <option value="range">Date Range</option>
+                </select>
+                {datePreset === 'custom' && (
+                  <input
+                    type="date"
+                    value={customDate}
+                    onChange={e => setCustomDate(e.target.value)}
+                    className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                )}
+                {datePreset === 'range' && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={e => setDateFrom(e.target.value)}
+                      className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                    <span className="text-[10px] font-bold text-gray-500">—</span>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={e => setDateTo(e.target.value)}
+                      className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                )}
+              </div>
+              {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Staff</span>
+                  <select
+                    value={staffFilter}
+                    onChange={e => setStaffFilter(e.target.value)}
+                    className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-bold"
+                  >
+                    <option value="">All</option>
+                    {[...new Set(receipts.map(r => r.users?.full_name).filter(Boolean))].map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div className="flex items-center gap-1 ml-auto">
+                <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sort:</span>
+                <button
+                  onClick={() => { if (sortField !== 'date') setSortField('date'); else setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }}
+                  className={`px-2.5 py-1.5 text-[10px] font-bold rounded-lg border transition-colors flex items-center gap-1 uppercase tracking-wider ${
+                    sortField === 'date' ? 'bg-pink-50 dark:bg-pink-900/30 border-pink-300 dark:border-pink-700 text-pink-700 dark:text-pink-400' : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
+                  }`}
+                >
+                  <ArrowUpDown size={11} />
+                  Date {sortField === 'date' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                </button>
+                {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                  <button
+                    onClick={() => { if (sortField !== 'staff') setSortField('staff'); else setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }}
+                    className={`px-2.5 py-1.5 text-[10px] font-bold rounded-lg border transition-colors flex items-center gap-1 uppercase tracking-wider ${
+                      sortField === 'staff' ? 'bg-pink-50 dark:bg-pink-900/30 border-pink-300 dark:border-pink-700 text-pink-700 dark:text-pink-400' : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
+                    }`}
+                  >
+                    <ArrowUpDown size={11} />
+                    Staff {sortField === 'staff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -93,8 +243,21 @@ export default function CreditReceiptsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                  <th
+                    onClick={() => { if (sortField !== 'date') setSortField('date'); else setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }}
+                    className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:text-pink-600 select-none"
+                  >
+                    Date {sortField === 'date' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                  </th>
+                  {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                    <th
+                      onClick={() => { if (sortField !== 'staff') setSortField('staff'); else setSortDir(d => d === 'asc' ? 'desc' : 'asc'); }}
+                      className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer hover:text-pink-600 select-none"
+                    >
+                      Staff {sortField === 'staff' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                  )}
                   <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Receipt No.</th>
-                  <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Date</th>
                   <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Creditor</th>
                   <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Amount</th>
                   <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Status</th>
@@ -102,10 +265,13 @@ export default function CreditReceiptsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredReceipts.map((receipt) => (
+                {paginatedReceipts.map((receipt) => (
                   <tr key={receipt.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{new Date(receipt.created_at).toLocaleString()}</td>
+                    {(user?.role === 'admin' || user?.role === 'superadmin') && (
+                      <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{receipt.users?.full_name}</td>
+                    )}
                     <td className="py-3 px-4 text-sm text-gray-900 dark:text-white font-medium">{receipt.receipt_number}</td>
-                    <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{new Date(receipt.created_at).toLocaleDateString()}</td>
                     <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">{receipt.creditors?.full_name}</td>
                     <td className="py-3 px-4 text-sm text-gray-900 dark:text-white font-bold">₦{Number(receipt.total_amount).toLocaleString()}</td>
                     <td className="py-3 px-4 text-sm">
@@ -129,12 +295,19 @@ export default function CreditReceiptsPage() {
                 ))}
                 {filteredReceipts.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">No receipts found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  <td colSpan={user?.role === 'admin' || user?.role === 'superadmin' ? 7 : 6} className="py-8 text-center text-gray-500 dark:text-gray-400">No receipts found.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
           </div>
+          {totalReceiptsPages > 1 && (
+            <div className="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
+              <button disabled={receiptsPage === 1} onClick={() => setReceiptsPage(p => p - 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Previous</button>
+              <span className="px-4 py-2 text-xs font-black">Page {receiptsPage} of {totalReceiptsPages}</span>
+              <button disabled={receiptsPage === totalReceiptsPages} onClick={() => setReceiptsPage(p => p + 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Next</button>
+            </div>
+          )}
         </div>
       </div>
 

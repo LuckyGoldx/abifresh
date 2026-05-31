@@ -61,8 +61,8 @@ export async function GET(req: NextRequest) {
     const creditorSales = allSales.filter(s => String(s.creditor_id) === String(c.id));
     const creditorPayments = allPayments.filter(p => String(p.creditor_id) === String(c.id));
 
-    // 1. Lifetime Total Credit (All sales ever given)
-    const totalCreditAmount = creditorSales.reduce((sum, s) => sum + Number(s.total_amount), 0);
+    // 1. Lifetime Total Credit (All non-cancelled sales)
+    const totalCreditAmount = creditorSales.filter(s => s.status !== 'cancelled').reduce((sum, s) => sum + Number(s.total_amount), 0);
     
     // 2. Lifetime Paid (Total money ever collected from this creditor)
     const totalPaid = creditorPayments.reduce((sum, p) => sum + Number(p.amount), 0);

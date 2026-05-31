@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
-import { DollarSign, Package, Users, TrendingUp } from 'lucide-react';
+import { Package, Users, TrendingUp } from 'lucide-react';
 import { StatsCard, ActivityLog, Toast, Activity, CreditTabs } from '@/components/credits';
 
 import { formatQty } from '@/lib/format-quantity';
@@ -42,10 +42,14 @@ export default function CreditsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-8">
-            <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
           </div>
         </div>
       </div>
@@ -64,7 +68,7 @@ export default function CreditsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard
-              icon={DollarSign}
+              icon={({ className }: { className?: string }) => <span className={`${className} flex items-center justify-center text-2xl font-black leading-none`}>₦</span>}
               label="Total Credits Amount"
               value={`₦${Number(stats.total_credits_amount || stats.totalCreditsAmount || 0).toLocaleString()}`}
               color="bg-blue-50"

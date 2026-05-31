@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
@@ -36,11 +36,11 @@ export default function CreditNotificationsPage() {
   const [activeCategory, setActiveCategory] = useState('all');
 
   const CATEGORIES = [
-    { id: 'all', name: 'All Activities', icon: '🔔' },
-    { id: 'credits', name: 'Issuance', icon: '💳' },
-    { id: 'payments', name: 'Payments', icon: '💰' },
-    { id: 'returns', name: 'Returns', icon: '🔄' },
-    { id: 'creditors', name: 'Creditors', icon: '👤' },
+    { id: 'all', name: 'All Activities', icon: <Bell size={16} /> },
+    { id: 'credits', name: 'Issuance', icon: <CreditCard size={16} /> },
+    { id: 'payments', name: 'Payments', icon: <DollarSign size={16} /> },
+    { id: 'returns', name: 'Returns', icon: <RotateCcw size={16} /> },
+    { id: 'creditors', name: 'Creditors', icon: <UserPlus size={16} /> },
   ];
 
   useEffect(() => {
@@ -137,8 +137,16 @@ export default function CreditNotificationsPage() {
   };
 
   if (isLoading) return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto text-center py-8">Loading credit notifications...</div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-pulse">
+          <img src="/favicon.svg" alt="" className="w-20 h-20" />
+        </div>
+        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+          <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-sm font-bold">Abifreshing...</span>
+        </div>
+      </div>
     </div>
   );
 
@@ -162,7 +170,7 @@ export default function CreditNotificationsPage() {
               disabled={filteredNotifications.filter(n => !n.is_read).length === 0}
               className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-gray-100 rounded-2xl text-sm font-bold text-gray-600 hover:border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
-              ✅ Mark Category as Read
+              âœ… Mark Category as Read
             </button>
             <button
               onClick={() => fetchNotifications()}
@@ -278,3 +286,4 @@ export default function CreditNotificationsPage() {
     </div>
   );
 }
+

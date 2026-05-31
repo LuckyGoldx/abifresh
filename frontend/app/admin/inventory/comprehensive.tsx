@@ -46,24 +46,7 @@ function compressImageClientSide(file: File): Promise<File> {
   });
 }
 
-interface Item {
-  id: string;
-  name: string;
-  sku: string;
-  category: string;
-  unit_price: number;
-  is_available: boolean;
-  main_store_quantity: number;
-  active_store_quantity: number;
-  quantity_sold: number;
-  commission: number;
-  brand?: string;
-  package_type?: string;
-  price_jalingo?: number;
-  price_outside?: number;
-  image_url?: string;
-  created_at: string;
-}
+import type { Item } from '@/types';
 
 interface StoreStats {
   total_items: number;

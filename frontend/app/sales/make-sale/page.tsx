@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { ShoppingCart, Plus, Minus, Trash2, X, Search, Send, Printer, Download, CheckCircle, AlertCircle, Building2, Truck, ShoppingBag } from 'lucide-react';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 import { formatQty } from '@/lib/format-quantity';
+import { SkeletonTwoColumnPage } from '@/components/Skeleton';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
@@ -25,20 +26,7 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   );
 };
 
-interface Item {
-  id: string;
-  name: string;
-  sku: string;
-  price_jalingo: number;
-  unit_price?: number;
-  active_store_quantity: number;
-  commission: number;
-  category: string;
-  brand?: string;
-  package_type?: string;
-  price_outside?: number;
-  image_url?: string;
-}
+import type { Item, Staff } from '@/types';
 
 interface CartItem extends Item {
   sale_quantity: number;
@@ -55,13 +43,6 @@ function getImageUrl(url: string | undefined | null): string | null {
   if (url.startsWith('http://')) return url;
   // If it's just a path, assume it's a Supabase public URL
   return url;
-}
-
-interface Staff {
-  id: string;
-  full_name: string;
-  username: string;
-  role: string;
 }
 
 export default function MakeSalePage() {
@@ -404,7 +385,11 @@ export default function MakeSalePage() {
   };
 
   if (!mounted || isLoading) {
-    return <div className="text-center py-12 text-gray-600 dark:text-gray-400">Loading...</div>;
+    return (
+      <div className="p-4 md:p-6">
+        <SkeletonTwoColumnPage />
+      </div>
+    );
   }
 
   // Render function for cart content (called as function, not as <Component/>, to preserve scroll position)

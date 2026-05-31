@@ -4,39 +4,10 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Send, Package, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
-
-interface Staff {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  role_display: string;
-}
-
-interface Item {
-  id: string;
-  name: string;
-  price_jalingo: number;
-  unit_price?: number;
-  quantity: number;
-  category: string;
-  brand?: string;
-  package_type?: string;
-  price_outside?: number;
-  image_url?: string;
-}
-
-interface PostedItem {
-  id: string;
-  item_name: string;
-  staff_name: string;
-  quantity: number;
-  posted_at: string;
-  status: 'pending' | 'accepted' | 'rejected';
-}
+import type { Item, PostedItem, SalesStaff } from '@/types';
 
 export default function PostItemsPage() {
-  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [staffList, setStaffList] = useState<SalesStaff[]>([]);
   const [availableItems, setAvailableItems] = useState<Item[]>([]);
   const [postedItems, setPostedItems] = useState<PostedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -149,7 +120,19 @@ export default function PostItemsPage() {
   };
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -214,7 +197,7 @@ export default function PostItemsPage() {
                   <option value="">Choose an item...</option>
                   {availableItems.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.name} - ₦{(item.price_jalingo || 0).toLocaleString()} (Available: {formatQty(item.quantity)})
+                      {item.name} - â‚¦{(item.price_jalingo || 0).toLocaleString()} (Available: {formatQty(item.quantity)})
                     </option>
                   ))}
                 </select>

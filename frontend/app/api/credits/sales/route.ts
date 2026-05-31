@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
       const { data: dbItem } = await supabaseAdmin.from('items').select('*').eq('id', itemId).single();
       if (!dbItem) continue;
 
-      const unitPrice = Number(item.unit_price || item.unitPrice) || Number(dbItem.unit_price) || 0;
+      const unitPrice = Number(item.unit_price || item.unitPrice) || Number(dbItem.price_jalingo) || 0;
+      const costPrice = Number(item.cost_price || item.costPrice) || Number(dbItem.unit_price) || 0;
       const totalPrice = qty * unitPrice;
       totalAmount += totalPrice;
       totalQuantity += qty;
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
         quantity: qty,
         unit_price: unitPrice,
         total_price: totalPrice,
+        cost_price: costPrice,
       });
     }
 
@@ -72,6 +74,7 @@ export async function POST(req: NextRequest) {
         quantity: si.quantity,
         unit_price: si.unit_price,
         total_price: si.total_price,
+        cost_price: si.cost_price,
       }).select().single();
 
       if (csiError) return NextResponse.json({ error: csiError.message }, { status: 400 });
@@ -86,14 +89,23 @@ export async function POST(req: NextRequest) {
         unit_price: si.unit_price,
         status: 'active',
       });
-
-      const { data: currentItem } = await supabaseAdmin.from('items').select('active_store_quantity').eq('id', si.item_id).single();
-      const newQty = Math.max(0, (currentItem?.active_store_quantity || 0) - si.quantity);
-      await supabaseAdmin.from('items').update({ active_store_quantity: newQty }).eq('id', si.item_id);
     }
 
     const { error: storeError } = await supabaseAdmin.from('credit_store').insert(creditStoreEntries);
-    if (storeError) return NextResponse.json({ error: storeError.message }, { status: 400 });
+    if (storeError) {
+      await supabaseAdmin.from('credit_sale_items').delete().eq('credit_sale_id', creditSale.id);
+      await supabaseAdmin.from('credit_sales').delete().eq('id', creditSale.id);
+      return NextResponse.json({ error: storeError.message }, { status: 400 });
+    }
+
+    for (const si of saleItems) {
+      const { data: currentItem } = await supabaseAdmin.from('items').select('active_store_quantity').eq('id', si.item_id).single();
+      const newQty = Math.max(0, (currentItem?.active_store_quantity || 0) - si.quantity);
+      const { error: updateError } = await supabaseAdmin.from('items').update({ active_store_quantity: newQty }).eq('id', si.item_id);
+      if (updateError) {
+        console.error('Failed to update item quantity:', updateError);
+      }
+    }
 
     supabaseAdmin.from('credit_activities').insert({
       creditor_id,
@@ -174,7 +186,7 @@ export async function GET(req: NextRequest) {
         *,
         users (full_name),
         creditors (*),
-        credit_sale_items (*),
+         credit_sale_items (*, item:item_id(price_jalingo)),
         credit_store (*),
         payments:credit_payments (*)
       `);
@@ -190,7 +202,7 @@ export async function GET(req: NextRequest) {
 
     // 2. Fetch all sales and approved payments to calculate REAL-TIME outstanding balances efficiently
     let allSalesQuery = supabaseAdmin.from('credit_sales').select('id, creditor_id, total_amount').neq('status', 'cancelled');
-    let allPaymentsQuery = supabaseAdmin.from('credit_payments').select('creditor_id, amount, credit_sale_id').eq('status', 'approved');
+    let allPaymentsQuery = supabaseAdmin.from('credit_payments').select('id, creditor_id, amount, credit_sale_id').eq('status', 'approved');
 
     if (isSalesStaff) {
       allSalesQuery = allSalesQuery.eq('staff_id', authResult.id);
@@ -216,6 +228,23 @@ export async function GET(req: NextRequest) {
       }
     });
 
+    // 3b. Fetch credit_payment_items to enrich per-item paid amounts
+    const allItemIds = (sales || []).flatMap(s => (s.credit_sale_items || []).map((i: any) => i.id));
+    const approvedPaymentIds = (allPayments || []).map(p => p.id);
+    let itemPaymentsMap: Record<string, number> = {};
+    if (allItemIds.length > 0 && approvedPaymentIds.length > 0) {
+      const { data: allPaymentItems } = await supabaseAdmin
+        .from('credit_payment_items')
+        .select('credit_sale_item_id, amount')
+        .in('credit_sale_item_id', allItemIds)
+        .in('credit_payment_id', approvedPaymentIds);
+      
+      (allPaymentItems || []).forEach((pi: any) => {
+        const key = pi.credit_sale_item_id;
+        itemPaymentsMap[key] = (itemPaymentsMap[key] || 0) + Number(pi.amount);
+      });
+    }
+
     // 4. Map the calculated outstanding balance to each sale
     const enhancedSales = sales.map(sale => {
       if (!sale.creditors) return sale;
@@ -231,6 +260,16 @@ export async function GET(req: NextRequest) {
       
       return {
         ...sale,
+        credit_sale_items: (sale.credit_sale_items || []).map((item: any) => {
+          const paidAmount = itemPaymentsMap[item.id] || 0;
+          const sellingPrice = item.item?.price_jalingo || item.unit_price;
+          const effectiveTotal = Number(item.quantity) * sellingPrice;
+          return {
+            ...item,
+            paid_amount: paidAmount,
+            remaining_amount: Math.max(0, effectiveTotal - paidAmount)
+          };
+        }),
         creditors: {
           ...sale.creditors,
           outstanding: totalOutstandingForCreditor

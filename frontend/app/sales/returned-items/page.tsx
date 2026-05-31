@@ -150,7 +150,21 @@ export default function ReturnedItemsPage() {
   const acceptedCount = returnedItems.filter((i) => i.status === 'accepted').length;
   const rejectedCount = returnedItems.filter((i) => i.status === 'rejected').length;
 
-  if (!mounted) return null;
+  if (!mounted || isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-pulse">
+            <img src="/favicon.svg" alt="" className="w-20 h-20" />
+          </div>
+          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold">Abifreshing...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -206,11 +220,7 @@ export default function ReturnedItemsPage() {
       </div>
 
       {/* Items Table */}
-      {isLoading ? (
-        <div className="text-center py-12 text-gray-600 dark:text-gray-400">
-          Loading returned items...
-        </div>
-      ) : filteredItems.length === 0 ? (
+      {filteredItems.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
           <CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">
