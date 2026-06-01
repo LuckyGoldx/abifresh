@@ -224,28 +224,27 @@ export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDr
                 </div>
               </div>
             ))}
+
+            {hasMore && (
+              <div className="sticky bottom-0 pt-2 bg-gradient-to-t from-white dark:from-slate-800 via-white/95 dark:via-slate-800/95 to-transparent">
+                <Link
+                  href={notificationsHref}
+                  onClick={onClose}
+                  className="flex items-center justify-center w-full gap-2 px-4 py-3 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white font-bold rounded-xl shadow-lg shadow-pink-200/50 dark:shadow-none transition-all duration-200 group"
+                >
+                  <span>View All Notifications</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                    {totalFiltered - MAX_VISIBLE}+ more
+                  </span>
+                </Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-12 text-gray-600 dark:text-gray-400 px-4">
             <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>No notifications yet</p>
-          </div>
-        )}
-
-        {/* View More button */}
-        {hasMore && (
-          <div className="sticky bottom-0 px-4 pb-4 pt-2 bg-gradient-to-t from-white dark:from-slate-800 via-white/95 dark:via-slate-800/95 to-transparent">
-            <Link
-              href={notificationsHref}
-              onClick={onClose}
-              className="flex items-center justify-center w-full gap-2 px-4 py-3 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white font-bold rounded-xl shadow-lg shadow-pink-200/50 dark:shadow-none transition-all duration-200 group"
-            >
-              <span>View All Notifications</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
-                {totalFiltered - MAX_VISIBLE}+ more
-              </span>
-            </Link>
           </div>
         )}
       </div>
