@@ -1,5 +1,3 @@
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { formatQty } from '@/lib/format-quantity';
 
 /**
@@ -268,7 +266,8 @@ export async function printReceipt(receipt: {
   };
 }) {
   try {
-    // Create a temporary container
+    const html2canvas = (await import('html2canvas')).default;
+
     const tempContainer = document.createElement('div');
     tempContainer.innerHTML = generateReceiptHTML(receipt);
     tempContainer.style.position = 'absolute';
@@ -277,7 +276,6 @@ export async function printReceipt(receipt: {
     tempContainer.style.background = 'white';
     document.body.appendChild(tempContainer);
 
-    // Convert to canvas
     const canvas = await html2canvas(tempContainer, {
       scale: 2,
       useCORS: true,
@@ -340,7 +338,9 @@ export async function downloadReceiptAsPDF(receipt: {
   };
 }) {
   try {
-    // Create a temporary container
+    const html2canvas = (await import('html2canvas')).default;
+    const { default: jsPDF } = await import('jspdf');
+
     const tempContainer = document.createElement('div');
     tempContainer.innerHTML = generateReceiptHTML(receipt);
     tempContainer.style.position = 'absolute';
@@ -349,7 +349,6 @@ export async function downloadReceiptAsPDF(receipt: {
     tempContainer.style.background = 'white';
     document.body.appendChild(tempContainer);
 
-    // Convert to canvas
     const canvas = await html2canvas(tempContainer, {
       scale: 2,
       useCORS: true,
@@ -357,7 +356,6 @@ export async function downloadReceiptAsPDF(receipt: {
       backgroundColor: '#ffffff',
     });
 
-    // Create PDF
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -400,7 +398,8 @@ export async function downloadReceiptAsImage(receipt: {
   };
 }) {
   try {
-    // Create a temporary container
+    const html2canvas = (await import('html2canvas')).default;
+
     const tempContainer = document.createElement('div');
     tempContainer.innerHTML = generateReceiptHTML(receipt);
     tempContainer.style.position = 'absolute';
@@ -409,7 +408,6 @@ export async function downloadReceiptAsImage(receipt: {
     tempContainer.style.background = 'white';
     document.body.appendChild(tempContainer);
 
-    // Convert to canvas
     const canvas = await html2canvas(tempContainer, {
       scale: 2,
       useCORS: true,
@@ -417,7 +415,6 @@ export async function downloadReceiptAsImage(receipt: {
       backgroundColor: '#ffffff',
     });
 
-    // Download as PNG
     const link = document.createElement('a');
     link.href = canvas.toDataURL('image/png');
     link.download = `receipt_${receipt.receipt_number}.png`;

@@ -3,8 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
 import { formatQty } from '@/lib/format-quantity';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, AreaChart, Area
@@ -84,6 +82,8 @@ export default function CreditReportsPage() {
   const handleExportPDF = async () => {
     if (!reportRef.current) return;
     try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { default: jsPDF } = await import('jspdf');
       const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');

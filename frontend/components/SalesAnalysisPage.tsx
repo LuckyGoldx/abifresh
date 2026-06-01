@@ -34,7 +34,6 @@ import {
   Bar
 } from 'recharts';
 import api from '@/lib/api';
-import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 
 interface SalesAnalysisPageProps {
@@ -150,7 +149,7 @@ export default function SalesAnalysisPage({ portalType }: SalesAnalysisPageProps
   };
 
   // Export to Excel
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!reportData || !reportData.items) {
       toast.warning('No data available to export');
       return;
@@ -193,18 +192,17 @@ export default function SalesAnalysisPage({ portalType }: SalesAnalysisPageProps
         'Sales Count (Transactions)': staff.transactions || 0,
       }));
 
-      // Create workbook and worksheets
+      const XLSX = await import('xlsx');
+
       const wb = XLSX.utils.book_new();
       const wsSummary = XLSX.utils.json_to_sheet(summaryData);
       const wsItems = XLSX.utils.json_to_sheet(itemsSheetData);
       const wsStaff = XLSX.utils.json_to_sheet(staffSheetData);
 
-      // Append worksheets
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Report Overview');
       XLSX.utils.book_append_sheet(wb, wsItems, 'Product Sales Summary');
       XLSX.utils.book_append_sheet(wb, wsStaff, 'Staff Sales Performance');
 
-      // Write workbook file
       XLSX.writeFile(wb, `Sales_Analysis_${dateRange}_${new Date().toISOString().split('T')[0]}.xlsx`);
       toast.success('Excel spreadsheet exported successfully');
     } catch (err) {

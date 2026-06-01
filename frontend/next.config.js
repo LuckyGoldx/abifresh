@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
-// PWA is handled manually: service worker (public/sw.js) is registered
-// in app/layout.tsx. next-pwa is no longer used.
 
-const nextConfig = {
+const withBundleAnalyzer = process.env.ANALYZE === 'true'
+  ? require('@next/bundle-analyzer')({ enabled: true })
+  : (config) => config;
+
+const nextConfig = withBundleAnalyzer({
   reactStrictMode: true,
   swcMinify: true,
   compiler: {
@@ -37,6 +39,6 @@ const nextConfig = {
       },
     ];
   },
-};
+});
 
 module.exports = nextConfig;

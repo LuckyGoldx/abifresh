@@ -3,8 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '@/lib/api';
 import { formatQty } from '@/lib/format-quantity';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart
@@ -162,9 +160,11 @@ export default function ComprehensiveReportsPage() {
     }
 
     try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { default: jsPDF } = await import('jspdf');
+
       const element = reportRef.current;
-      
-      // Create canvas from the report element
+
       const canvas = await html2canvas(element, {
         scale: 2,
         allowTaint: true,
@@ -173,13 +173,11 @@ export default function ComprehensiveReportsPage() {
         logging: false,
       });
 
-      // Calculate PDF dimensions
-      const imgWidth = 210; // A4 width in mm
+      const imgWidth = 210;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
 
-      // Create PDF document
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgData = canvas.toDataURL('image/png');
 

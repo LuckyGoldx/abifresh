@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import api from '@/lib/api';
-import * as XLSX from 'xlsx';
 import {
   Database, Download, Eye, RefreshCw, CheckSquare, Square,
   Archive, Clock, Table, FileText, FileSpreadsheet, Trash2,
@@ -540,6 +539,7 @@ export default function BackupPage() {
     const t0 = Date.now();
     try {
       const data = await fetchAllRowsFromBackend(tableName);
+      const XLSX = await import('xlsx');
       const ws = XLSX.utils.json_to_sheet(data.length ? data : [{}]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, tableName.substring(0, 31));
@@ -577,6 +577,7 @@ export default function BackupPage() {
     setBulkProgress(0);
     const t0 = Date.now();
     const tableList = ALL_TABLES.filter((t) => selectedTables.has(t.name));
+    const XLSX = await import('xlsx');
     const wb = XLSX.utils.book_new();
     let totalRows = 0;
     let completed = 0;
@@ -586,7 +587,6 @@ export default function BackupPage() {
       try {
         const data = await fetchAllRowsFromBackend(tbl.name);
         totalRows += data.length;
-        // Sheet name max 31 chars, must be unique
         const sheetName = tbl.name.substring(0, 31);
         const ws = XLSX.utils.json_to_sheet(data.length ? data : [{}]);
         XLSX.utils.book_append_sheet(wb, ws, sheetName);

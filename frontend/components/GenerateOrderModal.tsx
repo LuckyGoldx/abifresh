@@ -5,9 +5,7 @@ import {
   X, FileDown, FileSpreadsheet, Search, Plus, Minus, Trash2,
   Package, AlertTriangle, ShoppingCart, CheckCircle, ClipboardList
 } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+
 
 // Company details
 const COMPANY_NAME = 'ABIFRESH & KIDDIES VENTURES';
@@ -188,8 +186,10 @@ export default function GenerateOrderModal({ isOpen, onClose, items }: GenerateO
   };
 
   // ======== PDF Generation ========
-  const generatePDF = () => {
+  const generatePDF = async () => {
     if (orderItems.length === 0) return;
+    const { default: jsPDF } = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
 
     const doc = new jsPDF();
     const orderNumber = generateOrderNumber();
@@ -310,8 +310,9 @@ export default function GenerateOrderModal({ isOpen, onClose, items }: GenerateO
   };
 
   // ======== Excel Generation ========
-  const generateExcel = () => {
+  const generateExcel = async () => {
     if (orderItems.length === 0) return;
+    const XLSX = await import('xlsx');
 
     const orderNumber = generateOrderNumber();
     const dateStr = formatDate();

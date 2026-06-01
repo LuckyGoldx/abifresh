@@ -6,10 +6,7 @@ import {
   Package, AlertTriangle, ShoppingCart, CheckCircle, ClipboardList,
   Eye, ArrowLeft, History, Settings2, Edit3
 } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { formatQty } from '@/lib/format-quantity';
-import * as XLSX from 'xlsx';
 import { useAuthStore } from '@/store/auth';
 import LoadingLogo from '@/components/LoadingLogo';
 import { toast } from 'sonner';
@@ -408,8 +405,10 @@ export default function RestockOrdersPage() {
   });
 
   // ======== PDF Generation ========
-  const generatePDFForOrder = (order: { items: OrderItem[]; orderNumber: string; date?: string; note: string; totalItems: number; totalQuantity: number; totalCost: number } & Partial<DisplayOptions>) => {
+  const generatePDFForOrder = async (order: { items: OrderItem[]; orderNumber: string; date?: string; note: string; totalItems: number; totalQuantity: number; totalCost: number } & Partial<DisplayOptions>) => {
     if (order.items.length === 0) return;
+    const { default: jsPDF } = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
 
     const opts = resolveOpts(order);
     const cols = buildColumns(opts);
@@ -530,8 +529,9 @@ export default function RestockOrdersPage() {
   };
 
   // ======== Excel Generation ========
-  const generateExcelForOrder = (order: { items: OrderItem[]; orderNumber: string; date?: string; note: string; totalItems: number; totalQuantity: number; totalCost: number } & Partial<DisplayOptions>) => {
+  const generateExcelForOrder = async (order: { items: OrderItem[]; orderNumber: string; date?: string; note: string; totalItems: number; totalQuantity: number; totalCost: number } & Partial<DisplayOptions>) => {
     if (order.items.length === 0) return;
+    const XLSX = await import('xlsx');
 
     const opts = resolveOpts(order);
     const cols = buildColumns(opts);
@@ -605,13 +605,13 @@ export default function RestockOrdersPage() {
   };
 
   // Quick download helpers (for current unsaved order)
-  const generatePDF = () => generatePDFForOrder({
+  const generatePDF = async () => generatePDFForOrder({
     items: orderItems, orderNumber: generateOrderNumber(), note: orderNote,
     totalItems: totalOrderItems, totalQuantity: totalOrderQuantity, totalCost: totalEstimatedCost,
     ...displayOptions,
   });
 
-  const generateExcel = () => generateExcelForOrder({
+  const generateExcel = async () => generateExcelForOrder({
     items: orderItems, orderNumber: generateOrderNumber(), note: orderNote,
     totalItems: totalOrderItems, totalQuantity: totalOrderQuantity, totalCost: totalEstimatedCost,
     ...displayOptions,
