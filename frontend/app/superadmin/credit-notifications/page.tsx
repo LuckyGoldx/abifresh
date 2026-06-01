@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { 
   Bell, 
@@ -15,6 +15,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Toast, CreditTabs } from '@/components/credits';
+import Pagination from '@/components/Pagination';
 
 const CREDIT_NOTIFICATION_TYPES = [
   'credit_item_returned',
@@ -34,6 +35,8 @@ export default function CreditNotificationsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const NOTIFS_PER_PAGE = 30;
 
   const CATEGORIES = [
     { id: 'all', name: 'All Activities', icon: <Bell size={16} /> },
@@ -50,7 +53,8 @@ export default function CreditNotificationsPage() {
   const fetchNotifications = async (retryCount = 0) => {
     try {
       const response = await api.get('/api/notifications');
-      const allNotifications = response.data || [];
+      const raw = response.data;
+      const allNotifications = Array.isArray(raw) ? raw : (raw?.data || []);
       
       const creditNotifications = allNotifications.filter((n: any) => 
         CREDIT_NOTIFICATION_TYPES.includes(n.type)
@@ -78,6 +82,23 @@ export default function CreditNotificationsPage() {
         if (activeCategory === 'returns') return n.type.includes('credit_item_returned') || n.type.includes('credit_return');
         return false;
       });
+
+  const totalPages = Math.ceil(filteredNotifications.length / NOTIFS_PER_PAGE);
+  const safePage = Math.min(currentPage, totalPages || 1);
+  const paginatedNotifications = filteredNotifications.slice(
+    (safePage - 1) * NOTIFS_PER_PAGE,
+    safePage * NOTIFS_PER_PAGE
+  );
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  const handleCategoryChange = useCallback((cat: string) => {
+    setActiveCategory(cat);
+    setCurrentPage(1);
+  }, []);
 
   const getUnreadCount = (catId: string) => {
     return notifications.filter(n => {
@@ -190,7 +211,7 @@ export default function CreditNotificationsPage() {
             return (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => handleCategoryChange(cat.id)}
                 className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm whitespace-nowrap transition-all border-2 ${
                   isActive 
                     ? 'bg-pink-600 border-pink-600 text-white shadow-lg shadow-pink-100' 
@@ -213,7 +234,7 @@ export default function CreditNotificationsPage() {
 
         <div className="max-w-4xl space-y-4">
           {filteredNotifications.length > 0 ? (
-            filteredNotifications.map((notif, idx) => (
+            paginatedNotifications.map((notif, idx) => (
               <div 
                 key={notif.id || idx} 
                 className="group bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md hover:border-pink-100 transition-all cursor-default relative overflow-hidden"
@@ -280,6 +301,22 @@ export default function CreditNotificationsPage() {
             </div>
           )}
         </div>
+
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
+
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        )}
 
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>

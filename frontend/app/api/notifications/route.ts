@@ -40,6 +40,10 @@ export async function GET(req: NextRequest) {
   const readVirtualIds = await getReadVirtualIds(userId);
   const allNotifications: any[] = [];
 
+  const { searchParams } = new URL(req.url);
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+  const pageLimit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '30', 10)));
+
   // ── 1. POSTED ITEMS virtual notifications ──
   const isSalesPortal = userRole.toLowerCase().includes('sales') || userRole.toLowerCase().includes('staff');
   
@@ -50,7 +54,7 @@ export async function GET(req: NextRequest) {
       .select('id, quantity, status, created_at, updated_at, item:item_id(name), posted_by:poster_id(full_name)')
       .eq('staff_id', userId)
       .order('updated_at', { ascending: false })
-      .limit(30);
+      .limit(100);
 
     (receivedItems || []).forEach((item: any) => {
       const isRecent = item.updated_at && new Date(item.updated_at) > new Date(fortyEightHoursAgo);
@@ -75,7 +79,7 @@ export async function GET(req: NextRequest) {
       .select('id, quantity, status, created_at, updated_at, item:item_id(name), staff:staff_id(full_name)')
       .eq('poster_id', userId)
       .order('updated_at', { ascending: false })
-      .limit(30);
+      .limit(100);
 
     (postedItems || []).forEach((item: any) => {
       const isRecent = item.updated_at && new Date(item.updated_at) > new Date(fortyEightHoursAgo);
@@ -100,7 +104,7 @@ export async function GET(req: NextRequest) {
       .from('posted_items')
       .select('id, quantity, status, created_at, updated_at, item:item_id(name), staff:staff_id(full_name), posted_by:poster_id(full_name)')
       .order('updated_at', { ascending: false })
-      .limit(40);
+      .limit(100);
 
     (allPostedItems || []).forEach((item: any) => {
       const isRecent = item.updated_at && new Date(item.updated_at) > new Date(fortyEightHoursAgo);
@@ -128,7 +132,7 @@ export async function GET(req: NextRequest) {
       .from('staff_payments')
       .select('id, amount, status, created_at, updated_at, notes, staff_id, staff_name, payment_method')
       .order('updated_at', { ascending: false })
-      .limit(30);
+      .limit(100);
 
     (allPayments || []).forEach((payment: any) => {
       const isRecent = payment.updated_at && new Date(payment.updated_at) > new Date(fortyEightHoursAgo);
@@ -152,7 +156,7 @@ export async function GET(req: NextRequest) {
       .from('staff_expenses')
       .select('*, staff:staff_id(full_name, role)')
       .order('updated_at', { ascending: false })
-      .limit(45);
+      .limit(100);
 
     (allStaffExpenses || []).forEach((exp: any) => {
       const staffRole = exp.staff?.role?.toLowerCase();
@@ -199,7 +203,7 @@ export async function GET(req: NextRequest) {
       .select('id, amount, status, created_at, updated_at, notes, staff_id')
       .eq('staff_id', userId)
       .order('updated_at', { ascending: false })
-      .limit(20);
+      .limit(100);
 
     (payments || []).forEach((payment: any) => {
       const timestamp = payment.updated_at || payment.created_at;
@@ -220,7 +224,7 @@ export async function GET(req: NextRequest) {
       .eq('staff_id', userId)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(100);
 
     (myExpenses || []).forEach((exp: any) => {
       const timestamp = exp.created_at;
@@ -244,7 +248,7 @@ export async function GET(req: NextRequest) {
       .from('returned_items')
       .select('id, quantity, status, created_at, updated_at, item:item_id(name), requester:requester_staff_id(full_name), receiver:receiver_staff_id(full_name)')
       .order('updated_at', { ascending: false })
-      .limit(30);
+      .limit(100);
 
     (allReturns || []).forEach((ret: any) => {
       const isRecent = ret.updated_at && new Date(ret.updated_at) > new Date(fortyEightHoursAgo);
@@ -269,7 +273,7 @@ export async function GET(req: NextRequest) {
       .select('id, quantity, status, created_at, updated_at, item:item_id(name), requester:requester_staff_id(full_name), receiver:receiver_staff_id(full_name)')
       .or(`requester_staff_id.eq.${userId},receiver_staff_id.eq.${userId}`)
       .order('updated_at', { ascending: false })
-      .limit(20);
+      .limit(100);
 
     (myReturns || []).forEach((ret: any) => {
       const isRecent = ret.updated_at && new Date(ret.updated_at) > new Date(fortyEightHoursAgo);
@@ -295,7 +299,7 @@ export async function GET(req: NextRequest) {
     .from('credit_activities')
     .select('*, creditors(full_name), users:staff_id(full_name)')
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(200);
 
   (creditActivities || []).forEach((act: any) => {
     // Only show to the user who did it (if they are staff) OR to admins
@@ -360,7 +364,7 @@ export async function GET(req: NextRequest) {
     .eq('user_id', userId)
     .neq('type', 'virtual_read_marker')
     .order('created_at', { ascending: false })
-    .limit(100);
+    .limit(500);
 
   (systemNotifications || []).forEach((n: any) => {
     allNotifications.push({
@@ -378,5 +382,15 @@ export async function GET(req: NextRequest) {
     return timeB - timeA;
   });
 
-  return NextResponse.json(allNotifications.slice(0, 150));
+  const total = allNotifications.length;
+  const startIdx = (page - 1) * pageLimit;
+  const paginated = allNotifications.slice(startIdx, startIdx + pageLimit);
+
+  return NextResponse.json({
+    data: paginated,
+    total,
+    page,
+    limit: pageLimit,
+    totalPages: Math.ceil(total / pageLimit),
+  });
 }

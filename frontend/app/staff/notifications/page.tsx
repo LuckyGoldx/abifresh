@@ -6,12 +6,15 @@ import { useNotifications } from '@/context/NotificationContext';
 import { useToast } from '@/context/ToastContext';
 import { Bell, CheckCircle, CreditCard, Package, RotateCcw } from 'lucide-react';
 import { formatTimestamp } from '@/lib/format-quantity';
+import Pagination from '@/components/Pagination';
 
 export default function NotificationsPage() {
   const router = useRouter();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const { notifications, unreadCount, isLoading, markAsRead: contextMarkAsRead, markAllAsRead: contextMarkAllAsRead } = useNotifications();
   const { addToast } = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
+  const NOTIFS_PER_PAGE = 30;
 
   const markAsRead = async (id: string) => {
     try {
@@ -77,6 +80,23 @@ export default function NotificationsPage() {
     ? notifications 
     : notifications.filter(n => n.category === filterCategory);
 
+  const totalPages = Math.ceil(filteredNotifications.length / NOTIFS_PER_PAGE);
+  const safePage = Math.min(currentPage, totalPages || 1);
+  const paginatedNotifications = filteredNotifications.slice(
+    (safePage - 1) * NOTIFS_PER_PAGE,
+    safePage * NOTIFS_PER_PAGE
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFilterChange = (cat: string) => {
+    setFilterCategory(cat);
+    setCurrentPage(1);
+  };
+
   const categories = ['all', 'posted_items', 'payments', 'returns', 'system'];
 
   const getCategoryLabel = (cat: string): string => {
@@ -138,7 +158,7 @@ export default function NotificationsPage() {
         {categories.map((category) => (
           <button
             key={category}
-            onClick={() => setFilterCategory(category)}
+            onClick={() => handleFilterChange(category)}
             className={`px-4 py-2 rounded-full whitespace-nowrap font-medium transition ${
               filterCategory === category
                 ? 'bg-pink-600 text-white'
@@ -155,7 +175,7 @@ export default function NotificationsPage() {
 
       {/* Notifications List */}
       <div className="space-y-3">
-        {filteredNotifications.map((notification) => (
+        {paginatedNotifications.map((notification) => (
           <div
             key={notification.id}
             onClick={() => handleNotificationClick(notification)}
@@ -219,6 +239,14 @@ export default function NotificationsPage() {
               : `No ${getCategoryLabel(filterCategory).toLowerCase()} notifications`}
           </p>
         </div>
+      )}
+
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={safePage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       )}
     </div>
   );

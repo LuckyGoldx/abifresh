@@ -44,13 +44,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setIsLoading(true);
       console.log('[Notifications] Fetching notifications...');
       const response = await api.get('/api/notifications');
-      const data: Notification[] = response.data || [];
+      // Handle both paginated { data, total } and plain array responses
+      const raw = response.data;
+      const data: Notification[] = Array.isArray(raw) ? raw : (raw?.data || []);
       console.log('[Notifications] Fetched', data.length, 'notifications');
       setNotifications(data);
-      
-      // Count unread using is_read field
-      const unread = data.filter((n: Notification) => !n.is_read).length;
-      setUnreadCount(unread);
+      setUnreadCount(data.filter((n: Notification) => !n.is_read).length);
     } catch (error) {
       console.error('[Notifications] Failed to fetch:', error);
     } finally {
