@@ -14,11 +14,11 @@ interface NotificationsDrawerProps {
 
 export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDrawerProps) {
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [drawerLoading, setDrawerLoading] = useState(false);
   const user = useAuthStore((state) => state.user);
   const { 
     notifications, 
     unreadCount, 
-    isLoading, 
     fetchNotifications, 
     markAsRead, 
     markAllAsRead 
@@ -29,7 +29,9 @@ export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDr
   // Refresh notifications when drawer opens
   useEffect(() => {
     if (isOpen) {
-      fetchNotifications();
+      setFilterCategory('all');
+      setDrawerLoading(true);
+      fetchNotifications().finally(() => setDrawerLoading(false));
     }
   }, [isOpen, fetchNotifications]);
 
@@ -174,9 +176,10 @@ export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDr
         </div>
 
         {/* Notifications List */}
-        {isLoading ? (
-          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-            Loading...
+        {drawerLoading ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-6 h-6 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-sm font-bold text-pink-600 dark:text-pink-400">Abifreshing...</span>
           </div>
         ) : filteredNotifications.length > 0 ? (
           <div className="space-y-2 p-4">
