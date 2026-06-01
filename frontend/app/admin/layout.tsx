@@ -99,7 +99,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         'credit_cancel_confirmation'
       ];
 
-      const unreadCreditCount = (notifRes.data || []).filter((n: any) => 
+      const rawNotifs = notifRes.data;
+      const notifArray = Array.isArray(rawNotifs) ? rawNotifs : (rawNotifs?.data || []);
+      const unreadCreditCount = notifArray.filter((n: any) => 
         !n.is_read && CREDIT_NOTIFICATION_TYPES.includes(n.type)
       ).length;
       setUnreadCreditNotificationsCount(unreadCreditCount);
