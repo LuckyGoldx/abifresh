@@ -27,26 +27,41 @@ export async function GET(req: NextRequest) {
     .order('full_name', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Enrich each user with their sales summary
-  const enriched = await Promise.all(
-    (users || []).map(async (staff: any) => {
-      const { data: salesItems } = await supabaseAdmin
-        .from('sales_items')
-        .select('quantity, unit_price, sale_id!inner(staff_id)')
-        .eq('sale_id.staff_id', staff.id);
+  // Fetch aggregate sales data in two batch queries (constant time, not N+1)
+  const staffIds = (users || []).map((s: any) => s.id);
 
-      const { data: sales } = await supabaseAdmin
-        .from('sales')
-        .select('total_amount')
-        .eq('staff_id', staff.id);
+  const [salesItemsAggResult, salesAggResult] = await Promise.all([
+    staffIds.length > 0
+      ? supabaseAdmin
+          .from('sales_items')
+          .select('quantity, sale_id!inner(staff_id)')
+          .in('sale_id.staff_id', staffIds)
+      : { data: [] },
+    staffIds.length > 0
+      ? supabaseAdmin
+          .from('sales')
+          .select('staff_id, total_amount')
+          .in('staff_id', staffIds)
+      : { data: [] },
+  ]);
 
-      return {
-        ...staff,
-        total_sales_items: (salesItems || []).reduce((s: number, x: any) => s + (x.quantity || 0), 0),
-        total_sales_amount: (sales || []).reduce((s: number, x: any) => s + (x.total_amount || 0), 0),
-      };
-    })
-  );
+  // Aggregate per staff_id using Maps (O(n) merge instead of O(n*m) nested loops)
+  const itemsCountByStaff = new Map<string, number>();
+  (salesItemsAggResult.data || []).forEach((si: any) => {
+    const sid = (si.sale_id as any)?.staff_id;
+    if (sid) itemsCountByStaff.set(sid, (itemsCountByStaff.get(sid) || 0) + (si.quantity || 0));
+  });
+
+  const amountByStaff = new Map<string, number>();
+  (salesAggResult.data || []).forEach((s: any) => {
+    amountByStaff.set(s.staff_id, (amountByStaff.get(s.staff_id) || 0) + (s.total_amount || 0));
+  });
+
+  const enriched = (users || []).map((staff: any) => ({
+    ...staff,
+    total_sales_items: itemsCountByStaff.get(staff.id) || 0,
+    total_sales_amount: amountByStaff.get(staff.id) || 0,
+  }));
 
   return NextResponse.json(enriched);
 }

@@ -34,42 +34,51 @@ export async function POST(req: NextRequest) {
 
     if (saleError) return NextResponse.json({ error: saleError.message }, { status: 400 });
 
-    // Fetch all items' cost prices in one database call for performance
+    // Fetch all items' cost prices and current quantities in two batch queries
     const itemIds = items.map((i: any) => i.item_id).filter(Boolean);
-    const { data: dbItems } = itemIds.length > 0 
-      ? await supabaseAdmin.from('items').select('id, unit_price').in('id', itemIds)
-      : { data: [] };
+
+    const [dbItemsResult, quantitiesResult] = await Promise.all([
+      itemIds.length > 0
+        ? supabaseAdmin.from('items').select('id, unit_price').in('id', itemIds)
+        : { data: [] },
+      itemIds.length > 0
+        ? supabaseAdmin.from('items').select('id, active_store_quantity').in('id', itemIds)
+        : { data: [] },
+    ]);
+
     const dbCostsMap = new Map<string, number>();
-    (dbItems || []).forEach((i: any) => dbCostsMap.set(i.id, i.unit_price || 0));
+    (dbItemsResult.data || []).forEach((i: any) => dbCostsMap.set(i.id, i.unit_price || 0));
 
-    // Create sales_items records and reduce active_store_quantity
-    for (const item of items) {
-      const costPrice = dbCostsMap.get(item.item_id) || 0;
-      const { error: itemError } = await supabaseAdmin.from('sales_items').insert([
-        {
-          sale_id: saleData.id,
-          item_id: item.item_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          cost_price: costPrice,
-          logistics_fee: item.logistics_fee || 0,
-        },
-      ]);
-      if (itemError) return NextResponse.json({ error: itemError.message }, { status: 400 });
+    const quantitiesMap = new Map<string, number>();
+    (quantitiesResult.data || []).forEach((i: any) => quantitiesMap.set(i.id, i.active_store_quantity || 0));
 
-      // Reduce active_store_quantity
-      const { data: currentItem } = await supabaseAdmin
-        .from('items')
-        .select('active_store_quantity')
-        .eq('id', item.item_id)
-        .single();
+    // Batch insert all sales_items in one query
+    const salesItemsData = items.map((item: any) => ({
+      sale_id: saleData.id,
+      item_id: item.item_id,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      cost_price: dbCostsMap.get(item.item_id) || 0,
+      logistics_fee: item.logistics_fee || 0,
+    }));
 
-      const newQty = Math.max(0, (currentItem?.active_store_quantity || 0) - item.quantity);
-      await supabaseAdmin
-        .from('items')
-        .update({ active_store_quantity: newQty })
-        .eq('id', item.item_id);
-    }
+    const { error: bulkInsertError } = await supabaseAdmin
+      .from('sales_items')
+      .insert(salesItemsData);
+
+    if (bulkInsertError) return NextResponse.json({ error: bulkInsertError.message }, { status: 400 });
+
+    // Batch update active_store_quantity for all items in parallel
+    await Promise.all(
+      items.map((item: any) => {
+        const currentQty = quantitiesMap.get(item.item_id) || 0;
+        const newQty = Math.max(0, currentQty - item.quantity);
+        return supabaseAdmin
+          .from('items')
+          .update({ active_store_quantity: newQty })
+          .eq('id', item.item_id);
+      })
+    );
 
     // Update daily sales summary
     const saleDate = new Date().toISOString().split('T')[0];

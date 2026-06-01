@@ -21,15 +21,29 @@ export async function POST(req: NextRequest) {
     if (creditorError || !creditor) return NextResponse.json({ error: 'Creditor not found' }, { status: 404 });
 
     const receiptNumber = `CR-${Date.now()}`;
+
+    // Batch-fetch all items in one query instead of N individual queries
+    const itemIds = items.map((i: any) => i.item_id).filter(Boolean);
+    const { data: dbItems } = itemIds.length > 0
+      ? await supabaseAdmin.from('items').select('id, name, unit_price, active_store_quantity').in('id', itemIds)
+      : { data: [] };
+
+    const dbItemsMap = new Map<string, any>();
+    (dbItems || []).forEach((i: any) => dbItemsMap.set(i.id, i));
+
     let totalAmount = 0;
     let totalQuantity = 0;
+    const saleItems: Array<{
+      item_id: string; item_name: string; quantity: number;
+      unit_price: number; total_price: number;
+    }> = [];
+    const quantityDeltas: Array<{ item_id: string; quantity: number }> = [];
 
-    const saleItems = [];
     for (const item of items) {
       const qty = Number(item.quantity) || 0;
       if (qty <= 0) continue;
 
-      const { data: dbItem } = await supabaseAdmin.from('items').select('*').eq('id', item.item_id).single();
+      const dbItem = dbItemsMap.get(item.item_id);
       if (!dbItem) continue;
 
       const unitPrice = Number(item.unit_price) || Number(dbItem.unit_price) || 0;
@@ -44,6 +58,8 @@ export async function POST(req: NextRequest) {
         unit_price: unitPrice,
         total_price: totalPrice,
       });
+
+      quantityDeltas.push({ item_id: item.item_id, quantity: qty });
     }
 
     if (saleItems.length === 0) return NextResponse.json({ error: 'No valid items to process' }, { status: 400 });
@@ -59,34 +75,45 @@ export async function POST(req: NextRequest) {
 
     if (saleError) return NextResponse.json({ error: saleError.message }, { status: 400 });
 
-    const creditStoreEntries = [];
-    for (const si of saleItems) {
-      const { data: csi, error: csiError } = await supabaseAdmin.from('credit_sale_items').insert({
-        credit_sale_id: creditSale.id,
-        item_id: si.item_id,
-        item_name: si.item_name,
-        quantity: si.quantity,
-        unit_price: si.unit_price,
-        total_price: si.total_price,
-      }).select().single();
+    // Batch insert all credit_sale_items in one query
+    const creditSaleItemsData = saleItems.map((si) => ({
+      credit_sale_id: creditSale.id,
+      item_id: si.item_id,
+      item_name: si.item_name,
+      quantity: si.quantity,
+      unit_price: si.unit_price,
+      total_price: si.total_price,
+    }));
 
-      if (csiError) return NextResponse.json({ error: csiError.message }, { status: 400 });
+    const { data: insertedItems, error: bulkInsertError } = await supabaseAdmin
+      .from('credit_sale_items')
+      .insert(creditSaleItemsData)
+      .select('id, item_id, item_name, quantity, unit_price, total_price');
 
-      creditStoreEntries.push({
-        credit_sale_id: creditSale.id,
-        credit_sale_item_id: csi.id,
-        creditor_id,
-        item_id: si.item_id,
-        item_name: si.item_name,
-        quantity: si.quantity,
-        unit_price: si.unit_price,
-        status: 'active',
-      });
+    if (bulkInsertError) return NextResponse.json({ error: bulkInsertError.message }, { status: 400 });
 
-      const { data: currentItem } = await supabaseAdmin.from('items').select('active_store_quantity').eq('id', si.item_id).single();
-      const newQty = Math.max(0, (currentItem?.active_store_quantity || 0) - si.quantity);
-      await supabaseAdmin.from('items').update({ active_store_quantity: newQty }).eq('id', si.item_id);
-    }
+    // Batch update active_store_quantity for all items in parallel
+    const creditStoreEntries = (insertedItems || []).map((csi: any) => ({
+      credit_sale_id: creditSale.id,
+      credit_sale_item_id: csi.id,
+      creditor_id,
+      item_id: csi.item_id,
+      item_name: csi.item_name,
+      quantity: csi.quantity,
+      unit_price: csi.unit_price,
+      status: 'active',
+    }));
+
+    await Promise.all(
+      quantityDeltas.map((delta) => {
+        const currentQty = dbItemsMap.get(delta.item_id)?.active_store_quantity || 0;
+        const newQty = Math.max(0, currentQty - delta.quantity);
+        return supabaseAdmin
+          .from('items')
+          .update({ active_store_quantity: newQty })
+          .eq('id', delta.item_id);
+      })
+    );
 
     const { error: storeError } = await supabaseAdmin.from('credit_store').insert(creditStoreEntries);
     if (storeError) return NextResponse.json({ error: storeError.message }, { status: 400 });
