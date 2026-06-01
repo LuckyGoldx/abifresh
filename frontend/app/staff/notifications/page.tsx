@@ -148,38 +148,40 @@ export default function NotificationsPage() {
           <Bell className="w-8 h-8 text-pink-500" />
           Notifications
         </h1>
-        <div className="flex items-center gap-3">
+        <div className="flex md:items-center md:gap-3">
           {unreadCount > 0 && (
             <button
               onClick={markAllAsReadLocal}
-              className="px-4 py-2 text-sm bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition"
+              className="px-4 py-2 text-sm bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition inline-flex items-center gap-2"
             >
               Mark all as read
+              <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-bold">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
             </button>
           )}
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {unreadCount} unread
-          </div>
         </div>
       </div>
 
-      {/* All / Main / Credit segmented control */}
-      <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
-        {(['all', 'main', 'credit'] as const).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => { setViewMode(mode); setCurrentPage(1); setFilterCategory('all'); }}
-            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all capitalize ${
-              viewMode === mode
-                ? 'bg-pink-600 text-white shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-            }`}
-          >
-            {mode === 'all' && '🔔 All'}
-            {mode === 'main' && '📦 Main'}
-            {mode === 'credit' && '💳 Credit'}
-          </button>
-        ))}
+      {/* All / Main / Credit switch slider — centered, same style as /post-items */}
+      <div className="flex justify-center">
+        <div className="inline-flex p-1.5 bg-gray-100/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl gap-1 border border-gray-200/50 dark:border-gray-700/40 shadow-sm">
+          {(['all', 'main', 'credit'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => { setViewMode(mode); setCurrentPage(1); setFilterCategory('all'); }}
+              className={`py-2 px-5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                viewMode === mode
+                  ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
+                  : 'text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400'
+              }`}
+            >
+              {mode === 'all' && '🔔 All'}
+              {mode === 'main' && '📦 Main'}
+              {mode === 'credit' && '💳 Credit'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Category Filter */}
