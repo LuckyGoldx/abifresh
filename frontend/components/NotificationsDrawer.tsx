@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useAuthStore } from '@/store/auth';
 import { useNotifications } from '@/context/NotificationContext';
-import { Bell, CheckCircle, AlertCircle, X, CreditCard, Package, RotateCcw } from 'lucide-react';
+import { Bell, CheckCircle, AlertCircle, X, CreditCard, Package, RotateCcw, ChevronRight } from 'lucide-react';
 import { formatTimestamp } from '@/lib/format-quantity';
 
 interface NotificationsDrawerProps {
@@ -12,6 +14,7 @@ interface NotificationsDrawerProps {
 
 export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDrawerProps) {
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const user = useAuthStore((state) => state.user);
   const { 
     notifications, 
     unreadCount, 
@@ -20,6 +23,8 @@ export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDr
     markAsRead, 
     markAllAsRead 
   } = useNotifications();
+
+  const MAX_VISIBLE = 30;
 
   // Refresh notifications when drawer opens
   useEffect(() => {
@@ -61,6 +66,18 @@ export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDr
   const filteredNotifications = filterCategory === 'all' 
     ? notifications 
     : notifications.filter(n => n.category === filterCategory);
+
+  const displayedNotifications = filteredNotifications.slice(0, MAX_VISIBLE);
+  const totalFiltered = filteredNotifications.length;
+  const hasMore = totalFiltered > MAX_VISIBLE;
+
+  const notificationsHref = (() => {
+    const role = user?.role || '';
+    if (role === 'superadmin') return '/superadmin/notifications';
+    if (role === 'admin') return '/admin/notifications';
+    if (role === 'sales' || role === 'sales_staff') return '/sales/notifications';
+    return '/staff/notifications';
+  })();
 
   const categories = ['all', 'posted_items', 'payments', 'returns', 'system'];
   const getCategoryLabel = (cat: string): string => {
@@ -163,7 +180,7 @@ export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDr
           </div>
         ) : filteredNotifications.length > 0 ? (
           <div className="space-y-2 p-4">
-            {filteredNotifications.map((notification) => (
+            {displayedNotifications.map((notification) => (
               <div
                 key={notification.id}
                 className={`p-3 rounded-lg border-l-4 ${getCategoryColor(notification.category)} ${
@@ -209,6 +226,23 @@ export default function NotificationsDrawer({ isOpen, onClose }: NotificationsDr
           <div className="text-center py-12 text-gray-600 dark:text-gray-400 px-4">
             <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p>No notifications yet</p>
+          </div>
+        )}
+
+        {/* View More button */}
+        {hasMore && (
+          <div className="sticky bottom-0 px-4 pb-4 pt-2 bg-gradient-to-t from-white dark:from-slate-800 via-white/95 dark:via-slate-800/95 to-transparent">
+            <Link
+              href={notificationsHref}
+              onClick={onClose}
+              className="flex items-center justify-center w-full gap-2 px-4 py-3 bg-pink-600 hover:bg-pink-700 active:bg-pink-800 text-white font-bold rounded-xl shadow-lg shadow-pink-200/50 dark:shadow-none transition-all duration-200 group"
+            >
+              <span>View All Notifications</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              <span className="ml-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                {totalFiltered - MAX_VISIBLE}+ more
+              </span>
+            </Link>
           </div>
         )}
       </div>
