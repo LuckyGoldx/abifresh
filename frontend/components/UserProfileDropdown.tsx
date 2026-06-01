@@ -45,7 +45,7 @@ function getRoleBadgeColor(role: string): string {
   return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
 }
 
-export default function UserProfileDropdown() {
+export default function UserProfileDropdown({ variant = 'icon' }: { variant?: 'icon' | 'card' }) {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
@@ -197,20 +197,40 @@ export default function UserProfileDropdown() {
 
       <div className="relative" ref={dropdownRef}>
         {/* Profile Button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-          title="My Profile"
-        >
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
-            {user?.full_name ? getInitials(user.full_name) : <User className="w-5 h-5" />}
-          </div>
-          <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200 hidden sm:block ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
+        {variant === 'card' ? (
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-md flex-shrink-0">
+              {user?.full_name ? getInitials(user.full_name) : <User className="w-5 h-5" />}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user?.full_name || 'User'}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user?.username || 'username'}</p>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          </button>
+        ) : (
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+            title="My Profile"
+          >
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold shadow-md">
+              {user?.full_name ? getInitials(user.full_name) : <User className="w-5 h-5" />}
+            </div>
+            <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform duration-200 hidden sm:block ${isOpen ? 'rotate-180' : ''}`} />
+          </button>
+        )}
 
         {/* Dropdown Panel */}
         {isOpen && (
-          <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden animate-fade-in">
+          <div className={`${
+            variant === 'card'
+              ? 'w-full bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-gray-700 overflow-hidden'
+              : 'absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden animate-fade-in'
+          }`}>
             {/* User Header */}
             <div className="bg-gradient-to-r from-pink-500 to-purple-600 px-5 py-4">
               <div className="flex items-center gap-3">

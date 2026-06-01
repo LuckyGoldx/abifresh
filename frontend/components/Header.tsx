@@ -54,8 +54,10 @@ export default function Header() {
               {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
             </button>
 
-            {/* User Profile Dropdown (replaces old user info + logout button) */}
-            <UserProfileDropdown />
+            {/* User Profile Dropdown - hidden on mobile/tablet, shown in sidebar */}
+            <div className="hidden md:block">
+              <UserProfileDropdown />
+            </div>
           </div>
         </div>
       </header>

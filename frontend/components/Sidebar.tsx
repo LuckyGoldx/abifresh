@@ -5,7 +5,8 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, PanelLeftClose, PanelLeftOpen, SwitchCamera, Sun, Moon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useNotifications } from '@/context/NotificationContext';
-import { useThemeStore } from '@/store/auth';
+import { useAuthStore, useThemeStore } from '@/store/auth';
+import UserProfileDropdown from './UserProfileDropdown';
 
 interface MenuItem {
   label: string;
@@ -155,6 +156,11 @@ export default function Sidebar({
             >
               <X size={20} />
             </button>
+          </div>
+
+          {/* Mobile profile section */}
+          <div className="md:hidden border-b border-gray-200 dark:border-slate-700">
+            <UserProfileDropdown variant="card" />
           </div>
 
           <div className="hidden md:flex p-6 border-b border-gray-200 dark:border-slate-700 mt-2 md:mt-0 items-center space-x-3">
