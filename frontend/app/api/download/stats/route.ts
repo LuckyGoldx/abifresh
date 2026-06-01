@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
 
+const MAX_PLATFORMS = 100;
 const emptyStats = { totalDownloads: 0, recentDownloads: 0, todayDownloads: 0, platformBreakdown: {} };
 
 export async function GET(_request: NextRequest) {
@@ -18,14 +19,15 @@ export async function GET(_request: NextRequest) {
         .gte('downloaded_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
     ]);
 
-    const platformBreakdown = (platformResult.data || []).reduce(
-      (acc: Record<string, number>, item: { platform: string }) => {
-        const p = item.platform || 'unknown';
-        acc[p] = (acc[p] || 0) + 1;
-        return acc;
-      },
-      {}
-    );
+    const rawPlatforms = (platformResult.data || []) as { platform: string }[];
+    const platformBreakdown: Record<string, number> = {};
+    let platformCount = 0;
+    for (const item of rawPlatforms) {
+      if (platformCount >= MAX_PLATFORMS) break;
+      const p = item.platform || 'unknown';
+      platformBreakdown[p] = (platformBreakdown[p] || 0) + 1;
+      platformCount++;
+    }
 
     return NextResponse.json({
       totalDownloads: totalResult.count || 0,
