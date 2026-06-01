@@ -170,15 +170,15 @@ export default function NotificationsPage() {
             <button
               key={mode}
               onClick={() => { setViewMode(mode); setCurrentPage(1); setFilterCategory('all'); }}
-              className={`py-2 px-5 text-sm font-semibold rounded-lg transition-all duration-200 ${
+              className={`py-2 px-5 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5 ${
                 viewMode === mode
                   ? 'bg-pink-600 text-white shadow-md shadow-pink-500/25'
                   : 'text-gray-500 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400'
               }`}
             >
-              {mode === 'all' && '🔔 All'}
-              {mode === 'main' && '📦 Main'}
-              {mode === 'credit' && '💳 Credit'}
+              {mode === 'all' && <><Bell className="w-4 h-4" /> All</>}
+              {mode === 'main' && <><Package className="w-4 h-4" /> Main</>}
+              {mode === 'credit' && <><CreditCard className="w-4 h-4" /> Credit</>}
             </button>
           ))}
         </div>
