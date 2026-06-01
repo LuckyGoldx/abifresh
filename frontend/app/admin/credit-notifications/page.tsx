@@ -52,7 +52,7 @@ export default function CreditNotificationsPage() {
 
   const fetchNotifications = async (retryCount = 0) => {
     try {
-      const response = await api.get('/api/notifications');
+      const response = await api.get('/api/notifications?limit=100');
       const raw = response.data;
       const allNotifications = Array.isArray(raw) ? raw : (raw?.data || []);
       

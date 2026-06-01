@@ -43,7 +43,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     try {
       setIsLoading(true);
       console.log('[Notifications] Fetching notifications...');
-      const response = await api.get('/api/notifications');
+      const response = await api.get('/api/notifications?limit=100');
       // Handle both paginated { data, total } and plain array responses
       const raw = response.data;
       const data: Notification[] = Array.isArray(raw) ? raw : (raw?.data || []);
