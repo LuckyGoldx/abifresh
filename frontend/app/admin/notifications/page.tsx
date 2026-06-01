@@ -12,6 +12,7 @@ export default function AdminNotificationsPage() {
   const router = useRouter();
   const { notifications, unreadCount, isLoading, markAsRead: contextMarkAsRead, markAllAsRead: contextMarkAllAsRead } = useNotifications();
   const { addToast } = useToast();
+  const [viewMode, setViewMode] = useState<'all' | 'main' | 'credit'>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const NOTIFS_PER_PAGE = 30;
@@ -76,9 +77,15 @@ export default function AdminNotificationsPage() {
     }
   };
 
-  const filteredNotifications = filterCategory === 'all' 
+  const sourceNotifications = viewMode === 'all' 
     ? notifications 
-    : notifications.filter(n => n.category === filterCategory);
+    : viewMode === 'main' 
+      ? notifications.filter(n => n.category !== 'credits')
+      : notifications.filter(n => n.category === 'credits');
+
+  const filteredNotifications = filterCategory === 'all' 
+    ? sourceNotifications 
+    : sourceNotifications.filter(n => n.category === filterCategory);
 
   const totalPages = Math.ceil(filteredNotifications.length / NOTIFS_PER_PAGE);
   // Reset to page 1 when filter changes
@@ -99,7 +106,9 @@ export default function AdminNotificationsPage() {
     setCurrentPage(1);
   };
 
-  const categories = ['all', 'posted_items', 'payments', 'returns', 'system'];
+  const categories = viewMode === 'credit'
+    ? ['all', 'credits']
+    : ['all', 'posted_items', 'payments', 'returns', 'system'];
 
   const getCategoryLabel = (cat: string): string => {
     switch (cat) {
@@ -134,13 +143,14 @@ export default function AdminNotificationsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between gap-4">
+    <div className="max-w-4xl mx-auto space-y-5">
+      {/* Header — stacks on mobile, inline on desktop */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
           <Bell className="w-8 h-8 text-pink-500" />
           Notifications
         </h1>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {unreadCount > 0 && (
             <button
               onClick={markAllAsReadLocal}
@@ -153,6 +163,25 @@ export default function AdminNotificationsPage() {
             {unreadCount} unread
           </div>
         </div>
+      </div>
+
+      {/* All / Main / Credit segmented control */}
+      <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-fit">
+        {(['all', 'main', 'credit'] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => { setViewMode(mode); setCurrentPage(1); setFilterCategory('all'); }}
+            className={`px-5 py-2 rounded-lg text-sm font-bold transition-all capitalize ${
+              viewMode === mode
+                ? 'bg-pink-600 text-white shadow-sm'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            {mode === 'all' && '🔔 All'}
+            {mode === 'main' && '📦 Main'}
+            {mode === 'credit' && '💳 Credit'}
+          </button>
+        ))}
       </div>
 
       {/* Category Filter */}
@@ -236,9 +265,13 @@ export default function AdminNotificationsPage() {
         <div className="card text-center py-12">
           <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">
-            {filterCategory === 'all' 
-              ? 'No notifications yet' 
-              : `No ${getCategoryLabel(filterCategory).toLowerCase()} notifications`}
+            {viewMode === 'credit'
+              ? 'No credit notifications yet'
+              : viewMode === 'main'
+                ? 'No main notifications yet'
+                : filterCategory === 'all'
+                  ? 'No notifications yet'
+                  : `No ${getCategoryLabel(filterCategory).toLowerCase()} notifications`}
           </p>
         </div>
       )}
