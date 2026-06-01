@@ -17,7 +17,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-white dark:bg-slate-800 shadow">
+      <header className="sticky top-0 z-10 bg-white dark:bg-slate-800 shadow flex-shrink-0">
         <div className="pl-16 md:pl-14 pr-4 md:pr-8 py-3 md:py-4 flex items-center justify-between gap-2">
           <div className="flex-1 min-w-0 flex items-center overflow-hidden">
             {/* Logo on mobile only */}
@@ -35,7 +35,7 @@ export default function Header() {
             {/* Notifications */}
             <button 
               onClick={() => setIsNotificationsOpen(true)}
-              className="relative p-2 text-gray-600 dark:text-gray-400 hover:text-pink-500 transition"
+              className="relative p-2 mr-1 md:mr-0 text-gray-600 dark:text-gray-400 hover:text-pink-500 transition"
               title="View notifications"
             >
               <Bell className="w-6 h-6" />
