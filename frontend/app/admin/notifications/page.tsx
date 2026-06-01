@@ -150,7 +150,7 @@ export default function AdminNotificationsPage() {
           <Bell className="w-8 h-8 text-pink-500" />
           Notifications
         </h1>
-        <div className="flex md:items-center md:gap-3">
+        <div className="flex md:items-center md:gap-3 self-end md:self-auto">
           {unreadCount > 0 && (
             <button
               onClick={markAllAsReadLocal}
