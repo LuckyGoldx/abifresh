@@ -27,10 +27,10 @@ export async function GET(req: NextRequest) {
     .order('full_name', { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Fetch aggregate sales data in two batch queries (constant time, not N+1)
+  // Fetch aggregate sales data in three batch queries (constant time, not N+1)
   const staffIds = (users || []).map((s: any) => s.id);
 
-  const [salesItemsAggResult, salesAggResult] = await Promise.all([
+  const [salesItemsAggResult, salesAggResult, staffSalesAggResult] = await Promise.all([
     staffIds.length > 0
       ? supabaseAdmin
           .from('sales_items')
@@ -41,6 +41,12 @@ export async function GET(req: NextRequest) {
       ? supabaseAdmin
           .from('sales')
           .select('staff_id, total_amount')
+          .in('staff_id', staffIds)
+      : { data: [] },
+    staffIds.length > 0
+      ? supabaseAdmin
+          .from('staff_sales')
+          .select('staff_id, quantity, total_amount')
           .in('staff_id', staffIds)
       : { data: [] },
   ]);
@@ -55,6 +61,14 @@ export async function GET(req: NextRequest) {
   const amountByStaff = new Map<string, number>();
   (salesAggResult.data || []).forEach((s: any) => {
     amountByStaff.set(s.staff_id, (amountByStaff.get(s.staff_id) || 0) + (s.total_amount || 0));
+  });
+
+  // Merge staff_sales data for commission/non-commission staff
+  (staffSalesAggResult.data || []).forEach((ss: any) => {
+    if (ss.staff_id) {
+      itemsCountByStaff.set(ss.staff_id, (itemsCountByStaff.get(ss.staff_id) || 0) + (ss.quantity || 0));
+      amountByStaff.set(ss.staff_id, (amountByStaff.get(ss.staff_id) || 0) + (parseFloat(ss.total_amount) || 0));
+    }
   });
 
   const enriched = (users || []).map((staff: any) => ({
