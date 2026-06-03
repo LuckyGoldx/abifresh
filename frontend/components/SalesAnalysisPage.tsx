@@ -177,7 +177,7 @@ export default function SalesAnalysisPage({ portalType }: SalesAnalysisPageProps
         'Category': item.category || 'General',
         'Brand': item.brand || 'N/A',
         'Package Type': item.package_type || 'N/A',
-        'Base Price': item.unit_price || 0,
+        'Avg Selling Price': item.unit_price || 0,
         'Total Quantity Sold': item.total_quantity_sold || 0,
         'Total Revenue Generated': item.total_revenue || 0,
         'Sales Count (Transactions)': item.total_transactions || 0,
@@ -654,27 +654,41 @@ export default function SalesAnalysisPage({ portalType }: SalesAnalysisPageProps
                                         <tr className="bg-slate-50/40 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-150 dark:border-slate-750">
                                           <th className="py-2.5 px-6">Staff Member</th>
                                           <th className="py-2.5 px-3">Role</th>
-                                          <th className="py-2.5 px-3 text-right">Quantity Sold</th>
-                                          <th className="py-2.5 px-3 text-right">Transactions Count</th>
-                                          <th className="py-2.5 px-6 text-right">Total Revenue Generated</th>
+                                          <th className="py-2.5 px-3">Location</th>
+                                          <th className="py-2.5 px-3 text-right">Qty Sold</th>
+                                          <th className="py-2.5 px-3 text-right">Selling Price</th>
+                                          <th className="py-2.5 px-3 text-right">Transactions</th>
+                                          <th className="py-2.5 px-6 text-right">Revenue</th>
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-100 dark:divide-slate-750/70">
                                         {item.staff_breakdown.map((sb: any) => (
-                                          <tr key={sb.staff_id} className="hover:bg-slate-50/20 dark:hover:bg-slate-750/20 transition-colors">
+                                          <tr key={`${sb.staff_id}-${sb.sold_outside_jalingo ? 'outside' : 'inside'}`} className="hover:bg-slate-50/20 dark:hover:bg-slate-750/20 transition-colors">
                                             <td className="py-3 px-6 font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                                              <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold flex items-center justify-center uppercase">
+                                              <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold flex items-center justify-center uppercase flex-shrink-0">
                                                 {sb.staff_name.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
                                               </div>
                                               <span>{sb.staff_name}</span>
                                             </td>
                                             <td className="py-3 px-3 text-slate-500 dark:text-slate-400">
                                               <span className="capitalize px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-150 dark:border-slate-750">
-                                                {sb.staff_role ? sb.staff_role.replace('_', ' ') : 'Unknown'}
+                                                {sb.staff_role ? sb.staff_role.replace(/_/g, ' ') : 'Unknown'}
+                                              </span>
+                                            </td>
+                                            <td className="py-3 px-3">
+                                              <span className="inline-flex items-center gap-1 text-xs font-medium">
+                                                <span
+                                                  className="inline-block w-2 h-2 rounded-full"
+                                                  style={{ backgroundColor: sb.sold_outside_jalingo ? '#EAB308' : '#22C55E' }}
+                                                />
+                                                {sb.sold_outside_jalingo ? 'Outside Jalingo' : 'Inside Jalingo'}
                                               </span>
                                             </td>
                                             <td className="py-3 px-3 font-bold text-slate-900 dark:text-white text-right">
                                               {sb.quantity_sold.toLocaleString()}
+                                            </td>
+                                            <td className="py-3 px-3 text-slate-600 dark:text-slate-300 text-right font-semibold">
+                                              {formatCurrency(sb.selling_price)}
                                             </td>
                                             <td className="py-3 px-3 text-slate-500 dark:text-slate-400 text-right">
                                               {sb.transactions_count.toLocaleString()}

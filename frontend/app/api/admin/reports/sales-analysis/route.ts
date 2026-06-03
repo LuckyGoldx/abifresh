@@ -82,47 +82,123 @@ export async function GET(req: NextRequest) {
         .map((u: any) => u.id);
     }
 
-    // 3. Fetch Receipts
-    let receiptsQuery = supabaseAdmin
-      .from('receipts')
-      .select('id, staff_id, total_amount, sold_outside_jalingo, created_at');
+    // 3. Build role filter ID list (early exit if empty)
+    if (staffRole && !staffId && roleStaffIds !== null && roleStaffIds.length === 0) {
+      return NextResponse.json({
+        stats: { totalAmountSold: 0, totalTransactions: 0, totalItemsSold: 0, totalQuantitySold: 0 },
+        items: [],
+        salesTrend: [],
+        staffPerformance: [],
+        filters: { dateRange, resolvedFrom: fromISO, resolvedTo: toISO }
+      });
+    }
+
+    // 4. Fetch Sales Data from Source-of-Truth Tables
+    // We use staff_sales (commission/non-commission staff) and sales+sales_items (sales portal staff)
+    // instead of receipts+receipt_items, because:
+    //   - receipt_items.unit_price does NOT include logistics fee
+    //   - receipt creation can fail silently, losing data
+    //   - staff_sales.unit_price already includes logistics fee for outside Jalingo
+
+    interface SaleRow {
+      staff_id: string;
+      item_id: string;
+      quantity: number;
+      unit_price: number;
+      total_amount: number;
+      transaction_id: string;
+      created_at: string;
+      sold_outside_jalingo: boolean;
+    }
+
+    const allSalesRows: SaleRow[] = [];
+
+    // 4a. Query staff_sales (commission / non-commission staff)
+    let ssQuery = supabaseAdmin
+      .from('staff_sales')
+      .select('id, staff_id, item_id, quantity, unit_price, total_amount, sale_date, created_at, sold_outside_jalingo, location');
 
     if (applyDateFilter) {
-      receiptsQuery = receiptsQuery
-        .gte('created_at', fromISO)
-        .lte('created_at', toISO);
+      ssQuery = ssQuery.gte('created_at', fromISO).lte('created_at', toISO);
+    }
+    if (staffId) {
+      ssQuery = ssQuery.eq('staff_id', staffId);
+    } else if (roleStaffIds !== null) {
+      ssQuery = ssQuery.in('staff_id', roleStaffIds);
     }
 
+    const { data: staffSalesData, error: ssError } = await ssQuery;
+    if (ssError) throw ssError;
+
+    for (const row of staffSalesData || []) {
+      const qty = Number(row.quantity) || 0;
+      const unitPrice = Number(row.unit_price) || 0;
+      const totalAmt = Number(row.total_amount) || (qty * unitPrice);
+      const outsideJalingo = row.sold_outside_jalingo || row.location === 'Outside Jalingo';
+      allSalesRows.push({
+        staff_id: row.staff_id,
+        item_id: row.item_id,
+        quantity: qty,
+        unit_price: unitPrice,
+        total_amount: totalAmt,
+        transaction_id: `ss_${row.id}`,
+        created_at: row.created_at || row.sale_date,
+        sold_outside_jalingo: outsideJalingo,
+      });
+    }
+
+    // 4b. Query sales + sales_items (sales portal staff)
+    let salesQuery = supabaseAdmin
+      .from('sales')
+      .select('id, staff_id, created_at, sold_outside_jalingo');
+
+    if (applyDateFilter) {
+      salesQuery = salesQuery.gte('created_at', fromISO).lte('created_at', toISO);
+    }
     if (staffId) {
-      receiptsQuery = receiptsQuery.eq('staff_id', staffId);
+      salesQuery = salesQuery.eq('staff_id', staffId);
     } else if (roleStaffIds !== null) {
-      if (roleStaffIds.length === 0) {
-        // No staff matches this role, return empty early
-        return NextResponse.json({
-          stats: { totalAmountSold: 0, totalTransactions: 0, totalItemsSold: 0, totalQuantitySold: 0 },
-          items: [],
-          salesTrend: [],
-          staffPerformance: [],
-          filters: { dateRange, resolvedFrom: fromISO, resolvedTo: toISO }
+      salesQuery = salesQuery.in('staff_id', roleStaffIds);
+    }
+
+    const { data: salesData, error: salesError } = await salesQuery;
+    if (salesError) throw salesError;
+
+    const portalSaleIds = (salesData || []).map((s: any) => s.id);
+    const saleStaffMap = new Map<string, string>();
+    const saleDateMap = new Map<string, string>();
+    const saleLocationMap = new Map<string, boolean>();
+    (salesData || []).forEach((s: any) => {
+      saleStaffMap.set(s.id, s.staff_id);
+      saleDateMap.set(s.id, s.created_at);
+      saleLocationMap.set(s.id, s.sold_outside_jalingo || false);
+    });
+
+    if (portalSaleIds.length > 0) {
+      const { data: salesItemsData, error: siError } = await supabaseAdmin
+        .from('sales_items')
+        .select('id, sale_id, item_id, quantity, unit_price, logistics_fee')
+        .in('sale_id', portalSaleIds);
+      if (siError) throw siError;
+
+      for (const row of salesItemsData || []) {
+        const sid = row.sale_id;
+        const qty = Number(row.quantity) || 0;
+        const basePrice = Number(row.unit_price) || 0;
+        const logisticsFee = Number(row.logistics_fee) || 0;
+        const effectiveUnitPrice = basePrice + logisticsFee;
+        const totalAmt = qty * effectiveUnitPrice;
+        allSalesRows.push({
+          staff_id: saleStaffMap.get(sid) || '',
+          item_id: row.item_id,
+          quantity: qty,
+          unit_price: effectiveUnitPrice,
+          total_amount: totalAmt,
+          transaction_id: `si_${row.id}`,
+          created_at: saleDateMap.get(sid) || '',
+          sold_outside_jalingo: saleLocationMap.get(sid) || false,
         });
       }
-      receiptsQuery = receiptsQuery.in('staff_id', roleStaffIds);
-    }
-
-    const { data: receipts, error: receiptsError } = await receiptsQuery;
-    if (receiptsError) throw receiptsError;
-
-    const receiptIds = (receipts || []).map((r: any) => r.id);
-
-    // 4. Fetch Receipt Items
-    let receiptItems: any[] = [];
-    if (receiptIds.length > 0) {
-      const { data: itemsData, error: itemsError } = await supabaseAdmin
-        .from('receipt_items')
-        .select('id, receipt_id, item_id, quantity, unit_price, total_price')
-        .in('receipt_id', receiptIds);
-      if (itemsError) throw itemsError;
-      receiptItems = itemsData || [];
     }
 
     // 5. Fetch All Products/Items in the system
@@ -132,17 +208,17 @@ export async function GET(req: NextRequest) {
       .order('name');
     if (dbItemsError) throw dbItemsError;
 
-    // 6. Aggregate Overall Statistics
-    const totalAmountSold = (receipts || []).reduce((sum, r) => sum + (Number(r.total_amount) || 0), 0);
-    const totalTransactions = (receipts || []).length;
-    const totalQuantitySold = receiptItems.reduce((sum, ri) => sum + (Number(ri.quantity) || 0), 0);
-    const totalItemsSold = new Set(receiptItems.map(ri => ri.item_id)).size;
+    // 6. Aggregate Overall Statistics from unified sales rows
+    const totalAmountSold = allSalesRows.reduce((sum, r) => sum + r.total_amount, 0);
+    const totalTransactions = new Set(allSalesRows.map(r => r.transaction_id)).size;
+    const totalQuantitySold = allSalesRows.reduce((sum, r) => sum + r.quantity, 0);
+    const totalItemsSold = new Set(allSalesRows.map(r => r.item_id)).size;
 
-    // 7. Group Receipts by Date for Sales Trend
+    // 7. Group Sales Rows by Date for Sales Trend
     const trendMap = new Map<string, number>();
-    (receipts || []).forEach((r: any) => {
+    allSalesRows.forEach((r: any) => {
       const dateStr = new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      trendMap.set(dateStr, (trendMap.get(dateStr) || 0) + (Number(r.total_amount) || 0));
+      trendMap.set(dateStr, (trendMap.get(dateStr) || 0) + r.total_amount);
     });
 
     const salesTrend = Array.from(trendMap.entries()).map(([date, revenue]) => ({
@@ -158,23 +234,14 @@ export async function GET(req: NextRequest) {
 
     // 8. Group by Staff for Staff Performance
     const staffPerfMap = new Map<string, { quantity: number; revenue: number; transactions: Set<string> }>();
-    (receipts || []).forEach((r: any) => {
+    allSalesRows.forEach((r: any) => {
       if (!staffPerfMap.has(r.staff_id)) {
         staffPerfMap.set(r.staff_id, { quantity: 0, revenue: 0, transactions: new Set() });
       }
       const perf = staffPerfMap.get(r.staff_id)!;
-      perf.revenue += Number(r.total_amount) || 0;
-      perf.transactions.add(r.id);
-    });
-
-    receiptItems.forEach((ri: any) => {
-      const receipt = (receipts || []).find(r => r.id === ri.receipt_id);
-      if (receipt) {
-        const perf = staffPerfMap.get(receipt.staff_id);
-        if (perf) {
-          perf.quantity += Number(ri.quantity) || 0;
-        }
-      }
+      perf.quantity += r.quantity;
+      perf.revenue += r.total_amount;
+      perf.transactions.add(r.transaction_id);
     });
 
     const staffPerformance = Array.from(staffPerfMap.entries()).map(([staffId, perf]) => {
@@ -190,64 +257,70 @@ export async function GET(req: NextRequest) {
     }).sort((a, b) => b.revenue - a.revenue);
 
     // 9. Aggregate Item-wise Metrics & Staff-wise Breakdowns
-    // Map items list
     const itemsMap = new Map<string, any>();
-    (dbItems || []).forEach((item: any) => {
-      itemsMap.set(item.id, {
-        item_id: item.id,
-        item_name: item.name,
-        sku: item.sku,
-        category: item.category,
-        brand: item.brand,
-        package_type: item.package_type,
-        unit_price: item.unit_price,
+    (dbItems || []).forEach((dbItem: any) => {
+      itemsMap.set(dbItem.id, {
+        item_id: dbItem.id,
+        item_name: dbItem.name,
+        sku: dbItem.sku,
+        category: dbItem.category,
+        brand: dbItem.brand,
+        package_type: dbItem.package_type,
+        unit_price: 0,
         total_quantity_sold: 0,
         total_revenue: 0,
         total_transactions: 0,
-        staff_breakdown_map: new Map<string, { quantity: number; revenue: number; transactions: Set<string> }>()
+        staff_breakdown_map: new Map<string, { quantity: number; revenue: number; selling_price: number; transactions: Set<string>; sold_outside_jalingo: boolean }>()
       });
     });
 
-    // Populate actual sales and breakdowns
-    receiptItems.forEach((ri: any) => {
-      const item = itemsMap.get(ri.item_id);
-      const receipt = (receipts || []).find(r => r.id === ri.receipt_id);
-      
-      if (item && receipt) {
-        const qty = Number(ri.quantity) || 0;
-        const revenue = Number(ri.total_price) || (qty * (Number(ri.unit_price) || 0));
-
-        item.total_quantity_sold += qty;
-        item.total_revenue += revenue;
+    // Populate actual sales and breakdowns from unified sales rows
+    // Group by (staff_id, sold_outside_jalingo) so each location is a separate breakdown row
+    allSalesRows.forEach((row: any) => {
+      const item = itemsMap.get(row.item_id);
+      if (item) {
+        item.total_quantity_sold += row.quantity;
+        item.total_revenue += row.total_amount;
         item.total_transactions += 1;
 
-        // Populate staff breakdown for this item
-        if (!item.staff_breakdown_map.has(receipt.staff_id)) {
-          item.staff_breakdown_map.set(receipt.staff_id, { quantity: 0, revenue: 0, transactions: new Set() });
+        const bkKey = `${row.staff_id}_${row.sold_outside_jalingo ? 'outside' : 'inside'}`;
+        if (!item.staff_breakdown_map.has(bkKey)) {
+          item.staff_breakdown_map.set(bkKey, {
+            staff_id: row.staff_id,
+            quantity: 0,
+            revenue: 0,
+            selling_price: 0,
+            transactions: new Set(),
+            sold_outside_jalingo: row.sold_outside_jalingo,
+          });
         }
-        const staffBreakdown = item.staff_breakdown_map.get(receipt.staff_id)!;
-        staffBreakdown.quantity += qty;
-        staffBreakdown.revenue += revenue;
-        staffBreakdown.transactions.add(ri.receipt_id);
+        const sb = item.staff_breakdown_map.get(bkKey)!;
+        sb.quantity += row.quantity;
+        sb.revenue += row.total_amount;
+        sb.selling_price = sb.quantity > 0 ? sb.revenue / sb.quantity : 0;
+        sb.transactions.add(row.transaction_id);
       }
     });
 
     // Format items into clean output array
     const items = Array.from(itemsMap.values()).map((item: any) => {
-      const staff_breakdown = Array.from(item.staff_breakdown_map.entries()).map((entry: any) => {
-        const [staffId, sb] = entry;
-        const user = usersMap.get(staffId);
+      const staff_breakdown = Array.from(item.staff_breakdown_map.values()).map((sb: any) => {
+        const user = usersMap.get(sb.staff_id);
         return {
-          staff_id: staffId,
-          staff_name: user?.full_name || `Staff ${staffId.slice(0, 5)}`,
+          staff_id: sb.staff_id,
+          staff_name: user?.full_name || `Staff ${sb.staff_id.slice(0, 5)}`,
           staff_role: user?.role || 'staff',
           quantity_sold: sb.quantity,
           total_revenue: sb.revenue,
-          transactions_count: sb.transactions.size
+          selling_price: sb.selling_price,
+          transactions_count: sb.transactions.size,
+          sold_outside_jalingo: sb.sold_outside_jalingo,
         };
-      }).sort((a, b) => b.total_revenue - a.total_revenue);
+      }).sort((a: any, b: any) => b.total_revenue - a.total_revenue);
 
-      // Delete maps to keep JSON payload clean
+      // Set selling price as weighted average
+      item.unit_price = item.total_quantity_sold > 0 ? item.total_revenue / item.total_quantity_sold : 0;
+
       delete item.staff_breakdown_map;
 
       return {
