@@ -13,27 +13,44 @@
 --   - Deletes children before parents to respect foreign keys
 --
 -- HOW TO RUN: Copy this entire script and paste into Supabase SQL Editor, then click "Run"
--- DATE: March 9, 2026
+-- DATE: June 1, 2026 (updated — now includes credit system tables)
 -- ============================================================================
 
 BEGIN;
 
 -- ════════════════════════════════════════════════════════════════════════════
--- GROUP 1: Child tables (must be cleared first due to foreign key references)
+-- GROUP 1: Deepest child tables (cleared first for foreign key compliance)
 -- ════════════════════════════════════════════════════════════════════════════
 
--- receipt_items depends on receipts(id) ON DELETE CASCADE
-DELETE FROM public.receipt_items;
+-- Sales / receipt children
+DELETE FROM public.receipt_items;            -- depends on receipts(id)
+DELETE FROM public.sales_items;              -- depends on sales(id)
 
--- posted_items_mapping depends on posted_items(id) and staff_store(id)
-DELETE FROM public.posted_items_mapping;
+-- Posted items children
+DELETE FROM public.posted_items_mapping;     -- depends on posted_items(id), staff_store(id)
 
--- restock_order_items depends on restock_orders(id) ON DELETE CASCADE
-DELETE FROM public.restock_order_items;
+-- Restock order items
+DELETE FROM public.restock_order_items;      -- depends on restock_orders(id)
+
+-- Credit system deepest children
+DELETE FROM public.credit_payment_items;     -- depends on credit_payments(id), credit_sale_items(id)
+DELETE FROM public.credit_activities;        -- depends on creditors(id), credit_sales(id), credit_payments(id)
 
 -- ════════════════════════════════════════════════════════════════════════════
--- GROUP 2: All other tables (depend only on users/items which are KEPT)
+-- GROUP 2: Mid-level tables (depend on users/items or GROUP 1 parents)
 -- ════════════════════════════════════════════════════════════════════════════
+
+-- Credit system mid-level
+DELETE FROM public.credit_payments;          -- depends on creditors(id), credit_sales(id)
+DELETE FROM public.credit_store;             -- depends on credit_sales(id), credit_sale_items(id), creditors(id)
+DELETE FROM public.credit_sale_items;        -- depends on credit_sales(id)
+DELETE FROM public.credit_sales;             -- depends on creditors(id)
+DELETE FROM public.creditors;                -- depends on users(id)
+
+-- Finance & payments
+DELETE FROM public.staff_commissions;
+DELETE FROM public.staff_payments;
+DELETE FROM public.staff_expenses;
 
 -- Sales & transactions
 DELETE FROM public.staff_sales;
@@ -45,11 +62,6 @@ DELETE FROM public.receipts;
 DELETE FROM public.staff_store;
 DELETE FROM public.posted_items;
 
--- Staff finance
-DELETE FROM public.staff_commissions;
-DELETE FROM public.staff_payments;
-DELETE FROM public.staff_expenses;
-
 -- Inventory
 DELETE FROM public.inventory_main_store;
 DELETE FROM public.inventory_active_store;
@@ -59,8 +71,11 @@ DELETE FROM public.inventory_transfers;
 DELETE FROM public.damage_loss_reports;
 DELETE FROM public.returned_items;
 
--- Restock orders (parent — cleared after restock_order_items)
+-- Restock orders (parent table)
 DELETE FROM public.restock_orders;
+
+-- PWA tracking
+DELETE FROM public.pwa_downloads;
 
 -- System / audit
 DELETE FROM public.notifications;
@@ -69,15 +84,41 @@ DELETE FROM public.system_settings;
 DELETE FROM public.backup_history;
 
 -- ════════════════════════════════════════════════════════════════════════════
--- GROUP 3: Optional — expenses table (may or may not exist in your DB)
+-- GROUP 3: Optional tables (checked via DO block so they won't fail if absent)
 -- ════════════════════════════════════════════════════════════════════════════
 
--- The "expenses" table (separate from staff_expenses) may exist
--- Using DO block so it doesn't fail if the table doesn't exist
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'expenses') THEN
     EXECUTE 'DELETE FROM public.expenses';
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'remittance') THEN
+    EXECUTE 'DELETE FROM public.remittance';
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'commission_rates') THEN
+    EXECUTE 'DELETE FROM public.commission_rates';
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'sales_items') THEN
+    EXECUTE 'DELETE FROM public.sales_items';
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'debtors') THEN
+    EXECUTE 'DELETE FROM public.debtors';
   END IF;
 END $$;
 
@@ -95,4 +136,12 @@ CROSS JOIN LATERAL (
 ) x
 WHERE t.table_schema = 'public'
   AND t.table_type = 'BASE TABLE'
+  AND t.table_name NOT IN ('users', 'items')
 ORDER BY t.table_name;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- CONFIRMATION: Show that users and items are untouched
+-- ════════════════════════════════════════════════════════════════════════════
+SELECT 'users' AS table_name, COUNT(*) AS row_count FROM public.users
+UNION ALL
+SELECT 'items', COUNT(*) FROM public.items;

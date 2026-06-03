@@ -91,9 +91,10 @@ export default function SalesPaymentsPage() {
             item_id: sale.item_id,
             item_name: itemName,
             quantity: quantity,
-            unit_price: parseFloat(sale.price_jalingo || sale.unit_price as any) || 0,
+            unit_price: parseFloat(sale.unit_price as any) || 0,
             total_amount: parseFloat(sale.total_amount as any) || 0,
             sale_date: sale.sale_date || sale.created_at,
+            sold_outside_jalingo: sale.sold_outside_jalingo || false,
           };
         });
         stats = salesRes.data.stats || {};
@@ -107,9 +108,10 @@ export default function SalesPaymentsPage() {
             item_id: sale.item_id,
             item_name: itemName,
             quantity: quantity,
-            unit_price: parseFloat(sale.price_jalingo || sale.unit_price as any) || 0,
+            unit_price: parseFloat(sale.unit_price as any) || 0,
             total_amount: parseFloat(sale.total_amount as any) || 0,
             sale_date: sale.sale_date || sale.created_at,
+            sold_outside_jalingo: sale.sold_outside_jalingo || false,
           };
         });
       }
@@ -330,6 +332,7 @@ export default function SalesPaymentsPage() {
           unit_price: effectiveUnitPrice,
           total_amount: sale.total_amount,
           sale_ids: [sale.id],     // Track individual sale IDs for payment payload
+          sold_outside_jalingo: sale.sold_outside_jalingo || false,
         });
       }
     });
@@ -773,7 +776,14 @@ export default function SalesPaymentsPage() {
                               className="w-4 h-4"
                             />
                           </td>
-                          <td className="py-2 px-3">{item.item_name}</td>
+                          <td className="py-2 px-3">
+                            {item.item_name}
+                            {item.sold_outside_jalingo && (
+                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
+                                Outside Jalingo
+                              </span>
+                            )}
+                          </td>
                           <td className="py-2 px-3">
                             <div className="flex items-center gap-2">
                               <input

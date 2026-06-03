@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
-import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag, X, Search, History, BarChart, CheckCircle2, XCircle, Clock, RefreshCcw } from 'lucide-react';
+import { Send, Plus, Minus, Trash2, Users, CheckCircle, AlertCircle, ShoppingBag, X, Search, History, BarChart, CheckCircle2, XCircle, Clock, RefreshCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 import { SkeletonTwoColumnPage, SkeletonTable } from '@/components/Skeleton';
 
@@ -122,6 +122,9 @@ export default function AdminPostItemsPage() {
     status: '',
     itemSearch: '',
   });
+
+  const [historyPage, setHistoryPage] = useState(1);
+  const historyPerPage = 10;
 
   useEffect(() => {
     setMounted(true);
@@ -326,6 +329,10 @@ export default function AdminPostItemsPage() {
     }
   };
 
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [historyFilters]);
+
   if (!mounted || isLoading) {
     return (
       <div className="p-4 md:p-6">
@@ -374,6 +381,12 @@ export default function AdminPostItemsPage() {
     
     return matchesPoster && matchesStaff && matchesStatus && matchesItem && matchesDate;
   });
+
+  const totalHistoryPages = Math.max(1, Math.ceil(filteredHistory.length / historyPerPage));
+  const paginatedHistory = filteredHistory.slice(
+    (historyPage - 1) * historyPerPage,
+    historyPage * historyPerPage
+  );
 
   return (
     <div className="space-y-6">
@@ -655,38 +668,38 @@ export default function AdminPostItemsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             {[
               { label: 'Total Items Posted', value: historyStats.totalPosts.toLocaleString(), icon: <ShoppingBag className="text-blue-500" />, color: 'blue' },
-              { label: 'Total Quantities', value: historyStats.totalQty.toLocaleString(), icon: <BarChart className="text-pink-500" />, color: 'pink' },
+              { label: 'Total Quantities', value: formatQty(historyStats.totalQty), icon: <BarChart className="text-pink-500" />, color: 'pink' },
               { label: 'Accepted Value', value: `₦${historyStats.acceptedValue.toLocaleString()}`, icon: <CheckCircle2 className="text-green-500" />, color: 'green' },
               { label: 'Staff Reached', value: historyStats.uniqueStaff.toLocaleString(), icon: <Users className="text-purple-500" />, color: 'purple' },
               { label: 'Acceptance Rate', value: `${historyStats.acceptanceRate.toFixed(1)}%`, icon: <CheckCircle2 className="text-blue-500" />, color: 'blue' },
               { label: 'Rejection Rate', value: `${historyStats.rejectionRate.toFixed(1)}%`, icon: <XCircle className="text-red-500" />, color: 'red' },
             ].map((stat, i) => (
-              <div key={i} className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-                <div className={`p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50`}>
+              <div key={i} className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+                <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50 flex-shrink-0">
                   {stat.icon}
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{stat.label}</p>
-                  <p className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">{stat.value}</p>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider break-words">{stat.label}</p>
+                  <p className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white break-words">{stat.value}</p>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm">
+             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between shadow-sm gap-1 sm:gap-0 text-center sm:text-left">
                 <span className="text-sm font-bold text-yellow-600 flex items-center gap-2">
                    <Clock size={18} /> Pending
                 </span>
                 <span className="text-xl font-black text-gray-900 dark:text-white">{historyStats.pending}</span>
              </div>
-             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm">
+             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between shadow-sm gap-1 sm:gap-0 text-center sm:text-left">
                 <span className="text-sm font-bold text-red-600 flex items-center gap-2">
                    <XCircle size={18} /> Rejected
                 </span>
                 <span className="text-xl font-black text-gray-900 dark:text-white">{historyStats.rejected}</span>
              </div>
-             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between items-center shadow-sm">
+             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between shadow-sm gap-1 sm:gap-0 text-center sm:text-left">
                 <span className="text-sm font-bold text-green-600 flex items-center gap-2">
                    <CheckCircle2 size={18} /> Accepted
                 </span>
@@ -774,6 +787,7 @@ export default function AdminPostItemsPage() {
                </div>
             </div>
             
+            {/* Table view */}
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-gray-50 dark:bg-gray-700/50 text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -792,35 +806,35 @@ export default function AdminPostItemsPage() {
                     <tr>
                       <td colSpan={7} className="px-6 py-12 text-center text-gray-400">Loading history...</td>
                     </tr>
-                  ) : filteredHistory.length === 0 ? (
+                  ) : paginatedHistory.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-12 text-center text-gray-400">No matching history found</td>
                     </tr>
                   ) : (
-                    filteredHistory.map((post) => (
+                    paginatedHistory.map((post) => (
                       <tr key={post.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-sm">
                         <td className="px-6 py-4">
-                          <p className="font-bold text-gray-900 dark:text-white">{post.item?.name}</p>
+                          <p className="font-bold text-gray-900 dark:text-white whitespace-normal break-words max-w-[200px]">{post.item?.name}</p>
                           <p className="text-xs text-gray-500">{post.item?.sku}</p>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs flex-shrink-0">
                               {post.poster?.full_name?.substring(0, 1).toUpperCase()}
                             </div>
-                            <div>
-                              <p className="font-bold text-gray-900 dark:text-white">{post.poster?.full_name}</p>
+                            <div className="min-w-0">
+                              <p className="font-bold text-gray-900 dark:text-white truncate max-w-[120px]">{post.poster?.full_name}</p>
                               <p className="text-[10px] text-gray-500 uppercase tracking-tighter">@{post.poster?.username}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-pink-600 dark:text-pink-400 font-bold text-xs">
+                            <div className="w-8 h-8 rounded-lg bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-pink-600 dark:text-pink-400 font-bold text-xs flex-shrink-0">
                               {post.staff?.full_name?.substring(0, 1).toUpperCase()}
                             </div>
-                            <div>
-                              <p className="font-bold text-gray-900 dark:text-white">{post.staff?.full_name}</p>
+                            <div className="min-w-0">
+                              <p className="font-bold text-gray-900 dark:text-white truncate max-w-[120px]">{post.staff?.full_name}</p>
                               <p className="text-[10px] text-gray-500 uppercase tracking-tighter">@{post.staff?.username}</p>
                             </div>
                           </div>
@@ -828,11 +842,11 @@ export default function AdminPostItemsPage() {
                         <td className="px-6 py-4 text-center font-black text-gray-900 dark:text-white">
                           {formatQty(post.quantity)}
                         </td>
-                        <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 font-bold text-gray-900 dark:text-white whitespace-nowrap">
                           ₦{(post.quantity * post.unit_price).toLocaleString()}
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-gray-900 dark:text-white">{new Date(post.created_at).toLocaleDateString()}</p>
+                          <p className="text-gray-900 dark:text-white whitespace-nowrap">{new Date(post.created_at).toLocaleDateString()}</p>
                           <p className="text-[10px] text-gray-500">{new Date(post.created_at).toLocaleTimeString()}</p>
                         </td>
                         <td className="px-6 py-4">
@@ -851,7 +865,7 @@ export default function AdminPostItemsPage() {
                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold uppercase w-fit">
                                 <XCircle size={12} /> Rejected
                               </span>
-                              {post.reject_reason && <p className="text-[10px] text-red-500 italic">"{post.reject_reason}"</p>}
+                              {post.reject_reason && <p className="text-[10px] text-red-500 italic max-w-[150px] break-words">"{post.reject_reason}"</p>}
                             </div>
                           )}
                         </td>
@@ -861,6 +875,65 @@ export default function AdminPostItemsPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {totalHistoryPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-4 border-t border-gray-100 dark:border-gray-700 gap-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
+                  Page {historyPage} of {totalHistoryPages}
+                </span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  <button
+                    onClick={() => setHistoryPage(Math.max(1, historyPage - 1))}
+                    disabled={historyPage <= 1}
+                    className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  {Array.from({ length: totalHistoryPages }, (_, i) => i + 1)
+                    .filter(p => {
+                      const half = 2;
+                      return p === 1 || p === totalHistoryPages || (p >= historyPage - half && p <= historyPage + half);
+                    })
+                    .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                      if (idx > 0) {
+                        const prev = arr[idx - 1];
+                        if (p - prev > 1) acc.push('ellipsis');
+                      }
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === 'ellipsis' ? (
+                        <span key={`e-${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">...</span>
+                      ) : (
+                        <button
+                          key={item}
+                          onClick={() => setHistoryPage(item)}
+                          className={`w-8 h-8 rounded-lg text-sm font-medium transition ${
+                            historyPage === item
+                              ? 'bg-pink-500 text-white shadow-sm'
+                              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {item}
+                        </button>
+                      )
+                    )}
+
+                  <button
+                    onClick={() => setHistoryPage(Math.min(totalHistoryPages, historyPage + 1))}
+                    disabled={historyPage >= totalHistoryPages}
+                    className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

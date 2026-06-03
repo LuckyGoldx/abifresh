@@ -770,20 +770,30 @@ export default function ExpensesPage() {
               >
                 Previous
               </button>
-              <div className="flex gap-1">
-                {Array.from({ length: Math.ceil(activeTabExpenses.length / itemsPerPage) }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-2 rounded-lg transition ${
-                      currentPage === page
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+              <div className="flex items-center gap-1 flex-wrap">
+                {(() => {
+                  const total = Math.ceil(activeTabExpenses.length / itemsPerPage);
+                  const half = 2;
+                  return Array.from({ length: total }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === total || (p >= currentPage - half && p <= currentPage + half))
+                    .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                      if (idx > 0) { const prev = arr[idx - 1]; if (p - prev > 1) acc.push('ellipsis'); }
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((item, idx) =>
+                      item === 'ellipsis' ? (
+                        <span key={`e-${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">...</span>
+                      ) : (
+                        <button key={item} onClick={() => setCurrentPage(item)}
+                          className={`w-8 h-8 rounded-lg text-sm font-medium transition ${
+                            currentPage === item
+                              ? 'bg-blue-500 text-white'
+                              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}>{item}</button>
+                      )
+                    );
+                })()}
               </div>
               <button
                 onClick={() => setCurrentPage(Math.min(Math.ceil(activeTabExpenses.length / itemsPerPage), currentPage + 1))}

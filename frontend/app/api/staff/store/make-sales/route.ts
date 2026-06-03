@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
           commission: commissionEarned,
           location: itemLocation,
           payment_method: payment_method || 'cash',
+          sold_outside_jalingo: sold_outside_jalingo || false,
         }])
         .select()
         .single();

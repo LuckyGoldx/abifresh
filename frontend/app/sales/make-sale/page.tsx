@@ -168,7 +168,7 @@ export default function MakeSalePage() {
       setCart(cart.map(c => c.id === item.id ? { ...c, sale_quantity: c.sale_quantity + 1 } : c));
       setToast({ message: `${item.name} quantity increased`, type: 'success' });
     } else if (!existing) {
-      setCart([...cart, { ...item, sale_quantity: 1 }]);
+      setCart([...cart, { ...item, sale_quantity: 0.5 }]);
       setToast({ message: `${item.name} added to cart`, type: 'success' });
     } else {
       setToast({ message: `Maximum stock reached for ${item.name}`, type: 'error' });
@@ -455,18 +455,19 @@ export default function MakeSalePage() {
             <option value="transfer">📱 Transfer</option>
           </select>
 
-          <label className={`flex items-center gap-1.5 whitespace-nowrap ${isCommissionStaff ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
-            <input
-              type="checkbox"
-              checked={globalOutsideJalingo}
-              onChange={(e) => setGlobalOutsideJalingo(e.target.checked)}
-              disabled={!isCommissionStaff}
-              className={`rounded w-4 h-4 ${isCommissionStaff ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-            />
-            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-              Outside Jalingo
-            </span>
-          </label>
+          {isCommissionStaff && (
+            <label className="flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+              <input
+                type="checkbox"
+                checked={globalOutsideJalingo}
+                onChange={(e) => setGlobalOutsideJalingo(e.target.checked)}
+                className="rounded w-4 h-4 cursor-pointer"
+              />
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Outside Jalingo
+              </span>
+            </label>
+          )}
         </div>
       )}
 

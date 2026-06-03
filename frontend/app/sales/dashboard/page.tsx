@@ -677,23 +677,30 @@ export default function SalesDashboard() {
                   >
                     Previous
                   </button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.ceil(activities.length / 10) }).map((_, idx) => {
-                      const pageNum = idx + 1;
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => setCurrentActivityPage(pageNum)}
-                          className={`px-3 py-1 rounded transition ${
-                            currentActivityPage === pageNum
-                              ? 'bg-pink-600 text-white'
-                              : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {(() => {
+                      const total = Math.ceil(activities.length / 10);
+                      const half = 2;
+                      return Array.from({ length: total }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === total || (p >= currentActivityPage - half && p <= currentActivityPage + half))
+                        .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                          if (idx > 0) { const prev = arr[idx - 1]; if (p - prev > 1) acc.push('ellipsis'); }
+                          acc.push(p);
+                          return acc;
+                        }, [])
+                        .map((item, idx) =>
+                          item === 'ellipsis' ? (
+                            <span key={`e-${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">...</span>
+                          ) : (
+                            <button key={item} onClick={() => setCurrentActivityPage(item)}
+                              className={`w-8 h-8 rounded text-sm font-medium transition ${
+                                currentActivityPage === item
+                                  ? 'bg-pink-600 text-white'
+                                  : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white'
+                              }`}>{item}</button>
+                          )
+                        );
+                    })()}
                   </div>
                   <button
                     onClick={() => setCurrentActivityPage(Math.min(Math.ceil(activities.length / 10), currentActivityPage + 1))}

@@ -614,6 +614,16 @@ export default function PaymentsPage() {
                   ℹ️ <strong>Note:</strong> Once submitted, items will disappear from this list while pending. They'll reappear only if the payment is rejected.
                 </p>
               </div>
+              <div className="flex items-center gap-3 mb-2 text-xs text-gray-500 dark:text-gray-400">
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#22C55E' }} />
+                  Inside Jalingo
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#EAB308' }} />
+                  Outside Jalingo
+                </span>
+              </div>
               <div className="border dark:border-gray-700 rounded-lg max-h-60 overflow-y-auto">
                 {getAvailableSales().length > 0 ? (
                   <table className="w-full text-sm">
@@ -646,12 +656,11 @@ export default function PaymentsPage() {
                             />
                           </td>
                           <td className="py-2 px-3">
+                            <span
+                              className="inline-block w-2.5 h-2.5 rounded-full mr-1.5"
+                              style={{ backgroundColor: sale.sold_outside_jalingo ? '#EAB308' : '#22C55E' }}
+                            />
                             {sale.item_name}
-                            {sale.sold_outside_jalingo && (
-                              <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300">
-                                Outside Jalingo
-                              </span>
-                            )}
                           </td>
                           <td className="py-2 px-3">
                             <div className="flex items-center gap-2">

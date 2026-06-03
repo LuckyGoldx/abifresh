@@ -36,12 +36,13 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Step 2: Get sales_items for those sales
+    // Step 2: Get sales_items for those sales (join with sales for sold_outside_jalingo flag)
     const { data: salesItemsData, error: itemsError } = await supabaseAdmin
       .from('sales_items')
       .select(`
         id, sale_id, item_id, quantity, unit_price, logistics_fee, created_at,
-        items:item_id (id, name, unit_price)
+        items:item_id (id, name, unit_price),
+        sale:sale_id (sold_outside_jalingo)
       `)
       .in('sale_id', saleIds)
       .order('created_at', { ascending: false });
@@ -119,13 +120,17 @@ export async function GET(req: NextRequest) {
 
     const allSales = (salesItemsData || []).map((item: any) => {
       const itemObj = Array.isArray(item.items) ? item.items[0] : item.items;
+      const saleObj = Array.isArray(item.sale) ? item.sale[0] : item.sale;
       const originalQuantity = parseFloat(item.quantity) || 0;
       const paidOrPendingQty = paidOrPendingQuantities.get(item.id) || 0;
       const remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
-      
-      const unitPrice = parseFloat(item.unit_price) || 0;
-      const totalAmount = remainingQuantity * unitPrice;
-      const originalTotalAmount = originalQuantity * unitPrice;
+
+      const soldOutsideJalingo = saleObj?.sold_outside_jalingo || false;
+      const baseUnitPrice = parseFloat(item.unit_price) || 0;
+      const logisticsFee = parseFloat(item.logistics_fee) || 0;
+      const effectiveUnitPrice = soldOutsideJalingo ? baseUnitPrice + logisticsFee : baseUnitPrice;
+      const totalAmount = remainingQuantity * effectiveUnitPrice;
+      const originalTotalAmount = originalQuantity * effectiveUnitPrice;
       const saleDate = new Date(item.created_at);
 
       const isApproved = remainingQuantity === 0 && (approvedSaleIds.has(item.id) || !pendingSaleIds.has(item.id));
@@ -148,9 +153,10 @@ export async function GET(req: NextRequest) {
         item_name: itemObj?.name || 'Unknown',
         quantity: remainingQuantity,
         original_quantity: originalQuantity,
-        unit_price: unitPrice,
+        unit_price: effectiveUnitPrice,
         total_amount: totalAmount,
         sale_date: item.created_at,
+        sold_outside_jalingo: soldOutsideJalingo,
         isApproved,
         isPending,
         isRejected,

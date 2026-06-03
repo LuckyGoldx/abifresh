@@ -98,7 +98,9 @@ export async function GET(req: NextRequest) {
 
     if (remainingQuantity <= 0) continue;
 
-    const key = sale.item_id;
+    const outsideJalingo = sale.sold_outside_jalingo || sale.location === 'Outside Jalingo';
+    const locKey = outsideJalingo ? 'outside' : 'inside';
+    const key = `${sale.item_id}_${locKey}`;
     if (groupedMap.has(key)) {
       const existing = groupedMap.get(key);
       existing.quantity += remainingQuantity;
@@ -106,16 +108,16 @@ export async function GET(req: NextRequest) {
       existing.sale_ids.push(sale.id);
     } else {
       groupedMap.set(key, {
-        id: sale.id,
+        id: key,
         item_id: sale.item_id,
         item_name: sale.items?.name || 'Unknown',
         quantity: remainingQuantity,
         unit_price: parseFloat(sale.unit_price) || 0,
-        price_jalingo: sale.items?.price_jalingo || parseFloat(sale.unit_price) || 0,
+        price_jalingo: parseFloat(sale.unit_price) || 0,
         total_amount: remainingQuantity * (parseFloat(sale.unit_price) || 0),
         sale_date: sale.sale_date,
         sale_ids: [sale.id],
-        sold_outside_jalingo: sale.sold_outside_jalingo || false,
+        sold_outside_jalingo: outsideJalingo,
       });
     }
   }
@@ -132,7 +134,7 @@ export async function GET(req: NextRequest) {
     payment_method: sale.payment_method || 'cash',
     sale_date: sale.sale_date,
     receipt_number: sale.receipt_number || '',
-    sold_outside_jalingo: false,
+    sold_outside_jalingo: sale.sold_outside_jalingo || sale.location === 'Outside Jalingo',
     commission: parseFloat(sale.commission) || 0,
   }));
 
