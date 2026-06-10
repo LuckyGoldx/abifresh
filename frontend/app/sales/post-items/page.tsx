@@ -517,7 +517,7 @@ export default function PostItemsPage() {
 
         {/* Posting Summary Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 sticky top-4 flex flex-col max-h-[calc(100vh-10rem)] border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 sticky top-0 flex flex-col max-h-[calc(100vh-8rem)] border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4 flex-shrink-0">
               <Users className="w-5 h-5 text-pink-500" />
               Post Summary
@@ -560,16 +560,8 @@ export default function PostItemsPage() {
               </div>
             )}
 
-            {selectedStaff && (
-              <div className="bg-pink-50 dark:bg-pink-900/20 rounded-lg p-3 border border-pink-200 dark:border-pink-800 mb-4 flex-shrink-0">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  <strong>Selected:</strong> {staffList.find(s => s.id === selectedStaff)?.full_name}
-                </p>
-              </div>
-            )}
-
             {/* Items in Cart */}
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1 mb-4 scrollbar-thin scrollbar-thumb-pink-500">
+            <div className="flex-1 min-h-[80px] overflow-y-auto pr-1 mb-4 scrollbar-thin scrollbar-thumb-pink-500">
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
                 Items to Post ({cart.length})
               </h3>
@@ -605,7 +597,7 @@ export default function PostItemsPage() {
                           value={quantityInputs[item.id] ?? item.post_quantity}
                           onChange={(e) => handleQuantityInputChange(item.id, e.target.value)}
                           onBlur={() => handleQuantityBlur(item.id, item.active_store_quantity)}
-                          className="w-8 text-center bg-transparent text-gray-900 dark:text-white font-semibold"
+                          className="w-12 lg:w-14 text-center bg-transparent text-gray-900 dark:text-white font-semibold"
                           min="0.5"
                           max={item.active_store_quantity}
                           step="0.5"
