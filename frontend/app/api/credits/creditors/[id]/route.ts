@@ -166,3 +166,39 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   return NextResponse.json(data);
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const authResult = await verifyAuth(req);
+  if (authResult instanceof NextResponse) return authResult;
+  if (!hasRole(authResult.role, 'sales', 'sales_staff', 'admin', 'superadmin')) {
+    return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+  }
+
+  const { data: creditor, error: fetchError } = await supabaseAdmin
+    .from('creditors')
+    .select('id, full_name')
+    .eq('id', params.id)
+    .single();
+
+  if (fetchError || !creditor) {
+    return NextResponse.json({ error: 'Creditor not found' }, { status: 404 });
+  }
+
+  // Soft-delete: set is_active=false instead of hard-deleting,
+  // because credit_sales and credit_payments reference this creditor.
+  const { error } = await supabaseAdmin
+    .from('creditors')
+    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .eq('id', params.id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  supabaseAdmin.from('credit_activities').insert({
+    creditor_id: params.id,
+    staff_id: authResult.id,
+    action: 'CREDITOR_DELETED',
+    details: { full_name: creditor.full_name },
+  }).then(() => {}, () => {});
+
+  return NextResponse.json({ message: 'Creditor deactivated successfully' });
+}

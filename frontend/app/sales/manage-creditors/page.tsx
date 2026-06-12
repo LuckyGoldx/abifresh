@@ -19,6 +19,7 @@ export default function ManageCreditorsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCreditor, setEditingCreditor] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -79,10 +80,8 @@ export default function ManageCreditorsPage() {
   };
 
   const handleAdd = async () => {
-    if (!formData.full_name || !formData.phone_number) {
-      setToast({ message: 'Full name and phone number are required', type: 'error' });
-      return;
-    }
+    if (isAdding) return;
+    setIsAdding(true);
     try {
       await api.post('/api/credits/creditors', formData);
       setToast({ message: 'Creditor added successfully', type: 'success' });
@@ -91,6 +90,8 @@ export default function ManageCreditorsPage() {
       fetchCreditors();
     } catch (error: any) {
       setToast({ message: 'Failed to add creditor', type: 'error' });
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -310,9 +311,10 @@ export default function ManageCreditorsPage() {
               </div>
               <button
                 onClick={editingCreditor ? handleEdit : handleAdd}
-                className="w-full mt-6 bg-pink-500 text-white py-3 rounded-lg font-bold hover:bg-pink-600"
+                disabled={isAdding}
+                className="w-full mt-6 bg-pink-500 text-white py-3 rounded-lg font-bold hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {editingCreditor ? 'Update Creditor' : 'Add Creditor'}
+                {isAdding ? 'Adding...' : editingCreditor ? 'Update Creditor' : 'Add Creditor'}
               </button>
             </div>
           </div>
