@@ -5,20 +5,22 @@ import api from '@/lib/api';
 import { Wallet, Plus, Calendar, TrendingDown, Eye, Loader2 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import type { Expense } from '@/types';
+import { useAuthStore } from '@/store/auth';
 
-const expenseCategories = [
-  'Transport',
-  'Supplies',
-  'Food & Refreshments',
-  'Utilities',
-  'Maintenance',
-  'Communication',
-  'Fuel',
-  'Other',
+const FALLBACK_CATEGORIES = [
+  'Transport', 'Supplies', 'Food & Refreshments', 'Utilities', 'Maintenance', 'Communication', 'Fuel', 'Other',
 ];
+
+interface ExpenseCategory {
+  id: string;
+  name: string;
+  is_built_in: boolean;
+}
 
 export default function ExpensesPage() {
   const { addToast } = useToast();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -26,6 +28,11 @@ export default function ExpensesPage() {
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<ExpenseCategory[]>(
+    FALLBACK_CATEGORIES.map((name, i) => ({ id: `fallback-${i}`, name, is_built_in: true }))
+  );
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customInputValue, setCustomInputValue] = useState('');
 
   // Modal States
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -34,7 +41,19 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchExpenses();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/api/expense-categories');
+      if (res.data && res.data.length > 0) {
+        setCategories(res.data);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch expense categories, using fallback', e);
+    }
+  };
 
   const fetchExpenses = async () => {
     try {
@@ -67,7 +86,7 @@ export default function ExpensesPage() {
       setCategory('');
       setDescription('');
       setExpenseDate(new Date().toISOString().split('T')[0]);
-      fetchExpenses();
+      await fetchExpenses();
       addToast('✅ Expense request submitted successfully!', 'success');
     } catch (error: any) {
       addToast(error.response?.data?.error || 'Failed to submit expense request', 'error');
@@ -198,17 +217,89 @@ export default function ExpensesPage() {
                   Expense Type *
                 </label>
                 <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  value={showCustomInput ? '__add_custom__' : category}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__add_custom__') {
+                      setShowCustomInput(true);
+                    } else {
+                      setCategory(val);
+                    }
+                  }}
                   className="input disabled:opacity-50"
                   required
                   disabled={submitting || showPreviewModal}
                 >
                   <option value="">Select category...</option>
-                  {expenseCategories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
                   ))}
+                  {isAdmin && <option value="__add_custom__">➕ Add Custom</option>}
                 </select>
+                {isAdmin && showCustomInput && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="text"
+                      value={customInputValue}
+                      onChange={(e) => setCustomInputValue(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          const trimmed = customInputValue.trim();
+                          const names = categories.map(c => c.name);
+                          if (trimmed && !names.includes(trimmed)) {
+                            try {
+                              await api.post('/api/expense-categories', { name: trimmed });
+                              setCategory(trimmed);
+                              await fetchCategories();
+                            } catch (err: any) {
+                              addToast(err?.response?.data?.error || 'Failed to add category', 'error');
+                            }
+                          }
+                          setShowCustomInput(false);
+                          setCustomInputValue('');
+                        }
+                        if (e.key === 'Escape') {
+                          setShowCustomInput(false);
+                          setCustomInputValue('');
+                        }
+                      }}
+                      className="input flex-1"
+                      placeholder="Type custom category..."
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const trimmed = customInputValue.trim();
+                        const names = categories.map(c => c.name);
+                        if (trimmed && !names.includes(trimmed)) {
+                          try {
+                            await api.post('/api/expense-categories', { name: trimmed });
+                            setCategory(trimmed);
+                            await fetchCategories();
+                          } catch (err: any) {
+                            addToast(err?.response?.data?.error || 'Failed to add category', 'error');
+                          }
+                        }
+                        setShowCustomInput(false);
+                        setCustomInputValue('');
+                      }}
+                      className="bg-pink-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-pink-700 transition"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomInput(false);
+                        setCustomInputValue('');
+                      }}
+                      className="text-gray-500 dark:text-gray-400 px-3 py-2 text-sm hover:text-gray-700 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -146,10 +146,11 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Fetch expenses
+  // Fetch expenses (only approved)
   let expensesQuery = supabaseAdmin
     .from('staff_expenses')
     .select('*')
+    .eq('status', 'approved')
     .gte('expense_date', from.toISOString().split('T')[0])
     .lte('expense_date', to.toISOString().split('T')[0]);
   if (filteredStaffIds.length > 0) {

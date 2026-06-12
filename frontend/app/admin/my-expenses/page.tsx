@@ -2,19 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { Wallet, Plus, Calendar, TrendingDown } from 'lucide-react';
+import { Wallet, Plus, Calendar, TrendingDown, CheckCircle, X } from 'lucide-react';
 import type { Expense } from '@/types';
+import { useAuthStore } from '@/store/auth';
 
-const expenseCategories = [
-  'Rent',
-  'Vehicle License Renewal',
-  'Local Government Levy',
-  'Vehicle Maintenance',
-  'Utilities',
-  'Others',
+const FALLBACK_CATEGORIES = [
+  'Rent', 'Vehicle License Renewal', 'Local Government Levy', 'Vehicle Maintenance', 'Utilities', 'Others',
 ];
 
+interface ExpenseCategory {
+  id: string;
+  name: string;
+  is_built_in: boolean;
+}
+
 export default function AdminExpensesPage() {
+  const user = useAuthStore((s) => s.user);
+  const isSuperadmin = user?.role === 'superadmin';
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -22,10 +26,34 @@ export default function AdminExpensesPage() {
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<ExpenseCategory[]>(
+    FALLBACK_CATEGORIES.map((name, i) => ({ id: `fallback-${i}`, name, is_built_in: true }))
+  );
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customInputValue, setCustomInputValue] = useState('');
+  const [renamingCategory, setRenamingCategory] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const categoryNames = categories.map(c => c.name);
+  const selectedCat = categories.find(c => c.name === category);
+  const canRename = isSuperadmin || (selectedCat && !selectedCat.is_built_in);
 
   useEffect(() => {
     fetchExpenses();
+    fetchCategories();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get('/api/expense-categories');
+      if (res.data && res.data.length > 0) {
+        setCategories(res.data);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch expense categories, using fallback', e);
+    }
+  };
 
   const fetchExpenses = async () => {
     try {
@@ -59,12 +87,12 @@ export default function AdminExpensesPage() {
         description,
         expense_date: expenseDate
       });
-      alert('Expense recorded successfully!');
+      await fetchExpenses();
+      setShowSuccessModal(true);
       setAmount('');
       setCategory('');
       setDescription('');
       setExpenseDate(new Date().toISOString().split('T')[0]);
-      fetchExpenses();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Failed to record expense');
     } finally {
@@ -111,14 +139,14 @@ export default function AdminExpensesPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         <div className="card bg-gradient-to-br from-pink-500 to-purple-500 text-white">
           <p className="text-sm opacity-90">Total Expenses</p>
           <p className="text-3xl font-bold mt-1">₦{totalExpenses.toLocaleString()}</p>
           <p className="text-xs opacity-75 mt-1">{expenses.length} entries</p>
         </div>
 
-        {Object.entries(expensesByCategory).slice(0, 3).map(([cat, amt]) => (
+        {Object.entries(expensesByCategory).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
           <div key={cat} className="card bg-gray-50 dark:bg-gray-800">
             <p className="text-sm text-gray-600 dark:text-gray-400">{cat}</p>
             <p className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -181,16 +209,155 @@ export default function AdminExpensesPage() {
                   Expense Type *
                 </label>
                 <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  value={showCustomInput ? '__add_custom__' : category}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__add_custom__') {
+                      setShowCustomInput(true);
+                      setRenamingCategory(false);
+                    } else {
+                      setCategory(val);
+                    }
+                  }}
                   className="input"
                   required
                 >
                   <option value="">Select category...</option>
-                  {expenseCategories.map((cat) => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
                   ))}
+                  <option value="__add_custom__">➕ Add Custom</option>
                 </select>
+                {category && !showCustomInput && canRename && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRenameValue(category);
+                      setRenamingCategory(true);
+                    }}
+                    className="ml-2 text-gray-400 hover:text-pink-600 transition inline-flex items-center gap-1 text-xs mt-1"
+                  >
+                    ✏️ Rename
+                  </button>
+                )}
+                {renamingCategory && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="text"
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          const trimmed = renameValue.trim();
+                          if (trimmed && trimmed !== category && selectedCat) {
+                            try {
+                              await api.put(`/api/expense-categories/${selectedCat.id}`, { name: trimmed });
+                              setCategory(trimmed);
+                              await fetchCategories();
+                            } catch (err: any) {
+                              alert(err?.response?.data?.error || 'Failed to rename category');
+                            }
+                          }
+                          setRenamingCategory(false);
+                        }
+                        if (e.key === 'Escape') {
+                          setRenamingCategory(false);
+                        }
+                      }}
+                      className="input flex-1"
+                      placeholder="Rename category..."
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const trimmed = renameValue.trim();
+                        if (trimmed && trimmed !== category && selectedCat) {
+                          try {
+                            await api.put(`/api/expense-categories/${selectedCat.id}`, { name: trimmed });
+                            setCategory(trimmed);
+                            await fetchCategories();
+                          } catch (err: any) {
+                            alert(err?.response?.data?.error || 'Failed to rename category');
+                          }
+                        }
+                        setRenamingCategory(false);
+                      }}
+                      className="bg-pink-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-pink-700 transition"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRenamingCategory(false)}
+                      className="text-gray-500 dark:text-gray-400 px-3 py-2 text-sm hover:text-gray-700 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+                {showCustomInput && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="text"
+                      value={customInputValue}
+                      onChange={(e) => setCustomInputValue(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          const trimmed = customInputValue.trim();
+                          if (trimmed && !categoryNames.includes(trimmed)) {
+                            try {
+                              await api.post('/api/expense-categories', { name: trimmed });
+                              setCategory(trimmed);
+                              await fetchCategories();
+                            } catch (err: any) {
+                              alert(err?.response?.data?.error || 'Failed to add category');
+                            }
+                          }
+                          setShowCustomInput(false);
+                          setCustomInputValue('');
+                        }
+                        if (e.key === 'Escape') {
+                          setShowCustomInput(false);
+                          setCustomInputValue('');
+                        }
+                      }}
+                      className="input flex-1"
+                      placeholder="Type custom category..."
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const trimmed = customInputValue.trim();
+                        if (trimmed && !categoryNames.includes(trimmed)) {
+                          try {
+                            await api.post('/api/expense-categories', { name: trimmed });
+                            setCategory(trimmed);
+                            await fetchCategories();
+                          } catch (err: any) {
+                            alert(err?.response?.data?.error || 'Failed to add category');
+                          }
+                        }
+                        setShowCustomInput(false);
+                        setCustomInputValue('');
+                      }}
+                      className="bg-pink-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-pink-700 transition"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCustomInput(false);
+                        setCustomInputValue('');
+                      }}
+                      className="text-gray-500 dark:text-gray-400 px-3 py-2 text-sm hover:text-gray-700 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -286,6 +453,28 @@ export default function AdminExpensesPage() {
           </div>
         </div>
       </div>
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 text-center animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Expense Recorded!
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+              ₦{parseFloat(amount).toLocaleString()} — {category}
+            </p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2.5 rounded-xl transition"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
