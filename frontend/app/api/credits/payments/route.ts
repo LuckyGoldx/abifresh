@@ -181,7 +181,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Collect all affected sale IDs (payment items may span multiple sales)
-      const csiIds = paymentItems.map(pi => pi.credit_sale_item_id);
+      const csiIds = paymentItems.map((pi: any) => pi.credit_sale_item_id);
       const { data: allReconciled } = await supabaseAdmin.from('credit_sale_items')
         .select('id, credit_sale_id').in('id', csiIds);
       const affectedSaleIds = [...new Set((allReconciled || []).map(si => si.credit_sale_id))];
