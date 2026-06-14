@@ -335,6 +335,16 @@ export default function CreditReportsPage() {
           </div>
         </div>
 
+        {/* Export Button Row */}
+        <div className="flex justify-end mb-4">
+          <button 
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 px-6 py-3 bg-pink-600 rounded-2xl text-sm font-bold text-white hover:bg-pink-700 transition-all shadow-lg shadow-pink-100 dark:shadow-none"
+          >
+            <Download size={18} /> Export PDF
+          </button>
+        </div>
+
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-10">
             <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -364,13 +374,6 @@ export default function CreditReportsPage() {
                 {staff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
               </select>
             </div>
-
-            <button 
-              onClick={handleExportPDF}
-              className="flex items-center gap-2 px-6 py-3 bg-pink-600 rounded-2xl text-sm font-bold text-white hover:bg-pink-700 transition-all shadow-lg shadow-pink-100 dark:shadow-none"
-            >
-              <Download size={18} /> Export PDF
-            </button>
           </div>
 
         {filters.dateRange === 'custom' && (
