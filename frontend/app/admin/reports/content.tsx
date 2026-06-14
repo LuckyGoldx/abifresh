@@ -652,10 +652,10 @@ export default function ComprehensiveReportsPage() {
         <div className="card border-l-4 border-l-indigo-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Total Items</p>
           <p className="text-2xl md:text-3xl font-bold text-indigo-600 break-words">
-            {((report?.inventory.main_store_total || 0) + (report?.inventory.active_store_total || 0) + (report?.inventory.staff_store_total || 0))}
+            {((report?.inventory.main_store_total || 0) + (report?.inventory.active_store_total || 0) + (report?.inventory.staff_store_total || 0) + (report?.inventory.credit_store_total || 0))}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">
-            Quantity: {((report?.inventory.main_store_total_quantity || 0) + (report?.inventory.active_store_total_quantity || 0) + (report?.inventory.staff_store_total_quantity || 0))}
+            Quantity: {((report?.inventory.main_store_total_quantity || 0) + (report?.inventory.active_store_total_quantity || 0) + (report?.inventory.staff_store_total_quantity || 0) + (report?.inventory.credit_store_total_quantity || 0))}
           </p>
         </div>
         <div className="card border-l-4 border-l-blue-500 overflow-hidden">
@@ -676,7 +676,7 @@ export default function ComprehensiveReportsPage() {
         <div className="card border-l-4 border-l-rose-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Credit Store</p>
           <p className="text-2xl md:text-3xl font-bold text-rose-600 break-words">{report?.inventory.credit_store_total || 0}</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Qty: {report?.inventory.credit_store_total_quantity || 0}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.credit_store_total_quantity || 0}</p>
         </div>
       </div>
 
