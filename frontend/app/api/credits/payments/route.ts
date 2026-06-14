@@ -180,24 +180,77 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Check if the whole sale is now paid
-      const { data: allItems } = await supabaseAdmin.from('credit_sale_items').select('*').eq('credit_sale_id', creditSaleId);
-      const allPaid = allItems?.every(i => (i.quantity_paid || 0) >= i.quantity);
-      if (allPaid) {
-        await supabaseAdmin.from('credit_sales').update({ status: 'paid' }).eq('id', creditSaleId);
-      } else {
-        await supabaseAdmin.from('credit_sales').update({ status: 'partially_paid' }).eq('id', creditSaleId);
+      // Collect all affected sale IDs (payment items may span multiple sales)
+      const csiIds = paymentItems.map(pi => pi.credit_sale_item_id);
+      const { data: allReconciled } = await supabaseAdmin.from('credit_sale_items')
+        .select('id, credit_sale_id').in('id', csiIds);
+      const affectedSaleIds = [...new Set((allReconciled || []).map(si => si.credit_sale_id))];
+
+      for (const sid of affectedSaleIds) {
+        const { data: saleItemsForId } = await supabaseAdmin.from('credit_sale_items')
+          .select('*').eq('credit_sale_id', sid);
+        const allPaid = saleItemsForId?.every(i => (i.quantity_paid || 0) >= i.quantity);
+        if (allPaid) {
+          await supabaseAdmin.from('credit_sales').update({ status: 'paid' }).eq('id', sid);
+        } else {
+          await supabaseAdmin.from('credit_sales').update({ status: 'partially_paid' }).eq('id', sid);
+        }
       }
     }
 
-    supabaseAdmin.from('credit_activities').insert({
+    await supabaseAdmin.from('credit_activities').insert({
       creditor_id: creditorId,
       credit_sale_id: creditSaleId,
       credit_payment_id: payment.id,
       staff_id: authResult.id,
       action: 'CREDIT_PAYMENT_MADE',
-      details: { amount: Number(amount), payment_method: paymentMethod },
+      details: { 
+        amount: Number(amount), 
+        method: paymentMethod, 
+        receipt_url: receiptUrl,
+        items_paid_count: paymentItems.length
+      },
     }).then(() => {}, () => {});
+
+    // Send notifications
+    try {
+      const [{ data: admins }, { data: creditorRecord }] = await Promise.all([
+        supabaseAdmin.from('users').select('id').in('role', ['admin', 'superadmin']),
+        supabaseAdmin.from('creditors').select('full_name').eq('id', creditorId).single()
+      ]);
+
+      const notificationBatch: any[] = [];
+      const staffName = authResult.full_name || 'A staff member';
+      const creditorName = creditorRecord?.full_name || 'a creditor';
+
+      if (admins) {
+        admins.forEach(admin => {
+          notificationBatch.push({
+            user_id: admin.id,
+            type: 'credit_payment',
+            title: '💰 Credit Payment Received',
+            message: `${staffName} recorded a payment of ₦${Number(amount).toLocaleString()} from ${creditorName}.`,
+            is_read: false
+          });
+        });
+      }
+
+      notificationBatch.push({
+        user_id: authResult.id,
+        type: 'credit_payment_confirmation',
+        title: '✅ Payment Logged',
+        message: `You have successfully recorded a payment of ₦${Number(amount).toLocaleString()} from ${creditorName}.`,
+        is_read: false,
+        action_url: `/sales/manage-credits`
+      });
+
+      if (notificationBatch.length > 0) {
+        const { error: nError } = await supabaseAdmin.from('notifications').insert(notificationBatch);
+        if (nError) console.error('Payment notification error:', nError);
+      }
+    } catch (nError) {
+      console.error('Notification processing error:', nError);
+    }
 
     return NextResponse.json(payment, { status: 201 });
   } catch (error: any) {

@@ -37,6 +37,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Credit sale not found' }, { status: 404 });
     }
 
+    // Sales staff can only record payments for credit sales they personally issued
+    const isSalesStaff = authResult.role === 'sales' || authResult.role === 'sales_staff';
+    if (isSalesStaff && sale.staff_id !== authResult.id) {
+      return NextResponse.json({ 
+        error: 'Access denied: You can only receive payments for credit sales that you personally issued.' 
+      }, { status: 403 });
+    }
+
     // Check balance
     const { data: payments } = await supabaseAdmin.from('credit_payments').select('amount').eq('credit_sale_id', saleId).eq('status', 'approved');
     const totalPaid = (payments || []).reduce((sum, p) => sum + Number(p.amount), 0);
