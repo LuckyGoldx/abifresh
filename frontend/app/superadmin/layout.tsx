@@ -68,7 +68,8 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       '/superadmin/credit-notifications',
       '/superadmin/credit-payments',
       '/superadmin/approve-payments',
-      '/superadmin/approve-remittance'
+      '/superadmin/approve-remittance',
+      '/superadmin/credit-reports'
     ];
     if (creditRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
       setCreditMode(true);

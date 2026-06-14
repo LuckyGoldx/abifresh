@@ -137,6 +137,13 @@ export async function GET(req: NextRequest) {
 
     const creditProfit = totalCollection - totalCostPriceCollected;
 
+    // Outstanding credit quantity (items not fully paid) in the filtered period
+    const creditQuantity = itemsData.reduce((sum, ri) => {
+      const qty = Number(ri.quantity) || 0;
+      const paid = Number(ri.quantity_paid) || 0;
+      return sum + Math.max(0, qty - paid);
+    }, 0);
+
     // All-time total quantity (ignoring date filter, excluding cancelled)
     const { data: allTimeSales } = await supabaseAdmin
       .from('credit_sales')
@@ -227,6 +234,7 @@ export async function GET(req: NextRequest) {
         credit_profit: creditProfit,
         total_quantity: totalQuantity,
         total_quantity_all_time: totalQuantityAllTime,
+        credit_quantity: creditQuantity,
         total_transactions: totalTransactions,
         collection_rate: totalIssuance > 0 ? (totalCollection / totalIssuance) * 100 : 0
       },
