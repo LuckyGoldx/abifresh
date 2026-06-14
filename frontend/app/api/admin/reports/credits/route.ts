@@ -52,8 +52,7 @@ export async function GET(req: NextRequest) {
       .from('credit_sales')
       .select('*, creditors(full_name), users:staff_id(full_name, username)')
       .gte('created_at', fromISO)
-      .lte('created_at', toISO)
-      .neq('status', 'cancelled');
+      .lte('created_at', toISO);
     
     if (staffId) salesQuery = salesQuery.eq('staff_id', staffId);
     const { data: sales, error: salesError } = await salesQuery;
@@ -113,18 +112,42 @@ export async function GET(req: NextRequest) {
       paidItemsData = extraItems || [];
     }
 
+    // Helper: check if sale is cancelled from item's credit_sales join
+    const isCancelled = (ri: any): boolean => {
+      const sale = Array.isArray(ri.credit_sales) ? ri.credit_sales[0] : ri.credit_sales;
+      return sale?.status === 'cancelled';
+    };
+
     // --- CALCULATIONS ---
+    // Compute issuance and quantity from credit_sale_items so cancelled sales
+    // with partial payment contribute only their paid portion
 
-    // Summary
-    const totalIssuance = (sales || []).reduce((sum, s) => sum + (Number(s.total_amount) || 0), 0);
+    let totalIssuance = 0;
+    let totalQuantity = 0;
+    let totalCostPriceIssued = 0;
+
+    itemsData.forEach((ri: any) => {
+      const qty = Number(ri.quantity) || 0;
+      const paidQty = Number(ri.quantity_paid) || 0;
+      const unitPrice = Number(ri.unit_price) || 0;
+      const costPrice = Number(ri.cost_price) || 0;
+      const cancelled = isCancelled(ri);
+
+      if (cancelled) {
+        // Cancelled: only count what was actually paid
+        totalIssuance += paidQty * unitPrice;
+        totalQuantity += paidQty;
+        totalCostPriceIssued += paidQty * costPrice;
+      } else {
+        // Not cancelled: full amount
+        totalIssuance += qty * unitPrice;
+        totalQuantity += qty;
+        totalCostPriceIssued += qty * costPrice;
+      }
+    });
+
     const totalCollection = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-    const totalQuantity = (sales || []).reduce((sum, s) => sum + (Number(s.total_quantity) || 0), 0);
     const totalTransactions = (sales || []).length + (payments || []).length;
-
-    // Total cost price of ALL items given on credit in this period (issued)
-    const totalCostPriceIssued = itemsData.reduce((sum, ri) => {
-      return sum + (Number(ri.quantity) || 0) * (Number(ri.cost_price) || 0);
-    }, 0);
 
     // Total cost price of items money has been collected for (matched via credit_payment_items)
     // Includes items from current period AND previous periods that received payments this period
@@ -137,23 +160,42 @@ export async function GET(req: NextRequest) {
 
     const creditProfit = totalCollection - totalCostPriceCollected;
 
-    // Outstanding credit quantity (items not fully paid) in the filtered period
+    // Outstanding credit quantity (items not fully paid, excluding cancelled)
     const creditQuantity = itemsData.reduce((sum, ri) => {
+      if (isCancelled(ri)) return sum;
       const qty = Number(ri.quantity) || 0;
       const paid = Number(ri.quantity_paid) || 0;
       return sum + Math.max(0, qty - paid);
     }, 0);
 
-    // All-time total quantity (ignoring date filter, excluding cancelled)
+    // All-time total quantity (ignoring date filter)
+    // For cancelled sales, only count what was paid
     const { data: allTimeSales } = await supabaseAdmin
       .from('credit_sales')
-      .select('total_quantity')
-      .neq('status', 'cancelled');
-    const totalQuantityAllTime = (allTimeSales || []).reduce((sum, s) => sum + (Number(s.total_quantity) || 0), 0);
+      .select('id, total_quantity, status');
 
-    // Trends (Group by Day)
+    const { data: allTimeItems } = await supabaseAdmin
+      .from('credit_sale_items')
+      .select('credit_sale_id, quantity, quantity_paid')
+      .in('credit_sale_id', (allTimeSales || []).map(s => s.id).filter(Boolean));
+
+    const allTimeSaleStatus = new Map((allTimeSales || []).map(s => [s.id, s.status]));
+    let totalQuantityAllTime = 0;
+    (allTimeItems || []).forEach((ri: any) => {
+      const status = allTimeSaleStatus.get(ri.credit_sale_id);
+      const qty = Number(ri.quantity) || 0;
+      const paidQty = Number(ri.quantity_paid) || 0;
+      if (status === 'cancelled') {
+        totalQuantityAllTime += paidQty;
+      } else {
+        totalQuantityAllTime += qty;
+      }
+    });
+
+    // Trends (Group by Day) — skip cancelled sales for issuance, their paid portion is in payments
     const trends: Record<string, { date: string; issuance: number; collection: number }> = {};
     (sales || []).forEach(s => {
+      if (s.status === 'cancelled') return;
       const d = s.created_at.split('T')[0];
       if (!trends[d]) trends[d] = { date: d, issuance: 0, collection: 0 };
       trends[d].issuance += Number(s.total_amount) || 0;
@@ -164,9 +206,10 @@ export async function GET(req: NextRequest) {
       trends[d].collection += Number(p.amount) || 0;
     });
 
-    // Staff Performance
+    // Staff Performance — skip cancelled sales for issuance
     const staffPerf: Record<string, { staff_name: string; issuance: number; collection: number; transactions: number }> = {};
     (sales || []).forEach(s => {
+      if (s.status === 'cancelled') return;
       const id = s.staff_id;
       const name = s.users?.full_name || s.users?.username || 'Unknown';
       if (!staffPerf[id]) staffPerf[id] = { staff_name: name, issuance: 0, collection: 0, transactions: 0 };
@@ -186,13 +229,22 @@ export async function GET(req: NextRequest) {
     itemsData.forEach(ri => {
       const name = ri.item_name;
       if (!itemAnalysis[name]) itemAnalysis[name] = { item_name: name, quantity: 0, amount: 0 };
-      itemAnalysis[name].quantity += Number(ri.quantity) || 0;
-      itemAnalysis[name].amount += (Number(ri.quantity) || 0) * (Number(ri.unit_price) || 0);
+      const qty = Number(ri.quantity) || 0;
+      const paidQty = Number(ri.quantity_paid) || 0;
+      const unitPrice = Number(ri.unit_price) || 0;
+      if (isCancelled(ri)) {
+        itemAnalysis[name].quantity += paidQty;
+        itemAnalysis[name].amount += paidQty * unitPrice;
+      } else {
+        itemAnalysis[name].quantity += qty;
+        itemAnalysis[name].amount += qty * unitPrice;
+      }
     });
 
     // Creditor Leaderboard
     const creditorPerf: Record<string, { creditor_name: string; issuance: number; collection: number }> = {};
     (sales || []).forEach(s => {
+      if (s.status === 'cancelled') return;
       const id = s.creditor_id;
       const name = s.creditors?.full_name || 'Unknown';
       if (!creditorPerf[id]) creditorPerf[id] = { creditor_name: name, issuance: 0, collection: 0 };
