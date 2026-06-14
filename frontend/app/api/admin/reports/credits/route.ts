@@ -137,6 +137,13 @@ export async function GET(req: NextRequest) {
 
     const creditProfit = totalCollection - totalCostPriceCollected;
 
+    // All-time total quantity (ignoring date filter, excluding cancelled)
+    const { data: allTimeSales } = await supabaseAdmin
+      .from('credit_sales')
+      .select('total_quantity')
+      .neq('status', 'cancelled');
+    const totalQuantityAllTime = (allTimeSales || []).reduce((sum, s) => sum + (Number(s.total_quantity) || 0), 0);
+
     // Trends (Group by Day)
     const trends: Record<string, { date: string; issuance: number; collection: number }> = {};
     (sales || []).forEach(s => {
@@ -219,6 +226,7 @@ export async function GET(req: NextRequest) {
         total_cost_price_collected: totalCostPriceCollected,
         credit_profit: creditProfit,
         total_quantity: totalQuantity,
+        total_quantity_all_time: totalQuantityAllTime,
         total_transactions: totalTransactions,
         collection_rate: totalIssuance > 0 ? (totalCollection / totalIssuance) * 100 : 0
       },

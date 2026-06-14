@@ -24,6 +24,7 @@ interface CreditReport {
     total_cost_price_collected: number;
     credit_profit: number;
     total_quantity: number;
+    total_quantity_all_time: number;
     total_transactions: number;
     collection_rate: number;
   };
@@ -172,10 +173,17 @@ export default function CreditReportsPage() {
         </div>
       </div>
       <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-blue-500 overflow-hidden">
-        <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Quantity</p>
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Credit Quantity</p>
         <p className="text-2xl font-black text-gray-900 dark:text-white break-words">{formatQty(report?.summary.total_quantity || 0)}</p>
         <div className="flex items-center gap-1 text-[10px] text-blue-600 font-bold mt-2">
-          <Package size={12} /> Units on Credit
+          <Package size={12} /> This Period
+        </div>
+      </div>
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-cyan-500 overflow-hidden">
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Quantity</p>
+        <p className="text-2xl font-black text-gray-900 dark:text-white break-words">{formatQty(report?.summary.total_quantity_all_time || 0)}</p>
+        <div className="flex items-center gap-1 text-[10px] text-cyan-600 font-bold mt-2">
+          <History size={12} /> All Time
         </div>
       </div>
     </div>
