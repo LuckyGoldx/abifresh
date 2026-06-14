@@ -606,63 +606,6 @@ export default function SalesDashboard() {
             <Users className="w-8 h-8 text-orange-500 flex-shrink-0 ml-3" />
           </div>
         </div>
-            <Package className="w-8 h-8 text-pink-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Today's Amount</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">₦{(stats?.today_amount_sold || 0).toLocaleString()}</p>
-            </div>
-            <svg className="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 24 24">
-              <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="16" fontWeight="bold">₦</text>
-            </svg>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Available Items</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.available_items_count || 0}</p>
-            </div>
-            <CheckCircle className="w-8 h-8 text-blue-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Unavailable Items</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{unavailableItems.length}</p>
-            </div>
-            <X className="w-8 h-8 text-red-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Posted Items (Accepted)</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{postedItemsStats?.accepted_items || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatQty(postedItemsStats?.accepted_quantity || 0)} qty</p>
-            </div>
-            <TrendingUp className="w-8 h-8 text-purple-500" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Posted Items (Total)</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{postedItemsStats?.total_posted_items || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatQty(postedItemsStats?.total_posted_quantity || 0)} qty</p>
-            </div>
-            <Users className="w-8 h-8 text-orange-500" />
-          </div>
-        </div>
       </div>
 
       {/* Recent Activities Section */}
