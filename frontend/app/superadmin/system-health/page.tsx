@@ -143,24 +143,24 @@ export default function SystemHealthPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <Shield className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{healthyCount}/{healthChecks.length}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{healthyCount}/{healthChecks.length}</p>
           <p className="text-sm text-gray-500">Services Healthy</p>
         </div>
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <Database className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{dbStats.receipts + dbStats.staff + dbStats.items}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{dbStats.receipts + dbStats.staff + dbStats.items}</p>
           <p className="text-sm text-gray-500">Total Records</p>
         </div>
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <HardDrive className="w-8 h-8 text-indigo-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{dbStats.tables}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{dbStats.tables}</p>
           <p className="text-sm text-gray-500">Active Tables</p>
         </div>
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <Cpu className="w-8 h-8 text-green-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">
             {lastCheck ? lastCheck.toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
           </p>
           <p className="text-sm text-gray-500">Last Checked</p>

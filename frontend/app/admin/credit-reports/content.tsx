@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import api from '@/lib/api';
 import { formatQty } from '@/lib/format-quantity';
 import {
@@ -19,6 +20,9 @@ interface CreditReport {
   summary: {
     total_issuance: number;
     total_collection: number;
+    total_cost_price_issued: number;
+    total_cost_price_collected: number;
+    credit_profit: number;
     total_quantity: number;
     total_transactions: number;
     collection_rate: number;
@@ -37,6 +41,8 @@ const COLORS = ['#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
 
 export default function CreditReportsPage() {
   const reportRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const pathname = usePathname();
   const [report, setReport] = useState<CreditReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'issuance' | 'payments' | 'items' | 'creditors' | 'staff'>('overview');
@@ -113,38 +119,61 @@ export default function CreditReportsPage() {
   if (isLoading && !report) return <LoadingLogo />;
 
   const renderSummaryCards = () => (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-pink-500">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-pink-500 overflow-hidden">
         <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Issuance</p>
-        <p className="text-2xl font-black text-gray-900 dark:text-white">₦{(report?.summary.total_issuance || 0).toLocaleString()}</p>
+        <p className="text-2xl font-black text-gray-900 dark:text-white break-words">₦{(report?.summary.total_issuance || 0).toLocaleString()}</p>
         <div className="flex items-center gap-1 text-[10px] text-pink-600 font-bold mt-2">
           <ArrowUpRight size={12} /> Total Credit Given
         </div>
       </div>
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-green-500">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-green-500 overflow-hidden">
         <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Collection</p>
-        <p className="text-2xl font-black text-gray-900 dark:text-white">₦{(report?.summary.total_collection || 0).toLocaleString()}</p>
+        <p className="text-2xl font-black text-gray-900 dark:text-white break-words">₦{(report?.summary.total_collection || 0).toLocaleString()}</p>
         <div className="flex items-center gap-1 text-[10px] text-green-600 font-bold mt-2">
           <ArrowDownRight size={12} /> Total Paid Back
         </div>
       </div>
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-orange-500">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-orange-500 overflow-hidden">
         <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Outstanding</p>
-        <p className="text-2xl font-black text-gray-900 dark:text-white">₦{((report?.summary.total_issuance || 0) - (report?.summary.total_collection || 0)).toLocaleString()}</p>
+        <p className="text-2xl font-black text-gray-900 dark:text-white break-words">₦{((report?.summary.total_issuance || 0) - (report?.summary.total_collection || 0)).toLocaleString()}</p>
         <div className="flex items-center gap-1 text-[10px] text-orange-600 font-bold mt-2">
           <Activity size={12} /> Net Period Balance
         </div>
       </div>
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-purple-500">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-amber-500 overflow-hidden">
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Cost (Issued)</p>
+        <p className="text-2xl font-black text-gray-900 dark:text-white break-words">₦{(report?.summary.total_cost_price_issued || 0).toLocaleString()}</p>
+        <div className="flex items-center gap-1 text-[10px] text-amber-600 font-bold mt-2">
+          <ShoppingCart size={12} /> Cost × Qty All Items
+        </div>
+      </div>
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-teal-500 overflow-hidden">
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Cost (Collected)</p>
+        <p className="text-2xl font-black text-gray-900 dark:text-white break-words">₦{(report?.summary.total_cost_price_collected || 0).toLocaleString()}</p>
+        <div className="flex items-center gap-1 text-[10px] text-teal-600 font-bold mt-2">
+          <CreditCard size={12} /> Cost of Paid Items
+        </div>
+      </div>
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-emerald-600 overflow-hidden">
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Credit Profit</p>
+        <p className={`text-2xl font-black break-words ${(report?.summary.credit_profit || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+          ₦{(report?.summary.credit_profit || 0).toLocaleString()}
+        </p>
+        <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold mt-2">
+          <TrendingUp size={12} /> Collection − Cost Collected
+        </div>
+      </div>
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-purple-500 overflow-hidden">
         <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Collection Rate</p>
-        <p className="text-2xl font-black text-gray-900 dark:text-white">{(report?.summary.collection_rate || 0).toFixed(1)}%</p>
+        <p className="text-2xl font-black text-gray-900 dark:text-white break-words">{(report?.summary.collection_rate || 0).toFixed(1)}%</p>
         <div className="flex items-center gap-1 text-[10px] text-purple-600 font-bold mt-2">
           <TrendingUp size={12} /> Recovery Efficiency
         </div>
       </div>
-      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-blue-500">
+      <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-blue-500 overflow-hidden">
         <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Quantity</p>
-        <p className="text-2xl font-black text-gray-900 dark:text-white">{formatQty(report?.summary.total_quantity || 0)}</p>
+        <p className="text-2xl font-black text-gray-900 dark:text-white break-words">{formatQty(report?.summary.total_quantity || 0)}</p>
         <div className="flex items-center gap-1 text-[10px] text-blue-600 font-bold mt-2">
           <Package size={12} /> Units on Credit
         </div>
@@ -283,14 +312,31 @@ export default function CreditReportsPage() {
       <div className="max-w-7xl mx-auto">
         <CreditTabs />
         
-        {/* Header & Filters */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight mb-2">Credit Reports</h1>
-            <p className="text-gray-500 dark:text-gray-400 font-medium italic">Deep analytics and financial summaries for the credit system</p>
+        {/* Header */}
+        <div className="mb-4">
+          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight mb-2">Credit Reports</h1>
+          <p className="text-gray-500 dark:text-gray-400 font-medium italic">Deep analytics and financial summaries for the credit system</p>
+        </div>
+
+        {/* Page Toggle: Main Reports ↔ Credit Reports */}
+        <div className="flex justify-center mb-6">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+            <button
+              onClick={() => router.push(`/${pathname.startsWith('/superadmin') ? 'superadmin' : 'admin'}/reports`)}
+              className="px-4 py-2 rounded-lg text-sm font-bold transition text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            >
+              Main Reports
+            </button>
+            <button
+              className="px-4 py-2 rounded-lg text-sm font-bold bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white transition cursor-default"
+            >
+              Credit Reports
+            </button>
           </div>
-          
-          <div className="flex flex-wrap items-center gap-3">
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3 mb-10">
             <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
               <Filter size={16} className="text-gray-400" />
               <select 
@@ -326,7 +372,6 @@ export default function CreditReportsPage() {
               <Download size={18} /> Export PDF
             </button>
           </div>
-        </div>
 
         {filters.dateRange === 'custom' && (
           <div className="grid grid-cols-2 gap-4 mb-8 max-w-md animate-in slide-in-from-top-2 duration-300">

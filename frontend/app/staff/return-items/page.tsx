@@ -274,11 +274,11 @@ export default function ReturnItemsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-green-500">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-green-500 overflow-hidden">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
             Total Returned Items
           </p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2 break-words">
             {stats.total_returned}
           </p>
           <p className="text-xs text-green-600 dark:text-green-400 mt-2">
@@ -286,11 +286,11 @@ export default function ReturnItemsPage() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-yellow-500">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-yellow-500 overflow-hidden">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
             Pending Accept/Reject
           </p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2 break-words">
             {stats.pending_to_accept}
           </p>
           <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
@@ -298,11 +298,11 @@ export default function ReturnItemsPage() {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-blue-500">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border-l-4 border-blue-500 overflow-hidden">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
             Available for Return
           </p>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+          <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2 break-words">
             {formatQty(stats.available_for_return)}
           </p>
           <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">

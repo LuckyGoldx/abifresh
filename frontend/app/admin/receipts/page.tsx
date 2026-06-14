@@ -302,25 +302,25 @@ export default function AdminReceiptsPage() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow overflow-hidden">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Receipts</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+          <p className="break-words text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow overflow-hidden">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Amount</p>
-          <p className="text-2xl font-bold text-pink-600">₦{stats.totalAmount.toLocaleString()}</p>
+          <p className="break-words text-2xl font-bold text-pink-600">₦{stats.totalAmount.toLocaleString()}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow overflow-hidden">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Cash</p>
-          <p className="text-2xl font-bold text-green-600">{stats.cash}</p>
+          <p className="break-words text-2xl font-bold text-green-600">{stats.cash}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow overflow-hidden">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">POS</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.pos}</p>
+          <p className="break-words text-2xl font-bold text-blue-600">{stats.pos}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow overflow-hidden">
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Transfer</p>
-          <p className="text-2xl font-bold text-purple-600">{stats.transfer}</p>
+          <p className="break-words text-2xl font-bold text-purple-600">{stats.transfer}</p>
         </div>
       </div>
 

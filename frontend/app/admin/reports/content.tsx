@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import api from '@/lib/api';
 import { formatQty } from '@/lib/format-quantity';
 import {
@@ -27,6 +28,9 @@ interface ComprehensiveReport {
     total_sales: number;
     total_expenses: number;
     total_profit: number;
+    total_main_profit: number;
+    total_credit_profit: number;
+    total_credit_cost_collected: number;
     total_items_sold: number;
     avg_transaction: number;
     total_cost_price_sold: number;
@@ -75,6 +79,8 @@ const COLORS = ['#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
 export default function ComprehensiveReportsPage() {
   const reportRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const pathname = usePathname();
   const [report, setReport] = useState<ComprehensiveReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'expenses' | 'inventory' | 'performance' | 'credits'>('overview');
@@ -325,14 +331,15 @@ export default function ComprehensiveReportsPage() {
   );
 
   const renderSummaryCards = () => {
-    const profitAmount = report?.summary.total_profit || 0;
-    const isProfitable = profitAmount >= 0;
-    const profitTextColor = isProfitable ? 'text-green-600' : 'text-red-600';
-    const profitBorderColor = isProfitable ? 'border-l-green-500' : 'border-l-red-500';
-    const profitIconColor = isProfitable ? 'text-green-500' : 'text-red-500';
+    const mainProfit = report?.summary.total_main_profit || 0;
+    const creditProfit = report?.summary.total_credit_profit || 0;
+    const overallProfit = report?.summary.total_profit || 0;
+    const isOverallProfitable = overallProfit >= 0;
+    const isMainProfitable = mainProfit >= 0;
+    const isCreditProfitable = creditProfit >= 0;
 
     return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
       <div className="card border-l-4 border-l-blue-600 overflow-hidden">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales</p>
@@ -341,11 +348,25 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className={`card border-l-4 ${profitBorderColor} overflow-hidden`}>
+      <div className={`card border-l-4 ${isOverallProfitable ? 'border-l-green-500' : 'border-l-red-500'} overflow-hidden`}>
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Profit</p>
-          <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${profitTextColor} break-words`}>₦{profitAmount.toLocaleString()}</p>
-          <TrendingUp className={`w-6 h-6 sm:w-8 sm:h-8 ${profitIconColor} opacity-20 self-end flex-shrink-0`} />
+          <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isOverallProfitable ? 'text-green-600' : 'text-red-600'} break-words`}>₦{overallProfit.toLocaleString()}</p>
+          <TrendingUp className={`w-6 h-6 sm:w-8 sm:h-8 ${isOverallProfitable ? 'text-green-500' : 'text-red-500'} opacity-20 self-end flex-shrink-0`} />
+        </div>
+      </div>
+
+      <div className={`card border-l-4 ${isMainProfitable ? 'border-l-emerald-600' : 'border-l-orange-600'} overflow-hidden`}>
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Main Profit</p>
+          <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isMainProfitable ? 'text-emerald-700 dark:text-emerald-400' : 'text-orange-700 dark:text-orange-400'} break-words`}>₦{mainProfit.toLocaleString()}</p>
+        </div>
+      </div>
+
+      <div className={`card border-l-4 ${isCreditProfitable ? 'border-l-teal-500' : 'border-l-amber-500'} overflow-hidden`}>
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Credit Profit</p>
+          <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isCreditProfitable ? 'text-teal-700 dark:text-teal-400' : 'text-amber-700 dark:text-amber-400'} break-words`}>₦{creditProfit.toLocaleString()}</p>
         </div>
       </div>
 
@@ -544,17 +565,17 @@ export default function ComprehensiveReportsPage() {
     <div className="space-y-6">
       {/* Expenses Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card border-l-4 border-l-red-500">
+        <div className="card border-l-4 border-l-red-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Total Expenses</p>
-          <p className="text-3xl font-bold text-red-600">₦{(report?.summary.total_expenses || 0).toLocaleString()}</p>
+          <p className="text-3xl font-bold text-red-600 break-words">₦{(report?.summary.total_expenses || 0).toLocaleString()}</p>
         </div>
-        <div className="card border-l-4 border-l-yellow-500">
+        <div className="card border-l-4 border-l-yellow-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Expense Entries</p>
-          <p className="text-3xl font-bold text-yellow-600">{report?.expenses.by_staff?.length || 0}</p>
+          <p className="text-3xl font-bold text-yellow-600 break-words">{report?.expenses.by_staff?.length || 0}</p>
         </div>
-        <div className="card border-l-4 border-l-orange-500">
+        <div className="card border-l-4 border-l-orange-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Avg Expense per Entry</p>
-          <p className="text-3xl font-bold text-orange-600">
+          <p className="text-3xl font-bold text-orange-600 break-words">
             ₦{report?.expenses.by_staff && report.expenses.by_staff.length > 0
               ? Math.round((report.summary.total_expenses / report.expenses.by_staff.length))
               : 0}
@@ -638,28 +659,28 @@ export default function ComprehensiveReportsPage() {
 
       {/* Inventory Summary KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <div className="card border-l-4 border-l-indigo-500">
+        <div className="card border-l-4 border-l-indigo-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Total Items</p>
-          <p className="text-2xl md:text-3xl font-bold text-indigo-600">
+          <p className="text-2xl md:text-3xl font-bold text-indigo-600 break-words">
             {((report?.inventory.main_store_total || 0) + (report?.inventory.active_store_total || 0) + (report?.inventory.staff_store_total || 0))}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">
             Quantity: {((report?.inventory.main_store_total_quantity || 0) + (report?.inventory.active_store_total_quantity || 0) + (report?.inventory.staff_store_total_quantity || 0))}
           </p>
         </div>
-        <div className="card border-l-4 border-l-blue-500">
+        <div className="card border-l-4 border-l-blue-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Main Store</p>
-          <p className="text-2xl md:text-3xl font-bold text-blue-600">{report?.inventory.main_store_total || 0}</p>
+          <p className="text-2xl md:text-3xl font-bold text-blue-600 break-words">{report?.inventory.main_store_total || 0}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.main_store_total_quantity || 0}</p>
         </div>
-        <div className="card border-l-4 border-l-green-500">
+        <div className="card border-l-4 border-l-green-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Active Store</p>
-          <p className="text-2xl md:text-3xl font-bold text-green-600">{report?.inventory.active_store_total || 0}</p>
+          <p className="text-2xl md:text-3xl font-bold text-green-600 break-words">{report?.inventory.active_store_total || 0}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.active_store_total_quantity || 0}</p>
         </div>
-        <div className="card border-l-4 border-l-purple-500">
+        <div className="card border-l-4 border-l-purple-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Staff Store</p>
-          <p className="text-2xl md:text-3xl font-bold text-purple-600">{report?.inventory.staff_store_total || 0}</p>
+          <p className="text-2xl md:text-3xl font-bold text-purple-600 break-words">{report?.inventory.staff_store_total || 0}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.staff_store_total_quantity || 0}</p>
         </div>
       </div>
@@ -1116,6 +1137,23 @@ export default function ComprehensiveReportsPage() {
           <BarChart className="w-8 h-8 text-blue-500" />
           Comprehensive Analytics & Reports
         </h1>
+      </div>
+
+      {/* Page Toggle: Main Reports ↔ Credit Reports */}
+      <div className="flex justify-center mb-4">
+        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+          <button
+            className="px-4 py-2 rounded-lg text-sm font-bold bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white transition cursor-default"
+          >
+            Main Reports
+          </button>
+          <button
+            onClick={() => router.push(`/${pathname.startsWith('/superadmin') ? 'superadmin' : 'admin'}/credit-reports`)}
+            className="px-4 py-2 rounded-lg text-sm font-bold transition text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+          >
+            Credit Reports
+          </button>
+        </div>
       </div>
 
       {renderFilterSection()}

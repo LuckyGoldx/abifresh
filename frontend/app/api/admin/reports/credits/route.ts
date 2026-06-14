@@ -71,7 +71,7 @@ export async function GET(req: NextRequest) {
     const { data: payments, error: paymentsError } = await paymentsQuery;
     if (paymentsError) throw paymentsError;
 
-    // 3. Fetch Sale Items for item analysis
+    // 3. Fetch Sale Items and Payment Items for cost/profit calculations
     const saleIds = (sales || []).map(s => s.id);
     let itemsData: any[] = [];
     if (saleIds.length > 0) {
@@ -82,6 +82,37 @@ export async function GET(req: NextRequest) {
       itemsData = saleItems || [];
     }
 
+    // 3b. Fetch credit_payment_items for approved payments to track paid quantities
+    const paymentIds = (payments || []).map(p => p.id);
+    let paymentItems: any[] = [];
+    if (paymentIds.length > 0) {
+      const { data: pi } = await supabaseAdmin
+        .from('credit_payment_items')
+        .select('credit_sale_item_id, quantity')
+        .in('credit_payment_id', paymentIds);
+      paymentItems = pi || [];
+    }
+
+    // Build map: credit_sale_item_id → total paid quantity (from approved payments)
+    const paidQtyMap = new Map<string, number>();
+    paymentItems.forEach(pi => {
+      if (pi.credit_sale_item_id) {
+        paidQtyMap.set(pi.credit_sale_item_id, (paidQtyMap.get(pi.credit_sale_item_id) || 0) + (Number(pi.quantity) || 0));
+      }
+    });
+
+    // Fetch credit_sale_items referenced by payment items that are NOT in itemsData
+    // (handles payments made in this period for sales from previous periods)
+    let paidItemsData: any[] = [];
+    const missingItemIds = [...paidQtyMap.keys()].filter(id => !itemsData.some(ri => ri.id === id));
+    if (missingItemIds.length > 0) {
+      const { data: extraItems } = await supabaseAdmin
+        .from('credit_sale_items')
+        .select('*, credit_sales(staff_id)')
+        .in('id', missingItemIds);
+      paidItemsData = extraItems || [];
+    }
+
     // --- CALCULATIONS ---
 
     // Summary
@@ -89,6 +120,22 @@ export async function GET(req: NextRequest) {
     const totalCollection = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
     const totalQuantity = (sales || []).reduce((sum, s) => sum + (Number(s.total_quantity) || 0), 0);
     const totalTransactions = (sales || []).length + (payments || []).length;
+
+    // Total cost price of ALL items given on credit in this period (issued)
+    const totalCostPriceIssued = itemsData.reduce((sum, ri) => {
+      return sum + (Number(ri.quantity) || 0) * (Number(ri.cost_price) || 0);
+    }, 0);
+
+    // Total cost price of items money has been collected for (matched via credit_payment_items)
+    // Includes items from current period AND previous periods that received payments this period
+    const allPaidItems = [...itemsData, ...paidItemsData];
+    const totalCostPriceCollected = allPaidItems.reduce((sum, ri) => {
+      const paidQty = paidQtyMap.get(ri.id) || 0;
+      const effectivePaid = Math.min(paidQty, Number(ri.quantity) || 0);
+      return sum + effectivePaid * (Number(ri.cost_price) || 0);
+    }, 0);
+
+    const creditProfit = totalCollection - totalCostPriceCollected;
 
     // Trends (Group by Day)
     const trends: Record<string, { date: string; issuance: number; collection: number }> = {};
@@ -168,6 +215,9 @@ export async function GET(req: NextRequest) {
       summary: {
         total_issuance: totalIssuance,
         total_collection: totalCollection,
+        total_cost_price_issued: totalCostPriceIssued,
+        total_cost_price_collected: totalCostPriceCollected,
+        credit_profit: creditProfit,
         total_quantity: totalQuantity,
         total_transactions: totalTransactions,
         collection_rate: totalIssuance > 0 ? (totalCollection / totalIssuance) * 100 : 0

@@ -208,51 +208,51 @@ export default function AdminStaffStorePage() {
 
       {/* Summary Statistics */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <div className="card bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
+        <div className="card bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 overflow-hidden">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">Total Staff</p>
-              <p className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-2">{totalStats.total_staff}</p>
+              <p className="break-words text-3xl font-bold text-blue-900 dark:text-blue-100 mt-2">{totalStats.total_staff}</p>
             </div>
             <Users className="w-8 h-8 text-blue-300 opacity-50" />
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800">
+        <div className="card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 overflow-hidden">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">Total Items</p>
-              <p className="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2">{totalStats.total_items_count}</p>
+              <p className="break-words text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2">{totalStats.total_items_count}</p>
             </div>
             <Package className="w-8 h-8 text-purple-300 opacity-50" />
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900 dark:to-yellow-800">
+        <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900 dark:to-yellow-800 overflow-hidden">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium">Total Quantity</p>
-              <p className="text-3xl font-bold text-yellow-900 dark:text-yellow-100 mt-2">{totalStats.total_quantity.toLocaleString()}</p>
+              <p className="break-words text-3xl font-bold text-yellow-900 dark:text-yellow-100 mt-2">{totalStats.total_quantity.toLocaleString()}</p>
             </div>
             <ShoppingCart className="w-8 h-8 text-yellow-300 opacity-50" />
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800">
+        <div className="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 overflow-hidden">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-green-700 dark:text-green-300 font-medium">Sold</p>
-              <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{totalStats.total_sold.toLocaleString()}</p>
+              <p className="break-words text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{totalStats.total_sold.toLocaleString()}</p>
             </div>
             <TrendingUp className="w-8 h-8 text-green-300 opacity-50" />
           </div>
         </div>
 
-        <div className="card bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800">
+        <div className="card bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800 overflow-hidden">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">Total Amount Sold (All Staff)</p>
-              <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-100 mt-1">₦{allStaffTotals.total_amount_sold.toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
+              <p className="break-words text-2xl font-bold text-indigo-900 dark:text-indigo-100 mt-1">₦{allStaffTotals.total_amount_sold.toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
               <div className="mt-2 text-xs space-y-1">
                 <p className="text-indigo-700 dark:text-indigo-300">
                   <span className="font-semibold">Commission:</span> ₦{commissionStaffTotals.total_amount_sold.toLocaleString('en-US', { maximumFractionDigits: 0 })}
@@ -424,21 +424,21 @@ export default function AdminStaffStorePage() {
 
           {/* Staff Store Summary */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 pb-6 border-b dark:border-gray-700">
-            <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded">
+            <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded overflow-hidden">
               <p className="text-xs text-blue-700 dark:text-blue-300">Total Items</p>
-              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{formatQty(staffDetails.total_items || 0)}</p>
+              <p className="break-words text-2xl font-bold text-blue-900 dark:text-blue-100">{formatQty(staffDetails.total_items || 0)}</p>
             </div>
-            <div className="bg-purple-50 dark:bg-purple-900 p-3 rounded">
+            <div className="bg-purple-50 dark:bg-purple-900 p-3 rounded overflow-hidden">
               <p className="text-xs text-purple-700 dark:text-purple-300">Total Quantity</p>
-              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{formatQty(staffDetails.total_quantity || 0)}</p>
+              <p className="break-words text-2xl font-bold text-purple-900 dark:text-purple-100">{formatQty(staffDetails.total_quantity || 0)}</p>
             </div>
-            <div className="bg-green-50 dark:bg-green-900 p-3 rounded">
+            <div className="bg-green-50 dark:bg-green-900 p-3 rounded overflow-hidden">
               <p className="text-xs text-green-700 dark:text-green-300">Sold</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100">{(staffDetails.total_sold || 0).toLocaleString()}</p>
+              <p className="break-words text-2xl font-bold text-green-900 dark:text-green-100">{(staffDetails.total_sold || 0).toLocaleString()}</p>
             </div>
-            <div className="bg-indigo-50 dark:bg-indigo-900 p-3 rounded">
+            <div className="bg-indigo-50 dark:bg-indigo-900 p-3 rounded overflow-hidden">
               <p className="text-xs text-indigo-700 dark:text-indigo-300">Amount Sold</p>
-              <p className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">₦{(staffDetails.total_amount_sold || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
+              <p className="break-words text-2xl font-bold text-indigo-900 dark:text-indigo-100">₦{(staffDetails.total_amount_sold || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}</p>
             </div>
           </div>
 
@@ -446,11 +446,11 @@ export default function AdminStaffStorePage() {
           {selectedStaff && staffDetails.items && staffDetails.items[0]?.users?.role === 'commission_staff' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               {/* Actual Commission Earned */}
-              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 p-4 rounded border-2 border-green-200 dark:border-green-700">
+              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 p-4 rounded border-2 border-green-200 dark:border-green-700 overflow-hidden">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-green-700 dark:text-green-300 font-bold">✅ Total Commission Earned</p>
-                    <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">
+                    <p className="break-words text-3xl font-bold text-green-900 dark:text-green-100 mt-2">
                       ₦{(staffDetails.total_commission_earned || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}
                     </p>
                     <p className="text-xs text-green-700 dark:text-green-300 mt-2">
@@ -461,11 +461,11 @@ export default function AdminStaffStorePage() {
               </div>
 
               {/* Potential Commission */}
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900 dark:to-amber-800 p-4 rounded border-2 border-amber-200 dark:border-amber-700">
+              <div className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900 dark:to-amber-800 p-4 rounded border-2 border-amber-200 dark:border-amber-700 overflow-hidden">
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-sm text-amber-700 dark:text-amber-300 font-bold">🎯 Potential Commission (Remaining)</p>
-                    <p className="text-3xl font-bold text-amber-900 dark:text-amber-100 mt-2">
+                    <p className="break-words text-3xl font-bold text-amber-900 dark:text-amber-100 mt-2">
                       ₦{staffDetails.items?.reduce((sum: number, item: any) => {
                         const commission = item.items?.commission || 0;
                         const remainingQty = (item.quantity || 0) - (item.quantity_sold || 0);

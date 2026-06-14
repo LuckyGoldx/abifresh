@@ -105,24 +105,24 @@ export default function AuditLogsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <Activity className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{logs.length}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{logs.length}</p>
           <p className="text-sm text-gray-500">Total Activities</p>
         </div>
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{logs.filter(l => l.status === 'success').length}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{logs.filter(l => l.status === 'success').length}</p>
           <p className="text-sm text-gray-500">Successful</p>
         </div>
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <AlertTriangle className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{logs.filter(l => l.status === 'warning').length}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{logs.filter(l => l.status === 'warning').length}</p>
           <p className="text-sm text-gray-500">Warnings</p>
         </div>
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <Clock className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">
             {logs.length > 0 ? new Date(logs[0].timestamp).toLocaleDateString('en-NG', { month: 'short', day: 'numeric' }) : 'N/A'}
           </p>
           <p className="text-sm text-gray-500">Latest Activity</p>

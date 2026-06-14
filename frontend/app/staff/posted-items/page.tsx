@@ -145,17 +145,17 @@ export default function PostedItemsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="card bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-500">
+        <div className="card bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-500 overflow-hidden">
           <p className="text-sm text-yellow-700 dark:text-yellow-200">Pending</p>
-          <p className="text-3xl font-bold text-yellow-900 dark:text-yellow-100">{pendingItems.length}</p>
+          <p className="text-3xl font-bold text-yellow-900 dark:text-yellow-100 break-words">{pendingItems.length}</p>
         </div>
-        <div className="card bg-green-50 dark:bg-green-900 border-l-4 border-green-500">
+        <div className="card bg-green-50 dark:bg-green-900 border-l-4 border-green-500 overflow-hidden">
           <p className="text-sm text-green-700 dark:text-green-200">Accepted</p>
-          <p className="text-3xl font-bold text-green-900 dark:text-green-100">{acceptedItems.length}</p>
+          <p className="text-3xl font-bold text-green-900 dark:text-green-100 break-words">{acceptedItems.length}</p>
         </div>
-        <div className="card bg-red-50 dark:bg-red-900 border-l-4 border-red-500">
+        <div className="card bg-red-50 dark:bg-red-900 border-l-4 border-red-500 overflow-hidden">
           <p className="text-sm text-red-700 dark:text-red-200">Rejected</p>
-          <p className="text-3xl font-bold text-red-900 dark:text-red-100">{rejectedItems.length}</p>
+          <p className="text-3xl font-bold text-red-900 dark:text-red-100 break-words">{rejectedItems.length}</p>
         </div>
       </div>
 

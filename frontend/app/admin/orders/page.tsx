@@ -723,18 +723,18 @@ export default function RestockOrdersPage() {
 
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className={`grid grid-cols-1 gap-4 mb-6 ${voOpts.showSubtotal ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-            <div className="bg-pink-50 dark:bg-pink-900/20 rounded-xl p-4 text-center border border-pink-100 dark:border-pink-800">
+            <div className="bg-pink-50 dark:bg-pink-900/20 rounded-xl p-4 text-center border border-pink-100 dark:border-pink-800 overflow-hidden">
               <p className="text-sm text-pink-600 dark:text-pink-300 font-medium">Total Items</p>
-              <p className="text-3xl font-bold text-pink-700 dark:text-pink-200">{vo.totalItems}</p>
+              <p className="text-3xl font-bold text-pink-700 dark:text-pink-200 break-words">{vo.totalItems}</p>
             </div>
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 text-center border border-purple-100 dark:border-purple-800">
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 text-center border border-purple-100 dark:border-purple-800 overflow-hidden">
               <p className="text-sm text-purple-600 dark:text-purple-300 font-medium">Total Quantity</p>
-              <p className="text-3xl font-bold text-purple-700 dark:text-purple-200">{vo.totalQuantity.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-purple-700 dark:text-purple-200 break-words">{vo.totalQuantity.toLocaleString()}</p>
             </div>
             {voOpts.showSubtotal && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 text-center border border-amber-100 dark:border-amber-800">
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 text-center border border-amber-100 dark:border-amber-800 overflow-hidden">
                 <p className="text-sm text-amber-600 dark:text-amber-300 font-medium">Estimated Cost</p>
-                <p className="text-3xl font-bold text-amber-700 dark:text-amber-200">₦{vo.totalCost.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-amber-700 dark:text-amber-200 break-words">₦{vo.totalCost.toLocaleString()}</p>
               </div>
             )}
           </div>
@@ -793,18 +793,18 @@ export default function RestockOrdersPage() {
 
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className={`grid grid-cols-1 gap-4 mb-6 ${displayOptions.showSubtotal ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
-            <div className="bg-pink-50 dark:bg-pink-900/20 rounded-xl p-4 text-center border border-pink-100 dark:border-pink-800">
+            <div className="bg-pink-50 dark:bg-pink-900/20 rounded-xl p-4 text-center border border-pink-100 dark:border-pink-800 overflow-hidden">
               <p className="text-sm text-pink-600 dark:text-pink-300 font-medium">Total Items</p>
-              <p className="text-3xl font-bold text-pink-700 dark:text-pink-200">{totalOrderItems}</p>
+              <p className="text-3xl font-bold text-pink-700 dark:text-pink-200 break-words">{totalOrderItems}</p>
             </div>
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 text-center border border-purple-100 dark:border-purple-800">
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 text-center border border-purple-100 dark:border-purple-800 overflow-hidden">
               <p className="text-sm text-purple-600 dark:text-purple-300 font-medium">Total Quantity</p>
-              <p className="text-3xl font-bold text-purple-700 dark:text-purple-200">{totalOrderQuantity.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-purple-700 dark:text-purple-200 break-words">{totalOrderQuantity.toLocaleString()}</p>
             </div>
             {displayOptions.showSubtotal && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 text-center border border-amber-100 dark:border-amber-800">
+              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 text-center border border-amber-100 dark:border-amber-800 overflow-hidden">
                 <p className="text-sm text-amber-600 dark:text-amber-300 font-medium">Estimated Cost</p>
-                <p className="text-3xl font-bold text-amber-700 dark:text-amber-200">₦{totalEstimatedCost.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-amber-700 dark:text-amber-200 break-words">₦{totalEstimatedCost.toLocaleString()}</p>
               </div>
             )}
           </div>
@@ -1092,21 +1092,21 @@ export default function RestockOrdersPage() {
       {/* Stats — derived from Supabase order history */}
       <div className="max-w-7xl mx-auto px-6 -mt-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border dark:border-gray-800 text-center">
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border dark:border-gray-800 text-center overflow-hidden">
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Total Orders</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">{orderHistory.length}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white break-words">{orderHistory.length}</p>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border dark:border-gray-800 text-center">
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border dark:border-gray-800 text-center overflow-hidden">
             <p className="text-xs text-yellow-600 dark:text-yellow-400 font-medium uppercase">Pending</p>
-            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{orderHistory.filter(o => o.status === 'pending').length}</p>
+            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400 break-words">{orderHistory.filter(o => o.status === 'pending').length}</p>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border dark:border-gray-800 text-center">
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border dark:border-gray-800 text-center overflow-hidden">
             <p className="text-xs text-green-600 dark:text-green-400 font-medium uppercase">Completed</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{orderHistory.filter(o => o.status === 'completed').length}</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400 break-words">{orderHistory.filter(o => o.status === 'completed').length}</p>
           </div>
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border dark:border-gray-800 text-center">
+          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border dark:border-gray-800 text-center overflow-hidden">
             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Low Stock Items</p>
-            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{lowStockItems.length}</p>
+            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 break-words">{lowStockItems.length}</p>
           </div>
         </div>
       </div>

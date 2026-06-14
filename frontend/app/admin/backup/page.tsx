@@ -900,25 +900,25 @@ export default function BackupPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center">
               <Database className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-gray-500 dark:text-gray-400">Total Tables</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{ALL_TABLES.length}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white break-words">{ALL_TABLES.length}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
               <Rows className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-gray-500 dark:text-gray-400">Total Rows</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xl font-bold text-gray-900 dark:text-white break-words">
                 {loadedCount === ALL_TABLES.length
                   ? totalRowCount.toLocaleString()
                   : <span className="text-gray-400 text-base">Loading…</span>}
@@ -926,14 +926,14 @@ export default function BackupPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center">
               <Table className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-gray-500 dark:text-gray-400">Total Columns</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">
+              <p className="text-xl font-bold text-gray-900 dark:text-white break-words">
                 {loadedCount === ALL_TABLES.length
                   ? totalColumnCount.toLocaleString()
                   : <span className="text-gray-400 text-base">Loading…</span>}
@@ -941,25 +941,25 @@ export default function BackupPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center">
               <CheckSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-gray-500 dark:text-gray-400">Selected</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{selectedCount}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white break-words">{selectedCount}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-gray-100 dark:border-slate-700 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center">
               <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-gray-500 dark:text-gray-400">Backups Done</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white">{history.length}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-white break-words">{history.length}</p>
             </div>
           </div>
         </div>

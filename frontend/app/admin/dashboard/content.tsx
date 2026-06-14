@@ -652,7 +652,7 @@ export default function AdminDashboard() {
               <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900 dark:to-pink-800 rounded-lg p-4 border-l-4 border-pink-500">
                 <div className="text-center">
                   <p className="text-sm text-gray-600 dark:text-gray-300 uppercase font-semibold mb-2">Total Amount</p>
-                  <p className="text-4xl font-bold text-pink-600 dark:text-pink-300">
+                  <p className="text-4xl font-bold text-pink-600 dark:text-pink-300 break-words">
                     ₦{selectedReceipt.total_amount.toLocaleString()}
                   </p>
                 </div>

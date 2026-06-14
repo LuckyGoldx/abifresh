@@ -24,12 +24,12 @@ export const Toast = ({ message, type, onClose }: { message: string; type: 'succ
 };
 
 export const StatsCard = ({ icon: Icon, label, value, color = 'bg-blue-50' }: any) => (
-  <div className={`${color} dark:bg-gray-800/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm`}>
+  <div className={`${color} dark:bg-gray-800/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden`}>
     <div className="flex items-center gap-3">
-      <Icon className="w-8 h-8 text-pink-500" />
-      <div>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">{label}</p>
-        <p className="text-2xl font-bold text-gray-800 dark:text-white">{value}</p>
+      <Icon className="w-8 h-8 text-pink-500 flex-shrink-0" />
+      <div className="min-w-0">
+        <p className="text-gray-600 dark:text-gray-400 text-sm truncate">{label}</p>
+        <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{value}</p>
       </div>
     </div>
   </div>

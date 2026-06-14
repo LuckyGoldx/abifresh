@@ -29,14 +29,14 @@ interface StatCardProps {
 }
 
 const StatCard = ({ icon: Icon, title, value, subtitle, color }: StatCardProps) => (
-  <div className="card flex items-center space-x-4">
-    <div className={`${color} p-3 rounded-lg`}>
+  <div className="card flex items-center space-x-4 overflow-hidden">
+    <div className={`${color} p-3 rounded-lg flex-shrink-0`}>
       <Icon className="w-6 h-6 text-white" />
     </div>
-    <div>
-      <p className="text-gray-600 dark:text-gray-400 text-sm">{title}</p>
-      <p className="text-2xl font-bold text-gray-800 dark:text-white">{value}</p>
-      {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+    <div className="min-w-0">
+      <p className="text-gray-600 dark:text-gray-400 text-sm truncate">{title}</p>
+      <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{value}</p>
+      {subtitle && <p className="text-xs text-gray-500 truncate">{subtitle}</p>}
     </div>
   </div>
 );

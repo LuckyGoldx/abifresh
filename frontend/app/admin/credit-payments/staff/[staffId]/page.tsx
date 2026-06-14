@@ -211,47 +211,47 @@ export default function StaffCreditDetailPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <div className="card border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-900/30 p-3 md:p-4">
+        <div className="card border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-900/30 p-3 md:p-4 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-2xl flex-shrink-0">
               <DollarSign className="w-6 h-6 text-blue-600 dark:text-blue-300" />
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-0.5">Total Collected</p>
-              <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white whitespace-nowrap">₦{stats.totalCollected.toLocaleString()}</p>
+              <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white break-words">₦{stats.totalCollected.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card border-l-4 border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/30 p-3 md:p-4">
+        <div className="card border-l-4 border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/30 p-3 md:p-4 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-yellow-100 dark:bg-yellow-800 rounded-2xl flex-shrink-0">
               <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-300" />
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-black text-yellow-600 dark:text-yellow-400 uppercase tracking-wider mb-0.5">Pending</p>
-              <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white whitespace-nowrap">₦{stats.pendingRemittance.toLocaleString()}</p>
+              <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white break-words">₦{stats.pendingRemittance.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card border-l-4 border-l-green-500 bg-green-50 dark:bg-green-900/30 p-3 md:p-4">
+        <div className="card border-l-4 border-l-green-500 bg-green-50 dark:bg-green-900/30 p-3 md:p-4 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-100 dark:bg-green-800 rounded-2xl flex-shrink-0">
               <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-300" />
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-wider mb-0.5">Approved</p>
-              <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white whitespace-nowrap">₦{stats.approvedRemittance.toLocaleString()}</p>
+              <p className="text-lg md:text-xl font-black text-gray-900 dark:text-white break-words">₦{stats.approvedRemittance.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card border-l-4 border-l-red-500 bg-red-50 dark:bg-red-900/30 p-3 md:p-4">
+        <div className="card border-l-4 border-l-red-500 bg-red-50 dark:bg-red-900/30 p-3 md:p-4 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-100 dark:bg-red-800 rounded-2xl flex-shrink-0">
               <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-300" />
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-wider mb-0.5">Outstanding</p>
-              <p className="text-lg md:text-xl font-black text-red-600 whitespace-nowrap">₦{stats.outstandingAmount.toLocaleString()}</p>
+              <p className="text-lg md:text-xl font-black text-red-600 break-words">₦{stats.outstandingAmount.toLocaleString()}</p>
             </div>
           </div>
         </div>

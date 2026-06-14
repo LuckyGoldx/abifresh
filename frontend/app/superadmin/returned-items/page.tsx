@@ -188,9 +188,9 @@ export default function SuperAdminReturnedItemsPage() {
             <RefreshCw className={`w-5 h-5 text-gray-600 dark:text-gray-400 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
           {pendingCount > 0 && (
-            <div className="px-6 py-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-lg">
+            <div className="px-6 py-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-lg overflow-hidden">
               <p className="text-sm font-medium">Total Pending</p>
-              <p className="text-2xl font-bold">{pendingCount}</p>
+              <p className="break-words text-2xl font-bold">{pendingCount}</p>
             </div>
           )}
         </div>

@@ -384,7 +384,7 @@ export async function GET(req: NextRequest) {
   // 2. Credit Sales in period (Only non-cancelled)
   let creditSalesQuery = supabaseAdmin
     .from('credit_sales')
-    .select('total_amount')
+    .select('id, total_amount')
     .neq('status', 'cancelled')
     .gte('created_at', fromISO)
     .lte('created_at', toISO);
@@ -395,7 +395,7 @@ export async function GET(req: NextRequest) {
   // 3. Credit Payments in period (Only approved)
   let creditPaymentsQuery = supabaseAdmin
     .from('credit_payments')
-    .select('amount')
+    .select('id, amount')
     .eq('status', 'approved')
     .gte('created_at', fromISO)
     .lte('created_at', toISO);
@@ -403,10 +403,66 @@ export async function GET(req: NextRequest) {
   const { data: creditPaymentsData } = await creditPaymentsQuery;
   totalCreditsPaid = (creditPaymentsData || []).reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
 
+  // 4. Credit Profit = Total Collected - Total Cost of Items Collected For
+  let totalCreditCostCollected = 0;
+  if ((creditSalesData || []).length > 0 || (creditPaymentsData || []).length > 0) {
+    // Fetch credit sale items for current period sales
+    const csIds = (creditSalesData || []).map(cs => (cs as any).id).filter(Boolean);
+    let creditItems: any[] = [];
+    if (csIds.length > 0) {
+      const { data: ci } = await supabaseAdmin
+        .from('credit_sale_items')
+        .select('id, cost_price, quantity')
+        .in('credit_sale_id', csIds);
+      creditItems = ci || [];
+    }
+
+    // Fetch payment items for approved payments to track paid quantities
+    const cpIds = (creditPaymentsData || []).map(cp => (cp as any).id).filter(Boolean);
+    let paymentItems: any[] = [];
+    if (cpIds.length > 0) {
+      const { data: pi } = await supabaseAdmin
+        .from('credit_payment_items')
+        .select('credit_sale_item_id, quantity')
+        .in('credit_payment_id', cpIds);
+      paymentItems = pi || [];
+    }
+
+    const paidQtyMap = new Map<string, number>();
+    paymentItems.forEach((pi: any) => {
+      if (pi.credit_sale_item_id) {
+        paidQtyMap.set(pi.credit_sale_item_id, (paidQtyMap.get(pi.credit_sale_item_id) || 0) + (Number(pi.quantity) || 0));
+      }
+    });
+
+    // Fetch credit sale items referenced by payment items that aren't already in creditItems
+    const missingIds = [...paidQtyMap.keys()].filter(id => !creditItems.some(ci => ci.id === id));
+    if (missingIds.length > 0) {
+      const { data: extra } = await supabaseAdmin
+        .from('credit_sale_items')
+        .select('id, cost_price, quantity')
+        .in('id', missingIds);
+      if (extra) creditItems.push(...extra);
+    }
+
+    totalCreditCostCollected = creditItems.reduce((sum: number, ci: any) => {
+      const paidQty = paidQtyMap.get(ci.id) || 0;
+      const effectivePaid = Math.min(paidQty, Number(ci.quantity) || 0);
+      return sum + effectivePaid * (Number(ci.cost_price) || 0);
+    }, 0);
+  }
+
+  const totalCreditProfit = totalCreditsPaid - totalCreditCostCollected;
+  const totalMainProfit = totalProfit;
+  const totalOverallProfit = totalMainProfit + totalCreditProfit;
+
   return NextResponse.json({
     summary: {
       total_transactions: receipts.length, total_sales: totalRevenue, total_expenses: totalExpenses,
-      total_profit: totalProfit, total_items_sold: totalItemsSold, avg_transaction: avgTransaction,
+      total_profit: totalOverallProfit,
+      total_main_profit: totalMainProfit,
+      total_credit_profit: totalCreditProfit,
+      total_credit_cost_collected: totalCreditCostCollected, total_items_sold: totalItemsSold, avg_transaction: avgTransaction,
       total_cost_price_sold: totalCostPriceSold,
       total_commission_generated: totalCommissionGenerated,
       total_commission_paid: totalCommissionPaid,

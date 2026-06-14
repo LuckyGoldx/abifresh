@@ -220,40 +220,40 @@ export default function SuperAdminStaffPage() {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="card bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
+        <div className="card bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 overflow-hidden">
           <div className="flex items-center justify-between">
-            <div><p className="text-sm font-medium text-blue-600 dark:text-blue-300">Total</p><p className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-2">{staffStats.total}</p></div>
-            <Users className="w-12 h-12 text-blue-400 opacity-50" />
+            <div className="min-w-0"><p className="text-sm font-medium text-blue-600 dark:text-blue-300">Total</p><p className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-2 break-words">{staffStats.total}</p></div>
+            <Users className="w-12 h-12 text-blue-400 opacity-50 flex-shrink-0" />
           </div>
         </div>
-        <div className="card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800">
+        <div className="card bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 overflow-hidden">
           <div className="flex items-center justify-between">
-            <div><p className="text-sm font-medium text-purple-600 dark:text-purple-300">Superadmin</p><p className="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2">{staffStats.superadmin}</p></div>
-            <Shield className="w-12 h-12 text-purple-400 opacity-50" />
+            <div className="min-w-0"><p className="text-sm font-medium text-purple-600 dark:text-purple-300">Superadmin</p><p className="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2 break-words">{staffStats.superadmin}</p></div>
+            <Shield className="w-12 h-12 text-purple-400 opacity-50 flex-shrink-0" />
           </div>
         </div>
-        <div className="card bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900 dark:to-red-800">
+        <div className="card bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900 dark:to-red-800 overflow-hidden">
           <div className="flex items-center justify-between">
-            <div><p className="text-sm font-medium text-red-600 dark:text-red-300">Admin</p><p className="text-3xl font-bold text-red-900 dark:text-red-100 mt-2">{staffStats.admin}</p></div>
-            <Users2 className="w-12 h-12 text-red-400 opacity-50" />
+            <div className="min-w-0"><p className="text-sm font-medium text-red-600 dark:text-red-300">Admin</p><p className="text-3xl font-bold text-red-900 dark:text-red-100 mt-2 break-words">{staffStats.admin}</p></div>
+            <Users2 className="w-12 h-12 text-red-400 opacity-50 flex-shrink-0" />
           </div>
         </div>
-        <div className="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800">
+        <div className="card bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 overflow-hidden">
           <div className="flex items-center justify-between">
-            <div><p className="text-sm font-medium text-green-600 dark:text-green-300">Sales</p><p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{staffStats.sales_staff}</p></div>
-            <ShoppingCart className="w-12 h-12 text-green-400 opacity-50" />
+            <div className="min-w-0"><p className="text-sm font-medium text-green-600 dark:text-green-300">Sales</p><p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2 break-words">{staffStats.sales_staff}</p></div>
+            <ShoppingCart className="w-12 h-12 text-green-400 opacity-50 flex-shrink-0" />
           </div>
         </div>
-        <div className="card bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800">
+        <div className="card bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800 overflow-hidden">
           <div className="flex items-center justify-between">
-            <div><p className="text-sm font-medium text-indigo-600 dark:text-indigo-300">Commission</p><p className="text-3xl font-bold text-indigo-900 dark:text-indigo-100 mt-2">{staffStats.commission_staff}</p></div>
-            <CreditCard className="w-12 h-12 text-indigo-400 opacity-50" />
+            <div className="min-w-0"><p className="text-sm font-medium text-indigo-600 dark:text-indigo-300">Commission</p><p className="text-3xl font-bold text-indigo-900 dark:text-indigo-100 mt-2 break-words">{staffStats.commission_staff}</p></div>
+            <CreditCard className="w-12 h-12 text-indigo-400 opacity-50 flex-shrink-0" />
           </div>
         </div>
-        <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900 dark:to-yellow-800">
+        <div className="card bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900 dark:to-yellow-800 overflow-hidden">
           <div className="flex items-center justify-between">
-            <div><p className="text-sm font-medium text-yellow-600 dark:text-yellow-300">Non-Commission</p><p className="text-3xl font-bold text-yellow-900 dark:text-yellow-100 mt-2">{staffStats.non_commission_staff}</p></div>
-            <User className="w-12 h-12 text-yellow-400 opacity-50" />
+            <div className="min-w-0"><p className="text-sm font-medium text-yellow-600 dark:text-yellow-300">Non-Commission</p><p className="text-3xl font-bold text-yellow-900 dark:text-yellow-100 mt-2 break-words">{staffStats.non_commission_staff}</p></div>
+            <User className="w-12 h-12 text-yellow-400 opacity-50 flex-shrink-0" />
           </div>
         </div>
       </div>

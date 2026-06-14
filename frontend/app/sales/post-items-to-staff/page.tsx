@@ -252,21 +252,21 @@ export default function PostItemsPage() {
 
         {/* Summary Stats */}
         <div className="space-y-4">
-          <div className="card bg-blue-50 dark:bg-blue-900">
+          <div className="card bg-blue-50 dark:bg-blue-900 overflow-hidden">
             <p className="text-sm text-blue-700 dark:text-blue-200">Total Staff Members</p>
-            <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{staffList.length}</p>
+            <p className="break-words text-3xl font-bold text-blue-900 dark:text-blue-100">{staffList.length}</p>
           </div>
 
-          <div className="card bg-purple-50 dark:bg-purple-900">
+          <div className="card bg-purple-50 dark:bg-purple-900 overflow-hidden">
             <p className="text-sm text-purple-700 dark:text-purple-200">Items in Stock</p>
-            <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+            <p className="break-words text-3xl font-bold text-purple-900 dark:text-purple-100">
               {formatQty(availableItems.reduce((sum, i) => sum + i.quantity, 0))}
             </p>
           </div>
 
-          <div className="card bg-green-50 dark:bg-green-900">
+          <div className="card bg-green-50 dark:bg-green-900 overflow-hidden">
             <p className="text-sm text-green-700 dark:text-green-200">Items Posted</p>
-            <p className="text-3xl font-bold text-green-900 dark:text-green-100">{postedItems.length}</p>
+            <p className="break-words text-3xl font-bold text-green-900 dark:text-green-100">{postedItems.length}</p>
           </div>
         </div>
       </div>

@@ -974,11 +974,11 @@ export default function MakeSalePage() {
                 </div>
 
                 {/* Total */}
-                <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-lg p-6 border border-pink-200 dark:border-pink-700">
+                <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-lg p-6 border border-pink-200 dark:border-pink-700 overflow-hidden">
                   <div className="flex justify-end">
                     <div className="text-right">
                       <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">Amount Due</p>
-                      <div className="text-3xl font-bold text-pink-600 dark:text-pink-400">
+                      <div className="break-words text-3xl font-bold text-pink-600 dark:text-pink-400">
                         ₦{lastReceipt.total_amount.toLocaleString()}
                       </div>
                     </div>

@@ -376,10 +376,10 @@ export default function ExpensesPage() {
           {/* Dynamic Category Cards */}
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total Card */}
-            <div className="card border-l-4 border-l-blue-500 bg-white dark:bg-gray-800 shadow-md">
+            <div className="card border-l-4 border-l-blue-500 bg-white dark:bg-gray-800 shadow-md overflow-hidden">
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Expenses</p>
-              <p className="text-3xl font-bold text-blue-600 mt-1">{totalRecordedCount}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-3xl font-bold text-blue-600 mt-1 break-words">{totalRecordedCount}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 break-words">
                 ₦{totalRecordedAmount.toLocaleString()}
               </p>
             </div>
@@ -403,9 +403,9 @@ export default function ExpensesPage() {
               const color = colors[index % colors.length];
               
               return (
-                <div key={stat.type} className={`card border-l-4 ${color.border} bg-white dark:bg-gray-800 shadow-md`}>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">{stat.type}</p>
-                  <p className={`text-3xl font-bold ${color.text} mt-1`}>₦{stat.total.toLocaleString()}</p>
+                <div key={stat.type} className={`card border-l-4 ${color.border} bg-white dark:bg-gray-800 shadow-md overflow-hidden`}>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm font-medium truncate">{stat.type}</p>
+                  <p className={`text-3xl font-bold ${color.text} mt-1 break-words`}>₦{stat.total.toLocaleString()}</p>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {stat.count} {stat.count === 1 ? 'entry' : 'entries'}
                   </p>
@@ -417,32 +417,32 @@ export default function ExpensesPage() {
           {/* Staff Role Breakdown */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {recordedRoleStats.admin > 0 && (
-              <div className="card border-l-4 border-l-red-500 bg-white dark:bg-gray-800 shadow-md">
+              <div className="card border-l-4 border-l-red-500 bg-white dark:bg-gray-800 shadow-md overflow-hidden">
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Admin Expenses</p>
-                <p className="text-2xl font-bold text-red-650 mt-1">{recordedRoleStats.admin}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-2xl font-bold text-red-650 mt-1 break-words">{recordedRoleStats.admin}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 break-words">
                   ₦{recordedRoleStats.admin_amount.toLocaleString()}
                 </p>
               </div>
             )}
-            <div className="card border-l-4 border-l-green-500 bg-white dark:bg-gray-800 shadow-md">
+            <div className="card border-l-4 border-l-green-500 bg-white dark:bg-gray-800 shadow-md overflow-hidden">
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Commission Staff</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-455 mt-1">{recordedRoleStats.commission}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-2xl font-bold text-green-600 dark:text-green-455 mt-1 break-words">{recordedRoleStats.commission}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 break-words">
                 ₦{recordedRoleStats.commission_amount.toLocaleString()}
               </p>
             </div>
-            <div className="card border-l-4 border-l-blue-500 bg-white dark:bg-gray-800 shadow-md">
+            <div className="card border-l-4 border-l-blue-500 bg-white dark:bg-gray-800 shadow-md overflow-hidden">
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Non-Commission Staff</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">{recordedRoleStats.non_commission}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-2xl font-bold text-blue-600 mt-1 break-words">{recordedRoleStats.non_commission}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 break-words">
                 ₦{recordedRoleStats.non_commission_amount.toLocaleString()}
               </p>
             </div>
-            <div className="card border-l-4 border-l-orange-500 bg-white dark:bg-gray-800 shadow-md">
+            <div className="card border-l-4 border-l-orange-500 bg-white dark:bg-gray-800 shadow-md overflow-hidden">
               <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Sales Staff</p>
-              <p className="text-2xl font-bold text-orange-600 mt-1">{recordedRoleStats.sales}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-2xl font-bold text-orange-600 mt-1 break-words">{recordedRoleStats.sales}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 break-words">
                 ₦{recordedRoleStats.sales_amount.toLocaleString()}
               </p>
             </div>
@@ -451,13 +451,13 @@ export default function ExpensesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Approved Card */}
-          <div className="card bg-white dark:bg-gray-800 border-l-4 border-l-green-500 shadow-md">
+          <div className="card bg-white dark:bg-gray-800 border-l-4 border-l-green-500 shadow-md overflow-hidden">
             <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold uppercase tracking-wider">Approved Expenses</p>
-            <div className="flex justify-between items-baseline mt-2">
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+            <div className="flex justify-between items-baseline mt-2 gap-2">
+              <p className="text-3xl font-bold text-green-600 dark:text-green-400 break-words">
                 ₦{approvedList.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}
               </p>
-              <span className="text-sm font-medium bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full">
+              <span className="text-sm font-medium bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full flex-shrink-0">
                 {approvedList.length} items
               </span>
             </div>
@@ -465,13 +465,13 @@ export default function ExpensesPage() {
           </div>
 
           {/* Pending Card */}
-          <div className="card bg-white dark:bg-gray-800 border-l-4 border-l-yellow-500 shadow-md">
+          <div className="card bg-white dark:bg-gray-800 border-l-4 border-l-yellow-500 shadow-md overflow-hidden">
             <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold uppercase tracking-wider">Pending Approvals</p>
-            <div className="flex justify-between items-baseline mt-2">
-              <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+            <div className="flex justify-between items-baseline mt-2 gap-2">
+              <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400 break-words">
                 ₦{pendingList.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}
               </p>
-              <span className="text-sm font-medium bg-yellow-100 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-300 px-2 py-0.5 rounded-full">
+              <span className="text-sm font-medium bg-yellow-100 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-300 px-2 py-0.5 rounded-full flex-shrink-0">
                 {pendingList.length} items
               </span>
             </div>
@@ -479,13 +479,13 @@ export default function ExpensesPage() {
           </div>
 
           {/* Rejected Card */}
-          <div className="card bg-white dark:bg-gray-800 border-l-4 border-l-red-500 shadow-md">
+          <div className="card bg-white dark:bg-gray-800 border-l-4 border-l-red-500 shadow-md overflow-hidden">
             <p className="text-gray-500 dark:text-gray-400 text-sm font-semibold uppercase tracking-wider">Rejected Expenses</p>
-            <div className="flex justify-between items-baseline mt-2">
-              <p className="text-3xl font-bold text-red-650 dark:text-red-400">
+            <div className="flex justify-between items-baseline mt-2 gap-2">
+              <p className="text-3xl font-bold text-red-650 dark:text-red-400 break-words">
                 ₦{rejectedList.reduce((sum, e) => sum + (e.amount || 0), 0).toLocaleString()}
               </p>
-              <span className="text-sm font-medium bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 px-2 py-0.5 rounded-full">
+              <span className="text-sm font-medium bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 px-2 py-0.5 rounded-full flex-shrink-0">
                 {rejectedList.length} items
               </span>
             </div>

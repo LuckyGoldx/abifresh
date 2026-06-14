@@ -109,24 +109,24 @@ export default function SuperAdminUsersPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <Users className="w-8 h-8 text-violet-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{users.length}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{users.length}</p>
           <p className="text-sm text-gray-500">Total Users</p>
         </div>
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <UserCheck className="w-8 h-8 text-green-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{users.filter(u => u.is_active).length}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{users.filter(u => u.is_active).length}</p>
           <p className="text-sm text-gray-500">Active</p>
         </div>
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <UserX className="w-8 h-8 text-red-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{users.filter(u => !u.is_active).length}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{users.filter(u => !u.is_active).length}</p>
           <p className="text-sm text-gray-500">Inactive</p>
         </div>
-        <div className="card text-center">
+        <div className="card text-center overflow-hidden">
           <Shield className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-          <p className="text-2xl font-bold text-gray-800 dark:text-white">{uniqueRoles.length}</p>
+          <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">{uniqueRoles.length}</p>
           <p className="text-sm text-gray-500">Roles</p>
         </div>
       </div>

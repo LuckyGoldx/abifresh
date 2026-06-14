@@ -207,14 +207,14 @@ export default function SuperAdminCreditPaymentsPage() {
             document.getElementById('credit-tabs-nav')?.scrollIntoView({ behavior: 'smooth' });
           }, 100);
         }}
-        className="card border-l-4 border-l-pink-500 bg-pink-50 dark:bg-pink-900 cursor-pointer hover:shadow-lg hover:scale-105 transition-all">
+        className="card border-l-4 border-l-pink-500 bg-pink-50 dark:bg-pink-900 cursor-pointer hover:shadow-lg hover:scale-105 transition-all overflow-hidden">
         <div className="flex items-start gap-3">
-          <div className="p-3 bg-pink-100 dark:bg-pink-800 rounded-full">
+          <div className="p-3 bg-pink-100 dark:bg-pink-800 rounded-full flex-shrink-0">
             <AlertTriangle className="w-6 h-6 text-pink-600 dark:text-pink-300" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-bold text-pink-700 dark:text-pink-300">Total Unremitted (Sitting with Staff)</p>
-            <p className="text-3xl font-black text-pink-600 dark:text-pink-400">
+            <p className="text-3xl font-black text-pink-600 dark:text-pink-400 break-words">
               ₦{stats.outstandingAmount.toLocaleString()}
             </p>
             <p className="text-xs font-medium text-pink-600 dark:text-pink-300 mt-1">
@@ -225,17 +225,17 @@ export default function SuperAdminCreditPaymentsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card border-l-4 border-l-green-500">
+        <div className="card border-l-4 border-l-green-500 overflow-hidden">
           <p className="text-sm font-bold text-gray-600 dark:text-gray-400">Total Approved</p>
-          <p className="text-2xl font-black text-green-600">₦{stats.approvedAmount.toLocaleString()}</p>
+          <p className="text-2xl font-black text-green-600 break-words">₦{stats.approvedAmount.toLocaleString()}</p>
         </div>
-        <div className="card border-l-4 border-l-yellow-500">
+        <div className="card border-l-4 border-l-yellow-500 overflow-hidden">
           <p className="text-sm font-bold text-gray-600 dark:text-gray-400">Pending Approvals</p>
-          <p className="text-2xl font-black text-yellow-600">₦{stats.pendingAmount.toLocaleString()}</p>
+          <p className="text-2xl font-black text-yellow-600 break-words">₦{stats.pendingAmount.toLocaleString()}</p>
         </div>
-        <div className="card border-l-4 border-l-red-500">
+        <div className="card border-l-4 border-l-red-500 overflow-hidden">
           <p className="text-sm font-bold text-gray-600 dark:text-gray-400">Rejected Remittances</p>
-          <p className="text-2xl font-black text-red-600">₦{stats.rejectedAmount.toLocaleString()}</p>
+          <p className="text-2xl font-black text-red-600 break-words">₦{stats.rejectedAmount.toLocaleString()}</p>
         </div>
       </div>
 

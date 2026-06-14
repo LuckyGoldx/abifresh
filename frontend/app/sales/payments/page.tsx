@@ -587,12 +587,12 @@ export default function SalesPaymentsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="card bg-purple-50 dark:bg-purple-900 border-l-4 border-purple-500">
+        <div className="card bg-purple-50 dark:bg-purple-900 border-l-4 border-purple-500 overflow-hidden">
           <div className="flex items-center gap-3">
-            <FileText className="w-8 h-8 text-purple-600" />
-            <div>
+            <FileText className="w-8 h-8 text-purple-600 flex-shrink-0" />
+            <div className="min-w-0">
               <p className="text-sm text-purple-700 dark:text-purple-200">Total Items Sold</p>
-              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100 break-words">
                 {formatQty(stats.allTimeQuantity || 0)} units
               </p>
               <p className="text-xs text-purple-600 dark:text-purple-300 mt-1">

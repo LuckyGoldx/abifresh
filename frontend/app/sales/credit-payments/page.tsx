@@ -256,48 +256,48 @@ export default function SalesCreditPaymentsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card bg-green-50 dark:bg-green-900 border-l-4 border-green-500">
+        <div className="card bg-green-50 dark:bg-green-900 border-l-4 border-green-500 overflow-hidden">
           <div className="flex items-center gap-3">
-            <CheckCircle className="w-8 h-8 text-green-600" />
-            <div>
+            <CheckCircle className="w-8 h-8 text-green-600 flex-shrink-0" />
+            <div className="min-w-0">
               <p className="text-sm text-green-700 dark:text-green-200">Total Approved</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+              <p className="text-2xl font-bold text-green-900 dark:text-green-100 break-words">
                 ₦{stats.approvedAmount.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="card bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-500">
+        <div className="card bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-500 overflow-hidden">
           <div className="flex items-center gap-3">
-            <Clock className="w-8 h-8 text-yellow-600" />
-            <div>
+            <Clock className="w-8 h-8 text-yellow-600 flex-shrink-0" />
+            <div className="min-w-0">
               <p className="text-sm text-yellow-700 dark:text-yellow-200">Total Pending</p>
-              <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
+              <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100 break-words">
                 ₦{stats.pendingAmount.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="card bg-gray-50 dark:bg-gray-800 border-l-4 border-gray-500">
+        <div className="card bg-gray-50 dark:bg-gray-800 border-l-4 border-gray-500 overflow-hidden">
           <div className="flex items-center gap-3">
-            <XCircle className="w-8 h-8 text-gray-600" />
-            <div>
+            <XCircle className="w-8 h-8 text-gray-600 flex-shrink-0" />
+            <div className="min-w-0">
               <p className="text-sm text-gray-700 dark:text-gray-200">Total Rejected</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 break-words">
                 ₦{stats.rejectedAmount.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="card bg-red-50 dark:bg-red-900 border-l-4 border-red-500">
+        <div className="card bg-red-50 dark:bg-red-900 border-l-4 border-red-500 overflow-hidden">
           <div className="flex items-center gap-3">
-            <DollarSign className="w-8 h-8 text-red-600" />
-            <div>
+            <DollarSign className="w-8 h-8 text-red-600 flex-shrink-0" />
+            <div className="min-w-0">
               <p className="text-sm text-red-700 dark:text-red-200">Outstanding</p>
-              <p className="text-2xl font-bold text-red-900 dark:text-red-100">
+              <p className="text-2xl font-bold text-red-900 dark:text-red-100 break-words">
                 ₦{stats.outstandingAmount.toLocaleString()}
               </p>
               <p className="text-[10px] text-red-600 dark:text-red-300 mt-1 uppercase tracking-wider font-bold">Needs Remittance</p>

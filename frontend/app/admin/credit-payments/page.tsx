@@ -238,15 +238,15 @@ export default function AdminCreditPaymentsPage() {
             document.getElementById('credit-tabs-nav')?.scrollIntoView({ behavior: 'smooth' });
           }, 100);
         }}
-        className="card border-l-4 border-l-pink-500 bg-pink-50 dark:bg-pink-900 cursor-pointer hover:shadow-lg hover:scale-105 transition-all"
+        className="card border-l-4 border-l-pink-500 bg-pink-50 dark:bg-pink-900 cursor-pointer hover:shadow-lg hover:scale-105 transition-all overflow-hidden"
       >
         <div className="flex items-start gap-3">
-          <div className="p-3 bg-pink-100 dark:bg-pink-800 rounded-full">
+          <div className="p-3 bg-pink-100 dark:bg-pink-800 rounded-full flex-shrink-0">
             <AlertTriangle className="w-6 h-6 text-pink-600 dark:text-pink-300" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-bold text-pink-700 dark:text-pink-300">Total Unremitted (Sitting with Staff)</p>
-            <p className="text-3xl font-black text-pink-600 dark:text-pink-400">
+            <p className="text-3xl font-black text-pink-600 dark:text-pink-400 break-words">
               ₦{stats.outstandingAmount.toLocaleString()}
             </p>
             <p className="text-xs font-medium text-pink-600 dark:text-pink-300 mt-1">
@@ -257,47 +257,47 @@ export default function AdminCreditPaymentsPage() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <div className="card border-l-4 border-l-green-500 p-3 md:p-4">
+        <div className="card border-l-4 border-l-green-500 p-3 md:p-4 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-50 dark:bg-green-900/30 rounded-xl flex-shrink-0">
               <CheckCircle className="w-6 h-6 text-green-600" />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-0.5">Total Approved</p>
-              <p className="text-xl font-black text-green-600 whitespace-nowrap">₦{stats.approvedAmount.toLocaleString()}</p>
+              <p className="text-xl font-black text-green-600 break-words">₦{stats.approvedAmount.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card border-l-4 border-l-yellow-500 p-3 md:p-4">
+        <div className="card border-l-4 border-l-yellow-500 p-3 md:p-4 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-xl flex-shrink-0">
               <Clock className="w-6 h-6 text-yellow-600" />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-0.5">Pending</p>
-              <p className="text-xl font-black text-yellow-600 whitespace-nowrap">₦{stats.pendingAmount.toLocaleString()}</p>
+              <p className="text-xl font-black text-yellow-600 break-words">₦{stats.pendingAmount.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card border-l-4 border-l-red-500 p-3 md:p-4">
+        <div className="card border-l-4 border-l-red-500 p-3 md:p-4 overflow-hidden">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-red-50 dark:bg-red-900/30 rounded-xl flex-shrink-0">
               <XCircle className="w-6 h-6 text-red-600" />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-black text-gray-500 uppercase tracking-wider mb-0.5">Rejected</p>
-              <p className="text-xl font-black text-red-600 whitespace-nowrap">₦{stats.rejectedAmount.toLocaleString()}</p>
+              <p className="text-xl font-black text-red-600 break-words">₦{stats.rejectedAmount.toLocaleString()}</p>
             </div>
           </div>
         </div>
-        <div className="card border-l-4 border-l-pink-500 p-3 md:p-4 bg-white dark:bg-gray-800 bg-pink-50/10 cursor-pointer hover:bg-pink-50/30 transition-all" onClick={() => { setActiveTab('breakdown'); setTimeout(() => document.getElementById('staff-breakdown-table')?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
+        <div className="card border-l-4 border-l-pink-500 p-3 md:p-4 bg-white dark:bg-gray-800 bg-pink-50/10 cursor-pointer hover:bg-pink-50/30 transition-all overflow-hidden" onClick={() => { setActiveTab('breakdown'); setTimeout(() => document.getElementById('staff-breakdown-table')?.scrollIntoView({ behavior: 'smooth' }), 100); }}>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-pink-100 dark:bg-pink-900/30 rounded-xl flex-shrink-0">
               <AlertTriangle className="w-6 h-6 text-pink-600 dark:text-pink-400" />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-black text-pink-600 dark:text-pink-400 uppercase tracking-wider mb-0.5">Unremitted</p>
-              <p className="text-xl font-black text-pink-600 dark:text-pink-400 whitespace-nowrap">₦{stats.outstandingAmount.toLocaleString()}</p>
+              <p className="text-xl font-black text-pink-600 dark:text-pink-400 break-words">₦{stats.outstandingAmount.toLocaleString()}</p>
             </div>
           </div>
         </div>

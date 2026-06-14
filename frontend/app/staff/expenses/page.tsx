@@ -140,18 +140,18 @@ export default function ExpensesPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card col-span-2 md:col-span-1 bg-gradient-to-br from-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/20">
+        <div className="card col-span-2 md:col-span-1 bg-gradient-to-br from-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/20 overflow-hidden">
           <p className="text-sm opacity-90 font-medium">Total Approved Expenses</p>
-          <p className="text-3xl font-bold mt-1">₦{totalApprovedExpenses.toLocaleString()}</p>
+          <p className="text-3xl font-bold mt-1 break-words">₦{totalApprovedExpenses.toLocaleString()}</p>
           <p className="text-xs opacity-75 mt-1">
             {expenses.filter((e) => e.status === 'approved').length} approved entries
           </p>
         </div>
 
         {Object.entries(expensesByCategory).slice(0, 3).map(([cat, amt]) => (
-          <div key={cat} className="card bg-gray-50 dark:bg-gray-800 border dark:border-gray-700/50">
+          <div key={cat} className="card bg-gray-50 dark:bg-gray-800 border dark:border-gray-700/50 overflow-hidden">
             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">{cat}</p>
-            <p className="text-2xl font-bold text-gray-800 dark:text-white mt-1">
+            <p className="text-2xl font-bold text-gray-800 dark:text-white mt-1 break-words">
               ₦{amt.toLocaleString()}
             </p>
           </div>

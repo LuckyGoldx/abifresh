@@ -543,12 +543,69 @@ export default function SalesDashboard() {
     <div className="space-y-6">
       {/* Dashboard Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-hidden">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Today's Items Sold</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatQty(stats?.today_items_sold || 0)}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm truncate">Today's Items Sold</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white break-words">{formatQty(stats?.today_items_sold || 0)}</p>
             </div>
+            <Package className="w-8 h-8 text-pink-500 flex-shrink-0 ml-3" />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm truncate">Today's Amount</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white break-words">₦{(stats?.today_amount_sold || 0).toLocaleString()}</p>
+            </div>
+            <svg className="w-8 h-8 text-green-500 flex-shrink-0 ml-3" fill="currentColor" viewBox="0 0 24 24">
+              <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="16" fontWeight="bold">₦</text>
+            </svg>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm truncate">Available Items</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white break-words">{stats?.available_items_count || 0}</p>
+            </div>
+            <CheckCircle className="w-8 h-8 text-blue-500 flex-shrink-0 ml-3" />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm truncate">Unavailable Items</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white break-words">{unavailableItems.length}</p>
+            </div>
+            <X className="w-8 h-8 text-red-500 flex-shrink-0 ml-3" />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm truncate">Posted Items (Accepted)</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white break-words">{postedItemsStats?.accepted_items || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">qty: {formatQty(postedItemsStats?.accepted_quantity || 0)}</p>
+            </div>
+            <TrendingUp className="w-8 h-8 text-purple-500 flex-shrink-0 ml-3" />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm truncate">Posted Items (Total)</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white break-words">{postedItemsStats?.total_posted_items || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">qty: {formatQty(postedItemsStats?.total_posted_quantity || 0)}</p>
+            </div>
+            <Users className="w-8 h-8 text-orange-500 flex-shrink-0 ml-3" />
+          </div>
+        </div>
             <Package className="w-8 h-8 text-pink-500" />
           </div>
         </div>

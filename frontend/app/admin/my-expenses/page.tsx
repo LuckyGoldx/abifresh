@@ -140,16 +140,16 @@ export default function AdminExpensesPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        <div className="card bg-gradient-to-br from-pink-500 to-purple-500 text-white">
+        <div className="card bg-gradient-to-br from-pink-500 to-purple-500 text-white overflow-hidden">
           <p className="text-sm opacity-90">Total Expenses</p>
-          <p className="text-3xl font-bold mt-1">₦{totalExpenses.toLocaleString()}</p>
+          <p className="text-3xl font-bold mt-1 break-words">₦{totalExpenses.toLocaleString()}</p>
           <p className="text-xs opacity-75 mt-1">{expenses.length} entries</p>
         </div>
 
         {Object.entries(expensesByCategory).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
-          <div key={cat} className="card bg-gray-50 dark:bg-gray-800">
+          <div key={cat} className="card bg-gray-50 dark:bg-gray-800 overflow-hidden">
             <p className="text-sm text-gray-600 dark:text-gray-400">{cat}</p>
-            <p className="text-2xl font-bold text-gray-800 dark:text-white">
+            <p className="text-2xl font-bold text-gray-800 dark:text-white break-words">
               ₦{amt.toLocaleString()}
             </p>
           </div>
