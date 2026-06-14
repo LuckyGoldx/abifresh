@@ -66,7 +66,41 @@ export default function CreditsPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Today's Credit Sales */}
+          <div>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-3">Today's Credit Sales</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatsCard
+                icon={({ className }: { className?: string }) => <span className={`${className} flex items-center justify-center text-2xl font-black leading-none`}>₦</span>}
+                label="Today's Credit Sales"
+                value={`₦${Number(stats.today_credits_amount || 0).toLocaleString()}`}
+                color="bg-blue-50"
+              />
+              <StatsCard
+                icon={Package}
+                label="Today's Credit Items"
+                value={stats.today_credit_items || 0}
+                color="bg-green-50"
+              />
+              <StatsCard
+                icon={TrendingUp}
+                label="Today's Credits Collected"
+                value={`₦${Number(stats.today_credits_collected || 0).toLocaleString()}`}
+                color="bg-orange-50"
+              />
+              <StatsCard
+                icon={({ className }: { className?: string }) => <span className={`${className} flex items-center justify-center text-lg font-black`}>#</span>}
+                label="Today's Quantity Sold"
+                value={formatQty(Number(stats.today_quantity_sold || 0))}
+                color="bg-purple-50"
+              />
+            </div>
+          </div>
+
+          {/* All-Time Credits */}
+          <div>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-3">All-Time Credits</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard
               icon={({ className }: { className?: string }) => <span className={`${className} flex items-center justify-center text-2xl font-black leading-none`}>₦</span>}
               label="Total Credits Amount"
@@ -91,6 +125,7 @@ export default function CreditsPage() {
               value={`₦${Number(stats.total_amount_paid || stats.totalAmountPaid || 0).toLocaleString()}`}
               color="bg-orange-50"
             />
+          </div>
           </div>
           <ActivityLog activities={activities} />
         </div>
