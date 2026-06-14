@@ -215,6 +215,19 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  // Credit Store
+  const { data: creditStoreRaw } = await supabaseAdmin
+    .from('credit_store')
+    .select('*')
+    .neq('status', 'paid');
+  const creditStoreArray = (creditStoreRaw || []).map((cs: any) => {
+    return {
+      id: cs.id, item_id: cs.item_id, item_name: cs.item_name,
+      quantity: Number(cs.quantity) || 0, unit_price: Number(cs.unit_price) || 0,
+      creditor_id: cs.creditor_id, status: cs.status,
+    };
+  });
+
   // Summaries
   const totalRevenue = receipts.reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0);
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + (e.expense_amount || 0), 0);
@@ -492,6 +505,9 @@ export async function GET(req: NextRequest) {
       staff_store_total: staffStoreArray.length,
       staff_store_total_quantity: staffStoreArray.reduce((s: number, i: any) => s + i.quantity, 0),
       staff_store_items: staffStoreArray,
+      credit_store_total: creditStoreArray.length,
+      credit_store_total_quantity: creditStoreArray.reduce((s: number, i: any) => s + i.quantity, 0),
+      credit_store_items: creditStoreArray,
       low_stock_total: lowStockItems.length,
       low_stock_total_quantity: lowStockItems.reduce((s: number, i: any) => s + i.total_quantity, 0),
       low_stock_items: lowStockItems,

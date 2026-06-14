@@ -63,6 +63,9 @@ interface ComprehensiveReport {
     staff_store_total: number;
     staff_store_total_quantity: number;
     staff_store_items: Array<any>;
+    credit_store_total: number;
+    credit_store_total_quantity: number;
+    credit_store_items: Array<any>;
     low_stock_total: number;
     low_stock_total_quantity: number;
     low_stock_items: Array<any>;
@@ -93,7 +96,7 @@ export default function ComprehensiveReportsPage() {
   const [staff, setStaff] = useState<any[]>([]);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedStaffDetail, setSelectedStaffDetail] = useState<any>(null);
-  const [selectedStore, setSelectedStore] = useState<'all' | 'main' | 'active' | 'staff'>('all');
+  const [selectedStore, setSelectedStore] = useState<'all' | 'main' | 'active' | 'staff' | 'credit'>('all');
 
   useEffect(() => {
     fetchAllStaff();
@@ -239,94 +242,81 @@ export default function ComprehensiveReportsPage() {
   };
 
   const renderFilterSection = () => (
-    <div className="card space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white flex items-center gap-2">
-          <Filter className="w-5 h-5 text-blue-500" />
-          Filters & Parameters
-        </h3>
-        <button
-          onClick={handleExportPDF}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <Filter size={16} className="text-gray-400" />
+        <select
+          value={filters.dateRange}
+          onChange={(e) => setFilters({ ...filters, dateRange: e.target.value as any })}
+          className="text-sm font-bold text-gray-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none"
         >
-          <Download className="w-4 h-4" />
-          Export PDF
-        </button>
+          <option value="all">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+          <option value="year">This Year</option>
+          <option value="custom">Custom Date</option>
+        </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Date Range */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Date Range</label>
-          <select
-            value={filters.dateRange}
-            onChange={(e) => setFilters({ ...filters, dateRange: e.target.value as any })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
-          >
-            <option value="all">All Time</option>
-            <option value="today">Today</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="year">This Year</option>
-            <option value="custom">Custom Date</option>
-          </select>
-        </div>
+      {filters.dateRange === 'custom' && (
+        <>
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <Calendar size={16} className="text-gray-400" />
+            <input
+              type="date"
+              value={filters.customFrom || ''}
+              onChange={(e) => setFilters({ ...filters, customFrom: e.target.value })}
+              className="text-sm font-bold text-gray-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none"
+            />
+          </div>
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <Calendar size={16} className="text-gray-400" />
+            <input
+              type="date"
+              value={filters.customTo || ''}
+              onChange={(e) => setFilters({ ...filters, customTo: e.target.value })}
+              className="text-sm font-bold text-gray-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none"
+            />
+          </div>
+        </>
+      )}
 
-        {/* Custom Date Range */}
-        {filters.dateRange === 'custom' && (
-          <>
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">From</label>
-              <input
-                type="date"
-                value={filters.customFrom || ''}
-                onChange={(e) => setFilters({ ...filters, customFrom: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">To</label>
-              <input
-                type="date"
-                value={filters.customTo || ''}
-                onChange={(e) => setFilters({ ...filters, customTo: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
-              />
-            </div>
-          </>
-        )}
-
-        {/* Staff Filter */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Staff Member</label>
-          <select
-            value={filters.staffId || ''}
-            onChange={(e) => setFilters({ ...filters, staffId: e.target.value || undefined, staffRole: undefined })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
-          >
-            <option value="">All Staff</option>
-            {staff.filter(s => s.role !== 'superadmin').map(s => (
-              <option key={s.id} value={s.id}>{s.full_name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Staff Role Filter */}
-        <div>
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Staff Role</label>
-          <select
-            value={filters.staffRole || ''}
-            onChange={(e) => setFilters({ ...filters, staffRole: e.target.value || undefined, staffId: undefined })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
-          >
-            <option value="">All Roles</option>
-            <option value="commission_staff">Commission Staff</option>
-            <option value="non_commission_staff">Non-Commission Staff</option>
-            <option value="sales">Sales Staff</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
+      <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <User size={16} className="text-gray-400" />
+        <select
+          value={filters.staffId || ''}
+          onChange={(e) => setFilters({ ...filters, staffId: e.target.value || undefined, staffRole: undefined })}
+          className="text-sm font-bold text-gray-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none"
+        >
+          <option value="">All Staff</option>
+          {staff.filter(s => s.role !== 'superadmin').map(s => (
+            <option key={s.id} value={s.id}>{s.full_name}</option>
+          ))}
+        </select>
       </div>
+
+      <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <Filter size={16} className="text-gray-400" />
+        <select
+          value={filters.staffRole || ''}
+          onChange={(e) => setFilters({ ...filters, staffRole: e.target.value || undefined, staffId: undefined })}
+          className="text-sm font-bold text-gray-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none"
+        >
+          <option value="">All Roles</option>
+          <option value="commission_staff">Commission Staff</option>
+          <option value="non_commission_staff">Non-Commission Staff</option>
+          <option value="sales">Sales Staff</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      <button
+        onClick={handleExportPDF}
+        className="flex items-center gap-2 px-6 py-3 bg-pink-600 rounded-2xl text-sm font-bold text-white hover:bg-pink-700 transition-all shadow-lg shadow-pink-100 dark:shadow-none"
+      >
+        <Download size={18} /> Export PDF
+      </button>
     </div>
   );
 
@@ -658,7 +648,7 @@ export default function ComprehensiveReportsPage() {
       )}
 
       {/* Inventory Summary KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
         <div className="card border-l-4 border-l-indigo-500 overflow-hidden">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Total Items</p>
           <p className="text-2xl md:text-3xl font-bold text-indigo-600 break-words">
@@ -682,6 +672,11 @@ export default function ComprehensiveReportsPage() {
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Staff Store</p>
           <p className="text-2xl md:text-3xl font-bold text-purple-600 break-words">{report?.inventory.staff_store_total || 0}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.staff_store_total_quantity || 0}</p>
+        </div>
+        <div className="card border-l-4 border-l-rose-500 overflow-hidden">
+          <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Credit Store</p>
+          <p className="text-2xl md:text-3xl font-bold text-rose-600 break-words">{report?.inventory.credit_store_total || 0}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Qty: {report?.inventory.credit_store_total_quantity || 0}</p>
         </div>
       </div>
 
@@ -726,6 +721,16 @@ export default function ComprehensiveReportsPage() {
           }`}
         >
           Staff Store
+        </button>
+        <button
+          onClick={() => setSelectedStore('credit')}
+          className={`px-4 py-2 rounded-lg font-medium transition ${
+            selectedStore === 'credit'
+              ? 'bg-blue-500 text-white shadow-lg'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+          }`}
+        >
+          Credit Store
         </button>
       </div>
 
@@ -853,6 +858,50 @@ export default function ComprehensiveReportsPage() {
                   <td className="px-4 py-3">{formatQty(item.quantity_available || item.quantity)}</td>
                   <td className="px-4 py-3">₦{(item.unit_price || 0).toLocaleString()}</td>
                   <td className="px-4 py-3 text-green-600 font-semibold">₦{((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      )}
+
+      {/* Credit Store Inventory */}
+      {(selectedStore === 'all' || selectedStore === 'credit') && (
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-white flex items-center gap-2">
+          <Warehouse className="w-5 h-5 text-rose-500" />
+          Credit Store Inventory
+        </h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-100 dark:bg-gray-700">
+              <tr>
+                <th className="px-4 py-3 text-left font-semibold">Item Name</th>
+                <th className="px-4 py-3 text-left font-semibold">Quantity</th>
+                <th className="px-4 py-3 text-left font-semibold">Unit Price</th>
+                <th className="px-4 py-3 text-left font-semibold">Total Value</th>
+                <th className="px-4 py-3 text-left font-semibold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(report?.inventory.credit_store_items || []).slice(0, 15).map((item, idx) => (
+                <tr key={idx} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <td className="px-4 py-3 font-medium">{item.item_name}</td>
+                  <td className="px-4 py-3">{formatQty(item.quantity)}</td>
+                  <td className="px-4 py-3">₦{(item.unit_price || 0).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-rose-600 font-semibold">₦{((item.quantity || 0) * (item.unit_price || 0)).toLocaleString()}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                      item.status === 'active' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                      item.status === 'partially_paid' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' :
+                      item.status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' :
+                      item.status === 'returned' || item.status === 'available_for_return' ? 'bg-gray-100 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {item.status?.replace(/_/g, ' ') || 'unknown'}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
