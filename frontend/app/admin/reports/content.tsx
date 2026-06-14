@@ -315,9 +315,9 @@ export default function ComprehensiveReportsPage() {
 
       <button
         onClick={handleExportPDF}
-        className="flex items-center justify-center w-10 h-10 bg-pink-600 rounded-2xl text-white hover:bg-pink-700 transition-all shadow-lg shadow-pink-100 dark:shadow-none flex-shrink-0 ml-auto"
+        className="hidden lg:flex items-center gap-2 px-4 py-2 bg-pink-600 rounded-2xl text-sm font-bold text-white hover:bg-pink-700 transition-all shadow-lg shadow-pink-100 dark:shadow-none flex-shrink-0 ml-auto"
       >
-        <Download size={18} />
+        <Download size={18} /> Export PDF
       </button>
     </div>
   );
