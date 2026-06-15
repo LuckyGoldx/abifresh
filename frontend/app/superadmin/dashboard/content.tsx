@@ -260,10 +260,10 @@ export default function SuperAdminDashboard() {
         <div className="space-y-6">
           {/* Quick Stats Row */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={Banknote} title="Today's Revenue" value={`?${stats.today_amount.toLocaleString()}`} color="bg-emerald-600" />
+            <StatCard icon={Banknote} title="Today's Revenue" value={`₦${stats.today_amount.toLocaleString()}`} color="bg-emerald-600" />
             <StatCard icon={ArrowRightLeft} title="Today's Transactions" value={stats.today_sales} color="bg-cyan-500" />
-            <StatCard icon={Wallet} title="Total Revenue" value={`?${stats.total_amount.toLocaleString()}`} color="bg-green-600" />
-            <StatCard icon={Clock} title="Pending Approvals" value={stats.pending_approvals} color="bg-orange-500" onClick={() => router.push('/superadmin/payments')} additionalInfo={`?${stats.pending_amount.toLocaleString()}`} />
+            <StatCard icon={Wallet} title="Total Revenue" value={`₦${stats.total_amount.toLocaleString()}`} color="bg-green-600" />
+            <StatCard icon={Clock} title="Pending Approvals" value={stats.pending_approvals} color="bg-orange-500" onClick={() => router.push('/superadmin/payments')} additionalInfo={`₦${stats.pending_amount.toLocaleString()}`} />
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -282,7 +282,7 @@ export default function SuperAdminDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" fontSize={12} />
                   <YAxis />
-                  <Tooltip formatter={(value: number) => `?${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
                   <Legend />
                   <Line type="monotone" dataKey="amount" name="Revenue" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} />
                 </LineChart>
@@ -296,7 +296,7 @@ export default function SuperAdminDashboard() {
                   <Pie data={paymentMethodData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                     {paymentMethodData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(value: number) => `?${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -336,7 +336,7 @@ export default function SuperAdminDashboard() {
         <div className="space-y-6">
           {/* Today vs All Time */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatCard icon={Banknote} title="Today's Sales Amount" value={`?${stats.today_amount.toLocaleString()}`} color="bg-emerald-600" />
+            <StatCard icon={Banknote} title="Today's Sales Amount" value={`₦${stats.today_amount.toLocaleString()}`} color="bg-emerald-600" />
             <StatCard icon={ArrowRightLeft} title="Today's Transactions" value={stats.today_sales} color="bg-cyan-500" />
             <StatCard icon={Package} title="Today's Items Sold" value={formatQty(stats.today_items || 0)} color="bg-indigo-500" />
           </div>
@@ -420,7 +420,7 @@ export default function SuperAdminDashboard() {
                           <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs font-semibold capitalize">{receipt.payment_method}</span>
                         </td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{(receipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0)}</td>
-                        <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">?{receipt.total_amount.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">₦{receipt.total_amount.toLocaleString()}</td>
                         <td className="px-4 py-3 text-center">
                           <button onClick={() => { setSelectedReceipt(receipt); setShowReceiptDetail(true); }}
                             className="inline-flex items-center justify-center px-3 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
@@ -481,7 +481,7 @@ export default function SuperAdminDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
                   <YAxis dataKey="name" type="category" width={100} fontSize={12} />
-                  <Tooltip formatter={(value: number) => `?${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
                   <Bar dataKey="amount" name="Revenue" fill="#ec4899" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -540,8 +540,8 @@ export default function SuperAdminDashboard() {
       {activeTab === 'system' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={Server} title="Backend Status" value="Online" color="bg-green-600" badge="?" />
-            <StatCard icon={Database} title="Database" value="Connected" color="bg-blue-600" badge="?" />
+            <StatCard icon={Server} title="Backend Status" value="Online" color="bg-green-600" badge="✓" />
+            <StatCard icon={Database} title="Database" value="Connected" color="bg-blue-600" badge="✓" />
             <StatCard icon={Activity} title="API Health" value="Healthy" color="bg-emerald-500" />
             <StatCard icon={AlertTriangle} title="Pending Alerts" value={stats.pending_approvals} color="bg-amber-500" />
           </div>
@@ -577,7 +577,7 @@ export default function SuperAdminDashboard() {
                   { label: 'Active Users', value: stats.active_users },
                   { label: 'Inactive Users', value: stats.inactive_users },
                   { label: 'Total Receipts', value: receipts.length },
-                  { label: 'Total Revenue', value: `?${stats.total_amount.toLocaleString()}` },
+                  { label: 'Total Revenue', value: `₦${stats.total_amount.toLocaleString()}` },
                   { label: 'Pending Payments', value: stats.pending_approvals },
                   { label: 'Items Sold', value: formatQty(stats.total_items) },
                 ].map(item => (
@@ -601,7 +601,7 @@ export default function SuperAdminDashboard() {
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="count" name="Transactions" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="amount" name="Revenue (?)" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="amount" name="Revenue (₦)" fill="#ec4899" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -633,7 +633,7 @@ export default function SuperAdminDashboard() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Outside Jalingo</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{selectedReceipt.sold_outside_jalingo ? '? Yes' : '? No'}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{selectedReceipt.sold_outside_jalingo ? '✅ Yes' : '❌ No'}</p>
                   </div>
                 </div>
               </div>
@@ -659,9 +659,9 @@ export default function SuperAdminDashboard() {
                           <p className="font-semibold text-gray-900 dark:text-white">
                             {typeof item.item_id === 'object' && item.item_id?.name ? item.item_id.name : 'Unknown Item'}
                           </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Qty: {formatQty(item.quantity)} � ?{(item.unit_price || 0).toLocaleString()}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Qty: {formatQty(item.quantity)} × ₦{(item.unit_price || 0).toLocaleString()}</p>
                         </div>
-                        <p className="font-bold text-gray-900 dark:text-white">?{((item.unit_price || 0) * item.quantity).toLocaleString()}</p>
+                        <p className="font-bold text-gray-900 dark:text-white">₦{((item.unit_price || 0) * item.quantity).toLocaleString()}</p>
                       </div>
                     ))
                   ) : (
@@ -672,7 +672,7 @@ export default function SuperAdminDashboard() {
               <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900 dark:to-pink-800 rounded-lg p-4 border-l-4 border-pink-500">
                 <div className="text-center">
                   <p className="text-sm text-gray-600 dark:text-gray-300 uppercase font-semibold mb-2">Total Amount</p>
-                  <p className="text-4xl font-bold text-pink-600 dark:text-pink-300 break-words">?{selectedReceipt.total_amount.toLocaleString()}</p>
+                  <p className="text-4xl font-bold text-pink-600 dark:text-pink-300 break-words">₦{selectedReceipt.total_amount.toLocaleString()}</p>
                 </div>
               </div>
               <button onClick={() => setShowReceiptDetail(false)} className="w-full px-4 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-semibold transition">Close</button>
@@ -683,4 +683,3 @@ export default function SuperAdminDashboard() {
     </div>
   );
 }
-
