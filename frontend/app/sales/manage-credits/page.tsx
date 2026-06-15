@@ -618,8 +618,8 @@ export default function ManageCreditsPage() {
           
           const unpaidItems = (paySale.credit_sale_items || [])
             .filter((item: any) => {
-              const remaining = item.remaining_amount ?? 0;
-              return remaining > 0.5;
+              const remaining = item.remaining_amount ?? 1;
+              return Number(remaining) > 0.5;
             })
             .sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
 
@@ -718,20 +718,21 @@ export default function ManageCreditsPage() {
                                let runningSum = 0;
                                const newSelected: string[] = [];
 
-                               for (const item of unpaidItems) {
-                                 if (runningSum >= numVal) break;
-                                 
-                                 const itemRemaining = Math.round(item.remaining_amount ?? (() => {
-                                   const sellingPrice = item.item?.price_jalingo || item.unit_price;
-                                   const itemTotal = Number(item.quantity) * sellingPrice;
-                                   const alreadyPaidAmt = Number(item.quantity) > 0
-                                     ? (Number(item.quantity_paid || 0) / Number(item.quantity)) * itemTotal
-                                     : 0;
-                                   return Math.max(0, itemTotal - alreadyPaidAmt);
-                                 })());
-                                 
-                                 newSelected.push(item.id);
-                                 runningSum += Number(itemRemaining);
+                                for (const item of unpaidItems) {
+                                  if (runningSum >= numVal) break;
+                                  
+                                  const itemRemaining = Math.round(item.remaining_amount ?? (() => {
+                                    const sellingPrice = item.item?.price_jalingo || item.unit_price;
+                                    const itemTotal = Number(item.quantity) * sellingPrice;
+                                    const alreadyPaidAmt = Number(item.quantity) > 0
+                                      ? (Number(item.quantity_paid || 0) / Number(item.quantity)) * itemTotal
+                                      : 0;
+                                    return Math.max(0, itemTotal - alreadyPaidAmt);
+                                  })());
+
+                                  if (itemRemaining <= 0) continue;
+                                  newSelected.push(item.id);
+                                  runningSum += Number(itemRemaining);
                                }
                               setSelectedItemIds(newSelected);
                             }

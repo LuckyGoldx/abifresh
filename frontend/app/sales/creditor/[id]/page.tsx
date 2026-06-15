@@ -570,6 +570,8 @@ export default function CreditorDetailsPage() {
                               return Math.max(0, effectiveTotal - alreadyPaidAmt);
                             })());
 
+                            if (remaining <= 0) continue;
+
                             const payAmount = Math.min(remaining, amt - runningSum);
                             
                             newSelected.push(item.id);
@@ -606,7 +608,7 @@ export default function CreditorDetailsPage() {
                       ? creditor.credit_sales.filter((s: any) => s.id === selectedSaleId)
                       : creditor.credit_sales
                     ).flatMap((sale: any) => 
-                      sale.credit_sale_items?.filter((item: any) => Number(item.quantity) > Number(item.quantity_paid)).map((item: any) => {
+                      sale.credit_sale_items?.filter((item: any) => Number(item.quantity) - Number(item.quantity_paid) > 0.01).map((item: any) => {
                               const isChecked = paymentForm.selectedItems.includes(item.id);
                               return (
                           <label key={item.id} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer group ${
@@ -655,17 +657,17 @@ export default function CreditorDetailsPage() {
                                 <span className="text-xs font-bold text-gray-600 dark:text-gray-400">{formatQty(Number(item.quantity) - Number(item.quantity_paid))}</span>
                               </div>
                             </div>
-                             <div className="text-right">
-                               <p className="text-sm font-black text-gray-900 dark:text-white">₦{(() => {
-                                 if (item.remaining_amount != null) return Number(item.remaining_amount).toLocaleString();
-                                 const sellingPrice = item.item?.price_jalingo || item.unit_price;
-                                 const effectiveTotal = Number(item.quantity) * sellingPrice;
-                                 const alreadyPaidAmt = Number(item.quantity) > 0
-                                   ? (Number(item.quantity_paid) / Number(item.quantity)) * effectiveTotal
-                                   : 0;
-                                 return Math.max(0, effectiveTotal - alreadyPaidAmt).toLocaleString();
-                               })()}</p>
-                             </div>
+                              <div className="text-right">
+                                <p className="text-sm font-black text-gray-900 dark:text-white">₦{(() => {
+                                  if (item.remaining_amount != null) return Math.round(Number(item.remaining_amount)).toLocaleString();
+                                  const sellingPrice = item.item?.price_jalingo || item.unit_price;
+                                  const effectiveTotal = Number(item.quantity) * sellingPrice;
+                                  const alreadyPaidAmt = Number(item.quantity) > 0
+                                    ? (Number(item.quantity_paid) / Number(item.quantity)) * effectiveTotal
+                                    : 0;
+                                  return Math.max(0, Math.round(effectiveTotal - alreadyPaidAmt)).toLocaleString();
+                                })()}</p>
+                              </div>
                           </label>
                         );
                       })

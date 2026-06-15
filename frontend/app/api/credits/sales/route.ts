@@ -270,7 +270,7 @@ export async function GET(req: NextRequest) {
           return {
             ...item,
             paid_amount: paidAmount,
-            remaining_amount: remaining < 1 ? 0 : remaining,
+            remaining_amount: Math.max(0, Math.round((effectiveTotal - paidAmount) * 100) / 100)
           };
         }),
         creditors: {

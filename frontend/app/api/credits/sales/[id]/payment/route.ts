@@ -133,8 +133,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const sellingPrice = item.item?.price_jalingo || item.unit_price;
         const effectiveTotal = Number(item.quantity) * sellingPrice;
         const itemExisting = allExisting?.filter(e => e.credit_sale_item_id === item.id) || [];
-        const alreadyPaidAmount = itemExisting.reduce((sum, e) => sum + Number(e.amount), 0);
-        const itemRemaining = Math.max(0, effectiveTotal - alreadyPaidAmount);
+        const alreadyPaidAmount = Math.round(itemExisting.reduce((sum, e) => sum + Number(e.amount), 0) * 100) / 100;
+        const itemRemaining = Math.max(0, Math.round((effectiveTotal - alreadyPaidAmount) * 100) / 100);
         
         if (itemRemaining > 0) {
           const pay = Math.round(Math.min(remainingAmount, itemRemaining));
