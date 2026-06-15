@@ -415,15 +415,16 @@ export default function ItemsPage() {
     }
   };
 
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const startIdx = (currentPage - 1) * itemsPerPage;
-  const endIdx = Math.min(startIdx + itemsPerPage, filteredItems.length);
-  const paginatedItems = filteredItems.slice(startIdx, endIdx);
   const filteredItems = items.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const startIdx = (currentPage - 1) * itemsPerPage;
+  const endIdx = Math.min(startIdx + itemsPerPage, filteredItems.length);
+  const paginatedItems = filteredItems.slice(startIdx, endIdx);
 
   if (isLoading) return <AbifreshLoading />;
 

@@ -10,6 +10,7 @@ import { formatQty } from '@/lib/format-quantity';
 import { formatDate, formatTime } from '@/lib/format-date';
 import StatCard from '@/components/StatCard';
 import type { SuperAdminDashboardStats, Receipt, ReceiptItem, StaffInfo } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function SuperAdminDashboard() {
   const { token, user } = useAuthStore();
