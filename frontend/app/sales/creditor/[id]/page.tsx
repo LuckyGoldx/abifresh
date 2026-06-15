@@ -290,7 +290,6 @@ export default function CreditorDetailsPage() {
               <p className="text-sm font-mono text-gray-500 dark:text-gray-400">{creditor.unique_code}</p>
             </div>
           </div>
-          </div>
         </div>
       </div>
 
