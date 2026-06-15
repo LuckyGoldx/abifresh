@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { formatQty } from '@/lib/format-quantity';
 import { TrendingUp, DollarSign, CheckCircle2, Clock, Package, BarChart3, Download, Filter, ChevronDown } from 'lucide-react';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 interface CommissionData {
   summary: {

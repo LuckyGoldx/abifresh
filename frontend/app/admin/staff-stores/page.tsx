@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { Package, TrendingUp, Users, ShoppingCart, BarChart3, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { formatQty } from '@/lib/format-quantity';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 interface StaffStoreItem {
   id: string;

@@ -6,6 +6,7 @@ import { Package, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
 import { formatQty } from '@/lib/format-quantity';
 
 import type { PostedItem } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function AvailableItemsPage() {
   const [postedItems, setPostedItems] = useState<PostedItem[]>([]);

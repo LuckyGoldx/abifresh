@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Toast, CreditTabs } from '@/components/credits';
 import Pagination from '@/components/Pagination';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 const CREDIT_NOTIFICATION_TYPES = [
   'credit_item_returned',

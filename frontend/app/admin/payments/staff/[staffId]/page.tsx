@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import LoadingLogo from '@/components/LoadingLogo';
 import type { StaffInfo, Payment } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 interface Stats {
   allTimeQty: number;

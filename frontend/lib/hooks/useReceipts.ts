@@ -12,7 +12,7 @@ interface UseReceiptsReturn {
   receipts: Receipt[];
   isLoading: boolean;
   error: string | null;
-  fetchReceipts: (token: string) => Promise<void>;
+  fetchReceipts: () => Promise<void>;
 }
 
 export function useReceipts({ role }: UseReceiptsOptions): UseReceiptsReturn {
@@ -21,17 +21,15 @@ export function useReceipts({ role }: UseReceiptsOptions): UseReceiptsReturn {
   const [error, setError] = useState<string | null>(null);
 
   const fetchReceipts = useCallback(
-    async (token: string) => {
+    async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const headers = { Authorization: `Bearer ${token}` };
-
         let endpoint = '/api/receipts/all';
         if (role === 'sales') endpoint = '/api/receipts';
         else if (role === 'staff') endpoint = '/api/receipts/my';
 
-        const res = await api.get(endpoint, { headers });
+        const res = await api.get(endpoint);
         setReceipts(res.data || []);
       } catch (err: any) {
         console.error('Error fetching receipts:', err);

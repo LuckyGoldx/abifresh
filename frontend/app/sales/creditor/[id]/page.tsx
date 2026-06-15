@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 import { printReceipt } from '@/lib/receipt-utils';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 // Toast component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {

@@ -7,6 +7,7 @@ import {
   Calendar, User, FileText, Phone, MapPin, Wallet, Tag, Check, Ban, Loader2
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 interface ExpenseItem {
   id: string;

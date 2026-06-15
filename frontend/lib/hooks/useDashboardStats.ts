@@ -12,7 +12,7 @@ interface UseDashboardStatsReturn {
   stats: AdminDashboardStats | null;
   isLoading: boolean;
   error: string | null;
-  fetchStats: (token: string) => Promise<void>;
+  fetchStats: () => Promise<void>;
 }
 
 export function useDashboardStats({ role }: UseDashboardStatsOptions): UseDashboardStatsReturn {
@@ -20,16 +20,14 @@ export function useDashboardStats({ role }: UseDashboardStatsOptions): UseDashbo
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchStats = useCallback(async (token: string) => {
+  const fetchStats = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-
       const [receiptsRes, staffRes, paymentsRes] = await Promise.all([
-        api.get('/api/receipts/all', { headers }).catch(() => ({ data: [] })),
-        api.get(`/api/${role}/staff`, { headers }).catch(() => ({ data: [] })),
-        api.get(`/api/${role}/payments/pending`, { headers }).catch(() => ({ data: [] })),
+        api.get('/api/receipts/all').catch(() => ({ data: [] })),
+        api.get(`/api/${role}/staff`).catch(() => ({ data: [] })),
+        api.get(`/api/${role}/payments/pending`).catch(() => ({ data: [] })),
       ]);
 
       const allReceipts = receiptsRes.data || [];

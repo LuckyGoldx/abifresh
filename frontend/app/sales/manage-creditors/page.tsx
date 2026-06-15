@@ -8,6 +8,7 @@ import {
   Search, Plus, Edit2, Trash2, X, Mail, Phone, MapPin, Eye, DollarSign, User, RefreshCw, ArrowLeft, AlertCircle, XCircle, MoreHorizontal
 } from 'lucide-react';
 import { Toast, CreditTabs } from '@/components/credits';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function ManageCreditorsPage() {
   const user = useAuthStore((state) => state.user);

@@ -45,88 +45,30 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log('📊 Admin Dashboard: Fetching data with token:', token ? 'yes' : 'no');
-        
-        // Fetch receipts and staff data
-        const [paymentRes, receiptsRes, staffRes] = await Promise.all([
-          api.get('/api/admin/payments/pending', { headers: { 'Authorization': `Bearer ${token}` } }).catch(err => {
-            console.warn('⚠️ Failed to fetch pending payments:', err);
-            return { data: [] };
-          }),
-          api.get('/api/receipts/all', { headers: { 'Authorization': `Bearer ${token}` } }).catch(err => {
-            console.warn('⚠️ Failed to fetch receipts:', err);
-            return { data: [] };
-          }),
-          api.get('/api/admin/staff', { headers: { 'Authorization': `Bearer ${token}` } }).catch(err => {
-            console.warn('⚠️ Failed to fetch staff:', err);
-            return { data: [] };
-          }),
+        const [statsRes, receiptsRes, staffRes] = await Promise.all([
+          api.get('/api/admin/dashboard/stats'),
+          api.get('/api/receipts/all?page=1&perPage=100').catch(() => ({ data: { data: [], pagination: { total: 0, totalPages: 1 } } })),
+          api.get('/api/admin/staff').catch(() => ({ data: [] })),
         ]);
 
-        const allReceipts = receiptsRes.data || [];
-        console.log('📋 All Receipts loaded:', allReceipts.length, allReceipts);
-        console.log('📋 First receipt sample:', allReceipts[0]);
-        
-        // Create staff map for quick lookup
+        const statsData = statsRes.data;
+        const allReceipts = receiptsRes.data?.data || receiptsRes.data || [];
+        const staffData = staffRes.data || [];
+
         const staffMapData: { [key: string]: StaffInfo } = {};
-        (staffRes.data || []).forEach((staff: StaffInfo) => {
-          staffMapData[staff.id] = staff;
-        });
+        staffData.forEach((staff: StaffInfo) => { staffMapData[staff.id] = staff; });
         setStaffMap(staffMapData);
-        
-        // Get today's date (without time) in local timezone
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        // Filter receipts created today
-        const todayReceipts = allReceipts.filter((receipt: any) => {
-          const receiptDate = new Date(receipt.created_at);
-          return receiptDate >= today && receiptDate < tomorrow;
-        });
-        
-        console.log('📅 Today Receipts:', todayReceipts.length);
-        console.log('📅 Today Receipts sample:', todayReceipts[0]);
-        
-        // Calculate today's stats
-        // receipts API returns receipt_items[] (no items_count field)
-        const countItems = (receipt: any) =>
-          (receipt.receipt_items || []).reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
-
-        const todayStats = todayReceipts.reduce((acc: any, receipt: any) => ({
-          sales: acc.sales + 1,
-          amount: acc.amount + (receipt.total_amount || 0),
-          items: acc.items + countItems(receipt),
-        }), { sales: 0, amount: 0, items: 0 });
-        
-        // Calculate all-time stats
-        const allTimeStats = allReceipts.reduce((acc: any, receipt: any) => ({
-          sales: acc.sales + 1,
-          items: acc.items + countItems(receipt),
-          amount: acc.amount + (receipt.total_amount || 0),
-        }), { sales: 0, items: 0, amount: 0 });
-
-        console.log('📊 Today Stats Calculated:', todayStats);
-        console.log('📊 All-Time Stats Calculated:', allTimeStats);
-        console.log('📊 Items breakdown - Today items:', todayStats.items, 'All-time items:', allTimeStats.items);
-
-        // Calculate pending amount
-        const pendingAmount = (paymentRes.data || []).reduce((sum: number, payment: any) => {
-          return sum + (payment.amount || 0);
-        }, 0);
 
         setStats({
-          today_sales: todayStats.sales,
-          today_amount: todayStats.amount,
-          total_sales: allTimeStats.sales,
-          total_amount: allTimeStats.amount,
-          total_items: allTimeStats.items,
-          total_staff: 0,
-          pending_approvals: paymentRes.data?.length || 0,
-          pending_amount: pendingAmount,
-          today_items: todayStats.items,
+          today_sales: statsData.today_sales || 0,
+          today_amount: statsData.today_amount || 0,
+          today_items: statsData.today_items || 0,
+          total_sales: statsData.total_sales || 0,
+          total_amount: statsData.total_amount || 0,
+          total_items: statsData.total_items || 0,
+          total_staff: statsData.total_staff || 0,
+          pending_approvals: statsData.pending_approvals || 0,
+          pending_amount: statsData.pending_amount || 0,
         });
         
         setReceipts(allReceipts);
@@ -155,6 +97,30 @@ export default function AdminDashboard() {
     }
   }, [token]);
 
+// Fetch receipts with server-side search/filter
+const handleServerSearch = async () => {
+  setReceiptsLoading(true);
+  try {
+    const params = new URLSearchParams({ perPage: '100', page: '1' });
+    if (searchQuery.trim()) params.set('search', searchQuery.trim());
+    if (selectedStaff) params.set('staffId', selectedStaff);
+    if (filterType === 'date' && selectedDate) {
+      params.set('dateFrom', selectedDate);
+      params.set('dateTo', selectedDate);
+    } else if (filterType === 'range') {
+      if (dateRangeStart) params.set('dateFrom', dateRangeStart);
+      if (dateRangeEnd) params.set('dateTo', dateRangeEnd);
+    }
+    const res = await api.get(`/api/receipts/all?${params.toString()}`);
+    const allReceipts = res.data?.data || res.data || [];
+    setReceipts(allReceipts);
+    if (allReceipts.length === 0) {
+      // Fallback: if no results, grab recent 100
+      const fallback = await api.get('/api/receipts/all?page=1&perPage=100');
+      setReceipts(fallback.data?.data || fallback.data || []);
+    }
+  } catch { } finally { setReceiptsLoading(false); }
+};
   // Filter and sort receipts based on search, date filters, and sort order
   const filteredReceipts = receipts
     .filter(receipt => {

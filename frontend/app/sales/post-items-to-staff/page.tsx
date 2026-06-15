@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { Send, Package, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 import type { Item, PostedItem, SalesStaff } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function PostItemsPage() {
   const [staffList, setStaffList] = useState<SalesStaff[]>([]);

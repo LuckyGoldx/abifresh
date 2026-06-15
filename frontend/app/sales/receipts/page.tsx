@@ -8,6 +8,7 @@ import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 import { formatQty } from '@/lib/format-quantity';
 import { formatReceiptDate, formatReceiptTime } from '@/lib/format-date';
 import type { Receipt } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function ReceiptsPage() {
   const { user, token } = useAuthStore();

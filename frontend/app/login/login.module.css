@@ -595,6 +595,16 @@
   line-height: 1.4;
 }
 
+.poweredBy {
+  margin-top: 4px;
+  color: #3b82f6;
+  font-size: 12px;
+}
+
+.poweredBy strong {
+  font-weight: 700;
+}
+
 @media (max-width: 768px) {
   .loginWrapper {
     grid-template-columns: 1fr;

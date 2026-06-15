@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { CheckCircle, Package } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 import type { Item } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function AvailableItemsPage() {
   const token = useAuthStore((state) => state.token);

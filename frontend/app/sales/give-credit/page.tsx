@@ -9,6 +9,7 @@ import {
 import { formatQty } from '@/lib/format-quantity';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
 import { Toast, getImageUrl, CreditTabs } from '@/components/credits';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function GiveCreditPage() {
   const user = useAuthStore((state) => state.user);

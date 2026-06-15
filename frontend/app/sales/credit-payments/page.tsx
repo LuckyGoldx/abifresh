@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth';
 import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, ChevronRight, Eye, X, Download } from 'lucide-react';
 import { CreditTabs } from '@/components/credits';
 import { toast } from 'sonner';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function SalesCreditPaymentsPage() {
   const user = useAuthStore((state) => state.user);
@@ -322,7 +323,7 @@ export default function SalesCreditPaymentsPage() {
               
               <div className="border dark:border-gray-700 rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
                 {unremitted.length > 0 ? (
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-80 overflow-x-auto overflow-y-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 dark:bg-gray-900/80 sticky top-0 border-b dark:border-gray-700">
                         <tr>
@@ -562,7 +563,7 @@ export default function SalesCreditPaymentsPage() {
 
               <div>
                 <h4 className="font-bold text-gray-900 dark:text-white mb-3">Collected Items Covered</h4>
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100 dark:bg-gray-800">
                       <tr>
@@ -663,7 +664,7 @@ export default function SalesCreditPaymentsPage() {
 
               <div>
                 <h4 className="font-bold text-gray-900 dark:text-white mb-3">Items Included in this Remittance</h4>
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100 dark:bg-gray-800">
                       <tr>

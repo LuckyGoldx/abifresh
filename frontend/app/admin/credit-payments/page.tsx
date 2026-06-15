@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { CreditTabs } from '@/components/credits';
 import { formatQty } from '@/lib/format-quantity';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function AdminCreditPaymentsPage() {
   const router = useRouter();
@@ -624,7 +625,7 @@ export default function AdminCreditPaymentsPage() {
 
               <div>
                 <h4 className="font-bold text-gray-900 dark:text-white mb-3">Collected Items Covered</h4>
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100 dark:bg-gray-800">
                       <tr>

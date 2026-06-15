@@ -218,6 +218,7 @@ export default function LoginPage() {
       {/* Copyright Footer */}
       <div className={styles.footer}>
         <p>&copy; {new Date().getFullYear()} ABIFRESH &amp; KIDDIES VENTURES. All rights reserved.</p>
+        <p className={styles.poweredBy}>Powered by <strong>Sretan Tech.</strong></p>
       </div>
 
       {/* Dark Mode Toggle */}

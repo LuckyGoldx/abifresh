@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { Search, Eye, X, DollarSign, CheckCircle, XCircle, AlertCircle, Package, Upload, FileText, Activity, MoreHorizontal, ArrowUpDown } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 import { Toast, CreditTabs } from '@/components/credits';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function ManageCreditsPage() {
   const user = useAuthStore((state) => state.user);

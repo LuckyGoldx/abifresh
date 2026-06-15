@@ -7,6 +7,7 @@ import { CreditCard, CheckCircle, Clock, XCircle, Search, Filter, BarChart3, Tre
 import LoadingLogo from '@/components/LoadingLogo';
 import { formatQty } from '@/lib/format-quantity';
 import type { Payment, StaffSummaryRow } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function PaymentsPage() {
   const router = useRouter();

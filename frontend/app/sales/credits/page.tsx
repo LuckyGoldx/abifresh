@@ -7,6 +7,7 @@ import { Package, Users, TrendingUp } from 'lucide-react';
 import { StatsCard, ActivityLog, Toast, Activity, CreditTabs } from '@/components/credits';
 
 import { formatQty } from '@/lib/format-quantity';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function CreditsPage() {
   const user = useAuthStore((state) => state.user);

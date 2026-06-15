@@ -9,6 +9,7 @@ import StylishSuccessModal from '@/components/StylishSuccessModal';
 import LoadingLogo from '@/components/LoadingLogo';
 
 import type { Payment, Sale } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function SalesPaymentsPage() {
   const user = useAuthStore((state) => state.user);
@@ -731,7 +732,7 @@ export default function SalesPaymentsPage() {
                   ℹ️ <strong>Note:</strong> Once submitted, items will disappear from this list while pending. They'll reappear only if the payment is rejected.
                 </p>
               </div>
-              <div className="border dark:border-gray-700 rounded-lg max-h-60 overflow-y-auto">
+              <div className="border dark:border-gray-700 rounded-lg max-h-60 overflow-x-auto overflow-y-auto">
                 {soldItems.length > 0 ? (
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
@@ -1244,7 +1245,7 @@ export default function SalesPaymentsPage() {
               {selectedPaymentDetails.items_paid_for && selectedPaymentDetails.items_paid_for.length > 0 && (
                 <div>
                   <label className="text-sm text-gray-500 dark:text-gray-400 mb-2 block">Items Paid For</label>
-                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b dark:border-gray-700">

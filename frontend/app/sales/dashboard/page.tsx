@@ -7,6 +7,7 @@ import { Package, DollarSign, TrendingUp, CheckCircle, AlertCircle, ArrowUp, Use
 import { formatQty } from '@/lib/format-quantity';
 import type { Item, SaleCartItem, StaffInfo, SalesDashboardStats, Receipt, Activity } from '@/types';
 import { SkeletonStatGrid, SkeletonTable, SkeletonChart } from '@/components/Skeleton';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {

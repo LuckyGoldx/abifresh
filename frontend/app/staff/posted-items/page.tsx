@@ -6,6 +6,7 @@ import { Package, CheckCircle, XCircle, MessageSquare, User, Calendar, Truck, Bu
 import { formatQty } from '@/lib/format-quantity';
 
 import type { PostedItem } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {

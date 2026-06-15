@@ -7,6 +7,7 @@ import { Search, X, CheckCircle, XCircle, Clock, DollarSign, Eye, FileText, User
 import { Toast, CreditTabs } from '@/components/credits';
 import { formatQty } from '@/lib/format-quantity';
 import { printReceipt, downloadReceiptAsPDF } from '@/lib/receipt-utils';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function RemitCreditPage() {
   const user = useAuthStore((state) => state.user);

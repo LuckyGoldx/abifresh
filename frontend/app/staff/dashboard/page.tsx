@@ -7,6 +7,7 @@ import { Package, DollarSign, TrendingUp, AlertCircle, Bell, CheckCircle2, Shopp
 import { formatQty } from '@/lib/format-quantity';
 import { SkeletonStatGrid, SkeletonTable } from '@/components/Skeleton';
 import type { StaffDashboardData, Sale } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function StaffDashboard() {
   const user = useAuthStore((state) => state.user);

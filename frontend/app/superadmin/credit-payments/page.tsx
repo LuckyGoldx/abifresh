@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { CreditCard, CheckCircle, Clock, XCircle, Eye, X, FileText, Download, AlertTriangle, Loader2, Users } from 'lucide-react';
 import { CreditTabs } from '@/components/credits';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function SuperAdminCreditPaymentsPage() {
   const router = useRouter();
@@ -330,7 +331,7 @@ export default function SuperAdminCreditPaymentsPage() {
 
               <div>
                 <h4 className="font-bold text-gray-900 dark:text-white mb-3">Collected Items Covered</h4>
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-100 dark:bg-gray-800">
                       <tr>

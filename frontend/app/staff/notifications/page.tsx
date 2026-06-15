@@ -7,6 +7,7 @@ import { useToast } from '@/context/ToastContext';
 import { Bell, CheckCircle, CreditCard, Package, RotateCcw } from 'lucide-react';
 import { formatTimestamp } from '@/lib/format-quantity';
 import Pagination from '@/components/Pagination';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function NotificationsPage() {
   const router = useRouter();

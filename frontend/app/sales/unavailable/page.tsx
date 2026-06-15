@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { XCircle, Package } from 'lucide-react';
 import type { Item } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function UnavailableItemsPage() {
   const token = useAuthStore((state) => state.token);

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { Activity, AlertTriangle, CheckCircle, Clock, FileText, Search, Shield, User } from 'lucide-react';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 interface AuditEntry {
   id: string;

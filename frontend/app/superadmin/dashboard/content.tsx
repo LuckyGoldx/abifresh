@@ -10,6 +10,96 @@ import { formatQty } from '@/lib/format-quantity';
 import { formatDate, formatTime } from '@/lib/format-date';
 import StatCard from '@/components/StatCard';
 import type { SuperAdminDashboardStats, Receipt, ReceiptItem, StaffInfo } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
+
+export default function SuperAdminDashboard() {
+  const { token, user } = useAuthStore();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'staff-analytics' | 'system'>('overview');
+  const [stats, setStats] = useState<SuperAdminDashboardStats>({
+    today_sales: 0,
+    today_amount: 0,
+    total_sales: 0,
+    total_amount: 0,
+    total_items: 0,
+    total_staff: 0,
+    pending_approvals: 0,
+    pending_amount: 0,
+    active_users: 0,
+    inactive_users: 0,
+  });
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [staffList, setStaffList] = useState<StaffInfo[]>([]);
+  const [staffMap, setStaffMap] = useState<{ [key: string]: StaffInfo }>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+  const [showReceiptDetail, setShowReceiptDetail] = useState(false);
+  const [filterType, setFilterType] = useState<'none' | 'date' | 'range'>('none');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [dateRangeStart, setDateRangeStart] = useState<string>('');
+  const [dateRangeEnd, setDateRangeEnd] = useState<string>('');
+  const [selectedStaff, setSelectedStaff] = useState<string>('');
+  const [staffWithReceipts, setStaffWithReceipts] = useState<StaffInfo[]>([]);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+                const [statsRes, receiptsRes, staffRes] = await Promise.all([
+          api.get('/api/admin/dashboard/stats'),
+          api.get('/api/receipts/all?page=1&perPage=100').catch(() => ({ data: { data: [], pagination: { total: 0, totalPages: 1 } } })),
+          api.get('/api/admin/staff').catch(() => ({ data: [] })),
+        ]);
+
+        const statsData = statsRes.data;
+        const allReceipts = receiptsRes.data?.data || receiptsRes.data || [];
+        const allStaff = staffRes.data || [];
+        setStaffList(allStaff);
+
+        const staffMapData: { [key: string]: StaffInfo } = {};
+        allStaff.forEach((staff: StaffInfo) => { staffMapData[staff.id] = staff; });
+        setStaffMap(staffMapData);
+
+        setStats({
+          today_sales: statsData.today_sales || 0,
+          today_amount: statsData.today_amount || 0,
+          today_items: statsData.today_items || 0,
+          total_sales: statsData.total_sales || 0,
+          total_amount: statsData.total_amount || 0,
+          total_items: statsData.total_items || 0,
+          total_staff: statsData.total_staff || 0,
+          pending_approvals: statsData.pending_approvals || 0,
+          pending_amount: statsData.pending_amount || 0,
+          active_users: allStaff.filter((s: StaffInfo) => s.is_active).length,
+          inactive_users: allStaff.filter((s: StaffInfo) => !s.is_active).length,
+        });
+
+        setReceipts(allReceipts);
+
+        // Extract unique staff members
+        const uniqueStaffMap = new Map<string, StaffInfo>();
+        (allReceipts || []).forEach((receipt: any) => {
+          if (receipt.staff_id && staffMapData[receipt.staff_id]) {
+            uniqueStaffMap.set(receipt.staff_id, staffMapData[receipt.staff_id]);
+          }
+        });
+        const staffList = Array.from(uniqueStaffMap.values()).sort((a, b) => a.full_name.localeCompare(b.full_name));
+        setStaffWithReceipts(staffList);use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import api from '@/lib/api';
+import { Users, DollarSign, Package, TrendingUp, Search, Eye, X, ShoppingCart, Wallet, Clock, Banknote, ArrowRightLeft, Shield, Activity, AlertTriangle, Server, UserCheck, UserX, Database, BarChart3, Monitor, ScrollText, CreditCard, Receipt as ReceiptIcon, FileText } from 'lucide-react';
+import { useAuthStore } from '@/store/auth';
+import { formatQty } from '@/lib/format-quantity';
+import { formatDate, formatTime } from '@/lib/format-date';
+import StatCard from '@/components/StatCard';
+import type { SuperAdminDashboardStats, Receipt, ReceiptItem, StaffInfo } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function SuperAdminDashboard() {
   const { token, user } = useAuthStore();
@@ -53,7 +143,7 @@ export default function SuperAdminDashboard() {
           api.get('/api/admin/staff', { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => ({ data: [] })),
         ]);
 
-        const allReceipts = receiptsRes.data || [];
+        const allReceipts = receiptsRes.data?.data || receiptsRes.data || [];
         const allStaff = staffRes.data || [];
         setStaffList(allStaff);
 

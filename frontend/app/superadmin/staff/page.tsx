@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useToast } from '@/context/ToastContext';
 import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User, Eye, EyeOff, Trash2, Shield, Lock, RefreshCw } from 'lucide-react';
 import type { Staff, StaffStats } from '@/types';
+import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 const generateRandomPassword = () => {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!&';
