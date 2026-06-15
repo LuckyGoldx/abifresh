@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     if (isCSV) {
       const sheetName = wb.SheetNames[0] ?? 'Sheet1';
       const ws = wb.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(ws, { raw: false }) as Record<string, unknown>[];
+      const rows = XLSX.utils.sheet_to_json(ws, { raw: true }) as Record<string, unknown>[];
       const match = fileName.match(/abifresh_([a-z0-9_]+)_\d{4}-\d{2}-\d{2}/i);
       const tableName = match?.[1] ?? sheetName;
       sheets.push({ sheetName, tableName, matched: ALLOWED_TABLES.includes(tableName), rowCount: rows.length, columns: rows.length ? Object.keys(rows[0]) : [] });

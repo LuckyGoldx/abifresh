@@ -604,7 +604,14 @@ export default function BackupPage() {
     try {
       const data = await fetchAllRowsFromBackend(tableName);
       const XLSX = await import('xlsx');
-      const ws = XLSX.utils.json_to_sheet(data.length ? data : [{}]);
+      const prepared = (data || []).map((row: any) => {
+        const flat: any = {};
+        for (const [k, v] of Object.entries(row)) {
+          flat[k] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v;
+        }
+        return flat;
+      });
+      const ws = XLSX.utils.json_to_sheet(prepared.length ? prepared : [{}]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, tableName.substring(0, 31));
       const fileName = `abifresh_${tableName}_${getDateStamp()}.xlsx`;
@@ -652,7 +659,14 @@ export default function BackupPage() {
         const data = await fetchAllRowsFromBackend(tbl.name);
         totalRows += data.length;
         const sheetName = tbl.name.substring(0, 31);
-        const ws = XLSX.utils.json_to_sheet(data.length ? data : [{}]);
+        const prepared = (data || []).map((row: any) => {
+          const flat: any = {};
+          for (const [k, v] of Object.entries(row)) {
+            flat[k] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v;
+          }
+          return flat;
+        });
+        const ws = XLSX.utils.json_to_sheet(prepared.length ? prepared : [{}]);
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
       } catch {
         // Add empty sheet with error note
@@ -667,7 +681,14 @@ export default function BackupPage() {
     setBulkStatusMsg('Appending backup history sheet…');
     try {
       const historyRows = await fetchAllRowsFromBackend('backup_history');
-      const hws = XLSX.utils.json_to_sheet(historyRows.length ? historyRows : [{}]);
+      const hPrepared = (historyRows || []).map((row: any) => {
+        const flat: any = {};
+        for (const [k, v] of Object.entries(row)) {
+          flat[k] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v;
+        }
+        return flat;
+      });
+      const hws = XLSX.utils.json_to_sheet(hPrepared.length ? hPrepared : [{}]);
       XLSX.utils.book_append_sheet(wb, hws, 'backup_history');
     } catch {
       // Table doesn't exist yet — skip silently

@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     if (isCSV) {
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { raw: false }) as Record<string, unknown>[];
+      const rows = XLSX.utils.sheet_to_json(ws, { raw: true }) as Record<string, unknown>[];
       const match = fileName.match(/abifresh_([a-z0-9_]+)_\d{4}-\d{2}-\d{2}/i);
       const tableName = match?.[1] ?? wb.SheetNames[0];
       if (ALLOWED_TABLES.includes(tableName)) sheetPairs.push({ tableName, rows });
@@ -92,13 +92,21 @@ export async function POST(req: NextRequest) {
       return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
     });
 
-    // Sanitize rows: convert undefined → null, dates → ISO strings
+    // Sanitize rows: convert undefined → null, dates → ISO strings, JSON strings → objects
     for (const pair of sheetPairs) {
       pair.rows = pair.rows.map(row => {
         const clean: Record<string, unknown> = {};
         for (const [key, val] of Object.entries(row)) {
           if (val === undefined) { clean[key] = null; }
-          else if (val instanceof Date) { clean[key] = val.toISOString(); }
+          else if (val instanceof Date) {
+            const p = (n: number) => String(n).padStart(2, '0');
+            const o = -val.getTimezoneOffset();
+            const s = o >= 0 ? '+' : '-';
+            clean[key] = val.getFullYear() + '-' + p(val.getMonth()+1) + '-' + p(val.getDate()) + 'T' + p(val.getHours()) + ':' + p(val.getMinutes()) + ':' + p(val.getSeconds()) + s + p(Math.floor(Math.abs(o)/60)) + ':' + p(Math.abs(o)%60);
+          }
+          else if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+            try { clean[key] = JSON.parse(val); } catch { clean[key] = val; }
+          }
           else { clean[key] = val; }
         }
         return clean;
