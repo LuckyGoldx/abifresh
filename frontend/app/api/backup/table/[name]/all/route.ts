@@ -9,6 +9,8 @@ const ALLOWED_TABLES = [
   'posted_items', 'staff_store', 'posted_items_mapping', 'staff_sales',
   'staff_commissions', 'staff_payments', 'staff_expenses', 'returned_items',
   'damage_loss_reports', 'notifications', 'activity_logs', 'system_settings', 'backup_history',
+  'creditors', 'credit_sales', 'credit_sale_items', 'credit_store',
+  'credit_payments', 'credit_payment_items', 'credit_activities', 'expense_categories',
 ];
 
 export async function GET(req: NextRequest, { params }: { params: { name: string } }) {
