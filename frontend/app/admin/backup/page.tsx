@@ -607,7 +607,13 @@ export default function BackupPage() {
       const prepared = (data || []).map((row: any) => {
         const flat: any = {};
         for (const [k, v] of Object.entries(row)) {
-          flat[k] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v;
+          if (v !== null && typeof v === 'object') {
+            flat[k] = JSON.stringify(v);
+          } else if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) {
+            flat[k] = '\t' + v;
+          } else {
+            flat[k] = v;
+          }
         }
         return flat;
       });

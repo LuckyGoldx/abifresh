@@ -104,6 +104,9 @@ export async function POST(req: NextRequest) {
             const s = o >= 0 ? '+' : '-';
             clean[key] = val.getFullYear() + '-' + p(val.getMonth()+1) + '-' + p(val.getDate()) + 'T' + p(val.getHours()) + ':' + p(val.getMinutes()) + ':' + p(val.getSeconds()) + s + p(Math.floor(Math.abs(o)/60)) + ':' + p(Math.abs(o)%60);
           }
+          else if (typeof val === 'string' && val.startsWith('\t')) {
+            clean[key] = val.substring(1);
+          }
           else if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
             try { clean[key] = JSON.parse(val); } catch { clean[key] = val; }
           }
