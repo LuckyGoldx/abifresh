@@ -261,13 +261,16 @@ export async function GET(req: NextRequest) {
       return {
         ...sale,
         credit_sale_items: (sale.credit_sale_items || []).map((item: any) => {
-          const paidAmount = itemPaymentsMap[item.id] || 0;
           const sellingPrice = item.item?.price_jalingo || item.unit_price;
           const effectiveTotal = Number(item.quantity) * sellingPrice;
+          const paidAmount = effectiveTotal > 0
+            ? (Number(item.quantity_paid || 0) / Number(item.quantity)) * effectiveTotal
+            : 0;
+          const remaining = Math.max(0, effectiveTotal - paidAmount);
           return {
             ...item,
             paid_amount: paidAmount,
-            remaining_amount: Math.max(0, Math.round(effectiveTotal - paidAmount))
+            remaining_amount: remaining < 1 ? 0 : remaining,
           };
         }),
         creditors: {

@@ -149,7 +149,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           });
 
           // Reconcile this item immediately
-          const newPaidQty = Math.round((Number(item.quantity_paid || 0) + payQty) * 100) / 100;
+          const newPaidQty = Math.min(Math.round((Number(item.quantity_paid || 0) + payQty) * 100) / 100, item.quantity);
           await supabaseAdmin.from('credit_sale_items')
             .update({ quantity_paid: newPaidQty })
             .eq('id', item.id);

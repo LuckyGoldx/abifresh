@@ -618,8 +618,8 @@ export default function ManageCreditsPage() {
           
           const unpaidItems = (paySale.credit_sale_items || [])
             .filter((item: any) => {
-              const remaining = Math.round(item.remaining_amount ?? 1);
-              return remaining > 0;
+              const remaining = item.remaining_amount ?? 0;
+              return remaining > 0.5;
             })
             .sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
 

@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
           const payQty = effectiveTotal > 0 ? Math.round((Number(pi.amount) / effectiveTotal) * Number(saleItem.quantity)) : 0;
           const newPaidQty = Math.round((Number(saleItem.quantity_paid || 0) + payQty) * 100) / 100;
           await supabaseAdmin.from('credit_sale_items')
-            .update({ quantity_paid: newPaidQty })
+            .update({ quantity_paid: Math.min(newPaidQty, saleItem.quantity) })
             .eq('id', pi.credit_sale_item_id);
 
           const paidPercentage = (newPaidQty / saleItem.quantity) * 100;
