@@ -131,7 +131,7 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
       '/sales/credit-payments',
       '/sales/creditor'
     ];
-    if (creditRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+    if (creditRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) || pathname.includes('/creditor')) {
       setCreditMode(true);
     } else {
       setCreditMode(false);

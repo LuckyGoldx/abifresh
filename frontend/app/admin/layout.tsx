@@ -62,7 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       '/admin/credit-payments',
       '/admin/credit-reports'
     ];
-    if (creditRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+    if (creditRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) || pathname.includes('/creditor')) {
       setCreditMode(true);
     } else {
       setCreditMode(false);
