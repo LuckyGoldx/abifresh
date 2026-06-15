@@ -95,14 +95,15 @@ export async function POST(req: NextRequest) {
     const results: any[] = [];
 
     // Phase 1: Delete all rows in DELETE_ORDER (children before parents)
-    if (mode === 'replace') {
+    // Only runs when replacing ALL tables (selectedTables empty).
+    // When specific tables are selected, upsert is used instead to avoid FK violations.
+    if (mode === 'replace' && selectedTables.length === 0) {
       const sortedForDelete = [...sheetPairs].sort((a, b) => {
         const ai = DELETE_ORDER.indexOf(a.tableName);
         const bi = DELETE_ORDER.indexOf(b.tableName);
         return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
       });
       for (const { tableName } of sortedForDelete) {
-        if (selectedTables.length > 0 && !selectedTables.includes(tableName)) continue;
         const { error: delErr } = await supabaseAdmin.from(tableName).delete().not('id', 'is', null);
         if (delErr) {
           results.push({ table: tableName, rowsTotal: 0, rowsInserted: 0, success: false, error: `Delete failed: ${delErr.message}` });
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Phase 2: Insert rows in RESTORE_ORDER (parents before children)
+    // Use insert for full replace, upsert for specific-table replace or merge
     for (const { tableName, rows } of sheetPairs) {
       if (selectedTables.length > 0 && !selectedTables.includes(tableName)) continue;
       const generatedCols = [...(GENERATED_ALWAYS_COLUMNS[tableName] ?? [])];
@@ -123,7 +125,7 @@ export async function POST(req: NextRequest) {
           let batch = stripColumns(rows.slice(i, i + BATCH), generatedCols);
 
           let insertError: any;
-          if (mode === 'merge') {
+          if (mode === 'merge' || (mode === 'replace' && selectedTables.length > 0)) {
             ({ error: insertError } = await supabaseAdmin.from(tableName).upsert(batch, { onConflict: 'id', ignoreDuplicates: false }));
           } else {
             ({ error: insertError } = await supabaseAdmin.from(tableName).insert(batch));
@@ -134,7 +136,7 @@ export async function POST(req: NextRequest) {
             if (dynCol && !generatedCols.includes(dynCol)) {
               generatedCols.push(dynCol);
               batch = stripColumns(batch, [dynCol]);
-              if (mode === 'merge') {
+              if (mode === 'merge' || (mode === 'replace' && selectedTables.length > 0)) {
                 ({ error: insertError } = await supabaseAdmin.from(tableName).upsert(batch, { onConflict: 'id', ignoreDuplicates: false }));
               } else {
                 ({ error: insertError } = await supabaseAdmin.from(tableName).insert(batch));
