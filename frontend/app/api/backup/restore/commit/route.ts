@@ -32,6 +32,8 @@ const RESTORE_ORDER = [
   'notifications', 'activity_logs', 'system_settings',
   'backup_history', 'pwa_downloads',
 ];
+// Delete in reverse order: children before parents to avoid FK violations
+const DELETE_ORDER = [...RESTORE_ORDER].reverse();
 
 function stripColumns(rows: Record<string, unknown>[], cols: string[]): Record<string, unknown>[] {
   if (cols.length === 0) return rows;
@@ -92,16 +94,28 @@ export async function POST(req: NextRequest) {
 
     const results: any[] = [];
 
+    // Phase 1: Delete all rows in DELETE_ORDER (children before parents)
+    if (mode === 'replace') {
+      const sortedForDelete = [...sheetPairs].sort((a, b) => {
+        const ai = DELETE_ORDER.indexOf(a.tableName);
+        const bi = DELETE_ORDER.indexOf(b.tableName);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      });
+      for (const { tableName } of sortedForDelete) {
+        if (selectedTables.length > 0 && !selectedTables.includes(tableName)) continue;
+        const { error: delErr } = await supabaseAdmin.from(tableName).delete().not('id', 'is', null);
+        if (delErr) {
+          results.push({ table: tableName, rowsTotal: 0, rowsInserted: 0, success: false, error: `Delete failed: ${delErr.message}` });
+        }
+      }
+    }
+
+    // Phase 2: Insert rows in RESTORE_ORDER (parents before children)
     for (const { tableName, rows } of sheetPairs) {
       if (selectedTables.length > 0 && !selectedTables.includes(tableName)) continue;
       const generatedCols = [...(GENERATED_ALWAYS_COLUMNS[tableName] ?? [])];
 
       try {
-        if (mode === 'replace') {
-          const { error: delErr } = await supabaseAdmin.from(tableName).delete().not('id', 'is', null);
-          if (delErr) throw new Error(`Delete failed: ${delErr.message}`);
-        }
-
         const BATCH = 500;
         let rowsInserted = 0;
 
