@@ -290,16 +290,6 @@ export default function CreditorDetailsPage() {
               <p className="text-sm font-mono text-gray-500 dark:text-gray-400">{creditor.unique_code}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {Number(creditor.outstanding || 0) > 0 && (
-              <button
-                onClick={() => handleOpenPayment()}
-                className="bg-green-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-600 shadow-sm flex items-center gap-2"
-              >
-                <span className="text-lg font-black text-white">₦</span>
-                Record Payment
-              </button>
-            )}
           </div>
         </div>
       </div>
