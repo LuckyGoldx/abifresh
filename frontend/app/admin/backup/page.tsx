@@ -62,7 +62,7 @@ interface RestoreResult {
   error?: string;
 }
 
-// ─── Table Definitions (all 24 tables incl. backup_history) ──────────────────
+// ─── Table Definitions (33 tables incl. backup_history) ──────────────────
 
 const ALL_TABLES: Omit<TableInfo, 'rowCount' | 'columnCount' | 'isCountLoading' | 'hasError'>[] = [
   {
@@ -234,6 +234,62 @@ const ALL_TABLES: Omit<TableInfo, 'rowCount' | 'columnCount' | 'isCountLoading' 
     icon: '⚙️',
   },
   {
+    name: 'creditors',
+    label: 'Creditors',
+    description: 'Credit customers with contact and outstanding balance',
+    category: 'Credit System',
+    icon: '👥',
+  },
+  {
+    name: 'credit_sales',
+    label: 'Credit Sales',
+    description: 'Credit transaction headers with total amount and status',
+    category: 'Credit System',
+    icon: '📋',
+  },
+  {
+    name: 'credit_sale_items',
+    label: 'Credit Sale Items',
+    description: 'Individual items within each credit sale with quantity and pricing',
+    category: 'Credit System',
+    icon: '🧮',
+  },
+  {
+    name: 'credit_store',
+    label: 'Credit Store',
+    description: 'Items held in credit store with payment status tracking',
+    category: 'Credit System',
+    icon: '🏬',
+  },
+  {
+    name: 'credit_payments',
+    label: 'Credit Payments',
+    description: 'Payment records against credit sales with approval workflow',
+    category: 'Credit System',
+    icon: '💳',
+  },
+  {
+    name: 'credit_payment_items',
+    label: 'Credit Payment Items',
+    description: 'Item-level allocation of each credit payment',
+    category: 'Credit System',
+    icon: '📝',
+  },
+  {
+    name: 'credit_activities',
+    label: 'Credit Activities',
+    description: 'Audit trail of all credit system actions',
+    category: 'Credit System',
+    icon: '📋',
+  },
+  {
+    name: 'expense_categories',
+    label: 'Expense Categories',
+    description: 'Expense type categories with role-based scoping',
+    category: 'Finance',
+    icon: '🏷️',
+  },
+  {
     name: 'backup_history',
     label: 'Backup History',
     description: 'Log of all backup operations performed by admin users',
@@ -249,6 +305,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Staff: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
   Commissions: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
   Finance: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300',
+  'Credit System': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300',
   System: 'bg-gray-100 text-gray-700 dark:bg-gray-700/60 dark:text-gray-300',
 };
 
