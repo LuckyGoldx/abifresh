@@ -26,7 +26,25 @@ export async function GET(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
     const enriched = (data || []).map((a: any) => {
-      const details = a.details || {};
+      let details = a.details || {};
+      
+      // Safety: if details was stored as a JSON string (from old backup corruption), parse it
+      if (typeof details === 'string') {
+        try { details = JSON.parse(details); } catch { details = {}; }
+      }
+      // Safety: ensure numeric fields are actually numbers, not formatted strings
+      if (details.amount && typeof details.amount === 'string') {
+        details.amount = parseFloat(details.amount.replace(/[^0-9.-]/g, '')) || 0;
+      }
+      if (details.total_amount && typeof details.total_amount === 'string') {
+        details.total_amount = parseFloat(details.total_amount.replace(/[^0-9.-]/g, '')) || 0;
+      }
+      if (details.quantity && typeof details.quantity === 'string') {
+        details.quantity = parseFloat(details.quantity.replace(/[^0-9.-]/g, '')) || 0;
+      }
+      if (details.items_paid_count && typeof details.items_paid_count === 'string') {
+        details.items_paid_count = parseInt(details.items_paid_count.replace(/[^0-9]/g, ''), 10) || 0;
+      }
       
       // TRIGGER BACKGROUND ENRICHMENT ONLY IF NEEDED
       // We don't await this so the API stays lightning fast
