@@ -114,7 +114,8 @@ export async function POST(req: NextRequest) {
       const { data: saleItems } = await supabaseAdmin
         .from('credit_sale_items')
         .select('*, item:item_id(price_jalingo)')
-        .eq('credit_sale_id', creditSaleId);
+        .eq('credit_sale_id', creditSaleId)
+        .order('created_at', { ascending: true });
       
       if (saleItems && saleItems.length > 0) {
         const itemIds = saleItems.map(i => i.id);

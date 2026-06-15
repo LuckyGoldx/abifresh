@@ -546,13 +546,14 @@ export default function CreditorDetailsPage() {
                         
                         if (finalAmount !== '' && Number(finalAmount) > 0) {
                           const amt = Number(finalAmount);
-                          const allUnpaidItems = (selectedSaleId
+                           const allUnpaidItems = (selectedSaleId
                             ? (creditor.credit_sales || []).filter((s: any) => s.id === selectedSaleId)
                             : creditor.credit_sales || []
                           )
                             .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                             .flatMap((sale: any) => (sale.credit_sale_items || [])
                               .filter((item: any) => Number(item.quantity) > Number(item.quantity_paid))
+                              .sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
                             );
 
                           for (const item of allUnpaidItems) {

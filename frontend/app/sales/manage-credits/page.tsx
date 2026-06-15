@@ -616,10 +616,13 @@ export default function ManageCreditsPage() {
           const currentSalePaid = paySale.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
           const currentSaleBalance = Number(paySale.total_amount) - currentSalePaid;
           
-          const unpaidItems = paySale.credit_sale_items?.filter((item: any) => {
-            const remaining = item.remaining_amount ?? 1;
-            return Number(remaining) > 0;
-          }) || [];
+          const unpaidItems = (paySale.credit_sale_items || [])
+            .filter((item: any) => {
+              const remaining = item.remaining_amount ?? 1;
+              return Number(remaining) > 0;
+            })
+            .sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+
 
           const effectiveAmount = paymentAmount !== '' ? Number(paymentAmount) : (
             selectedItemIds.length > 0 
