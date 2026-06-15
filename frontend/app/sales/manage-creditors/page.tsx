@@ -81,6 +81,14 @@ export default function ManageCreditorsPage() {
 
   const handleAdd = async () => {
     if (isAdding) return;
+    if (!formData.phone_number) {
+      setToast({ message: 'Phone number is required', type: 'error' });
+      return;
+    }
+    if (!formData.address) {
+      setToast({ message: 'Address is required', type: 'error' });
+      return;
+    }
     setIsAdding(true);
     try {
       await api.post('/api/credits/creditors', formData);
@@ -284,10 +292,11 @@ export default function ManageCreditorsPage() {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Phone Number *</label>
                   <input
-                    type="text"
+                    type="tel"
                     value={formData.phone_number}
-                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value.replace(/[^0-9]/g, '') })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    required
                   />
                 </div>
                 <div>
@@ -300,12 +309,13 @@ export default function ManageCreditorsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Address</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Address *</label>
                   <textarea
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                     rows={2}
+                    required
                   />
                 </div>
               </div>
