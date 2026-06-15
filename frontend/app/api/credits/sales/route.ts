@@ -267,7 +267,7 @@ export async function GET(req: NextRequest) {
           return {
             ...item,
             paid_amount: paidAmount,
-            remaining_amount: Math.max(0, effectiveTotal - paidAmount)
+            remaining_amount: Math.max(0, Math.round(effectiveTotal - paidAmount))
           };
         }),
         creditors: {

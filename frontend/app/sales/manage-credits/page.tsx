@@ -618,8 +618,8 @@ export default function ManageCreditsPage() {
           
           const unpaidItems = (paySale.credit_sale_items || [])
             .filter((item: any) => {
-              const remaining = item.remaining_amount ?? 1;
-              return Number(remaining) > 0;
+              const remaining = Math.round(item.remaining_amount ?? 1);
+              return remaining > 0;
             })
             .sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
 
@@ -690,6 +690,8 @@ export default function ManageCreditsPage() {
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-400 dark:text-pink-600 font-black text-xl">₦</span>
                       <input 
                         type="number"
+                        inputMode="numeric"
+                        step="1"
                         value={paymentAmount || (selectedItemIds.length > 0 
                           ? paySale.credit_sale_items
                               .filter((i: any) => selectedItemIds.includes(i.id))
@@ -700,33 +702,33 @@ export default function ManageCreditsPage() {
                               }, 0)
                           : '')}
                         onChange={(e) => {
-                          const val = e.target.value;
-                          const numVal = Number(val);
+                          const raw = e.target.value;
+                          const display = raw.replace(/[^0-9]/g, '');
+                          const numVal = display === '' ? 0 : parseInt(display, 10);
                           if (numVal > currentSaleBalance) {
                             setPaymentAmount(currentSaleBalance.toString());
                             setSelectedItemIds(unpaidItems.map((i: any) => i.id));
                             setToast({ message: `Amount cannot exceed balance (₦${currentSaleBalance.toLocaleString()})`, type: 'error' });
                           } else {
-                            setPaymentAmount(val);
-                            if (val === '' || numVal <= 0) {
+                            setPaymentAmount(display);
+                            if (display === '' || numVal <= 0) {
                               setSelectedItemIds([]);
                             } else {
                                // FIFO Selection: Select items in receipt order until amount is covered
                                let runningSum = 0;
                                const newSelected: string[] = [];
-                               
-                               // unpaidItems are already in receipt order
+
                                for (const item of unpaidItems) {
                                  if (runningSum >= numVal) break;
                                  
-                                 const itemRemaining = item.remaining_amount ?? (() => {
+                                 const itemRemaining = Math.round(item.remaining_amount ?? (() => {
                                    const sellingPrice = item.item?.price_jalingo || item.unit_price;
                                    const itemTotal = Number(item.quantity) * sellingPrice;
                                    const alreadyPaidAmt = Number(item.quantity) > 0
                                      ? (Number(item.quantity_paid || 0) / Number(item.quantity)) * itemTotal
                                      : 0;
                                    return Math.max(0, itemTotal - alreadyPaidAmt);
-                                 })();
+                                 })());
                                  
                                  newSelected.push(item.id);
                                  runningSum += Number(itemRemaining);
@@ -735,7 +737,7 @@ export default function ManageCreditsPage() {
                             }
                           }
                         }}
-                        placeholder="0.00"
+                        placeholder="0"
                         className="w-full bg-white dark:bg-gray-700 border-2 border-pink-100 dark:border-pink-900/50 rounded-xl pl-10 pr-4 py-4 text-2xl focus:ring-4 focus:ring-pink-100 dark:focus:ring-pink-900/20 focus:border-pink-500 outline-none font-black text-gray-900 dark:text-white transition-all placeholder:text-pink-100 dark:placeholder:text-pink-900/30"
                       />
                     </div>

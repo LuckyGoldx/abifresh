@@ -134,8 +134,8 @@ export async function POST(req: NextRequest) {
           const itemRemaining = Math.max(0, effectiveTotal - paidAmount);
           
           if (itemRemaining > 0) {
-            const pay = Math.min(remainingAmount, itemRemaining);
-            const payQty = (pay / effectiveTotal) * Number(item.quantity);
+            const pay = Math.round(Math.min(remainingAmount, itemRemaining));
+            const payQty = effectiveTotal > 0 ? Math.round((pay / effectiveTotal) * Number(item.quantity)) : 0;
             paymentItems.push({
               credit_payment_id: payment.id,
               credit_sale_item_id: item.id,
@@ -163,8 +163,8 @@ export async function POST(req: NextRequest) {
         if (saleItem) {
           const sellingPrice = saleItem.item?.price_jalingo || saleItem.unit_price;
           const effectiveTotal = Number(saleItem.quantity) * sellingPrice;
-          const payQty = effectiveTotal > 0 ? (Number(pi.amount) / effectiveTotal) * Number(saleItem.quantity) : 0;
-          const newPaidQty = Number(saleItem.quantity_paid || 0) + payQty;
+          const payQty = effectiveTotal > 0 ? Math.round((Number(pi.amount) / effectiveTotal) * Number(saleItem.quantity)) : 0;
+          const newPaidQty = Math.round((Number(saleItem.quantity_paid || 0) + payQty) * 100) / 100;
           await supabaseAdmin.from('credit_sale_items')
             .update({ quantity_paid: newPaidQty })
             .eq('id', pi.credit_sale_item_id);

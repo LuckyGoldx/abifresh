@@ -528,14 +528,16 @@ export default function CreditorDetailsPage() {
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-400 dark:text-pink-600 font-black text-xl">₦</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={paymentForm.amount}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      const numVal = Number(val);
+                      const raw = e.target.value;
+                      const display = raw.replace(/[^0-9]/g, '');
+                      const numVal = display === '' ? 0 : parseInt(display, 10);
                        const maxOutstanding = Number(creditor.outstanding);
                        
-                       let finalAmount = val;
+                       let finalAmount = display;
                        if (numVal > maxOutstanding) {
                          finalAmount = maxOutstanding.toString();
                        }
@@ -544,29 +546,29 @@ export default function CreditorDetailsPage() {
                         let runningSum = 0;
                         const newSelected: string[] = [];
                         
-                        if (finalAmount !== '' && Number(finalAmount) > 0) {
-                          const amt = Number(finalAmount);
+                        if (finalAmount !== '' && parseInt(finalAmount, 10) > 0) {
+                          const amt = parseInt(finalAmount, 10);
                            const allUnpaidItems = (selectedSaleId
                             ? (creditor.credit_sales || []).filter((s: any) => s.id === selectedSaleId)
                             : creditor.credit_sales || []
                           )
                             .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                             .flatMap((sale: any) => (sale.credit_sale_items || [])
-                              .filter((item: any) => Number(item.quantity) > Number(item.quantity_paid))
+                              .filter((item: any) => Math.round(Number(item.quantity) - (Number(item.quantity_paid) || 0)) > 0)
                               .sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
                             );
 
                           for (const item of allUnpaidItems) {
                             if (runningSum >= amt) break;
                             
-                            const remaining = item.remaining_amount ?? (() => {
+                            const remaining = Math.round(item.remaining_amount ?? (() => {
                               const sellingPrice = item.item?.price_jalingo || item.unit_price;
                               const effectiveTotal = Number(item.quantity) * sellingPrice;
                               const alreadyPaidAmt = Number(item.quantity) > 0
                                 ? (Number(item.quantity_paid) / Number(item.quantity)) * effectiveTotal
                                 : 0;
                               return Math.max(0, effectiveTotal - alreadyPaidAmt);
-                            })();
+                            })());
 
                             const payAmount = Math.min(remaining, amt - runningSum);
                             

@@ -137,8 +137,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const itemRemaining = Math.max(0, effectiveTotal - alreadyPaidAmount);
         
         if (itemRemaining > 0) {
-          const pay = Math.min(remainingAmount, itemRemaining);
-          const payQty = (pay / effectiveTotal) * Number(item.quantity);
+          const pay = Math.round(Math.min(remainingAmount, itemRemaining));
+          const payQty = effectiveTotal > 0 ? Math.round((pay / effectiveTotal) * Number(item.quantity)) : 0;
           
           paymentItems.push({
             credit_payment_id: payment.id,
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           });
 
           // Reconcile this item immediately
-          const newPaidQty = Number(item.quantity_paid || 0) + payQty;
+          const newPaidQty = Math.round((Number(item.quantity_paid || 0) + payQty) * 100) / 100;
           await supabaseAdmin.from('credit_sale_items')
             .update({ quantity_paid: newPaidQty })
             .eq('id', item.id);
