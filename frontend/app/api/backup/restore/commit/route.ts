@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       for (const sheetName of wb.SheetNames) {
         if (!ALLOWED_TABLES.includes(sheetName)) continue;
         const ws = wb.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(ws, { raw: false }) as Record<string, unknown>[];
+    const rows = XLSX.utils.sheet_to_json(ws, { raw: true }) as Record<string, unknown>[];
         sheetPairs.push({ tableName: sheetName, rows });
       }
     }
@@ -91,6 +91,19 @@ export async function POST(req: NextRequest) {
       const bi = RESTORE_ORDER.indexOf(b.tableName);
       return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
     });
+
+    // Sanitize rows: convert undefined → null, dates → ISO strings
+    for (const pair of sheetPairs) {
+      pair.rows = pair.rows.map(row => {
+        const clean: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(row)) {
+          if (val === undefined) { clean[key] = null; }
+          else if (val instanceof Date) { clean[key] = val.toISOString(); }
+          else { clean[key] = val; }
+        }
+        return clean;
+      });
+    }
 
     const results: any[] = [];
 
