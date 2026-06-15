@@ -11,6 +11,7 @@ const ALLOWED_TABLES = [
   'damage_loss_reports', 'notifications', 'activity_logs', 'system_settings', 'backup_history',
   'creditors', 'credit_sales', 'credit_sale_items', 'credit_store',
   'credit_payments', 'credit_payment_items', 'credit_activities', 'expense_categories',
+  'pwa_downloads',
 ];
 
 export async function POST(req: NextRequest) {

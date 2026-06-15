@@ -12,11 +12,26 @@ const ALLOWED_TABLES = [
   'damage_loss_reports', 'notifications', 'activity_logs', 'system_settings', 'backup_history',
   'creditors', 'credit_sales', 'credit_sale_items', 'credit_store',
   'credit_payments', 'credit_payment_items', 'credit_activities', 'expense_categories',
+  'pwa_downloads',
 ];
-
 const GENERATED_ALWAYS_COLUMNS: Record<string, string[]> = {
   staff_store: ['quantity_available'],
 };
+
+// Restore order: parent tables before children to respect foreign key constraints
+const RESTORE_ORDER = [
+  'users', 'items', 'expense_categories',
+  'inventory_main_store', 'inventory_active_store', 'restock_orders',
+  'restock_order_items', 'inventory_transfers', 'creditors',
+  'sales', 'sales_items', 'daily_sales_summary', 'receipts', 'receipt_items',
+  'staff_commissions', 'staff_expenses', 'staff_payments',
+  'posted_items', 'posted_items_mapping', 'staff_store', 'staff_sales',
+  'returned_items', 'damage_loss_reports',
+  'credit_sales', 'credit_sale_items', 'credit_store', 'credit_payments',
+  'credit_payment_items', 'credit_activities',
+  'notifications', 'activity_logs', 'system_settings',
+  'backup_history', 'pwa_downloads',
+];
 
 function stripColumns(rows: Record<string, unknown>[], cols: string[]): Record<string, unknown>[] {
   if (cols.length === 0) return rows;
@@ -67,6 +82,13 @@ export async function POST(req: NextRequest) {
         sheetPairs.push({ tableName: sheetName, rows });
       }
     }
+
+    // Process tables in RESTORE_ORDER to respect foreign key constraints
+    sheetPairs.sort((a, b) => {
+      const ai = RESTORE_ORDER.indexOf(a.tableName);
+      const bi = RESTORE_ORDER.indexOf(b.tableName);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
 
     const results: any[] = [];
 

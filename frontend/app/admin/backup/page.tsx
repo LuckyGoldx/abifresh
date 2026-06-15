@@ -62,7 +62,7 @@ interface RestoreResult {
   error?: string;
 }
 
-// ─── Table Definitions (33 tables incl. backup_history) ──────────────────
+// ─── Table Definitions (34 tables incl. backup_history) ──────────────────
 
 const ALL_TABLES: Omit<TableInfo, 'rowCount' | 'columnCount' | 'isCountLoading' | 'hasError'>[] = [
   {
@@ -288,6 +288,13 @@ const ALL_TABLES: Omit<TableInfo, 'rowCount' | 'columnCount' | 'isCountLoading' 
     description: 'Expense type categories with role-based scoping',
     category: 'Finance',
     icon: '🏷️',
+  },
+  {
+    name: 'pwa_downloads',
+    label: 'PWA Downloads',
+    description: 'Progressive Web App install tracking records',
+    category: 'System',
+    icon: '📱',
   },
   {
     name: 'backup_history',
