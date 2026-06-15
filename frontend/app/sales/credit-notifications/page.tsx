@@ -157,19 +157,7 @@ export default function CreditNotificationsPage() {
     return 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400';
   };
 
-  if (isLoading && notifications.length === 0) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
-      <div className="flex flex-col items-center gap-4">
-        <div className="animate-pulse">
-          <img src="/favicon.svg" alt="" className="w-20 h-20" />
-        </div>
-        <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
-          <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm font-bold">Abifreshing...</span>
-        </div>
-      </div>
-    </div>
-  );
+  if (isLoading) return <AbifreshLoading />;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6">

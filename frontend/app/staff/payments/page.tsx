@@ -426,21 +426,7 @@ export default function PaymentsPage() {
   const approvedPayments = payments.filter(p => p.status === 'approved').reduce((sum, p) => sum + (parseFloat(p.approved_amount as any) || parseFloat(p.amount as any) || 0), 0);
   const pendingPayments = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + (parseFloat(p.amount as any) || 0), 0);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-pulse">
-            <img src="/favicon.svg" alt="" className="w-20 h-20" />
-          </div>
-          <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
-            <div className="w-5 h-5 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-sm font-bold">Abifreshing...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <AbifreshLoading />;
 
   return (
     <div className="space-y-6">
