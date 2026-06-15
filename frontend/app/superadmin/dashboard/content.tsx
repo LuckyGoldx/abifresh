@@ -10,96 +10,6 @@ import { formatQty } from '@/lib/format-quantity';
 import { formatDate, formatTime } from '@/lib/format-date';
 import StatCard from '@/components/StatCard';
 import type { SuperAdminDashboardStats, Receipt, ReceiptItem, StaffInfo } from '@/types';
-import { AbifreshLoading } from '@/components/AbifreshLoading';
-
-export default function SuperAdminDashboard() {
-  const { token, user } = useAuthStore();
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'staff-analytics' | 'system'>('overview');
-  const [stats, setStats] = useState<SuperAdminDashboardStats>({
-    today_sales: 0,
-    today_amount: 0,
-    total_sales: 0,
-    total_amount: 0,
-    total_items: 0,
-    total_staff: 0,
-    pending_approvals: 0,
-    pending_amount: 0,
-    active_users: 0,
-    inactive_users: 0,
-  });
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
-  const [staffList, setStaffList] = useState<StaffInfo[]>([]);
-  const [staffMap, setStaffMap] = useState<{ [key: string]: StaffInfo }>({});
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
-  const [showReceiptDetail, setShowReceiptDetail] = useState(false);
-  const [filterType, setFilterType] = useState<'none' | 'date' | 'range'>('none');
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [dateRangeStart, setDateRangeStart] = useState<string>('');
-  const [dateRangeEnd, setDateRangeEnd] = useState<string>('');
-  const [selectedStaff, setSelectedStaff] = useState<string>('');
-  const [staffWithReceipts, setStaffWithReceipts] = useState<StaffInfo[]>([]);
-  const itemsPerPage = 10;
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-                const [statsRes, receiptsRes, staffRes] = await Promise.all([
-          api.get('/api/admin/dashboard/stats'),
-          api.get('/api/receipts/all?page=1&perPage=100').catch(() => ({ data: { data: [], pagination: { total: 0, totalPages: 1 } } })),
-          api.get('/api/admin/staff').catch(() => ({ data: [] })),
-        ]);
-
-        const statsData = statsRes.data;
-        const allReceipts = receiptsRes.data?.data || receiptsRes.data || [];
-        const allStaff = staffRes.data || [];
-        setStaffList(allStaff);
-
-        const staffMapData: { [key: string]: StaffInfo } = {};
-        allStaff.forEach((staff: StaffInfo) => { staffMapData[staff.id] = staff; });
-        setStaffMap(staffMapData);
-
-        setStats({
-          today_sales: statsData.today_sales || 0,
-          today_amount: statsData.today_amount || 0,
-          today_items: statsData.today_items || 0,
-          total_sales: statsData.total_sales || 0,
-          total_amount: statsData.total_amount || 0,
-          total_items: statsData.total_items || 0,
-          total_staff: statsData.total_staff || 0,
-          pending_approvals: statsData.pending_approvals || 0,
-          pending_amount: statsData.pending_amount || 0,
-          active_users: allStaff.filter((s: StaffInfo) => s.is_active).length,
-          inactive_users: allStaff.filter((s: StaffInfo) => !s.is_active).length,
-        });
-
-        setReceipts(allReceipts);
-
-        // Extract unique staff members
-        const uniqueStaffMap = new Map<string, StaffInfo>();
-        (allReceipts || []).forEach((receipt: any) => {
-          if (receipt.staff_id && staffMapData[receipt.staff_id]) {
-            uniqueStaffMap.set(receipt.staff_id, staffMapData[receipt.staff_id]);
-          }
-        });
-        const staffList = Array.from(uniqueStaffMap.values()).sort((a, b) => a.full_name.localeCompare(b.full_name));
-        setStaffWithReceipts(staffList);use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import api from '@/lib/api';
-import { Users, DollarSign, Package, TrendingUp, Search, Eye, X, ShoppingCart, Wallet, Clock, Banknote, ArrowRightLeft, Shield, Activity, AlertTriangle, Server, UserCheck, UserX, Database, BarChart3, Monitor, ScrollText, CreditCard, Receipt as ReceiptIcon, FileText } from 'lucide-react';
-import { useAuthStore } from '@/store/auth';
-import { formatQty } from '@/lib/format-quantity';
-import { formatDate, formatTime } from '@/lib/format-date';
-import StatCard from '@/components/StatCard';
-import type { SuperAdminDashboardStats, Receipt, ReceiptItem, StaffInfo } from '@/types';
-import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 export default function SuperAdminDashboard() {
   const { token, user } = useAuthStore();
@@ -350,10 +260,10 @@ export default function SuperAdminDashboard() {
         <div className="space-y-6">
           {/* Quick Stats Row */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={Banknote} title="Today's Revenue" value={`₦${stats.today_amount.toLocaleString()}`} color="bg-emerald-600" />
+            <StatCard icon={Banknote} title="Today's Revenue" value={`?${stats.today_amount.toLocaleString()}`} color="bg-emerald-600" />
             <StatCard icon={ArrowRightLeft} title="Today's Transactions" value={stats.today_sales} color="bg-cyan-500" />
-            <StatCard icon={Wallet} title="Total Revenue" value={`₦${stats.total_amount.toLocaleString()}`} color="bg-green-600" />
-            <StatCard icon={Clock} title="Pending Approvals" value={stats.pending_approvals} color="bg-orange-500" onClick={() => router.push('/superadmin/payments')} additionalInfo={`₦${stats.pending_amount.toLocaleString()}`} />
+            <StatCard icon={Wallet} title="Total Revenue" value={`?${stats.total_amount.toLocaleString()}`} color="bg-green-600" />
+            <StatCard icon={Clock} title="Pending Approvals" value={stats.pending_approvals} color="bg-orange-500" onClick={() => router.push('/superadmin/payments')} additionalInfo={`?${stats.pending_amount.toLocaleString()}`} />
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -372,7 +282,7 @@ export default function SuperAdminDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" fontSize={12} />
                   <YAxis />
-                  <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value: number) => `?${value.toLocaleString()}`} />
                   <Legend />
                   <Line type="monotone" dataKey="amount" name="Revenue" stroke="#ec4899" strokeWidth={2} dot={{ r: 4 }} />
                 </LineChart>
@@ -386,7 +296,7 @@ export default function SuperAdminDashboard() {
                   <Pie data={paymentMethodData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
                     {paymentMethodData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value: number) => `?${value.toLocaleString()}`} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -426,7 +336,7 @@ export default function SuperAdminDashboard() {
         <div className="space-y-6">
           {/* Today vs All Time */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatCard icon={Banknote} title="Today's Sales Amount" value={`₦${stats.today_amount.toLocaleString()}`} color="bg-emerald-600" />
+            <StatCard icon={Banknote} title="Today's Sales Amount" value={`?${stats.today_amount.toLocaleString()}`} color="bg-emerald-600" />
             <StatCard icon={ArrowRightLeft} title="Today's Transactions" value={stats.today_sales} color="bg-cyan-500" />
             <StatCard icon={Package} title="Today's Items Sold" value={formatQty(stats.today_items || 0)} color="bg-indigo-500" />
           </div>
@@ -510,7 +420,7 @@ export default function SuperAdminDashboard() {
                           <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-xs font-semibold capitalize">{receipt.payment_method}</span>
                         </td>
                         <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{(receipt.receipt_items || []).reduce((s: number, i: any) => s + (i.quantity || 0), 0)}</td>
-                        <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">₦{receipt.total_amount.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">?{receipt.total_amount.toLocaleString()}</td>
                         <td className="px-4 py-3 text-center">
                           <button onClick={() => { setSelectedReceipt(receipt); setShowReceiptDetail(true); }}
                             className="inline-flex items-center justify-center px-3 py-2 bg-pink-500 text-white rounded hover:bg-pink-600 transition">
@@ -571,7 +481,7 @@ export default function SuperAdminDashboard() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
                   <YAxis dataKey="name" type="category" width={100} fontSize={12} />
-                  <Tooltip formatter={(value: number) => `₦${value.toLocaleString()}`} />
+                  <Tooltip formatter={(value: number) => `?${value.toLocaleString()}`} />
                   <Bar dataKey="amount" name="Revenue" fill="#ec4899" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -630,8 +540,8 @@ export default function SuperAdminDashboard() {
       {activeTab === 'system' && (
         <div className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={Server} title="Backend Status" value="Online" color="bg-green-600" badge="✓" />
-            <StatCard icon={Database} title="Database" value="Connected" color="bg-blue-600" badge="✓" />
+            <StatCard icon={Server} title="Backend Status" value="Online" color="bg-green-600" badge="?" />
+            <StatCard icon={Database} title="Database" value="Connected" color="bg-blue-600" badge="?" />
             <StatCard icon={Activity} title="API Health" value="Healthy" color="bg-emerald-500" />
             <StatCard icon={AlertTriangle} title="Pending Alerts" value={stats.pending_approvals} color="bg-amber-500" />
           </div>
@@ -667,7 +577,7 @@ export default function SuperAdminDashboard() {
                   { label: 'Active Users', value: stats.active_users },
                   { label: 'Inactive Users', value: stats.inactive_users },
                   { label: 'Total Receipts', value: receipts.length },
-                  { label: 'Total Revenue', value: `₦${stats.total_amount.toLocaleString()}` },
+                  { label: 'Total Revenue', value: `?${stats.total_amount.toLocaleString()}` },
                   { label: 'Pending Payments', value: stats.pending_approvals },
                   { label: 'Items Sold', value: formatQty(stats.total_items) },
                 ].map(item => (
@@ -691,7 +601,7 @@ export default function SuperAdminDashboard() {
                 <Tooltip />
                 <Legend />
                 <Bar dataKey="count" name="Transactions" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="amount" name="Revenue (₦)" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="amount" name="Revenue (?)" fill="#ec4899" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -723,7 +633,7 @@ export default function SuperAdminDashboard() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 dark:text-gray-400 uppercase font-semibold">Outside Jalingo</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{selectedReceipt.sold_outside_jalingo ? '✅ Yes' : '❌ No'}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">{selectedReceipt.sold_outside_jalingo ? '? Yes' : '? No'}</p>
                   </div>
                 </div>
               </div>
@@ -749,9 +659,9 @@ export default function SuperAdminDashboard() {
                           <p className="font-semibold text-gray-900 dark:text-white">
                             {typeof item.item_id === 'object' && item.item_id?.name ? item.item_id.name : 'Unknown Item'}
                           </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Qty: {formatQty(item.quantity)} × ₦{(item.unit_price || 0).toLocaleString()}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Qty: {formatQty(item.quantity)} � ?{(item.unit_price || 0).toLocaleString()}</p>
                         </div>
-                        <p className="font-bold text-gray-900 dark:text-white">₦{((item.unit_price || 0) * item.quantity).toLocaleString()}</p>
+                        <p className="font-bold text-gray-900 dark:text-white">?{((item.unit_price || 0) * item.quantity).toLocaleString()}</p>
                       </div>
                     ))
                   ) : (
@@ -762,7 +672,7 @@ export default function SuperAdminDashboard() {
               <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900 dark:to-pink-800 rounded-lg p-4 border-l-4 border-pink-500">
                 <div className="text-center">
                   <p className="text-sm text-gray-600 dark:text-gray-300 uppercase font-semibold mb-2">Total Amount</p>
-                  <p className="text-4xl font-bold text-pink-600 dark:text-pink-300 break-words">₦{selectedReceipt.total_amount.toLocaleString()}</p>
+                  <p className="text-4xl font-bold text-pink-600 dark:text-pink-300 break-words">?{selectedReceipt.total_amount.toLocaleString()}</p>
                 </div>
               </div>
               <button onClick={() => setShowReceiptDetail(false)} className="w-full px-4 py-3 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-semibold transition">Close</button>
@@ -773,3 +683,4 @@ export default function SuperAdminDashboard() {
     </div>
   );
 }
+

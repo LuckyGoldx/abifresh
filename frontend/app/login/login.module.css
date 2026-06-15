@@ -596,13 +596,16 @@
 }
 
 .poweredBy {
-  margin-top: 4px;
+  margin-top: 40px;
   color: #3b82f6;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .poweredBy strong {
+  font-family: 'Revue', 'Cinzel', 'Georgia', serif;
   font-weight: 700;
+  color: #2563eb;
+  letter-spacing: 1px;
 }
 
 @media (max-width: 768px) {
