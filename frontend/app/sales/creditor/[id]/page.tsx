@@ -62,7 +62,7 @@ export default function CreditorDetailsPage() {
     amount: '',
     referenceNumber: '',
     notes: '',
-    selectedItems: [] as any[],
+    selectedItems: [] as string[],
   });
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
@@ -133,27 +133,43 @@ export default function CreditorDetailsPage() {
       return;
     }
 
-    if (parseFloat(paymentForm.amount) > Number(creditor.outstanding)) {
-      setToast({ message: `Amount cannot exceed outstanding balance (₦${Number(creditor.outstanding).toLocaleString()})`, type: 'error' });
+    // Validate against selected sale's balance
+    if (selectedSaleId) {
+      const sale = (creditor.credit_sales || []).find((s: any) => s.id === selectedSaleId);
+      if (sale) {
+        const salePayments = sale.payments || [];
+        const currentSalePaid = salePayments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+        const currentSaleBalance = Number(sale.total_amount) - currentSalePaid;
+        if (Number(paymentForm.amount) > currentSaleBalance) {
+          setToast({ message: `Amount cannot exceed sale balance (₦${currentSaleBalance.toLocaleString()})`, type: 'error' });
+          return;
+        }
+      }
+    }
+
+    // Require receipt for POS/Transfer
+    if ((paymentForm.paymentMethod === 'pos' || paymentForm.paymentMethod === 'online_transfer') && !receiptFile) {
+      setToast({ message: 'Receipt upload is mandatory for POS/Transfer', type: 'error' });
       return;
     }
 
     setIsProcessingPayment(true);
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('creditorId', creditor.id);
-      formDataToSend.append('creditSaleId', selectedSaleId || '');
       formDataToSend.append('amount', paymentForm.amount);
-      formDataToSend.append('paymentMethod', paymentForm.paymentMethod);
-      formDataToSend.append('referenceNumber', paymentForm.referenceNumber);
-      formDataToSend.append('notes', paymentForm.notes);
-      formDataToSend.append('selectedItems', JSON.stringify(paymentForm.selectedItems));
+      formDataToSend.append('payment_method', paymentForm.paymentMethod);
+      const ref = paymentForm.paymentMethod === 'cash' && !paymentForm.referenceNumber
+        ? `CASH-${Date.now()}`
+        : paymentForm.referenceNumber;
+      formDataToSend.append('reference_number', ref);
+      formDataToSend.append('note', paymentForm.notes);
+      formDataToSend.append('paid_items', JSON.stringify(paymentForm.selectedItems));
       
       if (receiptFile) {
         formDataToSend.append('receipt', receiptFile);
       }
 
-      await api.post('/api/credits/payments', formDataToSend, {
+      await api.post(`/api/credits/sales/${selectedSaleId}/payment`, formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -403,7 +419,7 @@ export default function CreditorDetailsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                  {creditor.credit_sales.slice((creditPage - 1) * perPage, creditPage * perPage).map((sale: any) => {
+                  {[...creditor.credit_sales].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice((creditPage - 1) * perPage, creditPage * perPage).map((sale: any) => {
                     const paid = Number(sale.paid_amount || 0);
                     const balance = Number(sale.total_amount) - paid;
                     return (
@@ -541,52 +557,46 @@ export default function CreditorDetailsPage() {
                     onChange={(e) => {
                       const val = e.target.value;
                       const numVal = Number(val);
-                      const maxOutstanding = Number(creditor.outstanding);
-                      
-                      let finalAmount = val;
-                      if (numVal > maxOutstanding) {
-                        finalAmount = maxOutstanding.toString();
-                      }
-
-                       // FIFO Selection across all receipts
-                       let runningSum = 0;
-                       const newSelected: any[] = [];
+                       const maxOutstanding = Number(creditor.outstanding);
                        
-                       if (finalAmount !== '' && Number(finalAmount) > 0) {
-                         const amt = Number(finalAmount);
-                         const allUnpaidItems = (creditor.credit_sales || [])
-                           .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-                           .flatMap((sale: any) => (sale.credit_sale_items || [])
-                             .filter((item: any) => Number(item.quantity) > Number(item.quantity_paid))
-                             .map((item: any) => ({ ...item, saleId: sale.id }))
-                           );
-
-                         for (const item of allUnpaidItems) {
-                           if (runningSum >= amt) break;
-                           
-                           const remaining = item.remaining_amount ?? (() => {
-                             const sellingPrice = item.item?.price_jalingo || item.unit_price;
-                             const effectiveTotal = Number(item.quantity) * sellingPrice;
-                             const alreadyPaidAmt = Number(item.quantity) > 0
-                               ? (Number(item.quantity_paid) / Number(item.quantity)) * effectiveTotal
-                               : 0;
-                             return Math.max(0, effectiveTotal - alreadyPaidAmt);
-                           })();
-
-                           const payAmount = Math.min(remaining, amt - runningSum);
-                           const unitPrice = item.item?.price_jalingo || item.unit_price;
-                           const effectiveTotal = unitPrice * Number(item.quantity);
-                           const payQty = effectiveTotal > 0 ? (payAmount / effectiveTotal) * Number(item.quantity) : 0;
-                           
-                           newSelected.push({ 
-                             creditSaleItemId: item.id, 
-                             itemId: item.item_id, 
-                             quantity: payQty, 
-                             amount: payAmount
-                           });
-                           runningSum += payAmount;
-                         }
+                       let finalAmount = val;
+                       if (numVal > maxOutstanding) {
+                         finalAmount = maxOutstanding.toString();
                        }
+
+                        // FIFO Selection across unpaid items
+                        let runningSum = 0;
+                        const newSelected: string[] = [];
+                        
+                        if (finalAmount !== '' && Number(finalAmount) > 0) {
+                          const amt = Number(finalAmount);
+                          const allUnpaidItems = (selectedSaleId
+                            ? (creditor.credit_sales || []).filter((s: any) => s.id === selectedSaleId)
+                            : creditor.credit_sales || []
+                          )
+                            .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                            .flatMap((sale: any) => (sale.credit_sale_items || [])
+                              .filter((item: any) => Number(item.quantity) > Number(item.quantity_paid))
+                            );
+
+                          for (const item of allUnpaidItems) {
+                            if (runningSum >= amt) break;
+                            
+                            const remaining = item.remaining_amount ?? (() => {
+                              const sellingPrice = item.item?.price_jalingo || item.unit_price;
+                              const effectiveTotal = Number(item.quantity) * sellingPrice;
+                              const alreadyPaidAmt = Number(item.quantity) > 0
+                                ? (Number(item.quantity_paid) / Number(item.quantity)) * effectiveTotal
+                                : 0;
+                              return Math.max(0, effectiveTotal - alreadyPaidAmt);
+                            })();
+
+                            const payAmount = Math.min(remaining, amt - runningSum);
+                            
+                            newSelected.push(item.id);
+                            runningSum += payAmount;
+                          }
+                        }
 
                       setPaymentForm({ 
                         ...paymentForm, 
@@ -618,8 +628,8 @@ export default function CreditorDetailsPage() {
                       : creditor.credit_sales
                     ).flatMap((sale: any) => 
                       sale.credit_sale_items?.filter((item: any) => Number(item.quantity) > Number(item.quantity_paid)).map((item: any) => {
-                        const isChecked = paymentForm.selectedItems.some((si: any) => si.creditSaleItemId === item.id);
-                        return (
+                              const isChecked = paymentForm.selectedItems.includes(item.id);
+                              return (
                           <label key={item.id} className={`flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer group ${
                             isChecked ? 'border-pink-500 bg-pink-50/50 dark:bg-pink-900/20 shadow-sm' : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900/50 hover:border-gray-200 dark:hover:border-gray-600'
                           }`}>
@@ -634,27 +644,23 @@ export default function CreditorDetailsPage() {
                               onChange={(e) => {
                                 let newSelected = [...paymentForm.selectedItems];
                                 if (e.target.checked) {
-                                  const remaining = item.remaining_amount ?? (() => {
-                                    const sellingPrice = item.item?.price_jalingo || item.unit_price;
-                                    const effectiveTotal = Number(item.quantity) * sellingPrice;
-                                    const alreadyPaidAmt = Number(item.quantity) > 0
-                                      ? (Number(item.quantity_paid) / Number(item.quantity)) * effectiveTotal
-                                      : 0;
-                                    return Math.max(0, effectiveTotal - alreadyPaidAmt);
-                                  })();
-                                  const unitPrice = item.item?.price_jalingo || item.unit_price;
-                                  const effectiveTotal = unitPrice * Number(item.quantity);
-                                  const payQty = effectiveTotal > 0 ? (remaining / effectiveTotal) * Number(item.quantity) : 0;
-                                  newSelected.push({ 
-                                    creditSaleItemId: item.id, 
-                                    itemId: item.item_id, 
-                                    quantity: payQty, 
-                                    amount: remaining 
-                                  });
+                                  newSelected.push(item.id);
                                 } else {
-                                  newSelected = newSelected.filter((si: any) => si.creditSaleItemId !== item.id);
+                                  newSelected = newSelected.filter((id: string) => id !== item.id);
                                 }
-                                const newAmount = newSelected.reduce((sum: number, si: any) => sum + parseFloat(si.amount || '0'), 0);
+                                const newAmount = newSelected.reduce((sum: number, id: string) => {
+                                  const target = (selectedSaleId
+                                    ? (creditor.credit_sales || []).filter((s: any) => s.id === selectedSaleId)
+                                    : creditor.credit_sales || []
+                                  ).flatMap((s: any) => s.credit_sale_items || []).find((i: any) => i.id === id);
+                                  if (!target) return sum;
+                                  const sellingPrice = target.item?.price_jalingo || target.unit_price;
+                                  const effectiveTotal = Number(target.quantity) * sellingPrice;
+                                  const alreadyPaidAmt = Number(target.quantity) > 0
+                                    ? (Number(target.quantity_paid) / Number(target.quantity)) * effectiveTotal
+                                    : 0;
+                                  return sum + Math.max(0, effectiveTotal - alreadyPaidAmt);
+                                }, 0);
                                 setPaymentForm({ 
                                   ...paymentForm, 
                                   selectedItems: newSelected, 
