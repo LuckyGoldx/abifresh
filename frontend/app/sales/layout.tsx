@@ -128,7 +128,8 @@ export default function SalesLayout({ children }: { children: React.ReactNode })
       '/sales/credit-history',
       '/sales/credit-receipts',
       '/sales/credit-notifications',
-      '/sales/credit-payments'
+      '/sales/credit-payments',
+      '/sales/creditor'
     ];
     if (creditRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
       setCreditMode(true);
