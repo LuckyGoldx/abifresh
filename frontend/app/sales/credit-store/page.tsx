@@ -418,14 +418,13 @@ export default function CreditStorePage() {
                           {(() => {
                             if (item.status === 'returned') {
                               const csi = Array.isArray(item.credit_sale_items) ? item.credit_sale_items[0] : item.credit_sale_items;
-                              if (csi) {
-                                const totalQty = Number(csi.quantity || 0);
-                                const paidQty = Number(csi.quantity_paid || 0);
-                                const unpaid = totalQty - paidQty;
-                                return formatQty(Math.round(unpaid * 2) / 2);
+                              if (csi && csi.quantity != null && csi.quantity_paid != null) {
+                                const unpaid = Number(csi.quantity) - Number(csi.quantity_paid);
+                                return formatQty(Math.max(0, Math.round(unpaid * 2) / 2));
                               }
+                              if (item.quantity > 0) return formatQty(item.quantity);
                             }
-                            return formatQty(item.quantity);
+                            return formatQty(item.quantity || 0);
                           })()}
                         </span>
                       </td>

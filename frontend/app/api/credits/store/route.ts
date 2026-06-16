@@ -215,6 +215,8 @@ export async function POST(req: NextRequest) {
         creditors (full_name),
         credit_sale_items (
           unit_price,
+          quantity,
+          quantity_paid,
           credit_sales (receipt_number, status)
         )
       `)
