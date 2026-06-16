@@ -317,9 +317,9 @@ export default function AdminPostItemsPage() {
 
       const staffName = staffList.find(s => s.id === selectedStaff)?.full_name || 'Staff';
       const totalValue = cart.reduce((sum, item) => sum + (item.price_jalingo || 0) * item.post_quantity, 0);
+      setShowConfirmation(false);
       setSuccessInfo({ staffName, itemCount: cart.length, totalValue });
       setShowSuccessModal(true);
-      setShowConfirmation(false);
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'Failed to post items';
       setToast({ message: errorMsg, type: 'error' });
@@ -455,21 +455,21 @@ export default function AdminPostItemsPage() {
       {showSuccessModal && successInfo && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-8 shadow-2xl border dark:border-gray-700 animate-in zoom-in-95 duration-200 text-center">
-            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
-              <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+            <div className="w-20 h-20 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+              <CheckCircle className="w-10 h-10 text-pink-600 dark:text-pink-400" />
             </div>
             <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Posted Successfully!</h2>
             <p className="text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
               Items have been posted to <strong className="text-gray-800 dark:text-gray-200">{successInfo.staffName}</strong>
             </p>
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-5 border border-green-200 dark:border-green-900/30 mb-6 space-y-3">
+            <div className="bg-pink-50 dark:bg-pink-900/20 rounded-2xl p-5 border border-pink-200 dark:border-pink-900/30 mb-6 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Items Posted</span>
                 <span className="text-lg font-bold text-gray-900 dark:text-white">{successInfo.itemCount}</span>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-green-200 dark:border-green-900/30">
+              <div className="flex justify-between items-center pt-2 border-t border-pink-200 dark:border-pink-900/30">
                 <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Value</span>
-                <span className="text-lg font-bold text-green-600 dark:text-green-400">₦{successInfo.totalValue.toLocaleString()}</span>
+                <span className="text-lg font-bold text-pink-600 dark:text-pink-400">₦{successInfo.totalValue.toLocaleString()}</span>
               </div>
             </div>
             <button
@@ -482,7 +482,7 @@ export default function AdminPostItemsPage() {
                 fetchItems();
                 fetchHistory();
               }}
-              className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3.5 rounded-2xl font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-all"
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white py-3.5 rounded-2xl font-bold transition-all"
             >
               DONE
             </button>
