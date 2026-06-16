@@ -98,10 +98,24 @@ export async function GET(
           0
         );
 
-        // Unpaid = not in approved or pending sale_id sets
-        const unpaid = (siData || []).filter(
-          (si: any) => !approvedSaleIds.has(si.id) && !pendingSaleIds.has(si.id)
-        );
+        // Unpaid = compute remaining amount from payment items
+        const unpaid = (siData || []).filter((si: any) => {
+          const qty = parseFloat(si.quantity) || 0;
+          const price = parseFloat(si.unit_price) || 0;
+          const total = qty * price;
+          let paidOnItem = 0;
+          for (const p of paymentsData || []) {
+            if (Array.isArray(p.items_paid_for)) {
+              for (const pi of p.items_paid_for) {
+                const ids: string[] = Array.isArray(pi.sale_ids) ? pi.sale_ids : pi.sale_id ? [pi.sale_id] : [];
+                if (ids.includes(si.id) && (p.status === 'approved' || p.status === 'pending')) {
+                  paidOnItem += parseFloat(pi.amount) || 0;
+                }
+              }
+            }
+          }
+          return total - paidOnItem > 1;
+        });
 
         // Group by item_id (same item at same price combined)
         const map = new Map<string, any>();
@@ -148,10 +162,22 @@ export async function GET(
         0
       );
 
-      // Unpaid = not in approved or pending sale_id sets
-      const unpaid = (ssData || []).filter(
-        (s: any) => !approvedSaleIds.has(s.id) && !pendingSaleIds.has(s.id)
-      );
+      // Unpaid = compute remaining amount from payment items
+      const unpaid = (ssData || []).filter((s: any) => {
+        const total = parseFloat(s.total_amount) || 0;
+        let paidOnItem = 0;
+        for (const p of paymentsData || []) {
+          if (Array.isArray(p.items_paid_for)) {
+            for (const pi of p.items_paid_for) {
+              const ids: string[] = Array.isArray(pi.sale_ids) ? pi.sale_ids : pi.sale_id ? [pi.sale_id] : [];
+              if (ids.includes(s.id) && (p.status === 'approved' || p.status === 'pending')) {
+                paidOnItem += parseFloat(pi.amount) || 0;
+              }
+            }
+          }
+        }
+        return total - paidOnItem > 1;
+      });
 
       // Group by item_id + unit_price (mirrors staff-store.service.ts logic)
       const map = new Map<string, any>();
@@ -182,7 +208,8 @@ export async function GET(
       unpaidItems = Array.from(map.values());
     }
 
-    const outstandingAmount = Math.max(0, allTimeTotalSales - approvedAmount - pendingAmount);
+    // Compute outstanding amount from unpaid items for consistency
+    const outstandingAmount = unpaidItems.reduce((sum, item) => sum + (item.total_amount || 0), 0);
 
     return NextResponse.json({
       staff,

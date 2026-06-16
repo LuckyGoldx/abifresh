@@ -33,6 +33,36 @@ function formatRole(role: string): string {
   return role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+const formatPaymentMethod = (method?: string) => {
+  if (!method) return 'Not specified';
+  const formatted: { [key: string]: string } = {
+    'cash': 'Cash',
+    'online': 'Online Transfer',
+    'bank_deposit': 'Bank Deposit',
+    'pos': 'POS',
+  };
+  return formatted[method.toLowerCase()] || method;
+};
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'pending': return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200';
+    case 'approved': return 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200';
+    case 'rejected': return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
+    case 'paid': return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
+    default: return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
+  }
+};
+
+const getStatusIcon = (status: string) => {
+  switch (status) {
+    case 'pending': return <Clock className="w-4 h-4" />;
+    case 'approved': return <CheckCircle className="w-4 h-4" />;
+    case 'rejected': return <XCircle className="w-4 h-4" />;
+    default: return <Clock className="w-4 h-4" />;
+  }
+};
+
 export default function StaffPaymentDetailPage() {
   const params = useParams();
   const router = useRouter();
