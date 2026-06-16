@@ -414,7 +414,20 @@ export default function CreditStorePage() {
                       </td>
                       <td className="py-4 px-6 text-sm font-bold text-gray-600 dark:text-gray-400">{item.creditors?.full_name}</td>
                       <td className="py-4 px-6">
-                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-black">{formatQty(item.quantity)}</span>
+                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-black">
+                          {(() => {
+                            if (item.status === 'returned') {
+                              const csi = Array.isArray(item.credit_sale_items) ? item.credit_sale_items[0] : item.credit_sale_items;
+                              if (csi) {
+                                const totalQty = Number(csi.quantity || 0);
+                                const paidQty = Number(csi.quantity_paid || 0);
+                                const unpaid = totalQty - paidQty;
+                                return formatQty(Math.round(unpaid * 2) / 2);
+                              }
+                            }
+                            return formatQty(item.quantity);
+                          })()}
+                        </span>
                       </td>
                       <td className="py-4 px-6">
                         <button onClick={() => handleViewReceipt(item)} className="text-xs font-black text-pink-600 hover:underline decoration-2 underline-offset-4">{item.credit_sale_items?.credit_sales?.receipt_number || 'N/A'}</button>

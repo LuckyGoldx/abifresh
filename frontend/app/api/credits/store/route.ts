@@ -16,6 +16,8 @@ export async function GET(req: NextRequest) {
         creditors (full_name),
         credit_sale_items (
           unit_price,
+          quantity,
+          quantity_paid,
           credit_sales (staff_id, receipt_number, status, created_at, users (full_name))
         )
       `);
