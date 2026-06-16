@@ -314,7 +314,7 @@ export async function printReceipt(receipt: {
     document.body.removeChild(tempContainer);
   } catch (error) {
     console.error('Error printing receipt:', error);
-    alert('Failed to print receipt. Please try again.');
+    console.error('Failed to print receipt. Please try again.');
   }
 }
 
@@ -374,7 +374,7 @@ export async function downloadReceiptAsPDF(receipt: {
     document.body.removeChild(tempContainer);
   } catch (error) {
     console.error('Error downloading receipt:', error);
-    alert('Failed to download receipt. Please try again.');
+    console.error('Failed to download receipt. Please try again.');
   }
 }
 
@@ -424,6 +424,6 @@ export async function downloadReceiptAsImage(receipt: {
     document.body.removeChild(tempContainer);
   } catch (error) {
     console.error('Error downloading receipt:', error);
-    alert('Failed to download receipt. Please try again.');
+    console.error('Failed to download receipt. Please try again.');
   }
 }

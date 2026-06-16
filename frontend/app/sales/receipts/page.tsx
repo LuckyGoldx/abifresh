@@ -9,6 +9,7 @@ import { formatQty } from '@/lib/format-quantity';
 import { formatReceiptDate, formatReceiptTime } from '@/lib/format-date';
 import type { Receipt } from '@/types';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
+import { useAlert } from '@/context/AlertContext';
 
 export default function ReceiptsPage() {
   const { user, token } = useAuthStore();
@@ -22,6 +23,8 @@ export default function ReceiptsPage() {
   const [itemNames, setItemNames] = useState<{ [key: string]: string }>({});
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 25;
+
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
     setMounted(true);
@@ -93,7 +96,7 @@ export default function ReceiptsPage() {
       await downloadReceiptAsPDF(receiptData);
     } catch (error) {
       console.error('Error downloading receipt:', error);
-      alert('Failed to download receipt. Please try again.');
+      showAlert('Failed to download receipt. Please try again.');
     }
   };
 
@@ -125,7 +128,7 @@ export default function ReceiptsPage() {
       await printReceipt(receiptData);
     } catch (error) {
       console.error('Error printing receipt:', error);
-      alert('Failed to print receipt. Please try again.');
+      showAlert('Failed to print receipt. Please try again.');
     }
   };
 

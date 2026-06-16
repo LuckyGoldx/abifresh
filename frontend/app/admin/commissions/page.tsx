@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import LoadingLogo from '@/components/LoadingLogo';
 import { formatQty } from '@/lib/format-quantity';
+import { useAlert } from '@/context/AlertContext';
 import type {
   StaffCommission,
   CommissionOverview,
@@ -100,7 +101,7 @@ export default function AdminCommissionsPage() {
   const [analyticsStartDate, setAnalyticsStartDate] = useState('');
   const [analyticsEndDate, setAnalyticsEndDate] = useState('');
   const [paymentAmountError, setPaymentAmountError] = useState('');
-  
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
     fetchData();
@@ -213,7 +214,7 @@ export default function AdminCommissionsPage() {
         }
       );
 
-      alert('Commission payment created successfully!');
+      showAlert('Commission payment created successfully!');
       setShowPaymentModal(false);
       setSelectedStaff(null);
       setPaymentAmount('');
@@ -222,7 +223,7 @@ export default function AdminCommissionsPage() {
       fetchData();
     } catch (error: any) {
       console.error('Error creating commission payment:', error);
-      alert(error.response?.data?.error || 'Error creating commission payment');
+      showAlert(error.response?.data?.error || 'Error creating commission payment');
     } finally {
       setProcessingPayment(false);
     }

@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { useThemeStore } from '@/store/auth';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { AlertProvider } from '@/context/AlertContext';
 import ToastContainer from '@/components/ToastContainer';
 import SplashScreen from '@/components/SplashScreen';
 import PWAPrompt from '@/components/PWAPrompt';
@@ -27,12 +28,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
-      <NotificationProvider>
-        <SplashScreen />
-        <ToastContainer />
-        <PWAPrompt />
-        {children}
-      </NotificationProvider>
+      <AlertProvider>
+        <NotificationProvider>
+          <SplashScreen />
+          <ToastContainer />
+          <PWAPrompt />
+          {children}
+        </NotificationProvider>
+      </AlertProvider>
     </ToastProvider>
   );
 }

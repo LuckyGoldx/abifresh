@@ -6,6 +6,7 @@ import { useToast } from '@/context/ToastContext';
 import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User, Eye, EyeOff, Trash2, Shield, Lock, RefreshCw } from 'lucide-react';
 import type { Staff, StaffStats } from '@/types';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
+import { useAlert } from '@/context/AlertContext';
 
 const generateRandomPassword = () => {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!&';
@@ -76,6 +77,7 @@ export default function SuperAdminStaffPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     stage: 'first' | 'second' | null; staffId: string | null; staffName: string | null;
   }>({ stage: null, staffId: null, staffName: null });
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   const generateUsernameFromEmail = (email: string) =>
     email.split('@')[0].replace(/\./g, '_').replace(/\s/g, '').toLowerCase();
@@ -151,7 +153,7 @@ export default function SuperAdminStaffPage() {
 
   const handleToggleStatus = async (memberId: string, isActive: boolean) => {
     const action = isActive ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this staff member?`)) return;
+    if (!(await showConfirm(`Are you sure you want to ${action} this staff member?`))) return;
     try {
       await api.put(`/api/admin/staff/${memberId}/${action}`, {});
       fetchStaff();

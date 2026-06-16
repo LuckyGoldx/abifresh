@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { CreditCard, CheckCircle, Clock, XCircle, Eye, X, FileText, Download, AlertTriangle, Loader2, Users } from 'lucide-react';
 import { CreditTabs } from '@/components/credits';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
+import { useAlert } from '@/context/AlertContext';
 
 export default function SuperAdminCreditPaymentsPage() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function SuperAdminCreditPaymentsPage() {
   const perPage = 15;
   const [staffSummary, setStaffSummary] = useState<any[]>([]);
   const [staffSummaryLoading, setStaffSummaryLoading] = useState(false);
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
     fetchPayments();
@@ -106,30 +108,30 @@ export default function SuperAdminCreditPaymentsPage() {
   };
 
   const handleApprove = async (id: string) => {
-    if (!confirm('Are you sure you want to approve this credit remittance?')) return;
+    if (!(await showConfirm('Are you sure you want to approve this credit remittance?'))) return;
     setActionInProgress(true);
     try {
       await api.patch(`/api/credits/payments/admin/${id}/status`, { status: 'approved' });
-      alert('✅ Remittance approved successfully!');
+      showAlert('✅ Remittance approved successfully!');
       setShowDetailsModal(false);
       fetchPayments();
     } catch (error: any) {
-      alert('❌ Failed to approve remittance');
+      showAlert('❌ Failed to approve remittance');
     } finally {
       setActionInProgress(false);
     }
   };
 
   const handleReject = async (id: string) => {
-    if (!confirm('Are you sure you want to REJECT this credit remittance?')) return;
+    if (!(await showConfirm('Are you sure you want to REJECT this credit remittance?'))) return;
     setActionInProgress(true);
     try {
       await api.patch(`/api/credits/payments/admin/${id}/status`, { status: 'rejected' });
-      alert('✅ Remittance rejected successfully!');
+      showAlert('✅ Remittance rejected successfully!');
       setShowDetailsModal(false);
       fetchPayments();
     } catch (error: any) {
-      alert('❌ Failed to reject remittance');
+      showAlert('❌ Failed to reject remittance');
     } finally {
       setActionInProgress(false);
     }

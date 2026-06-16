@@ -6,6 +6,7 @@ import { useToast } from '@/context/ToastContext';
 import { Users, Plus, Edit, UserCheck, UserX, Users2, ShoppingCart, CreditCard, User, Eye, EyeOff, Trash2 } from 'lucide-react';
 import type { Staff, StaffStats } from '@/types';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
+import { useAlert } from '@/context/AlertContext';
 
 // Helper function to display role names nicely
 const displayRoleName = (role: string): string => {
@@ -78,6 +79,7 @@ export default function StaffManagementPage() {
     staffId: null,
     staffName: null,
   });
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   // Function to generate username from email
   const generateUsernameFromEmail = (email: string): string => {
@@ -189,7 +191,7 @@ export default function StaffManagementPage() {
 
   const handleToggleStatus = async (memberId: string, isActive: boolean) => {
     const action = isActive ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this staff member?`)) return;
+    if (!(await showConfirm(`Are you sure you want to ${action} this staff member?`))) return;
 
     try {
       console.log(`${action} staff ${memberId}`);

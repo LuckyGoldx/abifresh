@@ -13,6 +13,7 @@ import {
   Users, Activity, ShoppingCart, Warehouse, AlertCircle, Eye, CreditCard
 } from 'lucide-react';
 import LoadingLogo from '@/components/LoadingLogo';
+import { useAlert } from '@/context/AlertContext';
 
 interface ReportFilters {
   staffId?: string;
@@ -97,6 +98,7 @@ export default function ComprehensiveReportsPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedStaffDetail, setSelectedStaffDetail] = useState<any>(null);
   const [selectedStore, setSelectedStore] = useState<'all' | 'main' | 'active' | 'staff' | 'credit'>('all');
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
     fetchAllStaff();
@@ -164,7 +166,7 @@ export default function ComprehensiveReportsPage() {
 
   const handleExportPDF = async () => {
     if (!reportRef.current) {
-      alert('Report content not found');
+      showAlert('Report content not found');
       return;
     }
 
@@ -209,7 +211,7 @@ export default function ComprehensiveReportsPage() {
       pdf.save(filename);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Failed to export PDF. Please try again.');
+      showAlert('Failed to export PDF. Please try again.');
     }
   };
 

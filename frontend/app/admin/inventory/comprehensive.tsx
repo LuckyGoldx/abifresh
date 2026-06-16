@@ -8,6 +8,7 @@ import { PRODUCT_CATALOG, getBrandNames, getPackageTypes, getProductVariants, ge
 import type { ProductVariant } from '@/lib/productCatalog';
 import { toast } from 'sonner';
 import { formatQty } from '@/lib/format-quantity';
+import { useAlert } from '@/context/AlertContext';
 
 /** Compress an image file client-side to WebP before uploading. Falls back to original on failure. */
 function compressImageClientSide(file: File): Promise<File> {
@@ -125,8 +126,7 @@ export default function ComprehensiveInventoryPage() {
   // Image preview state
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
-
-
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
     setMounted(true);
@@ -310,7 +310,7 @@ export default function ComprehensiveInventoryPage() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this item?'))) return;
     try {
       await api.delete(`/api/inventory/items/${itemId}`);
 

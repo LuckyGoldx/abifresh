@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/context/ToastContext';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
+import { useAlert } from '@/context/AlertContext';
 
 interface ExpenseItem {
   id: string;
@@ -51,6 +52,7 @@ export default function ExpensesPage() {
   const [reviewExpense, setReviewExpense] = useState<ExpenseItem | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
     fetchExpenses();
@@ -67,7 +69,7 @@ export default function ExpensesPage() {
       setExpenses(response.data || []);
     } catch (error: any) {
       console.error('Failed to fetch expenses:', error?.response?.data || error?.message);
-      alert('Failed to load expenses. Please try again.');
+      showAlert('Failed to load expenses. Please try again.');
     } finally {
       setIsLoading(false);
     }

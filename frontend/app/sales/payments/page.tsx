@@ -10,6 +10,7 @@ import LoadingLogo from '@/components/LoadingLogo';
 
 import type { Payment, Sale } from '@/types';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
+import { useAlert } from '@/context/AlertContext';
 
 export default function SalesPaymentsPage() {
   const user = useAuthStore((state) => state.user);
@@ -47,6 +48,8 @@ export default function SalesPaymentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(true);
+
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
     // Set staff name from auth user
@@ -363,13 +366,13 @@ export default function SalesPaymentsPage() {
 
     // Check file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
+      showAlert('File size must be less than 5MB');
       return;
     }
 
     // Check file type
     if (!['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp', 'application/pdf'].includes(file.type)) {
-      alert('Only JPG, PNG, GIF, WebP, or PDF files are allowed');
+      showAlert('Only JPG, PNG, GIF, WebP, or PDF files are allowed');
       return;
     }
 
@@ -417,7 +420,7 @@ export default function SalesPaymentsPage() {
     
     // Make item selection mandatory
     if (selectedItems.length === 0) {
-      alert('Please select at least one item you are paying for');
+      showAlert('Please select at least one item you are paying for');
       return;
     }
 
@@ -425,7 +428,7 @@ export default function SalesPaymentsPage() {
     const calculatedAmount = calculateSelectedTotal();
     
     if (calculatedAmount <= 0) {
-      alert('Please select items to pay for');
+      showAlert('Please select items to pay for');
       return;
     }
 
@@ -434,23 +437,23 @@ export default function SalesPaymentsPage() {
 
     // Validate payment doesn't exceed outstanding balance (allow tiny float tolerance)
     if (calculatedAmount > outstandingAmt + 0.01) {
-      alert(`❌ Payment amount (₦${calculatedAmount.toLocaleString()}) exceeds your outstanding balance (₦${outstandingAmt.toLocaleString()})\n\nPlease select fewer items or reduce the payment amount.`);
+      showAlert(`❌ Payment amount (₦${calculatedAmount.toLocaleString()}) exceeds your outstanding balance (₦${outstandingAmt.toLocaleString()})\n\nPlease select fewer items or reduce the payment amount.`);
       return;
     }
 
     if (!staffName.trim()) {
-      alert('Please enter your name');
+      showAlert('Please enter your name');
       return;
     }
 
     // Validate based on payment method
     if (paymentMethod !== 'cash') {
       if (!receiptFile) {
-        alert('Please upload a receipt for this payment method');
+        showAlert('Please upload a receipt for this payment method');
         return;
       }
       if (!referenceNumber.trim()) {
-        alert('Please enter a reference number for this payment method');
+        showAlert('Please enter a reference number for this payment method');
         return;
       }
     }
@@ -467,7 +470,7 @@ export default function SalesPaymentsPage() {
     // Compute amount fresh from selected items
     const freshAmount = calculateSelectedTotal();
     if (freshAmount <= 0) {
-      alert('No items selected. Please select items to pay for.');
+      showAlert('No items selected. Please select items to pay for.');
       return;
     }
 
@@ -534,7 +537,7 @@ export default function SalesPaymentsPage() {
       setReceiptPreview(null);
       fetchData();
     } catch (error: any) {
-      alert(error.message || 'Failed to submit payment request');
+      showAlert(error.message || 'Failed to submit payment request');
     } finally {
       setSubmitting(false);
     }

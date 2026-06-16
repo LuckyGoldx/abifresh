@@ -20,6 +20,7 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
+import { useAlert } from '@/context/AlertContext';
 
 // API configuration
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -47,6 +48,7 @@ export default function DownloadPage() {
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const statsRef = useRef<HTMLDivElement>(null);
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   const fetchStats = async () => {
     try {
@@ -170,7 +172,7 @@ export default function DownloadPage() {
 
   const handleDownloadClick = async () => {
     if (isInstalled) {
-      alert('ABIFRESH is already installed on your device!');
+      showAlert('ABIFRESH is already installed on your device!');
       return;
     }
 
@@ -232,14 +234,14 @@ export default function DownloadPage() {
       trackDownloadAsync();
     } catch (error) {
       console.error('[Download] Unexpected error:', error);
-      alert('An error occurred. Please try again.');
+      showAlert('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const showCustomInstallDialog = () => {
-    const confirmed = confirm(
+  const showCustomInstallDialog = async () => {
+    const confirmed = await showConfirm(
       '📱 Install ABIFRESH?\n\n' +
       'The app will be downloaded and available on your home screen.\n\n' +
       'Tap "OK" to install now.'
@@ -276,7 +278,7 @@ export default function DownloadPage() {
       instructions = 'Installation Instructions:\n\n1️⃣ Open your browser menu (⋮)\n2️⃣ Look for "Install", "Add to Home Screen", or similar option\n3️⃣ Confirm installation\n\nNote: You may see an install prompt in the address bar - tap it!';
     }
 
-    alert(instructions);
+    showAlert(instructions);
   };
 
   const trackDownloadAsync = () => {

@@ -8,6 +8,7 @@ import { formatQty } from '@/lib/format-quantity';
 import type { Item, SaleCartItem, StaffInfo, SalesDashboardStats, Receipt, Activity } from '@/types';
 import { SkeletonStatGrid, SkeletonTable, SkeletonChart } from '@/components/Skeleton';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
+import { useAlert } from '@/context/AlertContext';
 
 // Toast notification component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
@@ -50,6 +51,8 @@ export default function SalesDashboard() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [currentActivityPage, setCurrentActivityPage] = useState(1);
   const [postedItemsStats, setPostedItemsStats] = useState<any | null>(null);
+
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
     setMounted(true);
@@ -409,7 +412,7 @@ export default function SalesDashboard() {
       setShowPostModal(false);
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'Failed to post items';
-      alert(errorMsg);
+      showAlert(errorMsg);
     }
   };
 
@@ -515,7 +518,7 @@ export default function SalesDashboard() {
       link.click();
     } catch (error) {
       console.error('Failed to download receipt:', error);
-      alert('Please print instead');
+      showAlert('Please print instead');
     } finally {
       document.body.removeChild(element);
     }

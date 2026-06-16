@@ -8,6 +8,7 @@ import LoadingLogo from '@/components/LoadingLogo';
 import { formatQty } from '@/lib/format-quantity';
 import { formatDateTime, formatDateShort } from '@/lib/format-date';
 import type { StaffCommissionDetails } from '@/types';
+import { useAlert } from '@/context/AlertContext';
 
 const getDateRange = (period: string): { start: string; end: string } => {
   const now = new Date();
@@ -65,7 +66,8 @@ export default function StaffCommissionDetailPage() {
   const [endDate, setEndDate] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [viewMode, setViewMode] = useState<'receipts' | 'items'>('receipts');
-  
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
+
   useEffect(() => {
     if (staffId) {
       fetchDetails();
@@ -98,7 +100,7 @@ export default function StaffCommissionDetailPage() {
       setDetails(response.data);
     } catch (error) {
       console.error('Error fetching staff commission details:', error);
-      alert('Error loading commission details');
+      showAlert('Error loading commission details');
     } finally {
       setLoading(false);
     }

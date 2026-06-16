@@ -8,6 +8,7 @@ import LoadingLogo from '@/components/LoadingLogo';
 import { formatQty } from '@/lib/format-quantity';
 import type { Payment, StaffSummaryRow } from '@/types';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
+import { useAlert } from '@/context/AlertContext';
 
 export default function PaymentsPage() {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function PaymentsPage() {
   const itemsPerPage = 10;
   const [outstandingSummary, setOutstandingSummary] = useState<{ outstandingTotal: number } | null>(null);
   const [activeTab, setActiveTab] = useState<'payments' | 'breakdown'>('payments');
+  const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   // Download receipt handler - handles cross-origin downloads
   const handleDownloadReceipt = async (url: string, filename?: string) => {
@@ -202,7 +204,7 @@ export default function PaymentsPage() {
       setSelectedPayment(null);
       fetchPayments();
     } catch (error: any) {
-      alert('❌ ' + (error.response?.data?.error || 'Failed to approve payment'));
+      showAlert('❌ ' + (error.response?.data?.error || 'Failed to approve payment'));
     } finally {
       setActionInProgress(false);
     }
@@ -210,7 +212,7 @@ export default function PaymentsPage() {
 
   const handleReject = async (paymentId: string) => {
     if (!rejectReason.trim()) {
-      alert('Please enter a reason for rejection');
+      showAlert('Please enter a reason for rejection');
       return;
     }
 
@@ -228,7 +230,7 @@ export default function PaymentsPage() {
       setSelectedPayment(null);
       fetchPayments();
     } catch (error: any) {
-      alert('❌ ' + (error.response?.data?.error || 'Failed to reject payment'));
+      showAlert('❌ ' + (error.response?.data?.error || 'Failed to reject payment'));
     } finally {
       setActionInProgress(false);
     }
