@@ -11,11 +11,14 @@ import Modal from '@/components/Modal';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 import ExpenseTable from '@/components/expenses/ExpenseTable';
 import ExpenseDetailModal from '@/components/expenses/ExpenseDetailModal';
+import { useAuthStore } from '@/store/auth';
 
 const FALLBACK_CATEGORIES = ['Transport', 'Supplies', 'Food & Refreshments', 'Utilities', 'Maintenance', 'Communication', 'Fuel', 'Other'];
 
 export default function ExpensesPage() {
   const { addToast } = useToast();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const { categories, addCategory } = useExpenseCategories({ fallbackCategories: FALLBACK_CATEGORIES });
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [amount, setAmount] = useState('');
@@ -61,7 +64,7 @@ export default function ExpensesPage() {
       {Object.keys(byCategory).length === 0 && <div className="card col-span-2 md:col-span-1 bg-gray-50 dark:bg-gray-800 border flex items-center justify-center py-6 text-gray-500 text-sm italic">No approved category data yet</div>}
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-1"><ExpenseForm amount={amount} category={category} description={description} expenseDate={expenseDate} categories={categories} submitting={submitting} showCustomInput={showCustomInput} customInputValue={customInputValue} canAddCustom={true} onAmountChange={setAmount} onCategoryChange={setCategory} onDescriptionChange={setDescription} onExpenseDateChange={setExpenseDate} onShowCustomInput={setShowCustomInput} onCustomInputValueChange={setCustomInputValue} onAddCustomCategory={addCategory} onSubmit={handleOpenPreview} /></div>
+      <div className="lg:col-span-1"><ExpenseForm amount={amount} category={category} description={description} expenseDate={expenseDate} categories={categories} submitting={submitting} showCustomInput={showCustomInput} customInputValue={customInputValue} canAddCustom={isAdmin} onAmountChange={setAmount} onCategoryChange={setCategory} onDescriptionChange={setDescription} onExpenseDateChange={setExpenseDate} onShowCustomInput={setShowCustomInput} onCustomInputValueChange={setCustomInputValue} onAddCustomCategory={addCategory} onSubmit={handleOpenPreview} /></div>
       <div className="lg:col-span-2"><ExpenseTable expenses={expenses} onViewExpense={(e) => { setSelectedExpense(e); setShowDetailModal(true); }} /></div>
     </div>
     <Modal isOpen={showPreviewModal} onClose={() => setShowPreviewModal(false)} title="Preview Expense Request">

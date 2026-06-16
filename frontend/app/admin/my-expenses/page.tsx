@@ -32,6 +32,7 @@ export default function AdminExpensesPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<{ amount: string; category: string } | null>(null);
   const [renamingCategory, setRenamingCategory] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const selectedCat = categories.find(c => c.name === category);
@@ -44,9 +45,11 @@ export default function AdminExpensesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSubmitting(true);
+    const savedAmount = amount;
+    const savedCategory = category;
     try {
       await api.post('/api/admin/expenses/create', { amount: parseFloat(amount), category, description, expense_date: expenseDate });
-      await fetchExpenses(); setShowSuccessModal(true); setAmount(''); setCategory(''); setDescription('');
+      await fetchExpenses(); setSuccessInfo({ amount: savedAmount, category: savedCategory }); setShowSuccessModal(true); setAmount(''); setCategory(''); setDescription('');
       setExpenseDate(new Date().toISOString().split('T')[0]);
     } catch (err: any) { addToast(err.response?.data?.error || 'Failed to record expense', 'error'); } finally { setSubmitting(false); }
   };
@@ -73,7 +76,7 @@ export default function AdminExpensesPage() {
       <div className="lg:col-span-2"><ExpenseTable expenses={expenses} onViewExpense={(e) => { setSelectedExpense(e); setShowDetailModal(true); }} /></div>
     </div>
     <Modal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)}>
-      <div className="text-center"><div className="w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" /></div><h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Expense Recorded!</h3><p className="text-sm text-gray-500 dark:text-gray-400 mb-6">₦{parseFloat(amount).toLocaleString()} — {category}</p><button onClick={() => setShowSuccessModal(false)} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2.5 rounded-xl transition">Done</button></div>
+      <div className="text-center"><div className="w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" /></div><h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Expense Recorded!</h3><p className="text-sm text-gray-500 dark:text-gray-400 mb-6">₦{successInfo ? parseFloat(successInfo.amount).toLocaleString() : '0'} — {successInfo?.category || ''}</p><button onClick={() => { setShowSuccessModal(false); setSuccessInfo(null); }} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2.5 rounded-xl transition">Done</button></div>
     </Modal>
     <ExpenseDetailModal expense={selectedExpense} onClose={() => { setShowDetailModal(false); setSelectedExpense(null); }} />
   </div>);
