@@ -77,8 +77,8 @@ export default function ManageCreditsPage() {
       setIsLoading(false);
     } catch (error: any) {
       if (retryCount < 2) {
-        // Silent retry after 1.5s
-        setTimeout(() => fetchCreditSales(retryCount + 1), 1500);
+        await new Promise(r => setTimeout(r, 1500));
+        return fetchCreditSales(retryCount + 1);
       } else {
         setToast({ message: 'Connection interrupted. Retrying...', type: 'error' });
         setIsLoading(false);
@@ -163,7 +163,7 @@ export default function ManageCreditsPage() {
       setNote('');
       setReceiptFile(null);
       setSelectedItemIds([]);
-      fetchCreditSales();
+      await fetchCreditSales();
     } catch (error: any) {
       setToast({ message: 'Payment failed: ' + (error.response?.data?.error || error.message), type: 'error' });
     } finally {
