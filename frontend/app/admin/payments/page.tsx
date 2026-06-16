@@ -23,6 +23,9 @@ export default function PaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<{ title: string; message: string } | null>(null);
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [sortBy, setSortBy] = useState('requested_date');
@@ -186,12 +189,15 @@ export default function PaymentsPage() {
   };
 
   const handleApprove = async (id: string) => {
-    if (!confirm('Are you sure you want to approve this payment?')) return;
-
     setActionInProgress(true);
     try {
       await api.post(`/api/admin/payments/${id}/approve`);
-      alert('✅ Payment approved successfully! Staff member has been notified.');
+      setSuccessInfo({
+        title: '✅ Payment Approved!',
+        message: `Payment of ₦${(selectedPayment?.amount || 0).toLocaleString()} from ${selectedPayment?.staff_name || 'staff'} has been approved. They have been notified.`
+      });
+      setShowSuccessModal(true);
+      setShowApproveConfirm(false);
       setShowDetailsModal(false);
       setSelectedPayment(null);
       fetchPayments();
@@ -211,7 +217,11 @@ export default function PaymentsPage() {
     setActionInProgress(true);
     try {
       await api.post(`/api/admin/payments/${paymentId}/reject`, { reason: rejectReason });
-      alert('✅ Payment rejected successfully! Staff member has been notified with the reason.');
+      setSuccessInfo({
+        title: '✅ Payment Rejected!',
+        message: `Payment of ₦${(selectedPayment?.amount || 0).toLocaleString()} from ${selectedPayment?.staff_name || 'staff'} has been rejected. Reason: "${rejectReason}". They have been notified.`
+      });
+      setShowSuccessModal(true);
       setShowRejectModal(false);
       setShowDetailsModal(false);
       setRejectReason('');
@@ -971,7 +981,7 @@ export default function PaymentsPage() {
             {selectedPayment.status === 'pending' && !showRejectModal && (
               <div className="p-6 border-t dark:border-gray-700 flex gap-4 bg-gray-50 dark:bg-gray-700">
                 <button
-                  onClick={() => handleApprove(selectedPayment.id)}
+                  onClick={() => setShowApproveConfirm(true)}
                   disabled={actionInProgress}
                   className="flex-1 px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -1059,6 +1069,56 @@ export default function PaymentsPage() {
                 Confirm Rejection
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* APPROVAL CONFIRMATION MODAL */}
+      {showApproveConfirm && selectedPayment && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-8 shadow-2xl border dark:border-gray-700 animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-20 h-20 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+              <CheckCircle className="w-10 h-10 text-pink-600 dark:text-pink-400" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Confirm Approval</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+              Are you sure you want to approve <strong className="text-gray-800 dark:text-gray-200">₦{selectedPayment.amount.toLocaleString()}</strong> from <strong className="text-gray-800 dark:text-gray-200">{selectedPayment.staff_name}</strong>?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowApproveConfirm(false)}
+                disabled={actionInProgress}
+                className="flex-1 px-4 py-3 rounded-2xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleApprove(selectedPayment.id)}
+                disabled={actionInProgress}
+                className="flex-1 px-4 py-3 rounded-2xl bg-pink-600 hover:bg-pink-700 text-white font-bold text-sm flex items-center justify-center gap-2 transition disabled:opacity-50"
+              >
+                {actionInProgress ? 'Approving...' : 'Yes, Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUCCESS MODAL */}
+      {showSuccessModal && successInfo && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-8 shadow-2xl border dark:border-gray-700 animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-20 h-20 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+              <CheckCircle className="w-10 h-10 text-pink-600 dark:text-pink-400" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{successInfo.title}</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">{successInfo.message}</p>
+            <button
+              onClick={() => { setShowSuccessModal(false); setSuccessInfo(null); }}
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white py-3.5 rounded-2xl font-bold transition-all"
+            >
+              DONE
+            </button>
           </div>
         </div>
       )}
