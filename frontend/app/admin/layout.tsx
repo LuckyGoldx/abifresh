@@ -41,6 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [pendingCreditRemittanceCount, setPendingCreditRemittanceCount] = useState(0);
   const [unreadCreditNotificationsCount, setUnreadCreditNotificationsCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
+  const [pendingReturnedItemsCount, setPendingReturnedItemsCount] = useState(0);
 
   const pathname = usePathname();
   const { unreadCount } = useNotifications();
@@ -71,11 +72,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const fetchData = useCallback(async () => {
     try {
-      const [payRes, creditPayRes, notifRes, expRes] = await Promise.all([
+      const [payRes, creditPayRes, notifRes, expRes, retRes] = await Promise.all([
         api.get('/api/admin/payments/pending-count'),
         api.get('/api/credits/payments/pending-count'),
         api.get('/api/notifications'),
-        api.get('/api/admin/expenses')
+        api.get('/api/admin/expenses'),
+        api.get('/api/admin/returned-items').catch(() => ({ data: [] })),
       ]);
 
       setPendingPaymentsCount(payRes.data.count || 0);
@@ -86,6 +88,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return e.status === 'pending' && role !== 'admin' && role !== 'superadmin';
       }).length;
       setPendingExpensesCount(pendingExpenses);
+
+      const pendingReturns = (retRes.data || []).filter((i: any) => i.status === 'pending').length;
+      setPendingReturnedItemsCount(pendingReturns);
 
       const CREDIT_NOTIFICATION_TYPES = [
         'credit_item_returned',
@@ -155,7 +160,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: 'Staff Stores', href: '/admin/staff-stores', icon: <Store size={20} /> },
     { label: 'Post Items', href: '/admin/post-items', icon: <Send size={20} /> },
     { label: 'Inventory', href: '/admin/inventory', icon: <Package size={20} /> },
-    { label: 'Returned Items', href: '/admin/returned-items', icon: <Undo2 size={20} /> },
+    { label: 'Returned Items', href: '/admin/returned-items', icon: <Undo2 size={20} />, badge: pendingReturnedItemsCount > 0 ? pendingReturnedItemsCount : undefined },
     { label: 'Payments', href: '/admin/payments', icon: <CreditCard size={20} />, badge: pendingPaymentsCount },
     { label: 'Receipts', href: '/admin/receipts', icon: <FileText size={20} /> },
     { label: 'Commissions', href: '/admin/commissions', icon: <DollarSign size={20} /> },

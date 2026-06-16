@@ -123,7 +123,7 @@ export default function ReturnItemsPage() {
 
   const handleAddItem = (itemId: string, isChecked: boolean) => {
     if (isChecked) {
-      // Add item with default quantity of 1
+      // Add item with default quantity set to max available
       const item = availableItems.find((i) => i.id === itemId);
       if (!item) return;
 
@@ -133,7 +133,7 @@ export default function ReturnItemsPage() {
           ...selectedItems,
           {
             item_id: itemId,
-            quantity: 1,
+            quantity: Math.round(item.available_quantity * 2) / 2,
             unit_price: item.unit_price,
             location: item.location,
           } as any,

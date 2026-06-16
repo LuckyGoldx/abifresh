@@ -49,6 +49,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const [pendingCreditRemittanceCount, setPendingCreditRemittanceCount] = useState(0);
   const [unreadCreditNotificationsCount, setUnreadCreditNotificationsCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
+  const [pendingReturnedItemsCount, setPendingReturnedItemsCount] = useState(0);
 
   const { unreadCount } = useNotifications();
   
@@ -80,11 +81,12 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
   const fetchData = useCallback(async () => {
     try {
-      const [payRes, creditPayRes, notifRes, expRes] = await Promise.all([
+      const [payRes, creditPayRes, notifRes, expRes, retRes] = await Promise.all([
         api.get('/api/admin/payments/pending-count'),
         api.get('/api/credits/payments/pending-count'),
         api.get('/api/notifications'),
-        api.get('/api/admin/expenses')
+        api.get('/api/admin/expenses'),
+        api.get('/api/admin/returned-items').catch(() => ({ data: [] })),
       ]);
 
       setPendingPaymentsCount(payRes.data.count || 0);
@@ -95,6 +97,9 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         return e.status === 'pending' && role !== 'admin' && role !== 'superadmin';
       }).length;
       setPendingExpensesCount(pendingExpenses);
+
+      const pendingReturns = (retRes.data || []).filter((i: any) => i.status === 'pending').length;
+      setPendingReturnedItemsCount(pendingReturns);
 
       const CREDIT_NOTIFICATION_TYPES = [
         'credit_item_returned',
@@ -164,7 +169,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     { label: 'Staff Stores', href: '/superadmin/staff-stores', icon: <Store size={20} /> },
     { label: 'Post Items', href: '/superadmin/post-items', icon: <Send size={20} /> },
     { label: 'Inventory', href: '/superadmin/inventory', icon: <Package size={20} /> },
-    { label: 'Returned Items', href: '/superadmin/returned-items', icon: <Undo2 size={20} /> },
+    { label: 'Returned Items', href: '/superadmin/returned-items', icon: <Undo2 size={20} />, badge: pendingReturnedItemsCount > 0 ? pendingReturnedItemsCount : undefined },
     { label: 'Restock Orders', href: '/superadmin/orders', icon: <ShoppingCart size={20} /> },
     { label: 'Payments', href: '/superadmin/payments', icon: <CreditCard size={20} />, badge: pendingPaymentsCount },
     { label: 'Credit Management', href: '/superadmin/credits', icon: <CreditCard size={20} /> },
