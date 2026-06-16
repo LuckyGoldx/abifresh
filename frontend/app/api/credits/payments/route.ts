@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
           }
 
           await supabaseAdmin.from('credit_store')
-            .update({ status: storeStatus })
+            .update({ status: storeStatus, quantity: Math.max(0, Number(saleItem.quantity) - newPaidQty) })
             .eq('credit_sale_item_id', pi.credit_sale_item_id);
         }
       }
