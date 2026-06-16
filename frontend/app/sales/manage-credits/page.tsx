@@ -106,17 +106,16 @@ export default function ManageCreditsPage() {
     const currentSaleBalance = Number(paySale.total_amount) - currentSalePaid;
 
     const calculatedSum = selectedItemIds.length > 0 
-      ? paySale.credit_sale_items
-          .filter((i: any) => selectedItemIds.includes(i.id))
-          .reduce((sum: number, i: any) => {
-            if (i.remaining_amount != null) return sum + Number(i.remaining_amount);
-            const sellingPrice = i.item?.price_jalingo || i.unit_price;
-            const itemTotal = Number(i.quantity) * sellingPrice;
-            const alreadyPaidAmt = Number(i.quantity) > 0
-              ? (Number(i.quantity_paid || 0) / Number(i.quantity)) * itemTotal
-              : 0;
-            return sum + Math.max(0, itemTotal - alreadyPaidAmt);
-          }, 0)
+            ? paySale.credit_sale_items
+                .filter((i: any) => selectedItemIds.includes(i.id))
+                .reduce((sum: number, i: any) => {
+                  if (i.remaining_amount != null) return sum + Number(i.remaining_amount);
+                  const effectiveTotal = Number(i.total_price) || (Number(i.quantity) * (i.item?.price_jalingo || i.unit_price));
+                  const alreadyPaidAmt = Number(i.quantity) > 0
+                    ? (Number(i.quantity_paid || 0) / Number(i.quantity)) * effectiveTotal
+                    : 0;
+                  return sum + Math.max(0, effectiveTotal - alreadyPaidAmt);
+                }, 0)
       : 0;
 
     const finalAmount = paymentAmount || calculatedSum;
@@ -156,6 +155,7 @@ export default function ManageCreditsPage() {
       });
 
       setToast({ message: res.data.message || 'Payment recorded', type: 'success' });
+      await fetchCreditSales();
       setPaySale(null);
       setPaymentAmount('');
       setPaymentMethod('cash');
@@ -163,7 +163,6 @@ export default function ManageCreditsPage() {
       setNote('');
       setReceiptFile(null);
       setSelectedItemIds([]);
-      await fetchCreditSales();
     } catch (error: any) {
       setToast({ message: 'Payment failed: ' + (error.response?.data?.error || error.message), type: 'error' });
     } finally {
@@ -722,12 +721,11 @@ export default function ManageCreditsPage() {
                                   if (runningSum >= numVal) break;
                                   
                                   const itemRemaining = Math.round(item.remaining_amount ?? (() => {
-                                    const sellingPrice = item.item?.price_jalingo || item.unit_price;
-                                    const itemTotal = Number(item.quantity) * sellingPrice;
+                                    const effectiveTotal = Number(item.total_price) || (Number(item.quantity) * (item.item?.price_jalingo || item.unit_price));
                                     const alreadyPaidAmt = Number(item.quantity) > 0
-                                      ? (Number(item.quantity_paid || 0) / Number(item.quantity)) * itemTotal
+                                      ? (Number(item.quantity_paid || 0) / Number(item.quantity)) * effectiveTotal
                                       : 0;
-                                    return Math.max(0, itemTotal - alreadyPaidAmt);
+                                    return Math.max(0, effectiveTotal - alreadyPaidAmt);
                                   })());
 
                                   if (itemRemaining <= 0) continue;
@@ -792,13 +790,11 @@ export default function ManageCreditsPage() {
                                 <span className={`text-sm font-bold ${isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>{item.item_name} (x{formatQty(item.quantity)})</span>
                               </div>
                                 <span className={`text-sm font-black ${isSelected ? 'text-pink-600 dark:text-pink-400' : 'text-gray-900 dark:text-white'}`}>₦{(() => {
-                                  if (item.remaining_amount != null) return Number(item.remaining_amount).toLocaleString();
+                                  if (item.remaining_amount != null) return Math.round(Number(item.remaining_amount)).toLocaleString();
                                   const sellingPrice = item.item?.price_jalingo || item.unit_price;
-                                  const itemTotal = Number(item.quantity) * sellingPrice;
-                                  const alreadyPaidAmt = Number(item.quantity) > 0
-                                    ? (Number(item.quantity_paid || 0) / Number(item.quantity)) * itemTotal
-                                    : 0;
-                                  return Math.max(0, itemTotal - alreadyPaidAmt).toLocaleString();
+                                  const effectiveTotal = Number(item.total_price) || Number(item.quantity) * sellingPrice;
+                                  const paidAmount = Number(item.quantity) > 0 ? (Number(item.quantity_paid || 0) / Number(item.quantity)) * effectiveTotal : 0;
+                                  return Math.max(0, Math.round(effectiveTotal - paidAmount)).toLocaleString();
                                 })()}</span>
                             </div>
                           );
