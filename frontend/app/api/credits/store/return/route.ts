@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     for (const item of items) {
       const { data: storeItem } = await supabaseAdmin.from('credit_store').select('*').eq('id', item.id).single();
       if (!storeItem) continue;
-      if (storeItem.status !== 'available_for_return') continue;
+      if (storeItem.status === 'returned') continue;
 
       const returnQty = Number(item.quantity) || Number(storeItem.quantity);
 
@@ -37,10 +37,8 @@ export async function POST(req: NextRequest) {
         const maxReturnable = Math.round(unpaid * 2) / 2;
         const blocked = (maxReturnable === 0.5 && paidPercentage > 75);
         
-        if (blocked) {
-          return NextResponse.json({ 
-            error: `Cannot return. Only 0.5 unpaid and ${Math.round(paidPercentage)}% already paid.` 
-          }, { status: 400 });
+        if (blocked && maxReturnable <= 0.5) {
+          continue; // Skip - cannot return this item
         }
         
         if (returnQty > maxReturnable) {

@@ -77,11 +77,7 @@ export async function POST(req: NextRequest) {
         throw new Error(`Credit store entry ${entry.id} not found`);
       }
 
-      if (storeEntry.status !== 'available_for_return') {
-        throw new Error(`This item (${storeEntry.item_name}) is not in a returnable state. Current status: ${storeEntry.status}. Cancel the credit sale first.`);
-      }
-
-      // 2. Compute the maximum returnable quantity from the credit_sale_item (75% rule)
+      // Compute returnable quantity directly from credit_sale_items data
       const rawCsi = storeEntry.credit_sale_items as any;
       const csi = Array.isArray(rawCsi) ? rawCsi[0] : rawCsi;
       const totalQty = Number(csi?.quantity || storeEntry.quantity);
@@ -91,7 +87,14 @@ export async function POST(req: NextRequest) {
       const maxReturnable = Math.round(unpaid * 2) / 2;
       const blocked = (maxReturnable === 0.5 && paidPercentage > 75) ? 0 : maxReturnable;
 
-      if (returnQty > maxReturnable || blocked === 0) {
+      if (blocked <= 0) {
+        throw new Error(`This item (${storeEntry.item_name}) cannot be returned. ${paidPercentage > 75 ? 'Over 75% paid.' : 'Fully paid.'} Cancel the credit sale first or record the correct payment.`);
+      }
+      if (storeEntry.status === 'returned') {
+        throw new Error(`This item (${storeEntry.item_name}) has already been returned.`);
+      }
+
+      if (returnQty > blocked) {
         throw new Error(`Cannot return ${returnQty}. Maximum returnable quantity is ${blocked}${paidPercentage > 75 && maxReturnable === 0.5 ? ' (over 75% paid on last 0.5 bag)' : ''}.`);
       }
 
