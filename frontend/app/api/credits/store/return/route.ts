@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     for (const item of items) {
       const { data: storeItem } = await supabaseAdmin.from('credit_store').select('*').eq('id', item.id).single();
       if (!storeItem) continue;
-      if (storeItem.status !== 'available_for_return') continue;
+      if (storeItem.status === 'returned' || storeItem.status === 'paid') continue;
 
       const returnQty = Number(item.quantity) || Number(storeItem.quantity);
 

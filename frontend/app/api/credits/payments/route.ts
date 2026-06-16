@@ -170,13 +170,10 @@ export async function POST(req: NextRequest) {
             .eq('id', pi.credit_sale_item_id);
 
           const paidPercentage = (newPaidQty / saleItem.quantity) * 100;
-          let storeStatus = 'paid';
-          if (paidPercentage <= 75 && newPaidQty < saleItem.quantity) {
-            storeStatus = 'partially_paid';
-          }
-
+          const unpaidQty = Math.max(0, Number(saleItem.quantity) - newPaidQty);
+          const storeStatus = unpaidQty <= 0 ? 'paid' : 'partially_paid';
           await supabaseAdmin.from('credit_store')
-            .update({ status: storeStatus, quantity: Math.max(0, Number(saleItem.quantity) - newPaidQty) })
+            .update({ status: storeStatus, quantity: unpaidQty })
             .eq('credit_sale_item_id', pi.credit_sale_item_id);
         }
       }
