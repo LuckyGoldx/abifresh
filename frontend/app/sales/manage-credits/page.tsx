@@ -391,7 +391,7 @@ export default function ManageCreditsPage() {
                               </button>
                               {!isCancelled && balance > 0 && (
                                 <button
-                                  onClick={() => { setPaySale(sale); setPaymentMethod('cash'); setOpenActionId(null); }}
+                                  onClick={() => { setPaySale(sale); setPaymentMethod('cash'); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); setOpenActionId(null); }}
                                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 font-bold transition-colors"
                                 >
                                   <span className="text-base font-black">₦</span> Pay
@@ -419,7 +419,7 @@ export default function ManageCreditsPage() {
                           </button>
                           {!isCancelled && balance > 0 && (
                             <button
-                              onClick={() => { setPaySale(sale); setPaymentMethod('cash'); }}
+                              onClick={() => { setPaySale(sale); setPaymentMethod('cash'); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); }}
                               className="text-green-600 hover:text-green-800"
                               title="Pay Now"
                             >
@@ -651,7 +651,7 @@ export default function ManageCreditsPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{paySale.receipt_number}</p>
                   </div>
                   <button 
-                    onClick={() => { setPaySale(null); setPaymentAmount(''); setSelectedItemIds([]); }} 
+                    onClick={() => { setPaySale(null); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); }} 
                     className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                   >
                     <X size={20} />
@@ -881,7 +881,7 @@ export default function ManageCreditsPage() {
                 {/* Footer */}
                 <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex gap-3">
                   <button 
-                    onClick={() => { setPaySale(null); setPaymentAmount(''); setSelectedItemIds([]); }}
+                    onClick={() => { setPaySale(null); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); }}
                     className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-bold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                   >
                     Cancel
