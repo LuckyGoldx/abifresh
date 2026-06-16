@@ -308,15 +308,13 @@ export default function AdminPostItemsPage() {
         total_items: cart.reduce((sum, item) => sum + item.post_quantity, 0),
       };
 
-      console.log('📤 [Admin] Posting items with data:', postData);
-      alert(`ADMIN POSTING: Target location is "${postData.location}"`);
-
       await api.post('/api/sales/post-items', postData, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
       const staffName = staffList.find(s => s.id === selectedStaff)?.full_name || 'Staff';
       const totalValue = cart.reduce((sum, item) => sum + (item.price_jalingo || 0) * item.post_quantity, 0);
+      setShowMobileCart(false);
       setShowConfirmation(false);
       setSuccessInfo({ staffName, itemCount: cart.length, totalValue });
       setShowSuccessModal(true);
