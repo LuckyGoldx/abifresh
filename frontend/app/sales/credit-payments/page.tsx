@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
-import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, ChevronRight, Eye, X, Download } from 'lucide-react';
+import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, Camera, DollarSign, FileText, ChevronRight, Eye, X, Download } from 'lucide-react';
 import { CreditTabs } from '@/components/credits';
 import { toast } from 'sonner';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
@@ -434,23 +434,65 @@ export default function SalesCreditPaymentsPage() {
             {paymentMethod !== 'cash' && (
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Upload Receipt *</label>
-                <div 
-                  className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer" 
-                  onClick={() => receiptInputRef.current?.click()}
-                >
+                <div className="border-2 border-dashed dark:border-gray-700 rounded-lg p-6 text-center">
                   <input
                     ref={receiptInputRef}
                     type="file"
                     onChange={handleFileChange}
                     className="hidden"
-                    accept="image/*,application/pdf"
+                    accept="image/jpeg,image/png,image/jpg,image/gif,image/webp,application/pdf"
                   />
-                  {receiptFile ? (
-                    <div className="text-pink-600 dark:text-pink-400 font-bold">{receiptFile.name}</div>
-                  ) : (
-                    <div className="text-gray-500 dark:text-gray-400 font-medium">Click to browse or upload receipt image</div>
-                  )}
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (receiptInputRef.current) {
+                          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                          if (isMobile) {
+                            receiptInputRef.current.setAttribute('capture', 'environment');
+                          } else {
+                            receiptInputRef.current.removeAttribute('capture');
+                          }
+                          receiptInputRef.current.click();
+                        }
+                      }}
+                      className="flex flex-col items-center gap-2 px-6 py-4 bg-blue-50 dark:bg-blue-900 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800 transition flex-1"
+                    >
+                      <Camera className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm font-medium text-blue-600 dark:text-blue-400">📱 Camera</span>
+                    </button>
+                    <span className="hidden sm:inline text-gray-300">•</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (receiptInputRef.current) {
+                          receiptInputRef.current.removeAttribute('capture');
+                          receiptInputRef.current.click();
+                        }
+                      }}
+                      className="flex flex-col items-center gap-2 px-6 py-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition flex-1"
+                    >
+                      <Upload className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">📁 Upload</span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 break-words">JPG, PNG, GIF, WebP, or PDF • Max 10MB</p>
                 </div>
+                {receiptFile && (
+                  <div className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                    <span className="text-sm text-blue-800 dark:text-blue-200 truncate">{receiptFile.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                      className="ml-auto text-blue-600 dark:text-blue-400 hover:text-blue-800 flex-shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
