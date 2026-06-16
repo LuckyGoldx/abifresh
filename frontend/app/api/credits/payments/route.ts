@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
         if (saleItem) {
           const sellingPrice = saleItem.item?.price_jalingo || saleItem.unit_price;
           const effectiveTotal = Number(saleItem.quantity) * sellingPrice;
-          const payQty = effectiveTotal > 0 ? Math.round((Number(pi.amount) / effectiveTotal) * Number(saleItem.quantity)) : 0;
+          const payQty = effectiveTotal > 0 ? Math.round((Number(pi.amount) / effectiveTotal) * Number(saleItem.quantity) * 100) / 100 : 0;
           const newPaidQty = Math.round((Number(saleItem.quantity_paid || 0) + payQty) * 100) / 100;
           await supabaseAdmin.from('credit_sale_items')
             .update({ quantity_paid: Math.min(newPaidQty, saleItem.quantity) })
@@ -188,10 +188,13 @@ export async function POST(req: NextRequest) {
       const affectedSaleIds = [...new Set((allReconciled || []).map(si => si.credit_sale_id))];
 
       for (const sid of affectedSaleIds) {
-        const { data: saleItemsForId } = await supabaseAdmin.from('credit_sale_items')
-          .select('*').eq('credit_sale_id', sid);
-        const allPaid = saleItemsForId?.every(i => (i.quantity_paid || 0) >= i.quantity);
-        if (allPaid) {
+        const { data: sale } = await supabaseAdmin.from('credit_sales')
+          .select('total_amount').eq('id', sid).single();
+        const { data: salePayments } = await supabaseAdmin.from('credit_payments')
+          .select('amount').eq('credit_sale_id', sid).eq('status', 'approved');
+        const totalPaidForSale = (salePayments || []).reduce((sum, p) => sum + Number(p.amount), 0);
+        const outstanding = sale ? Math.max(0, Number(sale.total_amount) - totalPaidForSale) : 0;
+        if (outstanding < 0.5) {
           await supabaseAdmin.from('credit_sales').update({ status: 'paid' }).eq('id', sid);
         } else {
           await supabaseAdmin.from('credit_sales').update({ status: 'partially_paid' }).eq('id', sid);

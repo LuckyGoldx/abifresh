@@ -138,7 +138,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         
         if (itemRemaining > 0) {
           const pay = Math.round(Math.min(remainingAmount, itemRemaining));
-          const payQty = effectiveTotal > 0 ? Math.round((pay / effectiveTotal) * Number(item.quantity)) : 0;
+          const payQty = effectiveTotal > 0 ? Math.round((pay / effectiveTotal) * Number(item.quantity) * 100) / 100 : 0;
           
           paymentItems.push({
             credit_payment_id: payment.id,
@@ -179,8 +179,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .select('*')
       .eq('credit_sale_id', saleId);
 
-    const allPaid = updatedItems?.every(i => (i.quantity_paid || 0) >= i.quantity);
-    if (allPaid) {
+    // Check if outstanding is below threshold to mark as paid
+    const remainingAfterPayment = Math.max(0, balance - Number(amount));
+    if (remainingAfterPayment < 0.5) {
       await supabaseAdmin.from('credit_sales').update({ status: 'paid' }).eq('id', saleId);
     } else {
       await supabaseAdmin.from('credit_sales').update({ status: 'partially_paid' }).eq('id', saleId);
