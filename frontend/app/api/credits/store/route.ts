@@ -88,10 +88,11 @@ export async function POST(req: NextRequest) {
       const paidQty = Number(csi?.quantity_paid || 0);
       const paidPercentage = totalQty > 0 ? (paidQty / totalQty) * 100 : 0;
       const unpaid = totalQty - paidQty;
-      const maxReturnable = paidPercentage <= 75 ? Math.ceil(unpaid * 2) / 2 : 0;
+      const maxReturnable = Math.round(unpaid * 2) / 2;
+      const blocked = (maxReturnable === 0.5 && paidPercentage > 75) ? 0 : maxReturnable;
 
-      if (returnQty > maxReturnable) {
-        throw new Error(`Cannot return ${returnQty}. Maximum returnable quantity is ${maxReturnable} (${Math.round(paidPercentage)}% already paid).`);
+      if (returnQty > maxReturnable || blocked === 0) {
+        throw new Error(`Cannot return ${returnQty}. Maximum returnable quantity is ${blocked}${paidPercentage > 75 && maxReturnable === 0.5 ? ' (over 75% paid on last 0.5 bag)' : ''}.`);
       }
 
       // 3. Update inventory

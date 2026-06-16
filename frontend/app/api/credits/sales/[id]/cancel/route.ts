@@ -25,27 +25,22 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const totalQty = Number(item.quantity);
         const paidQty = Number(item.quantity_paid || 0);
         const paidPercentage = totalQty > 0 ? (paidQty / totalQty) * 100 : 0;
+        const unpaid = totalQty - paidQty;
+        const returnableQty = Math.round(unpaid * 2) / 2;
 
-        if (paidPercentage <= 75) {
-          // Strict Business: update status and set quantity to the unpaid part (rounded UP to nearest 0.5)
-          const unpaid = totalQty - paidQty;
-          const returnableQty = Math.ceil(unpaid * 2) / 2;
-
-          if (returnableQty >= 0.5) {
-            await supabaseAdmin.from('credit_store')
-              .update({ 
-                status: 'available for return',
-                quantity: returnableQty 
-              })
-              .eq('credit_sale_item_id', item.id);
-          } else {
-            // Mark as paid if returnable quantity is 0
-            await supabaseAdmin.from('credit_store')
-              .update({ status: 'paid' })
-              .eq('credit_sale_item_id', item.id);
-          }
+        // Only block return when unpaid rounds to 0.5 AND paid > 75%
+        if (returnableQty === 0.5 && paidPercentage > 75) {
+          await supabaseAdmin.from('credit_store')
+            .update({ status: 'paid' })
+            .eq('credit_sale_item_id', item.id);
+        } else if (returnableQty > 0) {
+          await supabaseAdmin.from('credit_store')
+            .update({ 
+              status: 'available for return',
+              quantity: returnableQty 
+            })
+            .eq('credit_sale_item_id', item.id);
         } else {
-          // Above 75% paid: mark as paid/sold, cannot be returned
           await supabaseAdmin.from('credit_store')
             .update({ status: 'paid' })
             .eq('credit_sale_item_id', item.id);

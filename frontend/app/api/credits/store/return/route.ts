@@ -34,11 +34,18 @@ export async function POST(req: NextRequest) {
         const paidQty = Number(saleItem.quantity_paid || 0);
         const paidPercentage = totalQty > 0 ? (paidQty / totalQty) * 100 : 0;
         const unpaid = totalQty - paidQty;
-        const maxReturnable = paidPercentage <= 75 ? Math.ceil(unpaid * 2) / 2 : 0;
+        const maxReturnable = Math.round(unpaid * 2) / 2;
+        const blocked = (maxReturnable === 0.5 && paidPercentage > 75);
+        
+        if (blocked) {
+          return NextResponse.json({ 
+            error: `Cannot return. Only 0.5 unpaid and ${Math.round(paidPercentage)}% already paid.` 
+          }, { status: 400 });
+        }
         
         if (returnQty > maxReturnable) {
           return NextResponse.json({ 
-            error: `Cannot return ${returnQty}. Maximum returnable is ${maxReturnable} (${Math.round(paidPercentage)}% already paid). Cancel the credit sale first.` 
+            error: `Cannot return ${returnQty}. Maximum returnable is ${maxReturnable}.` 
           }, { status: 400 });
         }
       }
