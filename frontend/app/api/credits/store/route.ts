@@ -90,6 +90,20 @@ export async function POST(req: NextRequest) {
       if (blocked <= 0) {
         throw new Error(`This item (${storeEntry.item_name}) cannot be returned. ${paidPercentage > 75 ? 'Over 75% paid.' : 'Fully paid.'} Cancel the credit sale first or record the correct payment.`);
       }
+      // Verify the credit sale has been cancelled before allowing return
+      const creditSaleId = csi?.credit_sale_id;
+      if (creditSaleId) {
+        const { data: creditSale } = await supabaseAdmin
+          .from('credit_sales')
+          .select('status')
+          .eq('id', creditSaleId)
+          .single();
+        
+        if (!creditSale || creditSale.status !== 'cancelled') {
+          throw new Error(`This item (${storeEntry.item_name}) cannot be returned. You must cancel the credit sale first from the Manage Credits page. Current sale status: ${creditSale?.status || 'unknown'}.`);
+        }
+      }
+
       if (storeEntry.status === 'returned') {
         throw new Error(`This item (${storeEntry.item_name}) has already been returned.`);
       }

@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
         const blocked = (maxReturnable === 0.5 && paidPercentage > 75);
         
         if (blocked && maxReturnable <= 0.5) {
-          continue; // Skip - cannot return this item
+          continue;
         }
         
         if (returnQty > maxReturnable) {
@@ -46,6 +46,17 @@ export async function POST(req: NextRequest) {
             error: `Cannot return ${returnQty}. Maximum returnable is ${maxReturnable}.` 
           }, { status: 400 });
         }
+      }
+
+      // Verify the credit sale has been cancelled
+      const { data: creditSale } = await supabaseAdmin
+        .from('credit_sales')
+        .select('status')
+        .eq('id', storeItem.credit_sale_id)
+        .single();
+      
+      if (!creditSale || creditSale.status !== 'cancelled') {
+        continue; // Skip - sale not cancelled yet
       }
 
       await supabaseAdmin.from('credit_store')
