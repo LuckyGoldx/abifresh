@@ -77,9 +77,8 @@ export async function POST(req: NextRequest) {
         throw new Error(`Credit store entry ${entry.id} not found`);
       }
 
-      // Skip items already returned or fully paid
-      if (storeEntry.status === 'returned' || storeEntry.status === 'paid') {
-        throw new Error(`This item (${storeEntry.item_name}) cannot be returned. Status: ${storeEntry.status}.`);
+      if (storeEntry.status !== 'available_for_return') {
+        throw new Error(`This item (${storeEntry.item_name}) is not in a returnable state. Current status: ${storeEntry.status}. Cancel the credit sale first.`);
       }
 
       // 2. Compute the maximum returnable quantity from the credit_sale_item (75% rule)
