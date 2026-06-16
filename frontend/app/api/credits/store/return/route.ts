@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
       if (!storeItem) continue;
       if (storeItem.status === 'returned') continue;
 
-      const returnQty = Number(item.quantity) || Number(storeItem.quantity);
+      let returnQty = Number(item.quantity) || Number(storeItem.quantity);
+      returnQty = Math.round(returnQty * 2) / 2;
+      if (returnQty <= 0) continue;
 
       // Fetch credit_sale_item to validate return quantity against 75% rule
       const { data: saleItem } = await supabaseAdmin

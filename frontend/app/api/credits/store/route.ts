@@ -62,10 +62,11 @@ export async function POST(req: NextRequest) {
     }
 
     for (const entry of items) {
-      const returnQty = Number(entry.quantity);
-      // Ensure quantity is a multiple of 0.5 (physically returnable unit)
-      if ((returnQty * 2) % 1 !== 0) {
-        throw new Error(`Invalid return quantity: ${returnQty}. Only multiples of 0.5 can be returned.`);
+      let returnQty = Number(entry.quantity);
+      // Round return quantity to nearest 0.5
+      returnQty = Math.round(returnQty * 2) / 2;
+      if (returnQty <= 0) {
+        throw new Error(`Invalid return quantity: ${entry.quantity}. Must be at least 0.5.`);
       }
 
       // 1. Get the credit store entry and validate it's in a returnable state
