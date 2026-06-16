@@ -92,6 +92,8 @@ export default function AdminPostItemsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<{ staffName: string; itemCount: number; totalValue: number } | null>(null);
   const [isPosting, setIsPosting] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [quantityInputs, setQuantityInputs] = useState<Record<string, string>>({});
@@ -314,12 +316,10 @@ export default function AdminPostItemsPage() {
       });
 
       const staffName = staffList.find(s => s.id === selectedStaff)?.full_name || 'Staff';
-      setToast({ message: `${cart.length} item(s) successfully posted to ${staffName}!`, type: 'success' });
-      setCart([]);
-      setSelectedStaff('');
+      const totalValue = cart.reduce((sum, item) => sum + (item.price_jalingo || 0) * item.post_quantity, 0);
+      setSuccessInfo({ staffName, itemCount: cart.length, totalValue });
+      setShowSuccessModal(true);
       setShowConfirmation(false);
-      setShowMobileCart(false);
-      await Promise.all([fetchItems(), fetchHistory()]);
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'Failed to post items';
       setToast({ message: errorMsg, type: 'error' });
@@ -449,9 +449,48 @@ export default function AdminPostItemsPage() {
             )}
             {filteredItems.length === 0 && searchQuery && (
               <p className="text-sm text-red-600 dark:text-red-400 mt-2">No items match your search</p>
-            )}
-          </div>
+      )}
 
+      {/* SUCCESS MODAL */}
+      {showSuccessModal && successInfo && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-8 shadow-2xl border dark:border-gray-700 animate-in zoom-in-95 duration-200 text-center">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+              <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Posted Successfully!</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+              Items have been posted to <strong className="text-gray-800 dark:text-gray-200">{successInfo.staffName}</strong>
+            </p>
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-5 border border-green-200 dark:border-green-900/30 mb-6 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Items Posted</span>
+                <span className="text-lg font-bold text-gray-900 dark:text-white">{successInfo.itemCount}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-green-200 dark:border-green-900/30">
+                <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Value</span>
+                <span className="text-lg font-bold text-green-600 dark:text-green-400">₦{successInfo.totalValue.toLocaleString()}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowSuccessModal(false);
+                setSuccessInfo(null);
+                setCart([]);
+                setSelectedStaff('');
+                setShowMobileCart(false);
+                fetchItems();
+                fetchHistory();
+              }}
+              className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3.5 rounded-2xl font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-all"
+            >
+              DONE
+            </button>
+          </div>
+        </div>
+      )}
+
+    </div>
           {/* Items Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {filteredItems.map((item) => (
