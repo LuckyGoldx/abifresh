@@ -66,7 +66,35 @@ export async function POST(req: NextRequest) {
         throw new Error(`Invalid return quantity: ${returnQty}. Only multiples of 0.5 can be returned.`);
       }
 
-      // 1. Get current item inventory
+      // 1. Get the credit store entry and validate it's in a returnable state
+      const { data: storeEntry, error: storeFetchError } = await supabaseAdmin
+        .from('credit_store')
+        .select('*, creditors(full_name), credit_sale_items(quantity, quantity_paid, credit_sale_id, item_id)')
+        .eq('id', entry.id)
+        .single();
+
+      if (storeFetchError || !storeEntry) {
+        throw new Error(`Credit store entry ${entry.id} not found`);
+      }
+
+      if (storeEntry.status !== 'available_for_return') {
+        throw new Error(`This item (${storeEntry.item_name}) is not in a returnable state. Current status: ${storeEntry.status}. Cancel the credit sale first.`);
+      }
+
+      // 2. Compute the maximum returnable quantity from the credit_sale_item (75% rule)
+      const rawCsi = storeEntry.credit_sale_items as any;
+      const csi = Array.isArray(rawCsi) ? rawCsi[0] : rawCsi;
+      const totalQty = Number(csi?.quantity || storeEntry.quantity);
+      const paidQty = Number(csi?.quantity_paid || 0);
+      const paidPercentage = totalQty > 0 ? (paidQty / totalQty) * 100 : 0;
+      const unpaid = totalQty - paidQty;
+      const maxReturnable = paidPercentage <= 75 ? Math.ceil(unpaid * 2) / 2 : 0;
+
+      if (returnQty > maxReturnable) {
+        throw new Error(`Cannot return ${returnQty}. Maximum returnable quantity is ${maxReturnable} (${Math.round(paidPercentage)}% already paid).`);
+      }
+
+      // 3. Update inventory
       const { data: mainItem, error: fetchError } = await supabaseAdmin
         .from('items')
         .select('active_store_quantity, name')
@@ -77,25 +105,25 @@ export async function POST(req: NextRequest) {
         throw new Error(`Item ${entry.item_id} not found in inventory`);
       }
 
-      // 2. Increment active_store_quantity directly
       const { error: invError } = await supabaseAdmin.from('items')
-        .update({ active_store_quantity: Number(mainItem.active_store_quantity || 0) + Number(entry.quantity) })
+        .update({ active_store_quantity: Number(mainItem.active_store_quantity || 0) + returnQty })
         .eq('id', entry.item_id);
       
       if (invError) {
         throw new Error(`Failed to update inventory for item ${entry.item_id}: ${invError.message}`);
       }
 
-      // 3. Update credit store status to 'returned'
-      const { data: storeEntry } = await supabaseAdmin
-        .from('credit_store')
-        .select('*, creditors(full_name)')
-        .eq('id', entry.id)
-        .single();
-
+      // 4. Decrement credit store quantity and update status
+      const newStoreQty = Math.max(0, Number(storeEntry.quantity) - returnQty);
+      const newStatus = newStoreQty <= 0 ? 'returned' : 'available_for_return';
+      
       const { error: storeError } = await supabaseAdmin
         .from('credit_store')
-        .update({ status: 'returned', updated_at: new Date().toISOString() })
+        .update({ 
+          status: newStatus, 
+          quantity: newStoreQty,
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', entry.id);
       
       if (storeError) {

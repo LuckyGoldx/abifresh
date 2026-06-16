@@ -21,6 +21,28 @@ export async function POST(req: NextRequest) {
       if (storeItem.status !== 'available_for_return') continue;
 
       const returnQty = Number(item.quantity) || Number(storeItem.quantity);
+
+      // Fetch credit_sale_item to validate return quantity against 75% rule
+      const { data: saleItem } = await supabaseAdmin
+        .from('credit_sale_items')
+        .select('quantity, quantity_paid')
+        .eq('id', storeItem.credit_sale_item_id)
+        .single();
+      
+      if (saleItem) {
+        const totalQty = Number(saleItem.quantity);
+        const paidQty = Number(saleItem.quantity_paid || 0);
+        const paidPercentage = totalQty > 0 ? (paidQty / totalQty) * 100 : 0;
+        const unpaid = totalQty - paidQty;
+        const maxReturnable = paidPercentage <= 75 ? Math.ceil(unpaid * 2) / 2 : 0;
+        
+        if (returnQty > maxReturnable) {
+          return NextResponse.json({ 
+            error: `Cannot return ${returnQty}. Maximum returnable is ${maxReturnable} (${Math.round(paidPercentage)}% already paid). Cancel the credit sale first.` 
+          }, { status: 400 });
+        }
+      }
+
       await supabaseAdmin.from('credit_store')
         .update({ status: 'returned', quantity: storeItem.quantity - returnQty })
         .eq('id', item.id);
