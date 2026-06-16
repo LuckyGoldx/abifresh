@@ -28,6 +28,11 @@ interface DetailData {
   [key: string]: any;
 }
 
+function formatRole(role: string): string {
+  if (!role) return 'Staff';
+  return role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function StaffPaymentDetailPage() {
   const params = useParams();
   const router = useRouter();
