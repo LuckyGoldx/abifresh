@@ -120,6 +120,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
   }
 
+  // Check for duplicate phone number
+  if (phone_number?.trim()) {
+    const { data: existing } = await supabaseAdmin
+      .from('creditors')
+      .select('full_name, unique_code, phone_number')
+      .eq('phone_number', phone_number.trim())
+      .limit(1);
+    
+    if (existing && existing.length > 0) {
+      return NextResponse.json({
+        error: `Duplicate phone number! "${existing[0].full_name}" (${existing[0].unique_code}) is already registered with this number.`
+      }, { status: 409 });
+    }
+  }
+
   const prefix = 'CR';
   const { count } = await supabaseAdmin.from('creditors').select('*', { count: 'exact', head: true });
   const uniqueCode = `${prefix}${String((count || 0) + 1).padStart(5, '0')}`;

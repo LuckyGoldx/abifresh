@@ -21,6 +21,7 @@ export default function ManageCreditorsPage() {
   const [editingCreditor, setEditingCreditor] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [duplicateCreditor, setDuplicateCreditor] = useState<{ full_name: string; unique_code: string; phone_number: string } | null>(null);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -90,6 +91,14 @@ export default function ManageCreditorsPage() {
       setToast({ message: 'Address is required', type: 'error' });
       return;
     }
+
+    // Check for duplicate phone number
+    const existing = creditors.find(c => c.phone_number === formData.phone_number);
+    if (existing) {
+      setDuplicateCreditor({ full_name: existing.full_name, unique_code: existing.unique_code, phone_number: existing.phone_number });
+      return;
+    }
+
     setIsAdding(true);
     try {
       await api.post('/api/credits/creditors', formData);
@@ -98,7 +107,19 @@ export default function ManageCreditorsPage() {
       resetForm();
       fetchCreditors();
     } catch (error: any) {
-      setToast({ message: 'Failed to add creditor', type: 'error' });
+      const serverMsg = error.response?.data?.error;
+      if (error.response?.status === 409 && serverMsg) {
+        const match = serverMsg.match(/"([^"]+)" \(([^)]+)\)/);
+        if (match) {
+          setDuplicateCreditor({ full_name: match[1], unique_code: match[2], phone_number: formData.phone_number || '' });
+        } else {
+          setToast({ message: serverMsg, type: 'error' });
+        }
+      } else if (serverMsg) {
+        setToast({ message: serverMsg, type: 'error' });
+      } else {
+        setToast({ message: 'Failed to add creditor', type: 'error' });
+      }
     } finally {
       setIsAdding(false);
     }
@@ -394,6 +415,41 @@ export default function ManageCreditorsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* DUPLICATE CREDITOR MODAL */}
+        {duplicateCreditor && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full p-8 shadow-2xl border dark:border-gray-700 animate-in zoom-in-95 duration-200 text-center">
+              <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
+                <AlertCircle className="w-10 h-10 text-orange-600 dark:text-orange-400" />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Duplicate Found!</h2>
+              <p className="text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+                This phone number is already registered to another creditor.
+              </p>
+              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-5 border border-orange-200 dark:border-orange-900/30 mb-6 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Name</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{duplicateCreditor.full_name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Code</span>
+                  <span className="text-sm font-bold text-pink-600 dark:text-pink-400">{duplicateCreditor.unique_code}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">Phone</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{duplicateCreditor.phone_number}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setDuplicateCreditor(null)}
+                className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-3.5 rounded-2xl font-bold hover:bg-gray-800 dark:hover:bg-gray-100 transition-all"
+              >
+                GOT IT
+              </button>
             </div>
           </div>
         )}
