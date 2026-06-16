@@ -195,6 +195,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     { label: 'Credit History', href: '/superadmin/credit-history', icon: <History size={20} /> },
     { label: 'Credit Notifications', href: '/superadmin/credit-notifications', icon: <Bell size={20} />, badge: unreadCreditNotificationsCount > 0 ? unreadCreditNotificationsCount : undefined },
     { label: 'Credit Receipts', href: '/superadmin/credit-receipts', icon: <FileText size={20} /> },
+    { label: 'Credit Reports', href: '/superadmin/credit-reports', icon: <BarChart3 size={20} /> },
     { label: 'Approve Payments', href: '/superadmin/approve-payments', icon: <CheckCircle2 size={20} /> },
     { label: 'Approve Remittance', href: '/superadmin/approve-remittance', icon: <RefreshCcw size={20} /> },
   ];
