@@ -104,8 +104,32 @@ export default function SalesCreditPaymentsPage() {
       const reader = new FileReader();
       reader.onerror = () => { setReceiptFile(file); };
       reader.onloadend = () => {
-        setReceiptFile(file);
-        setReceiptPreview(reader.result as string);
+        const dataUrl = reader.result as string;
+        const img = new Image();
+        img.onerror = () => { setReceiptFile(file); setReceiptPreview(dataUrl); };
+        img.onload = () => {
+          const MAX = 1920;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+            else { width = Math.round(width * MAX / height); height = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' });
+              setReceiptFile(compressed);
+              setReceiptPreview(dataUrl);
+            } else {
+              setReceiptFile(file);
+              setReceiptPreview(dataUrl);
+            }
+          }, 'image/webp', 0.75);
+        };
+        img.src = dataUrl;
       };
       reader.readAsDataURL(file);
     } else {
