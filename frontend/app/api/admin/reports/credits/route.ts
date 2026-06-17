@@ -222,7 +222,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Staff Performance — compute from itemsData (consistent with summary cards)
-    const staffPerf: Record<string, { staff_name: string; issuance: number; collection: number; transactions: number }> = {};
+    const staffPerf: Record<string, { staff_name: string; issuance: number; collection: number; transactions: number; saleIds: Set<string> }> = {};
     itemsData.forEach((ri: any) => {
       const sale = Array.isArray(ri.credit_sales) ? ri.credit_sales[0] : ri.credit_sales;
       const id = sale?.staff_id || 'unknown';
@@ -231,10 +231,12 @@ export async function GET(req: NextRequest) {
       const unitPrice = Number(ri.unit_price) || 0;
       const cancelled = isCancelled(ri);
       const issuanceAmount = cancelled ? paidQty * unitPrice : qty * unitPrice;
-      if (!staffPerf[id]) staffPerf[id] = { staff_name: 'Loading...', issuance: 0, collection: 0, transactions: 0 };
+      if (!staffPerf[id]) staffPerf[id] = { staff_name: 'Loading...', issuance: 0, collection: 0, transactions: 0, saleIds: new Set() };
       staffPerf[id].issuance += issuanceAmount;
-      staffPerf[id].transactions += 1;
+      staffPerf[id].saleIds.add(ri.credit_sale_id);
     });
+    // Convert saleIds sets to counts
+    Object.values(staffPerf).forEach(p => { p.transactions = p.saleIds.size; });
     // Override staff names from the sales query
     (sales || []).forEach(s => {
       if (staffPerf[s.staff_id]) {
@@ -333,7 +335,7 @@ export async function GET(req: NextRequest) {
       },
       active_staff: activeStaffList,
       trends: Object.values(trends).sort((a, b) => a.date.localeCompare(b.date)),
-      staff_performance: Object.values(staffPerf).sort((a, b) => b.issuance - a.issuance),
+      staff_performance: Object.values(staffPerf).map(p => ({ staff_name: p.staff_name, issuance: p.issuance, collection: p.collection, transactions: p.transactions })).sort((a, b) => b.issuance - a.issuance),
       item_analysis: Object.values(itemAnalysis).sort((a, b) => b.amount - a.amount),
       creditor_performance: Object.values(creditorPerf).sort((a, b) => b.issuance - a.issuance),
       raw: {
