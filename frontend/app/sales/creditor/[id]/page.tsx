@@ -22,7 +22,8 @@ import {
   MapPin,
   Calendar,
   FileText,
-  TrendingUp
+  TrendingUp,
+  Camera
 } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 import { printReceipt } from '@/lib/receipt-utils';
@@ -59,7 +60,7 @@ export default function CreditorDetailsPage() {
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   
   const [paymentForm, setPaymentForm] = useState({
-    paymentMethod: 'cash' as 'cash' | 'pos' | 'online_transfer',
+    paymentMethod: 'cash' as 'cash' | 'pos' | 'online_transfer' | 'bank_deposit',
     amount: '',
     referenceNumber: '',
     notes: '',
@@ -69,6 +70,7 @@ export default function CreditorDetailsPage() {
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const receiptInputRef = useRef<HTMLInputElement>(null);
+  const [showFullscreenReceipt, setShowFullscreenReceipt] = useState(false);
   
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
@@ -128,6 +130,55 @@ export default function CreditorDetailsPage() {
     }
   }, [paymentForm.paymentMethod, showPaymentModal]);
 
+  const handleReceiptFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({ message: 'File size must be less than 5MB', type: 'error' });
+      return;
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      setToast({ message: 'Only JPG, PNG, GIF, WebP, or PDF files are allowed', type: 'error' });
+      return;
+    }
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onerror = () => { setReceiptFile(file); };
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        const img = new Image();
+        img.onerror = () => { setReceiptFile(file); setReceiptPreview(dataUrl); };
+        img.onload = () => {
+          const MAX = 1920;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+            else { width = Math.round(width * MAX / height); height = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' });
+              setReceiptFile(compressed);
+              setReceiptPreview(dataUrl);
+            } else {
+              setReceiptFile(file);
+              setReceiptPreview(dataUrl);
+            }
+          }, 'image/webp', 0.75);
+        };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setReceiptFile(file);
+    }
+  };
+
   const handleSubmitPayment = async () => {
     if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
       setToast({ message: 'Please enter a valid amount', type: 'error' });
@@ -148,9 +199,9 @@ export default function CreditorDetailsPage() {
       }
     }
 
-    // Require receipt for POS/Transfer
-    if ((paymentForm.paymentMethod === 'pos' || paymentForm.paymentMethod === 'online_transfer') && !receiptFile) {
-      setToast({ message: 'Receipt upload is mandatory for POS/Transfer', type: 'error' });
+    // Require receipt for non-cash
+    if (paymentForm.paymentMethod !== 'cash' && !receiptFile) {
+      setToast({ message: 'Receipt upload is mandatory for this payment method', type: 'error' });
       return;
     }
 
@@ -685,8 +736,9 @@ export default function CreditorDetailsPage() {
                     className="w-full px-4 py-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-4 focus:ring-pink-500/10 focus:border-pink-500 font-bold transition-all text-gray-900 dark:text-white outline-none"
                   >
                     <option value="cash">Cash</option>
-                    <option value="pos">POS Terminal</option>
+                    <option value="pos">POS</option>
                     <option value="online_transfer">Online Transfer</option>
+                    <option value="bank_deposit">Bank Deposit</option>
                   </select>
                 </div>
 
@@ -707,18 +759,81 @@ export default function CreditorDetailsPage() {
               {paymentForm.paymentMethod !== 'cash' && (
               <div>
                 <label className="block text-xs font-black text-gray-500 dark:text-gray-400 uppercase mb-2">Upload Receipt</label>
-                <div 
-                  onClick={() => receiptInputRef.current?.click()}
-                  className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-6 text-center cursor-pointer hover:border-pink-500 dark:hover:border-pink-500 hover:bg-pink-50/30 dark:hover:bg-pink-900/10 transition-all group"
-                >
-                  <Upload className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600 group-hover:text-pink-500 transition-colors" />
-                  <p className="text-sm font-bold text-gray-600 dark:text-gray-400">Drop receipt here or click to upload</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PNG, JPG or PDF up to 5MB</p>
-                  {receiptFile && <div className="mt-4 p-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-sm font-bold flex items-center justify-center gap-2">
-                    <CheckCircle className="w-4 h-4" /> {receiptFile.name}
-                  </div>}
+                <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-6 text-center">
+                  <input
+                    ref={receiptInputRef}
+                    type="file"
+                    id="receipt"
+                    onChange={handleReceiptFileChange}
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/jpg,image/gif,image/webp,application/pdf"
+                  />
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (receiptInputRef.current) {
+                          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                          if (isMobile) {
+                            receiptInputRef.current.setAttribute('capture', 'environment');
+                          } else {
+                            receiptInputRef.current.removeAttribute('capture');
+                          }
+                          receiptInputRef.current.click();
+                        }
+                      }}
+                      className="flex flex-col items-center gap-2 px-6 py-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition flex-1"
+                    >
+                      <Camera className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Camera</span>
+                    </button>
+                    <span className="hidden sm:inline text-gray-300 dark:text-gray-600">•</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (receiptInputRef.current) {
+                          receiptInputRef.current.removeAttribute('capture');
+                          receiptInputRef.current.click();
+                        }
+                      }}
+                      className="flex flex-col items-center gap-2 px-6 py-4 bg-gray-50 dark:bg-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-500 transition flex-1"
+                    >
+                      <Upload className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Upload</span>
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 break-words">JPG, PNG, GIF, WebP, or PDF • Max 5MB</p>
                 </div>
-                <input ref={receiptInputRef} type="file" className="hidden" accept="image/*,application/pdf" onChange={(e) => e.target.files && setReceiptFile(e.target.files[0])} />
+                {receiptFile && (
+                  <div className="mt-3 space-y-2">
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg flex items-center justify-between">
+                      <span className="text-sm text-green-800 dark:text-green-200">
+                        {receiptFile.name} ({(receiptFile.size / 1024).toFixed(1)}KB)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 text-sm font-bold"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    {receiptPreview && (
+                      <div className="relative bg-gray-100 dark:bg-gray-800 rounded p-2 flex items-center justify-between">
+                        <span className="text-sm text-gray-600 dark:text-gray-300">Receipt preview ready</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowFullscreenReceipt(true)}
+                          className="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               )}
             </div>
@@ -732,6 +847,21 @@ export default function CreditorDetailsPage() {
                 {isProcessingPayment ? <div className="w-5 h-5 border-2 border-white/30 border-b-white rounded-full animate-spin"></div> : 'RECORD PAYMENT'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Receipt Preview */}
+      {showFullscreenReceipt && receiptPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[200] p-4">
+          <div className="max-w-4xl max-h-[90vh] w-full relative">
+            <button
+              onClick={() => setShowFullscreenReceipt(false)}
+              className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-full p-2 hover:bg-gray-200 dark:hover:bg-gray-700 z-10"
+            >
+              <X className="w-6 h-6 text-black dark:text-white" />
+            </button>
+            <img src={receiptPreview} alt="Receipt preview" className="w-full h-full object-contain" />
           </div>
         </div>
       )}

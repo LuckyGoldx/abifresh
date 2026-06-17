@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
-import { Search, Eye, X, DollarSign, CheckCircle, XCircle, AlertCircle, Package, Upload, FileText, Activity, MoreHorizontal, ArrowUpDown } from 'lucide-react';
+import { Search, Eye, X, DollarSign, CheckCircle, XCircle, AlertCircle, Package, Upload, FileText, Activity, MoreHorizontal, ArrowUpDown, Camera } from 'lucide-react';
 import { formatQty } from '@/lib/format-quantity';
 import { Toast, CreditTabs } from '@/components/credits';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
@@ -31,6 +31,9 @@ export default function ManageCreditsPage() {
   const [note, setNote] = useState('');
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [showFullscreenReceipt, setShowFullscreenReceipt] = useState(false);
   const [sortField, setSortField] = useState<'date' | 'staff'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [datePreset, setDatePreset] = useState<'today' | 'yesterday' | 'all' | 'this_week' | 'this_month' | 'custom' | 'range'>('all');
@@ -102,6 +105,55 @@ export default function ManageCreditsPage() {
     }
   };
 
+  const handleReceiptFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({ message: 'File size must be less than 5MB', type: 'error' });
+      return;
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      setToast({ message: 'Only JPG, PNG, GIF, WebP, or PDF files are allowed', type: 'error' });
+      return;
+    }
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onerror = () => { setReceiptFile(file); };
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        const img = new Image();
+        img.onerror = () => { setReceiptFile(file); setReceiptPreview(dataUrl); };
+        img.onload = () => {
+          const MAX = 1920;
+          let { width, height } = img;
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round(height * MAX / width); width = MAX; }
+            else { width = Math.round(width * MAX / height); height = MAX; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const compressed = new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: 'image/webp' });
+              setReceiptFile(compressed);
+              setReceiptPreview(dataUrl);
+            } else {
+              setReceiptFile(file);
+              setReceiptPreview(dataUrl);
+            }
+          }, 'image/webp', 0.75);
+        };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setReceiptFile(file);
+    }
+  };
+
   const handlePayment = async (saleId: string) => {
     const currentSalePaid = paySale.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
     const currentSaleBalance = Number(paySale.total_amount) - currentSalePaid;
@@ -131,8 +183,8 @@ export default function ManageCreditsPage() {
       return;
     }
 
-    if ((paymentMethod === 'pos' || paymentMethod === 'online_transfer') && !receiptFile) {
-      setToast({ message: 'Receipt upload is mandatory for POS/Transfer', type: 'error' });
+    if (paymentMethod !== 'cash' && !receiptFile) {
+      setToast({ message: 'Receipt upload is mandatory for this payment method', type: 'error' });
       return;
     }
 
@@ -163,6 +215,7 @@ export default function ManageCreditsPage() {
       setRefNumber('');
       setNote('');
       setReceiptFile(null);
+      setReceiptPreview(null);
       setSelectedItemIds([]);
     } catch (error: any) {
       setToast({ message: 'Payment failed: ' + (error.response?.data?.error || error.message), type: 'error' });
@@ -694,7 +747,7 @@ export default function ManageCreditsPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{paySale.receipt_number}</p>
                   </div>
                   <button 
-                    onClick={() => { setPaySale(null); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); }} 
+                      onClick={() => { setPaySale(null); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); setReceiptPreview(null); }}
                     className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                   >
                     <X size={20} />
@@ -862,8 +915,9 @@ export default function ManageCreditsPage() {
                           className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-pink-500 outline-none font-bold text-gray-900 dark:text-white"
                         >
                           <option value="cash">Cash</option>
-                          <option value="pos">POS Terminal</option>
+                          <option value="pos">POS</option>
                           <option value="online_transfer">Online Transfer</option>
+                          <option value="bank_deposit">Bank Deposit</option>
                         </select>
                       </div>
 
@@ -880,26 +934,84 @@ export default function ManageCreditsPage() {
                         </div>
                       )}
 
-                      {(paymentMethod === 'pos' || paymentMethod === 'online_transfer') && (
+                      {paymentMethod !== 'cash' && (
                         <div className="md:col-span-2">
                           <label className="text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-2 text-pink-600 dark:text-pink-400">Upload Payment Receipt</label>
-                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-pink-100 dark:border-pink-900/50 border-dashed rounded-xl bg-white dark:bg-gray-700">
-                            <div className="space-y-1 text-center">
-                              <Upload className="mx-auto h-12 w-12 text-pink-300 dark:text-pink-700" />
-                              <div className="flex text-sm text-gray-600 dark:text-gray-400">
-                                <label className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-md font-black text-pink-600 dark:text-pink-400 hover:text-pink-500">
-                                  <span>{receiptFile ? receiptFile.name : 'Click to upload receipt image'}</span>
-                                  <input 
-                                    type="file" 
-                                    className="sr-only" 
-                                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                                    accept="image/*"
-                                  />
-                                </label>
-                              </div>
-                              <p className="text-xs text-gray-500 dark:text-gray-500">PNG, JPG up to 10MB</p>
+                          <div className="border-2 border-dashed border-pink-100 dark:border-pink-900/50 rounded-xl p-6 text-center bg-white dark:bg-gray-700">
+                            <input
+                              ref={receiptInputRef}
+                              type="file"
+                              id="receipt"
+                              onChange={handleReceiptFileChange}
+                              className="hidden"
+                              accept="image/jpeg,image/png,image/jpg,image/gif,image/webp,application/pdf"
+                            />
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (receiptInputRef.current) {
+                                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                                    if (isMobile) {
+                                      receiptInputRef.current.setAttribute('capture', 'environment');
+                                    } else {
+                                      receiptInputRef.current.removeAttribute('capture');
+                                    }
+                                    receiptInputRef.current.click();
+                                  }
+                                }}
+                                className="flex flex-col items-center gap-2 px-6 py-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition flex-1"
+                              >
+                                <Camera className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Camera</span>
+                              </button>
+                              <span className="hidden sm:inline text-gray-300 dark:text-gray-600">•</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (receiptInputRef.current) {
+                                    receiptInputRef.current.removeAttribute('capture');
+                                    receiptInputRef.current.click();
+                                  }
+                                }}
+                                className="flex flex-col items-center gap-2 px-6 py-4 bg-gray-50 dark:bg-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-500 transition flex-1"
+                              >
+                                <Upload className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Upload</span>
+                              </button>
                             </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 break-words">JPG, PNG, GIF, WebP, or PDF • Max 5MB</p>
                           </div>
+                          {receiptFile && (
+                            <div className="mt-3 space-y-2">
+                              <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded flex items-center justify-between">
+                                <span className="text-sm text-green-800 dark:text-green-200">
+                                  {receiptFile.name} ({(receiptFile.size / 1024).toFixed(1)}KB)
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                                  className="text-red-600 hover:text-red-800 dark:text-red-400 text-sm font-bold"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                              {receiptPreview && (
+                                <div className="relative bg-gray-100 dark:bg-gray-800 rounded p-2 flex items-center justify-between">
+                                  <span className="text-sm text-gray-600 dark:text-gray-300">Receipt preview ready</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowFullscreenReceipt(true)}
+                                    className="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" /> View
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -921,7 +1033,7 @@ export default function ManageCreditsPage() {
                 {/* Footer */}
                 <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex gap-3">
                   <button 
-                    onClick={() => { setPaySale(null); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); }}
+                    onClick={() => { setPaySale(null); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); setReceiptPreview(null); }}
                     className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 font-bold text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                   >
                     Cancel
@@ -938,6 +1050,20 @@ export default function ManageCreditsPage() {
             </div>
           );
         })()}
+
+        {showFullscreenReceipt && receiptPreview && (
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[200] p-4">
+            <div className="max-w-4xl max-h-[90vh] w-full relative">
+              <button
+                onClick={() => setShowFullscreenReceipt(false)}
+                className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-full p-2 hover:bg-gray-200 dark:hover:bg-gray-700 z-10"
+              >
+                <X className="w-6 h-6 text-black dark:text-white" />
+              </button>
+              <img src={receiptPreview} alt="Receipt preview" className="w-full h-full object-contain" />
+            </div>
+          </div>
+        )}
 
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </div>
