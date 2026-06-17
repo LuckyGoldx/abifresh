@@ -157,6 +157,9 @@ export async function GET(req: NextRequest) {
     });
 
     const totalIssuanceWithCancelled = totalIssuance + cancelledUnpaidAmount;
+    const cancelRate = totalIssuanceWithCancelled > 0
+      ? (cancelledUnpaidAmount / totalIssuanceWithCancelled) * 100
+      : 0;
 
     const totalCollection = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
     const totalTransactions = (sales || []).length + (payments || []).length;
@@ -306,6 +309,7 @@ export async function GET(req: NextRequest) {
         cancelled_unpaid_quantity: cancelledUnpaidQuantity,
         cancelled_unpaid_items: cancelledUnpaidItems,
         cancelled_cost: cancelledCost,
+        cancel_rate: cancelRate,
       },
       active_staff: activeStaffList,
       trends: Object.values(trends).sort((a, b) => a.date.localeCompare(b.date)),
