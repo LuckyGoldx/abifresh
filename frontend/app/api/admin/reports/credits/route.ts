@@ -148,15 +148,16 @@ export async function GET(req: NextRequest) {
         // Cancelled: use actual approved payment amount (not paidQty * unitPrice which has rounding errors)
         const actualPaidAmount = salePaymentMap[ri.credit_sale_id] || 0;
         const fullAmount = qty * unitPrice;
+        const fullCost = qty * costPrice;
+        const paidRatio = fullAmount > 0 ? actualPaidAmount / fullAmount : 0;
         totalIssuance += actualPaidAmount;
         totalQuantity += paidQty;
-        totalCostPriceIssued += paidQty * costPrice;
+        totalCostPriceIssued += paidRatio * fullCost;
         // Track the unpaid portion: use full amount minus actual paid amount to avoid rounding errors
-        const unpaidAmount = Math.max(0, fullAmount - actualPaidAmount);
-        const unpaidQty = unpaidAmount / (unitPrice || 1);
+        const unpaidAmount = fullAmount - actualPaidAmount;
         cancelledUnpaidAmount += unpaidAmount;
-        cancelledUnpaidQuantity += unpaidQty;
-        cancelledCost += unpaidQty * costPrice;
+        cancelledUnpaidQuantity += unpaidAmount / (unitPrice || 1);
+        cancelledCost += (1 - paidRatio) * fullCost;
         if (unpaidAmount > 0) cancelledUnpaidItems += 1;
       } else {
         // Not cancelled: full amount
@@ -178,6 +179,14 @@ export async function GET(req: NextRequest) {
     // Includes items from current period AND previous periods that received payments this period
     const allPaidItems = [...itemsData, ...paidItemsData];
     const totalCostPriceCollected = allPaidItems.reduce((sum, ri) => {
+      const cancelled = isCancelled(ri);
+      if (cancelled) {
+        // For cancelled items, use actual payment proportion to avoid paidQty rounding
+        const actualPaidAmount = salePaymentMap[ri.credit_sale_id] || 0;
+        const fullAmount = (Number(ri.quantity) || 0) * (Number(ri.unit_price) || 0);
+        const paidRatio = fullAmount > 0 ? actualPaidAmount / fullAmount : 0;
+        return sum + paidRatio * (Number(ri.quantity) || 0) * (Number(ri.cost_price) || 0);
+      }
       const paidQty = paidQtyMap.get(ri.id) || 0;
       const effectivePaid = Math.min(paidQty, Number(ri.quantity) || 0);
       return sum + effectivePaid * (Number(ri.cost_price) || 0);
