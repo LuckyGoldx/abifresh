@@ -36,6 +36,7 @@ export async function GET(
       .select('*')
       .eq('staff_id', staffId)
       .or('payment_type.neq.commission,paid_by.is.null')
+      .neq('payment_type', 'credit_remittance')
       .order('created_at', { ascending: false });
 
     if (pmErr) throw pmErr;

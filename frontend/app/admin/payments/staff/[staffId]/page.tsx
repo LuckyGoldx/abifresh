@@ -414,14 +414,14 @@ export default function StaffPaymentDetailPage() {
                         {payment.status === 'pending' && (
                           <>
                             <button
-                              onClick={() => handleApprove(payment.id)}
+                              onClick={() => { setSelectedPayment(payment); setShowPaymentModal(true); }}
                               disabled={actionInProgress}
                               className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs transition disabled:opacity-50"
                             >
                               <CheckCircle className="w-3.5 h-3.5" /> Approve
                             </button>
                             <button
-                              onClick={() => { setSelectedPayment(payment); setShowRejectModal(true); }}
+                              onClick={() => { setSelectedPayment(payment); setShowPaymentModal(true); }}
                               disabled={actionInProgress}
                               className="flex items-center gap-1 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs transition disabled:opacity-50"
                             >
