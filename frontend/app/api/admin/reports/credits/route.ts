@@ -130,6 +130,13 @@ export async function GET(req: NextRequest) {
     let cancelledUnpaidItems = 0;
     let cancelledCost = 0;
 
+    // Build a map of credit_sale_id -> total approved payment amount for accurate cancelled credit amounts
+    const salePaymentMap: Record<string, number> = {};
+    (payments || []).forEach((p: any) => {
+      const saleId = p.credit_sale_id;
+      if (saleId) salePaymentMap[saleId] = (salePaymentMap[saleId] || 0) + (Number(p.amount) || 0);
+    });
+
     itemsData.forEach((ri: any) => {
       const qty = Number(ri.quantity) || 0;
       const paidQty = Number(ri.quantity_paid) || 0;
@@ -138,8 +145,9 @@ export async function GET(req: NextRequest) {
       const cancelled = isCancelled(ri);
 
       if (cancelled) {
-        // Cancelled: only count what was actually paid for the main stats
-        totalIssuance += paidQty * unitPrice;
+        // Cancelled: use actual approved payment amount (not paidQty * unitPrice which has rounding errors)
+        const actualPaidAmount = salePaymentMap[ri.credit_sale_id] || 0;
+        totalIssuance += actualPaidAmount;
         totalQuantity += paidQty;
         totalCostPriceIssued += paidQty * costPrice;
         // Track the unpaid portion separately for cancellation stats

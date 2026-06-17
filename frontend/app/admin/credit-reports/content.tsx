@@ -444,7 +444,7 @@ export default function CreditReportsPage() {
               </div>
               <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-red-500 overflow-hidden">
                 <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Cancel. Quantity</p>
-                <p className="text-2xl font-black text-gray-900 dark:text-white break-words">{formatQty(report?.summary.cancelled_unpaid_quantity || 0)}</p>
+                <p className="text-2xl font-black text-gray-900 dark:text-white break-words">{(report?.summary.cancelled_unpaid_quantity || 0) > 0 && (report?.summary.cancelled_unpaid_quantity || 0) < 0.5 ? (report?.summary.cancelled_unpaid_quantity || 0).toFixed(2) : formatQty(report?.summary.cancelled_unpaid_quantity || 0)}</p>
                 <div className="flex items-center gap-1 text-[10px] text-red-600 font-bold mt-2">
                   <RotateCcw size={12} /> Unpaid Qty
                 </div>
