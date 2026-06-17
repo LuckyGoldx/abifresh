@@ -229,7 +229,8 @@ export default function CreditReceiptsPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            {/* Desktop Table (lg+) */}
+            <table className="hidden lg:table w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <th
@@ -264,31 +265,68 @@ export default function CreditReceiptsPage() {
                     <td className="py-3 px-4 text-sm text-gray-900 dark:text-white">{receipt.creditors?.full_name}</td>
                     <td className="py-3 px-4 text-sm text-gray-900 dark:text-white font-bold">₦{Number(receipt.total_amount).toLocaleString()}</td>
                     <td className="py-3 px-4 text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${receipt.status === 'paid' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : receipt.status === 'cancelled' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' : 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400'}`}>
+                        {(receipt.status || 'pending').replace('_', ' ').toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-sm">
+                      <button onClick={() => handleViewReceipt(receipt)} className="text-pink-600 hover:text-pink-800 flex items-center gap-1"><Eye size={16} /> View</button>
+                    </td>
+                  </tr>
+                ))}
+                {filteredReceipts.length === 0 && (
+                  <tr><td colSpan={user?.role === 'admin' || user?.role === 'superadmin' ? 7 : 6} className="py-8 text-center text-gray-500 dark:text-gray-400">No receipts found.</td></tr>
+                )}
+              </tbody>
+            </table>
+
+            {/* Mobile/Tablet Cards (< lg) */}
+            <div className="lg:hidden space-y-3 p-3">
+              {paginatedReceipts.map((receipt) => (
+                <div key={receipt.id} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                  <div className="p-4 space-y-3">
+                    {/* Top: Date + Status */}
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{new Date(receipt.created_at).toLocaleString()}</span>
+                      <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black tracking-widest ${
                         receipt.status === 'paid' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
                         receipt.status === 'cancelled' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
                         'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400'
                       }`}>
                         {(receipt.status || 'pending').replace('_', ' ').toUpperCase()}
                       </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm">
+                    </div>
+
+                    {/* Receipt + Creditor */}
+                    <div>
+                      <p className="text-sm font-black text-gray-900 dark:text-white">{receipt.receipt_number}</p>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-0.5">{receipt.creditors?.full_name}</p>
+                    </div>
+
+                    {/* Amount Row */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <div>
+                        <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Amount</p>
+                        <p className="text-sm font-black text-gray-900 dark:text-white">₦{Number(receipt.total_amount).toLocaleString()}</p>
+                      </div>
                       <button
                         onClick={() => handleViewReceipt(receipt)}
-                        className="text-pink-600 hover:text-pink-800 flex items-center gap-1"
+                        className="px-4 py-2 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 rounded-xl text-xs font-bold hover:bg-pink-100 dark:hover:bg-pink-900/30 transition flex items-center gap-1.5"
                       >
-                        <Eye size={16} /> View
+                        <Eye size={14} /> View
                       </button>
-                    </td>
-                  </tr>
-                ))}
-                {filteredReceipts.length === 0 && (
-                  <tr>
-                  <td colSpan={user?.role === 'admin' || user?.role === 'superadmin' ? 7 : 6} className="py-8 text-center text-gray-500 dark:text-gray-400">No receipts found.</td>
-                </tr>
+                    </div>
+
+                    {(user?.role === 'admin' || user?.role === 'superadmin') && receipt.users?.full_name && (
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold">Staff: {receipt.users?.full_name}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {filteredReceipts.length === 0 && (
+                <div className="py-8 text-center text-gray-500 dark:text-gray-400">No receipts found.</div>
               )}
-            </tbody>
-          </table>
+            </div>
           </div>
           {totalReceiptsPages > 1 && (
             <div className="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
