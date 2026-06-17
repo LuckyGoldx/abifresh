@@ -330,7 +330,8 @@ export default function ManageCreditsPage() {
           </div>
 
           <div className="overflow-x-auto min-h-[200px]">
-            <table className="w-full text-left border-collapse">
+            {/* Desktop Table (lg+) */}
+            <table className="hidden lg:table w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Receipt No.</th>
@@ -362,80 +363,17 @@ export default function ManageCreditsPage() {
                       <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{sale.credit_sale_items?.length || 0}</td>
                       <td className="py-3 px-4 text-sm">
                         {isCancelled ? (
-                          <button
-                            onClick={() => setViewSale(sale)}
-                            className="text-blue-600 hover:text-blue-800"
-                            title="View History"
-                          >
-                            <Eye size={18} />
-                          </button>
+                          <button onClick={() => setViewSale(sale)} className="text-blue-600 hover:text-blue-800" title="View History"><Eye size={18} /></button>
                         ) : (
-                        <>
-                        {/* Mobile/Tablet: Dropdown */}
-                        <div className="relative lg:hidden">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setOpenActionId(openActionId === sale.id ? null : sale.id); }}
-                            className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                            title="Actions"
-                          >
-                            <MoreHorizontal size={18} className="text-gray-600 dark:text-gray-400" />
-                          </button>
-                          {openActionId === sale.id && (
-                            <div className="absolute right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg border dark:border-gray-700 py-1 z-50 min-w-[140px]" onClick={e => e.stopPropagation()}>
-                              <button
-                                onClick={() => { setViewSale(sale); setOpenActionId(null); }}
-                                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-bold transition-colors"
-                              >
-                                <Eye size={16} /> View
-                              </button>
-                              {!isCancelled && balance > 0 && (
-                                <button
-                                  onClick={() => { setPaySale(sale); setPaymentMethod('cash'); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); setOpenActionId(null); }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 font-bold transition-colors"
-                                >
-                                  <span className="text-base font-black">₦</span> Pay
-                                </button>
-                              )}
-                              {!isCancelled && sale.status !== 'paid' && (
-                                <button
-                                  onClick={() => { setCancelSale(sale); setShowCancelConfirm(true); setOpenActionId(null); }}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold transition-colors"
-                                >
-                                  <XCircle size={16} /> Cancel
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        {/* Desktop: Inline Icons */}
-                        <div className="hidden lg:flex gap-3">
-                          <button
-                            onClick={() => setViewSale(sale)}
-                            className="text-blue-600 hover:text-blue-800 disabled:opacity-30"
-                            title="View History"
-                          >
-                            <Eye size={18} />
-                          </button>
-                          {!isCancelled && balance > 0 && (
-                            <button
-                              onClick={() => { setPaySale(sale); setPaymentMethod('cash'); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); }}
-                              className="text-green-600 hover:text-green-800"
-                              title="Pay Now"
-                            >
-                              <span className="text-lg font-black">₦</span>
-                            </button>
-                          )}
-                          {!isCancelled && sale.status !== 'paid' && (
-                            <button
-                              onClick={() => { setCancelSale(sale); setShowCancelConfirm(true); }}
-                              className="text-red-500 hover:text-red-700"
-                              title="Cancel Credit"
-                            >
-                              <XCircle size={18} />
-                            </button>
-                          )}
-                        </div>
-                        </>
+                          <div className="flex gap-3">
+                            <button onClick={() => setViewSale(sale)} className="text-blue-600 hover:text-blue-800" title="View History"><Eye size={18} /></button>
+                            {balance > 0 && (
+                              <button onClick={() => { setPaySale(sale); setPaymentMethod('cash'); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); }} className="text-green-600 hover:text-green-800" title="Pay Now"><span className="text-lg font-black">₦</span></button>
+                            )}
+                            {sale.status !== 'paid' && (
+                              <button onClick={() => { setCancelSale(sale); setShowCancelConfirm(true); }} className="text-red-500 hover:text-red-700" title="Cancel Credit"><XCircle size={18} /></button>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -443,6 +381,85 @@ export default function ManageCreditsPage() {
                 })}
               </tbody>
             </table>
+
+            {/* Mobile/Tablet Cards (< lg) */}
+            <div className="lg:hidden space-y-3 p-3">
+              {paginatedSales.map((sale) => {
+                const totalPaid = sale.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+                const balance = Number(sale.total_amount) - totalPaid;
+                const isCancelled = sale.status === 'cancelled';
+                
+                return (
+                  <div key={sale.id} className={`rounded-xl border overflow-hidden shadow-sm ${isCancelled ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 opacity-60' : 'border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800'}`}>
+                    <div className="p-4 space-y-3">
+                      {/* Top Row: Receipt + Status */}
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0 mr-2">
+                          <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{sale.receipt_number}</p>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{new Date(sale.created_at).toLocaleString()}</p>
+                        </div>
+                        <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider ${
+                          isCancelled ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+                          balance === 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                          'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                        }`}>
+                          {isCancelled ? 'CANCELLED' : balance === 0 ? 'PAID' : `${((totalPaid / Number(sale.total_amount)) * 100 || 0).toFixed(0)}%`}
+                        </span>
+                      </div>
+
+                      {/* Creditor */}
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-gray-600 dark:text-gray-400 font-medium truncate">{sale.creditors?.full_name}</span>
+                        <span className="text-gray-400 dark:text-gray-500">•</span>
+                        <span className="text-gray-500 dark:text-gray-400 text-xs">{sale.credit_sale_items?.length || 0} item{(sale.credit_sale_items?.length || 0) !== 1 ? 's' : ''}</span>
+                      </div>
+
+                      {/* Amounts Row */}
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <div>
+                          <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Total</p>
+                          <p className="text-xs font-bold text-gray-900 dark:text-white">₦{Number(sale.total_amount).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Paid</p>
+                          <p className="text-xs font-bold text-green-600">₦{totalPaid.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Balance</p>
+                          <p className="text-xs font-bold text-red-600">₦{balance.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={() => setViewSale(sale)}
+                          className="flex-1 px-3 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-900/30 transition flex items-center justify-center gap-1.5"
+                        >
+                          <Eye size={14} /> View
+                        </button>
+                        {!isCancelled && balance > 0 && (
+                          <button
+                            onClick={() => { setPaySale(sale); setPaymentMethod('cash'); setPaymentAmount(''); setSelectedItemIds([]); setRefNumber(''); setNote(''); setReceiptFile(null); }}
+                            className="flex-1 px-3 py-2.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-xl text-xs font-bold hover:bg-green-100 dark:hover:bg-green-900/30 transition flex items-center justify-center gap-1.5"
+                          >
+                            <span className="text-sm font-black">₦</span> Pay
+                          </button>
+                        )}
+                        {!isCancelled && sale.status !== 'paid' && (
+                          <button
+                            onClick={() => { setCancelSale(sale); setShowCancelConfirm(true); }}
+                            className="flex-1 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition flex items-center justify-center gap-1.5"
+                          >
+                            <XCircle size={14} /> Cancel
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             {filteredSales.length === 0 && (
               <div className="py-12 text-center text-gray-400 dark:text-gray-500 font-medium">No credits found.</div>
             )}
