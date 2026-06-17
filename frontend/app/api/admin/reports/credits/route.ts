@@ -147,15 +147,17 @@ export async function GET(req: NextRequest) {
       if (cancelled) {
         // Cancelled: use actual approved payment amount (not paidQty * unitPrice which has rounding errors)
         const actualPaidAmount = salePaymentMap[ri.credit_sale_id] || 0;
+        const fullAmount = qty * unitPrice;
         totalIssuance += actualPaidAmount;
         totalQuantity += paidQty;
         totalCostPriceIssued += paidQty * costPrice;
-        // Track the unpaid portion separately for cancellation stats
-        const unpaidQty = qty - paidQty;
-        cancelledUnpaidAmount += unpaidQty * unitPrice;
+        // Track the unpaid portion: use full amount minus actual paid amount to avoid rounding errors
+        const unpaidAmount = Math.max(0, fullAmount - actualPaidAmount);
+        const unpaidQty = unpaidAmount / (unitPrice || 1);
+        cancelledUnpaidAmount += unpaidAmount;
         cancelledUnpaidQuantity += unpaidQty;
         cancelledCost += unpaidQty * costPrice;
-        if (unpaidQty > 0) cancelledUnpaidItems += 1;
+        if (unpaidAmount > 0) cancelledUnpaidItems += 1;
       } else {
         // Not cancelled: full amount
         totalIssuance += qty * unitPrice;
