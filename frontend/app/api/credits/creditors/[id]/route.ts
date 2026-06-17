@@ -201,6 +201,55 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   // Soft-delete: set is_active=false instead of hard-deleting,
   // because credit_sales and credit_payments reference this creditor.
+  // Also cancel all active/partially_paid credit sales for this creditor.
+  
+  const { data: activeSales } = await supabaseAdmin
+    .from('credit_sales')
+    .select('id')
+    .eq('creditor_id', params.id)
+    .in('status', ['active', 'partially_paid']);
+  
+  if (activeSales && activeSales.length > 0) {
+    const saleIds = activeSales.map(s => s.id);
+    
+    // Fetch all sale items for these sales
+    const { data: saleItems } = await supabaseAdmin
+      .from('credit_sale_items')
+      .select('*')
+      .in('credit_sale_id', saleIds);
+    
+    if (saleItems && saleItems.length > 0) {
+      for (const item of saleItems) {
+        const totalQty = Number(item.quantity);
+        const paidQty = Number(item.quantity_paid || 0);
+        const paidPercentage = totalQty > 0 ? (paidQty / totalQty) * 100 : 0;
+        const unpaid = totalQty - paidQty;
+        const returnableQty = Math.round(unpaid * 2) / 2;
+        
+        if (returnableQty === 0.5 && paidPercentage > 75) {
+          await supabaseAdmin.from('credit_store')
+            .update({ status: 'paid' })
+            .eq('credit_sale_item_id', item.id);
+        } else if (returnableQty > 0) {
+          await supabaseAdmin.from('credit_store')
+            .update({ 
+              status: 'available for return',
+              quantity: returnableQty 
+            })
+            .eq('credit_sale_item_id', item.id);
+        } else {
+          await supabaseAdmin.from('credit_store')
+            .update({ status: 'paid' })
+            .eq('credit_sale_item_id', item.id);
+        }
+      }
+    }
+    
+    // Cancel all active sales for this creditor
+    await supabaseAdmin.from('credit_sales')
+      .update({ status: 'cancelled' })
+      .in('id', saleIds);
+  }
   const { error } = await supabaseAdmin
     .from('creditors')
     .update({ is_active: false, updated_at: new Date().toISOString() })
