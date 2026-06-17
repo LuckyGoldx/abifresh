@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     if (saleIds.length > 0) {
       const { data: saleItems } = await supabaseAdmin
         .from('credit_sale_items')
-        .select('*, credit_sales(staff_id)')
+        .select('*, credit_sales(staff_id, status)')
         .in('credit_sale_id', saleIds);
       itemsData = saleItems || [];
     }
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
     if (missingItemIds.length > 0) {
       const { data: extraItems } = await supabaseAdmin
         .from('credit_sale_items')
-        .select('*, credit_sales(staff_id)')
+        .select('*, credit_sales(staff_id, status)')
         .in('id', missingItemIds);
       paidItemsData = extraItems || [];
     }
