@@ -28,6 +28,11 @@ interface CreditReport {
     credit_quantity: number;
     total_transactions: number;
     collection_rate: number;
+    total_issuance_with_cancelled: number;
+    cancelled_unpaid_amount: number;
+    cancelled_unpaid_quantity: number;
+    cancelled_unpaid_items: number;
+    cancelled_cost: number;
   };
   trends: Array<{ date: string; issuance: number; collection: number }>;
   staff_performance: Array<{ staff_name: string; issuance: number; collection: number; transactions: number }>;
@@ -56,6 +61,7 @@ export default function CreditReportsPage() {
   });
   const [staff, setStaff] = useState<any[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showCancelled, setShowCancelled] = useState(false);
 
   useEffect(() => {
     fetchReport();
@@ -410,6 +416,61 @@ export default function CreditReportsPage() {
         {/* Report Content */}
         <div ref={reportRef} className="space-y-8">
           {renderSummaryCards()}
+
+          {/* Cancellation Stats Toggle */}
+          <div className="flex justify-center">
+            <button
+              onClick={() => setShowCancelled(!showCancelled)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-bold text-sm transition-all border-2 ${
+                showCancelled
+                  ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300'
+                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-red-300 dark:hover:border-red-700'
+              }`}
+            >
+              <RotateCcw size={16} />
+              {showCancelled ? 'Hide Cancellations' : 'Show Cancellations'}
+            </button>
+          </div>
+
+          {showCancelled && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 animate-in fade-in duration-300">
+              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-red-600 overflow-hidden">
+                <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Cancel. Issuance</p>
+                <p className="text-2xl font-black text-gray-900 dark:text-white break-words">₦{(report?.summary.cancelled_unpaid_amount || 0).toLocaleString()}</p>
+                <div className="flex items-center gap-1 text-[10px] text-red-600 font-bold mt-2">
+                  <RotateCcw size={12} /> Unpaid from Cancelled
+                </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-red-500 overflow-hidden">
+                <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Cancel. Quantity</p>
+                <p className="text-2xl font-black text-gray-900 dark:text-white break-words">{formatQty(report?.summary.cancelled_unpaid_quantity || 0)}</p>
+                <div className="flex items-center gap-1 text-[10px] text-red-600 font-bold mt-2">
+                  <RotateCcw size={12} /> Unpaid Qty
+                </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-rose-500 overflow-hidden">
+                <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Total Cancel. Items</p>
+                <p className="text-2xl font-black text-gray-900 dark:text-white break-words">{report?.summary.cancelled_unpaid_items || 0}</p>
+                <div className="flex items-center gap-1 text-[10px] text-rose-600 font-bold mt-2">
+                  <AlertCircle size={12} /> Line Items
+                </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-purple-600 overflow-hidden">
+                <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Cost of Cancelled</p>
+                <p className="text-2xl font-black text-gray-900 dark:text-white break-words">₦{(report?.summary.cancelled_cost || 0).toLocaleString()}</p>
+                <div className="flex items-center gap-1 text-[10px] text-purple-600 font-bold mt-2">
+                  <ShoppingCart size={12} /> Cost Price
+                </div>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm border-l-4 border-l-blue-600 overflow-hidden">
+                <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Issuance w/ Cancelled</p>
+                <p className="text-2xl font-black text-gray-900 dark:text-white break-words">₦{(report?.summary.total_issuance_with_cancelled || 0).toLocaleString()}</p>
+                <div className="flex items-center gap-1 text-[10px] text-blue-600 font-bold mt-2">
+                  <DollarSign size={12} /> Including Unpaid Cancelled
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {[

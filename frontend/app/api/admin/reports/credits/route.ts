@@ -125,6 +125,10 @@ export async function GET(req: NextRequest) {
     let totalIssuance = 0;
     let totalQuantity = 0;
     let totalCostPriceIssued = 0;
+    let cancelledUnpaidAmount = 0;
+    let cancelledUnpaidQuantity = 0;
+    let cancelledUnpaidItems = 0;
+    let cancelledCost = 0;
 
     itemsData.forEach((ri: any) => {
       const qty = Number(ri.quantity) || 0;
@@ -134,10 +138,16 @@ export async function GET(req: NextRequest) {
       const cancelled = isCancelled(ri);
 
       if (cancelled) {
-        // Cancelled: only count what was actually paid
+        // Cancelled: only count what was actually paid for the main stats
         totalIssuance += paidQty * unitPrice;
         totalQuantity += paidQty;
         totalCostPriceIssued += paidQty * costPrice;
+        // Track the unpaid portion separately for cancellation stats
+        const unpaidQty = qty - paidQty;
+        cancelledUnpaidAmount += unpaidQty * unitPrice;
+        cancelledUnpaidQuantity += unpaidQty;
+        cancelledCost += unpaidQty * costPrice;
+        if (unpaidQty > 0) cancelledUnpaidItems += 1;
       } else {
         // Not cancelled: full amount
         totalIssuance += qty * unitPrice;
@@ -145,6 +155,8 @@ export async function GET(req: NextRequest) {
         totalCostPriceIssued += qty * costPrice;
       }
     });
+
+    const totalIssuanceWithCancelled = totalIssuance + cancelledUnpaidAmount;
 
     const totalCollection = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
     const totalTransactions = (sales || []).length + (payments || []).length;
@@ -288,7 +300,12 @@ export async function GET(req: NextRequest) {
         total_quantity_all_time: totalQuantityAllTime,
         credit_quantity: creditQuantity,
         total_transactions: totalTransactions,
-        collection_rate: totalIssuance > 0 ? (totalCollection / totalIssuance) * 100 : 0
+        collection_rate: totalIssuance > 0 ? (totalCollection / totalIssuance) * 100 : 0,
+        total_issuance_with_cancelled: totalIssuanceWithCancelled,
+        cancelled_unpaid_amount: cancelledUnpaidAmount,
+        cancelled_unpaid_quantity: cancelledUnpaidQuantity,
+        cancelled_unpaid_items: cancelledUnpaidItems,
+        cancelled_cost: cancelledCost,
       },
       active_staff: activeStaffList,
       trends: Object.values(trends).sort((a, b) => a.date.localeCompare(b.date)),
