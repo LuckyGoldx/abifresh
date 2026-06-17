@@ -40,6 +40,7 @@ export default function SalesCreditPaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
+  const [showUploadPreview, setShowUploadPreview] = useState(false);
 
   useEffect(() => {
     if (user?.full_name) {
@@ -481,16 +482,29 @@ export default function SalesCreditPaymentsPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 break-words">JPG, PNG, GIF, WebP, or PDF • Max 10MB</p>
                 </div>
                 {receiptFile && (
-                  <div className="mt-3 flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                    <span className="text-sm text-blue-800 dark:text-blue-200 truncate">{receiptFile.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
-                      className="ml-auto text-blue-600 dark:text-blue-400 hover:text-blue-800 flex-shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                  <div className="mt-3 space-y-2">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                      <span className="text-sm text-blue-800 dark:text-blue-200 truncate">{receiptFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setReceiptFile(null); setReceiptPreview(null); }}
+                        className="ml-auto text-blue-600 dark:text-blue-400 hover:text-blue-800 flex-shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {receiptPreview && (
+                      <div
+                        className="relative rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 cursor-zoom-in bg-gray-100 dark:bg-gray-800 h-32 flex items-center justify-center group"
+                        onClick={() => setShowUploadPreview(true)}
+                      >
+                        <img src={receiptPreview} alt="Receipt preview" className="object-contain h-full w-full group-hover:scale-105 transition-transform duration-300" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                          <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -695,6 +709,20 @@ export default function SalesCreditPaymentsPage() {
           ) : (
             <img src={selectedPayment.receipt_url} alt="Receipt Full" className="max-w-full max-h-[95vh] object-contain rounded-xl shadow-2xl" />
           )}
+        </div>
+      )}
+
+      {showUploadPreview && receiptPreview && (
+        <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-4 cursor-zoom-out" onClick={() => setShowUploadPreview(false)}>
+          <div className="max-w-5xl max-h-[95vh] w-full relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowUploadPreview(false); }}
+              className="absolute top-4 right-4 bg-white dark:bg-gray-800 rounded-full p-2 hover:bg-gray-200 dark:hover:bg-gray-700 z-10 shadow-lg"
+            >
+              <X className="w-6 h-6 text-black dark:text-white" />
+            </button>
+            <img src={receiptPreview} alt="Uploaded receipt" className="w-full h-full object-contain rounded-xl shadow-2xl" />
+          </div>
         </div>
       )}
 
