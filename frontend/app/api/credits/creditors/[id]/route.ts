@@ -167,7 +167,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (body.phone_number !== undefined) updates.phone_number = body.phone_number?.trim() || null;
   if (body.email !== undefined) updates.email = body.email?.trim() || null;
   if (body.address !== undefined) updates.address = body.address?.trim() || null;
-  if (body.is_active !== undefined) updates.is_active = body.is_active;
+  if (body.is_active !== undefined) {
+    // Only superadmin can reactivate a deleted creditor
+    if (body.is_active === true && !hasRole(authResult.role, 'superadmin')) {
+      return NextResponse.json({ error: 'Only superadmin can reactivate a deleted creditor' }, { status: 403 });
+    }
+    updates.is_active = body.is_active;
+  }
 
   const { data, error } = await supabaseAdmin.from('creditors').update(updates).eq('id', params.id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
