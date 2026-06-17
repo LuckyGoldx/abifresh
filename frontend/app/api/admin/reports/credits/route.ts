@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
     if (saleIds.length > 0) {
       const { data: saleItems } = await supabaseAdmin
         .from('credit_sale_items')
-        .select('*, credit_sales(staff_id, status)')
+        .select('*, credit_sales(staff_id, creditor_id, status)')
         .in('credit_sale_id', saleIds);
       itemsData = saleItems || [];
     }
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
     if (missingItemIds.length > 0) {
       const { data: extraItems } = await supabaseAdmin
         .from('credit_sale_items')
-        .select('*, credit_sales(staff_id, status)')
+        .select('*, credit_sales(staff_id, creditor_id, status)')
         .in('id', missingItemIds);
       paidItemsData = extraItems || [];
     }
@@ -221,15 +221,25 @@ export async function GET(req: NextRequest) {
       trends[d].collection += Number(p.amount) || 0;
     });
 
-    // Staff Performance — skip cancelled sales for issuance
+    // Staff Performance — compute from itemsData (consistent with summary cards)
     const staffPerf: Record<string, { staff_name: string; issuance: number; collection: number; transactions: number }> = {};
-    (sales || []).forEach(s => {
-      if (s.status === 'cancelled') return;
-      const id = s.staff_id;
-      const name = s.users?.full_name || s.users?.username || 'Unknown';
-      if (!staffPerf[id]) staffPerf[id] = { staff_name: name, issuance: 0, collection: 0, transactions: 0 };
-      staffPerf[id].issuance += Number(s.total_amount) || 0;
+    itemsData.forEach((ri: any) => {
+      const sale = Array.isArray(ri.credit_sales) ? ri.credit_sales[0] : ri.credit_sales;
+      const id = sale?.staff_id || 'unknown';
+      const qty = Number(ri.quantity) || 0;
+      const paidQty = Number(ri.quantity_paid) || 0;
+      const unitPrice = Number(ri.unit_price) || 0;
+      const cancelled = isCancelled(ri);
+      const issuanceAmount = cancelled ? paidQty * unitPrice : qty * unitPrice;
+      if (!staffPerf[id]) staffPerf[id] = { staff_name: 'Loading...', issuance: 0, collection: 0, transactions: 0 };
+      staffPerf[id].issuance += issuanceAmount;
       staffPerf[id].transactions += 1;
+    });
+    // Override staff names from the sales query
+    (sales || []).forEach(s => {
+      if (staffPerf[s.staff_id]) {
+        staffPerf[s.staff_id].staff_name = s.users?.full_name || s.users?.username || 'Unknown';
+      }
     });
     (payments || []).forEach(p => {
       const id = p.staff_id;
@@ -256,14 +266,24 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Creditor Leaderboard
+    // Creditor Leaderboard — compute from itemsData (consistent with summary cards)
     const creditorPerf: Record<string, { creditor_name: string; issuance: number; collection: number }> = {};
+    itemsData.forEach((ri: any) => {
+      const sale = Array.isArray(ri.credit_sales) ? ri.credit_sales[0] : ri.credit_sales;
+      const id = sale?.creditor_id || ri.credit_sale_id || 'unknown';
+      const qty = Number(ri.quantity) || 0;
+      const paidQty = Number(ri.quantity_paid) || 0;
+      const unitPrice = Number(ri.unit_price) || 0;
+      const cancelled = isCancelled(ri);
+      const issuanceAmount = cancelled ? paidQty * unitPrice : qty * unitPrice;
+      if (!creditorPerf[id]) creditorPerf[id] = { creditor_name: 'Loading...', issuance: 0, collection: 0 };
+      creditorPerf[id].issuance += issuanceAmount;
+    });
+    // Override creditor names from the sales query
     (sales || []).forEach(s => {
-      if (s.status === 'cancelled') return;
-      const id = s.creditor_id;
-      const name = s.creditors?.full_name || 'Unknown';
-      if (!creditorPerf[id]) creditorPerf[id] = { creditor_name: name, issuance: 0, collection: 0 };
-      creditorPerf[id].issuance += Number(s.total_amount) || 0;
+      if (creditorPerf[s.creditor_id]) {
+        creditorPerf[s.creditor_id].creditor_name = s.creditors?.full_name || 'Unknown';
+      }
     });
     (payments || []).forEach(p => {
       const id = p.creditor_id;
