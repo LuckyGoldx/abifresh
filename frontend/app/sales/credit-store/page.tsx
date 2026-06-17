@@ -331,7 +331,8 @@ export default function CreditStorePage() {
           {activeTab === 'inventory' ? (
             <>
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
+            {/* Desktop Table (lg+) */}
+            <table className="hidden lg:table w-full text-left">
               <thead>
                 <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b dark:border-gray-700">
                   <th className="py-4 px-6">Date Issued</th>
@@ -373,6 +374,51 @@ export default function CreditStorePage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Mobile/Tablet Cards (< lg) */}
+            <div className="lg:hidden space-y-3 p-3">
+              {paginatedInv.map((item) => (
+                <div key={item.id} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                  <div className="p-4 space-y-3">
+                    {/* Top: Date + Status Badge */}
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{new Date(item.credit_sale_items?.credit_sales?.created_at || item.created_at).toLocaleString()}</span>
+                      <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${
+                        (item.status === 'active' && item.credit_sale_items?.credit_sales?.status !== 'cancelled') ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
+                        (item.status === 'available for return' || item.credit_sale_items?.credit_sales?.status === 'cancelled') ? 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400' :
+                        item.status === 'returned' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
+                        'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      }`}>
+                        {item.credit_sale_items?.credit_sales?.status === 'cancelled' ? 'Available' : item.status?.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+
+                    {/* Item + Creditor */}
+                    <div>
+                      <p className="text-sm font-black text-gray-900 dark:text-white">{item.item_name}</p>
+                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-0.5">{item.creditors?.full_name}</p>
+                    </div>
+
+                    {/* Quantity + Receipt */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <div>
+                        <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Quantity</p>
+                        <p className="text-sm font-black text-gray-900 dark:text-white">{formatQty(item.quantity)}</p>
+                      </div>
+                      <button onClick={() => handleViewReceipt(item)}
+                        className="px-3 py-1.5 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 rounded-lg text-xs font-bold hover:bg-pink-100 dark:hover:bg-pink-900/30 transition flex items-center gap-1"
+                      >
+                        <span className="text-xs">receipt</span>
+                      </button>
+                    </div>
+
+                    {isAdmin && item.credit_sale_items?.credit_sales?.users?.full_name && (
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold">Staff: {item.credit_sale_items?.credit_sales?.users?.full_name}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
             {invItems.length === 0 && (
               <div className="py-20 text-center">
                 <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -392,7 +438,8 @@ export default function CreditStorePage() {
           </>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              {/* Desktop Table (lg+) */}
+              <table className="hidden lg:table w-full text-left">
                 <thead>
                   <tr className="bg-gray-50/50 dark:bg-gray-900/50 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b dark:border-gray-700">
                     <th className="py-4 px-6">Return Date</th>
@@ -436,6 +483,54 @@ export default function CreditStorePage() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile/Tablet Cards (< lg) */}
+              <div className="lg:hidden space-y-3 p-3">
+                {paginatedHist.map((item) => (
+                  <div key={item.id} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                    <div className="p-4 space-y-3">
+                      {/* Top: Return Date */}
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">{new Date(item.updated_at || item.created_at).toLocaleString()}</span>
+                        <span className="shrink-0 px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-[10px] font-black uppercase tracking-wider">Returned</span>
+                      </div>
+
+                      {/* Item */}
+                      <div>
+                        <p className="text-sm font-black text-gray-900 dark:text-white">{item.item_name}</p>
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-0.5">{item.creditors?.full_name}</p>
+                      </div>
+
+                      {/* Quantity + Receipt */}
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <div>
+                          <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Quantity</p>
+                          <p className="text-sm font-black text-gray-900 dark:text-white">
+                            {(() => {
+                              if (item.status === 'returned') {
+                                const csi = Array.isArray(item.credit_sale_items) ? item.credit_sale_items[0] : item.credit_sale_items;
+                                if (csi && csi.quantity != null && csi.quantity_paid != null) {
+                                  const unpaid = Number(csi.quantity) - Number(csi.quantity_paid);
+                                  return formatQty(Math.max(0, Math.round(unpaid * 2) / 2));
+                                }
+                                if (item.quantity > 0) return formatQty(item.quantity);
+                              }
+                              return formatQty(item.quantity || 0);
+                            })()}
+                          </p>
+                        </div>
+                        <button onClick={() => handleViewReceipt(item)} className="px-3 py-1.5 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 rounded-lg text-xs font-bold hover:bg-pink-100 dark:hover:bg-pink-900/30 transition flex items-center gap-1">
+                          receipt
+                        </button>
+                      </div>
+
+                      {isAdmin && item.credit_sale_items?.credit_sales?.users?.full_name && (
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold">Staff: {item.credit_sale_items?.credit_sales?.users?.full_name}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
               {histItems.length === 0 && (
                 <div className="py-20 text-center">
                   <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
