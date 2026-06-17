@@ -39,6 +39,7 @@ export default function ManageCreditsPage() {
   const [dateTo, setDateTo] = useState('');
   const [staffFilter, setStaffFilter] = useState('');
   const [managePage, setManagePage] = useState(1);
+  const [manageTab, setManageTab] = useState<'active' | 'history'>('active');
   const perPage = 15;
 
   useEffect(() => {
@@ -209,10 +210,13 @@ export default function ManageCreditsPage() {
       const staffName = s.users?.full_name;
       const matchesSearch = s.receipt_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            s.creditors?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch && s.status !== 'paid' &&
-        (!range.from || d >= range.from.getTime()) &&
-        (!range.to || d <= range.to.getTime()) &&
-        (!staffFilter || staffName === staffFilter);
+      if (!matchesSearch) return false;
+      // Tab filter
+      if (manageTab === 'active' && (s.status === 'paid' || s.status === 'cancelled')) return false;
+      if (manageTab === 'history' && s.status !== 'paid' && s.status !== 'cancelled') return false;
+      return (!range.from || d >= range.from.getTime()) &&
+             (!range.to || d <= range.to.getTime()) &&
+             (!staffFilter || staffName === staffFilter);
     })
     .sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1;
@@ -235,6 +239,29 @@ export default function ManageCreditsPage() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm min-h-[300px] md:min-h-0">
+          {/* Tab Switcher */}
+          <div className="flex border-b border-gray-100 dark:border-gray-700">
+            <button
+              onClick={() => { setManageTab('active'); setManagePage(1); }}
+              className={`flex-1 py-3.5 text-sm font-bold text-center transition-colors tracking-wide ${
+                manageTab === 'active'
+                  ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400 bg-pink-50/30 dark:bg-pink-900/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              Active Credits
+            </button>
+            <button
+              onClick={() => { setManageTab('history'); setManagePage(1); }}
+              className={`flex-1 py-3.5 text-sm font-bold text-center transition-colors tracking-wide ${
+                manageTab === 'history'
+                  ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400 bg-pink-50/30 dark:bg-pink-900/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+            >
+              Credit History
+            </button>
+          </div>
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
@@ -461,7 +488,7 @@ export default function ManageCreditsPage() {
               })}
             </div>
             {filteredSales.length === 0 && (
-              <div className="py-12 text-center text-gray-400 dark:text-gray-500 font-medium">No credits found.</div>
+              <div className="py-12 text-center text-gray-400 dark:text-gray-500 font-medium">{manageTab === 'active' ? 'No active credits found.' : 'No credit history found.'}</div>
             )}
             {totalManagePages > 1 && (
               <div className="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
