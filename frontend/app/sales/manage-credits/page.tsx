@@ -234,7 +234,7 @@ export default function ManageCreditsPage() {
           <p className="text-gray-600 dark:text-gray-400 mt-1">View credit items, mark them as paid, or cancel credits</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm min-h-[300px] md:min-h-0">
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
             <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
@@ -329,7 +329,7 @@ export default function ManageCreditsPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto min-h-[200px]">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
