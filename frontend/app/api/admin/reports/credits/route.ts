@@ -246,7 +246,7 @@ export async function GET(req: NextRequest) {
     (payments || []).forEach(p => {
       const id = p.staff_id;
       const name = p.users?.full_name || p.users?.username || 'Unknown';
-      if (!staffPerf[id]) staffPerf[id] = { staff_name: name, issuance: 0, collection: 0, transactions: 0 };
+      if (!staffPerf[id]) staffPerf[id] = { staff_name: name, issuance: 0, collection: 0, transactions: 0, saleIds: new Set() };
       staffPerf[id].collection += Number(p.amount) || 0;
     });
 
