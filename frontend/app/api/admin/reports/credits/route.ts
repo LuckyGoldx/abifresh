@@ -76,27 +76,29 @@ export async function GET(req: NextRequest) {
     if (saleIds.length > 0) {
       const { data: saleItems } = await supabaseAdmin
         .from('credit_sale_items')
-        .select('*, credit_sales(staff_id, creditor_id, status)')
+        .select('*, item:item_id(price_jalingo), credit_sales(staff_id, creditor_id, status)')
         .in('credit_sale_id', saleIds);
       itemsData = saleItems || [];
     }
 
-    // 3b. Fetch credit_payment_items for approved payments to track paid quantities
+    // 3b. Fetch credit_payment_items for approved payments to track paid quantities and amounts
     const paymentIds = (payments || []).map(p => p.id);
     let paymentItems: any[] = [];
     if (paymentIds.length > 0) {
       const { data: pi } = await supabaseAdmin
         .from('credit_payment_items')
-        .select('credit_sale_item_id, quantity')
+        .select('credit_sale_item_id, quantity, amount')
         .in('credit_payment_id', paymentIds);
       paymentItems = pi || [];
     }
 
-    // Build map: credit_sale_item_id → total paid quantity (from approved payments)
+    // Build map: credit_sale_item_id → total paid quantity and total paid amount (from approved payments)
     const paidQtyMap = new Map<string, number>();
+    const paidAmountMap = new Map<string, number>();
     paymentItems.forEach(pi => {
       if (pi.credit_sale_item_id) {
         paidQtyMap.set(pi.credit_sale_item_id, (paidQtyMap.get(pi.credit_sale_item_id) || 0) + (Number(pi.quantity) || 0));
+        paidAmountMap.set(pi.credit_sale_item_id, (paidAmountMap.get(pi.credit_sale_item_id) || 0) + (Number(pi.amount) || 0));
       }
     });
 
@@ -105,12 +107,17 @@ export async function GET(req: NextRequest) {
     let paidItemsData: any[] = [];
     const missingItemIds = [...paidQtyMap.keys()].filter(id => !itemsData.some(ri => ri.id === id));
     if (missingItemIds.length > 0) {
-      const { data: extraItems } = await supabaseAdmin
-        .from('credit_sale_items')
-        .select('*, credit_sales(staff_id, creditor_id, status)')
-        .in('id', missingItemIds);
-      paidItemsData = extraItems || [];
+    const { data: extraItems } = await supabaseAdmin
+      .from('credit_sale_items')
+      .select('*, item:item_id(price_jalingo), credit_sales(staff_id, creditor_id, status)')
+      .in('id', missingItemIds);
+    paidItemsData = extraItems || [];
     }
+
+    // Helper: get effective selling price matching payment allocation logic
+    const getSellingPrice = (ri: any): number => {
+      return Number(ri.item?.price_jalingo) || Number(ri.unit_price) || 0;
+    };
 
     // Helper: check if sale is cancelled from item's credit_sales join
     const isCancelled = (ri: any): boolean => {
@@ -133,13 +140,13 @@ export async function GET(req: NextRequest) {
     itemsData.forEach((ri: any) => {
       const qty = Number(ri.quantity) || 0;
       const paidQty = Number(ri.quantity_paid) || 0;
-      const unitPrice = Number(ri.unit_price) || 0;
+      const sellingPrice = getSellingPrice(ri);
       const costPrice = Number(ri.cost_price) || 0;
       const cancelled = isCancelled(ri);
 
       if (cancelled) {
-        const paidAmount = paidQty * unitPrice;
-        const fullAmount = qty * unitPrice;
+        const paidAmount = paidQty * sellingPrice;
+        const fullAmount = qty * sellingPrice;
         const fullCost = qty * costPrice;
         const paidRatio = qty > 0 ? paidQty / qty : 0;
         totalIssuance += paidAmount;
@@ -151,7 +158,7 @@ export async function GET(req: NextRequest) {
         cancelledCost += (1 - paidRatio) * fullCost;
         if (unpaidAmount > 0) cancelledUnpaidItems += 1;
       } else {
-        totalIssuance += qty * unitPrice;
+        totalIssuance += qty * sellingPrice;
         totalQuantity += qty;
         totalCostPriceIssued += qty * costPrice;
       }
@@ -229,9 +236,9 @@ export async function GET(req: NextRequest) {
       const id = sale?.staff_id || 'unknown';
       const qty = Number(ri.quantity) || 0;
       const paidQty = Number(ri.quantity_paid) || 0;
-      const unitPrice = Number(ri.unit_price) || 0;
+      const sellingPrice = getSellingPrice(ri);
       const cancelled = isCancelled(ri);
-      const issuanceAmount = cancelled ? paidQty * unitPrice : qty * unitPrice;
+      const issuanceAmount = cancelled ? paidQty * sellingPrice : qty * sellingPrice;
       if (!staffPerf[id]) staffPerf[id] = { staff_name: 'Loading...', issuance: 0, collection: 0, transactions: 0, saleIds: new Set() };
       staffPerf[id].issuance += issuanceAmount;
       staffPerf[id].saleIds.add(ri.credit_sale_id);
@@ -258,13 +265,13 @@ export async function GET(req: NextRequest) {
       if (!itemAnalysis[name]) itemAnalysis[name] = { item_name: name, quantity: 0, amount: 0 };
       const qty = Number(ri.quantity) || 0;
       const paidQty = Number(ri.quantity_paid) || 0;
-      const unitPrice = Number(ri.unit_price) || 0;
+      const sellingPrice = getSellingPrice(ri);
       if (isCancelled(ri)) {
         itemAnalysis[name].quantity += paidQty;
-        itemAnalysis[name].amount += paidQty * unitPrice;
+        itemAnalysis[name].amount += paidQty * sellingPrice;
       } else {
         itemAnalysis[name].quantity += qty;
-        itemAnalysis[name].amount += qty * unitPrice;
+        itemAnalysis[name].amount += qty * sellingPrice;
       }
     });
 
@@ -275,9 +282,9 @@ export async function GET(req: NextRequest) {
       const id = sale?.creditor_id || ri.credit_sale_id || 'unknown';
       const qty = Number(ri.quantity) || 0;
       const paidQty = Number(ri.quantity_paid) || 0;
-      const unitPrice = Number(ri.unit_price) || 0;
+      const sellingPrice = getSellingPrice(ri);
       const cancelled = isCancelled(ri);
-      const issuanceAmount = cancelled ? paidQty * unitPrice : qty * unitPrice;
+      const issuanceAmount = cancelled ? paidQty * sellingPrice : qty * sellingPrice;
       if (!creditorPerf[id]) creditorPerf[id] = { creditor_name: 'Loading...', issuance: 0, collection: 0 };
       creditorPerf[id].issuance += issuanceAmount;
     });
