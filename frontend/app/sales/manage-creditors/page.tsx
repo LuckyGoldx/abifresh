@@ -197,7 +197,8 @@ export default function ManageCreditorsPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            {/* Desktop Table (lg+) */}
+            <table className="hidden lg:table w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                   <th className="py-3 px-4 text-sm font-semibold text-gray-700 dark:text-gray-300">Code</th>
@@ -217,42 +218,14 @@ export default function ManageCreditorsPage() {
                     <td className="py-3 px-4 text-sm font-medium text-gray-900 dark:text-white">{creditor.full_name}</td>
                     <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{creditor.phone_number || '-'}</td>
                     <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">{creditor.email || '-'}</td>
-                     <td className="py-3 px-4 text-sm font-bold text-gray-900 dark:text-white">
-                      ₦{Number(creditor.total_credit_amount || 0).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 text-sm font-bold text-green-600">
-                      ₦{Number(creditor.total_paid || 0).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 text-sm font-bold text-red-600">
-                      ₦{Number(creditor.outstanding || 0).toLocaleString()}
-                    </td>
+                    <td className="py-3 px-4 text-sm font-bold text-gray-900 dark:text-white">₦{Number(creditor.total_credit_amount || 0).toLocaleString()}</td>
+                    <td className="py-3 px-4 text-sm font-bold text-green-600">₦{Number(creditor.total_paid || 0).toLocaleString()}</td>
+                    <td className="py-3 px-4 text-sm font-bold text-red-600">₦{Number(creditor.outstanding || 0).toLocaleString()}</td>
                     <td className="py-3 px-4 text-sm">
-                      {/* Mobile: Dropdown */}
-                      <div className="relative lg:hidden">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setOpenActionId(openActionId === creditor.id ? null : creditor.id); }}
-                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                          title="Actions"
-                        >
-                          <MoreHorizontal size={18} className="text-gray-600 dark:text-gray-400" />
-                        </button>
-                        {openActionId === creditor.id && (
-                          <div className="absolute right-0 mt-1 bg-white dark:bg-gray-800 rounded-xl shadow-lg border dark:border-gray-700 py-1 z-50 min-w-[140px]" onClick={e => e.stopPropagation()}>
-                            <button onClick={() => { setOpenActionId(null); const base = pathname.split('/')[1]; router.push(`/${base}/creditor/${creditor.id}`); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-bold transition-colors"><Eye size={16} /> View</button>
-                            <button onClick={() => { setOpenActionId(null); openEditModal(creditor); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 font-bold transition-colors"><Edit2 size={16} /> Edit</button>
-                            {isAdmin && (
-                              <button onClick={() => { setOpenActionId(null); setDeleteId(creditor.id); setDeleteStep(1); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold transition-colors"><Trash2 size={16} /> Delete</button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      {/* Desktop: Inline Icons */}
-                      <div className="hidden lg:flex gap-2">
+                      <div className="flex gap-2">
                         <button onClick={() => { const base = pathname.split('/')[1]; router.push(`/${base}/creditor/${creditor.id}`); }} className="text-blue-600 hover:text-blue-800" title="View History"><Eye size={18} /></button>
                         <button onClick={() => openEditModal(creditor)} className="text-yellow-600 hover:text-yellow-800" title="Edit"><Edit2 size={18} /></button>
-                        {isAdmin && (
-                          <button onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }} className="text-red-600 hover:text-red-800" title="Delete"><Trash2 size={18} /></button>
-                        )}
+                        {isAdmin && <button onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }} className="text-red-600 hover:text-red-800" title="Delete"><Trash2 size={18} /></button>}
                       </div>
                     </td>
                   </tr>
@@ -264,6 +237,89 @@ export default function ManageCreditorsPage() {
                 )}
               </tbody>
             </table>
+
+            {/* Mobile/Tablet Cards (< lg) */}
+            <div className="lg:hidden space-y-3 p-3">
+              {paginatedCreditors.map((creditor) => {
+                const totalCredit = Number(creditor.total_credit_amount || 0);
+                const totalPaid = Number(creditor.total_paid || 0);
+                const outstanding = Number(creditor.outstanding || 0);
+                return (
+                  <div key={creditor.id} className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden">
+                    <div className="p-4 space-y-3">
+                      {/* Top: Code + Name */}
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0 mr-2">
+                          <p className="text-xs font-black text-pink-600 dark:text-pink-400">{creditor.unique_code}</p>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white mt-0.5 truncate">{creditor.full_name}</p>
+                        </div>
+                        <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider ${
+                          outstanding <= 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                          'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
+                        }`}>
+                          {outstanding <= 0 ? 'PAID' : `${((totalPaid / (totalCredit || 1)) * 100).toFixed(0)}%`}
+                        </span>
+                      </div>
+
+                      {/* Contact Info */}
+                      {(creditor.phone_number || creditor.email) && (
+                        <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          {creditor.phone_number && (
+                            <span className="inline-flex items-center gap-1"><Phone size={11} />{creditor.phone_number}</span>
+                          )}
+                          {creditor.email && (
+                            <span className="inline-flex items-center gap-1"><Mail size={11} />{creditor.email}</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Amounts */}
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <div>
+                          <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Credit</p>
+                          <p className="text-xs font-bold text-gray-900 dark:text-white">₦{totalCredit.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Paid</p>
+                          <p className="text-xs font-bold text-green-600">₦{totalPaid.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Outstanding</p>
+                          <p className="text-xs font-bold text-red-600">₦{outstanding.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          onClick={() => { const base = pathname.split('/')[1]; router.push(`/${base}/creditor/${creditor.id}`); }}
+                          className="flex-1 px-3 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-900/30 transition flex items-center justify-center gap-1.5"
+                        >
+                          <Eye size={14} /> View
+                        </button>
+                        <button
+                          onClick={() => openEditModal(creditor)}
+                          className="flex-1 px-3 py-2.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 rounded-xl text-xs font-bold hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition flex items-center justify-center gap-1.5"
+                        >
+                          <Edit2 size={14} /> Edit
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }}
+                            className="flex-1 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition flex items-center justify-center gap-1.5"
+                          >
+                            <Trash2 size={14} /> Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {filteredCreditors.length === 0 && (
+                <div className="py-8 text-center text-gray-500 dark:text-gray-400">No creditors found.</div>
+              )}
+            </div>
             {totalCreditorPages > 1 && (
               <div className="p-4 border-t dark:border-gray-700 flex justify-center gap-2">
                 <button disabled={creditorsPage === 1} onClick={() => setCreditorsPage(p => p - 1)} className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-bold disabled:opacity-50">Previous</button>
