@@ -61,8 +61,19 @@ export async function GET(req: NextRequest) {
     const creditorSales = allSales.filter(s => String(s.creditor_id) === String(c.id));
     const creditorPayments = allPayments.filter(p => String(p.creditor_id) === String(c.id));
 
-    // 1. Lifetime Total Credit (All non-cancelled sales)
-    const totalCreditAmount = creditorSales.filter(s => s.status !== 'cancelled').reduce((sum, s) => sum + Number(s.total_amount), 0);
+    // 1. Lifetime Total Credit (include paid portion of cancelled sales)
+    let totalCreditAmount = 0;
+    let totalQuantity = 0;
+    creditorSales.forEach(s => {
+      if (s.status === 'cancelled') {
+        const paidOnSale = creditorPayments.filter(p => p.credit_sale_id === s.id).reduce((sum, p) => sum + Number(p.amount), 0);
+        totalCreditAmount += paidOnSale;
+        totalQuantity += 0; // Cancelled items are not counted in quantity
+      } else {
+        totalCreditAmount += Number(s.total_amount) || 0;
+        totalQuantity += Number(s.total_quantity) || 0;
+      }
+    });
     
     // 2. Lifetime Paid (Total money ever collected from this creditor)
     const totalPaid = creditorPayments.reduce((sum, p) => sum + Number(p.amount), 0);
@@ -76,8 +87,6 @@ export async function GET(req: NextRequest) {
       const receiptPaid = receiptPayments.reduce((sum, p) => sum + Number(p.amount), 0);
       outstanding += Math.max(0, Number(s.total_amount) - receiptPaid);
     });
-
-    const totalQuantity = creditorSales.reduce((sum, s) => sum + Number(s.total_quantity), 0);
 
     // 4. Active Credit Quantity (Items currently with creditor - not paid, not returned)
     const activeCreditQuantity = activeSales.reduce((sum, s) => {
