@@ -15,7 +15,11 @@ export async function GET(req: NextRequest) {
 
   // 1. Fetch Creditors
   let query = supabaseAdmin.from('creditors').select('*');
-  if (activeOnly) query = query.eq('is_active', true);
+  if (activeOnly) {
+    query = query.eq('is_active', true);
+  } else {
+    query = query.eq('is_active', false);
+  }
   
   // IF Sales Staff, strictly show ONLY creditors they added
   if (isSalesStaff) {

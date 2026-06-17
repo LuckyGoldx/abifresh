@@ -5,7 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  Search, Plus, Edit2, Trash2, X, Mail, Phone, MapPin, Eye, DollarSign, User, RefreshCw, ArrowLeft, AlertCircle, XCircle, MoreHorizontal
+  Search, Plus, Edit2, Trash2, X, Mail, Phone, MapPin,   Eye, DollarSign, User, RefreshCw, ArrowLeft, AlertCircle, XCircle, MoreHorizontal, UserCheck
 } from 'lucide-react';
 import { Toast, CreditTabs } from '@/components/credits';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
@@ -35,6 +35,9 @@ export default function ManageCreditorsPage() {
   const [deleteStep, setDeleteStep] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [showDeactivated, setShowDeactivated] = useState(false);
+  const [reactivateCreditor, setReactivateCreditor] = useState<string | null>(null);
+  const [isReactivating, setIsReactivating] = useState(false);
   const [creditorsPage, setCreditorsPage] = useState(1);
   const perPage = 15;
 
@@ -42,7 +45,8 @@ export default function ManageCreditorsPage() {
 
   useEffect(() => {
     fetchCreditors();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDeactivated]);
 
   useEffect(() => {
     if (!openActionId) return;
@@ -53,7 +57,7 @@ export default function ManageCreditorsPage() {
 
   const fetchCreditors = async (retryCount = 0) => {
     try {
-      const res = await api.get('/api/credits/creditors');
+      const res = await api.get(`/api/credits/creditors${showDeactivated ? '?active=false' : ''}`);
       setCreditors(res.data || []);
       setToast(null);
       setIsLoading(false);
@@ -165,6 +169,21 @@ export default function ManageCreditorsPage() {
     setShowAddModal(true);
   };
 
+  const handleReactivate = async () => {
+    if (!reactivateCreditor) return;
+    setIsReactivating(true);
+    try {
+      await api.put(`/api/credits/creditors/${reactivateCreditor}`, { is_active: true });
+      setToast({ message: 'Creditor reactivated successfully', type: 'success' });
+      setReactivateCreditor(null);
+      fetchCreditors();
+    } catch (error: any) {
+      setToast({ message: error.response?.data?.error || 'Failed to reactivate creditor', type: 'error' });
+    } finally {
+      setIsReactivating(false);
+    }
+  };
+
   if (isLoading) return <AbifreshLoading />;
 
   return (
@@ -188,12 +207,26 @@ export default function ManageCreditorsPage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
-            <button
-              onClick={() => { resetForm(); setShowAddModal(true); }}
-              className="bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-600 flex items-center gap-2"
-            >
-              <Plus size={20} /> Add Creditor
-            </button>
+            <div className="flex items-center gap-2">
+              {user?.role === 'superadmin' && (
+                <button
+                  onClick={() => { setShowDeactivated(!showDeactivated); setCreditorsPage(1); }}
+                  className={`px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 ${
+                    showDeactivated
+                      ? 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300'
+                  }`}
+                >
+                  {showDeactivated ? 'Show Active' : 'Show Deactivated'}
+                </button>
+              )}
+              <button
+                onClick={() => { resetForm(); setShowAddModal(true); }}
+                className="bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-600 flex items-center gap-2"
+              >
+                <Plus size={20} /> Add Creditor
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -224,8 +257,16 @@ export default function ManageCreditorsPage() {
                     <td className="py-3 px-4 text-sm">
                       <div className="flex gap-2">
                         <button onClick={() => { const base = pathname.split('/')[1]; router.push(`/${base}/creditor/${creditor.id}`); }} className="text-blue-600 hover:text-blue-800" title="View History"><Eye size={18} /></button>
-                        <button onClick={() => openEditModal(creditor)} className="text-yellow-600 hover:text-yellow-800" title="Edit"><Edit2 size={18} /></button>
-                        {isAdmin && <button onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }} className="text-red-600 hover:text-red-800" title="Delete"><Trash2 size={18} /></button>}
+                        {showDeactivated ? (
+                          user?.role === 'superadmin' && (
+                            <button onClick={() => setReactivateCreditor(creditor.id)} className="text-green-600 hover:text-green-800" title="Reactivate"><UserCheck size={18} /></button>
+                          )
+                        ) : (
+                          <>
+                            <button onClick={() => openEditModal(creditor)} className="text-yellow-600 hover:text-yellow-800" title="Edit"><Edit2 size={18} /></button>
+                            {isAdmin && <button onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }} className="text-red-600 hover:text-red-800" title="Delete"><Trash2 size={18} /></button>}
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -297,19 +338,32 @@ export default function ManageCreditorsPage() {
                         >
                           <Eye size={14} /> View
                         </button>
-                        <button
-                          onClick={() => openEditModal(creditor)}
-                          className="flex-1 px-3 py-2.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 rounded-xl text-xs font-bold hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition flex items-center justify-center gap-1.5"
-                        >
-                          <Edit2 size={14} /> Edit
-                        </button>
-                        {isAdmin && (
-                          <button
-                            onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }}
-                            className="flex-1 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition flex items-center justify-center gap-1.5"
-                          >
-                            <Trash2 size={14} /> Delete
-                          </button>
+                        {showDeactivated ? (
+                          user?.role === 'superadmin' && (
+                            <button
+                              onClick={() => setReactivateCreditor(creditor.id)}
+                              className="flex-1 px-3 py-2.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-xl text-xs font-bold hover:bg-green-100 dark:hover:bg-green-900/30 transition flex items-center justify-center gap-1.5"
+                            >
+                              <UserCheck size={14} /> Reactivate
+                            </button>
+                          )
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => openEditModal(creditor)}
+                              className="flex-1 px-3 py-2.5 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 rounded-xl text-xs font-bold hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition flex items-center justify-center gap-1.5"
+                            >
+                              <Edit2 size={14} /> Edit
+                            </button>
+                            {isAdmin && (
+                              <button
+                                onClick={() => { setDeleteId(creditor.id); setDeleteStep(1); }}
+                                className="flex-1 px-3 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 transition flex items-center justify-center gap-1.5"
+                              >
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -471,6 +525,36 @@ export default function ManageCreditorsPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* REACTIVATE CONFIRMATION MODAL */}
+        {reactivateCreditor && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-sm w-full p-8 shadow-2xl border dark:border-gray-700 animate-in zoom-in duration-200 text-center">
+              <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <UserCheck className="w-10 h-10 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Reactivate Creditor?</h2>
+              <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                This will restore the creditor to the active list. They will be able to receive credit sales again.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleReactivate}
+                  disabled={isReactivating}
+                  className="w-full bg-green-600 text-white py-4 rounded-2xl font-black hover:bg-green-700 transition-all disabled:opacity-50"
+                >
+                  {isReactivating ? 'REACTIVATING...' : 'YES, REACTIVATE'}
+                </button>
+                <button
+                  onClick={() => setReactivateCreditor(null)}
+                  className="w-full text-gray-400 font-bold py-2 hover:text-gray-600"
+                >
+                  CANCEL
+                </button>
+              </div>
             </div>
           </div>
         )}
