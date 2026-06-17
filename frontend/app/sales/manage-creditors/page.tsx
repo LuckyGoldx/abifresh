@@ -390,7 +390,7 @@ export default function ManageCreditorsPage() {
                 disabled={isAdding}
                 className="w-full mt-6 bg-pink-500 text-white py-3 rounded-lg font-bold hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {isAdding ? 'Adding...' : editingCreditor ? 'Update Creditor' : 'Add Creditor'}
+                {isAdding ? (editingCreditor ? 'Updating...' : 'Adding...') : editingCreditor ? 'Update Creditor' : 'Add Creditor'}
               </button>
             </div>
           </div>

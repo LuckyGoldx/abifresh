@@ -191,7 +191,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   ];
 
   const creditMenuItems = [
-    { label: 'Overview', href: '/superadmin/credits', icon: <BarChart3 size={20} /> },
+    { label: 'Overview', href: '/superadmin/credits', icon: <ClipboardList size={20} /> },
     { label: 'Give Credit', href: '/superadmin/give-credit', icon: <PlusCircle size={20} /> },
     { label: 'Manage Creditors', href: '/superadmin/manage-creditors', icon: <Users size={20} /> },
     { label: 'Manage Credits', href: '/superadmin/manage-credits', icon: <Store size={20} /> },

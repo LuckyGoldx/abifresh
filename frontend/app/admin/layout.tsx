@@ -174,7 +174,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   const creditMenuItems = [
-    { label: 'Overview', href: '/admin/credits', icon: <BarChart3 size={20} /> },
+    { label: 'Overview', href: '/admin/credits', icon: <ClipboardList size={20} /> },
     { label: 'Give Credit', href: '/admin/give-credit', icon: <PlusCircle size={20} /> },
     { label: 'Manage Creditors', href: '/admin/manage-creditors', icon: <Users size={20} /> },
     { label: 'Manage Credits', href: '/admin/manage-credits', icon: <Store size={20} /> },
