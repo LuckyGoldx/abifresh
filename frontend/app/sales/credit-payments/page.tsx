@@ -91,8 +91,8 @@ export default function SalesCreditPaymentsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('File size must be less than 10MB');
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
       return;
     }
 
@@ -479,7 +479,7 @@ export default function SalesCreditPaymentsPage() {
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-400">📁 Upload</span>
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 break-words">JPG, PNG, GIF, WebP, or PDF • Max 10MB</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 break-words">JPG, PNG, GIF, WebP, or PDF • Max 5MB</p>
                 </div>
                 {receiptFile && (
                   <div className="mt-3 space-y-2">
