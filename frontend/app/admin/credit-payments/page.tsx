@@ -36,6 +36,7 @@ export default function AdminCreditPaymentsPage() {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceiptData, setSelectedReceiptData] = useState<any>(null);
   const [loadingReceiptId, setLoadingReceiptId] = useState<string | null>(null);
+  const [receiptLoading, setReceiptLoading] = useState(true);
   
   const [activeTab, setActiveTab] = useState<'payments' | 'breakdown' | 'auto-remitted'>('payments');
   const [staffSummary, setStaffSummary] = useState<any[]>([]);
@@ -457,14 +458,14 @@ export default function AdminCreditPaymentsPage() {
                       {payment.status === 'pending' ? (
                         <>
                           <button
-                            onClick={() => { setSelectedPayment(payment); setShowDetailsModal(true); }}
+                            onClick={() => { setSelectedPayment(payment); setReceiptLoading(true); setShowDetailsModal(true); }}
                             className="p-2 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/60 rounded-lg transition-colors"
                             title="Accept"
                           >
                             <CheckCircle className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() => { setSelectedPayment(payment); setShowDetailsModal(true); }}
+                            onClick={() => { setSelectedPayment(payment); setReceiptLoading(true); setShowDetailsModal(true); }}
                             className="p-2 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/60 rounded-lg transition-colors"
                             title="Reject"
                           >
@@ -473,7 +474,7 @@ export default function AdminCreditPaymentsPage() {
                         </>
                       ) : null}
                       <button
-                        onClick={() => { setSelectedPayment(payment); setShowDetailsModal(true); }}
+                        onClick={() => { setSelectedPayment(payment); setReceiptLoading(true); setShowDetailsModal(true); }}
                         className="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/60 rounded-lg transition-colors"
                         title="View Details"
                       >
@@ -678,7 +679,24 @@ export default function AdminCreditPaymentsPage() {
                         <span className="font-bold text-gray-600 dark:text-gray-400">View PDF Receipt</span>
                       </div>
                     ) : (
-                      <img src={selectedPayment.receipt_url} alt="Receipt" className="object-cover h-full w-full hover:scale-105 transition-transform duration-500" />
+                      <>
+                        {receiptLoading && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gray-50 dark:bg-gray-900 z-10">
+                            <img src="/favicon.svg" alt="" className="w-12 h-12 animate-pulse opacity-60" />
+                            <div className="flex items-center gap-2 text-pink-500 dark:text-pink-400">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span className="text-xs font-bold">Loading receipt...</span>
+                            </div>
+                          </div>
+                        )}
+                        <img
+                          src={selectedPayment.receipt_url}
+                          alt="Receipt"
+                          className={`object-cover h-full w-full hover:scale-105 transition-transform duration-500 ${receiptLoading ? 'opacity-0' : ''}`}
+                          onLoad={() => setReceiptLoading(false)}
+                          onError={() => setReceiptLoading(false)}
+                        />
+                      </>
                     )}
                   </div>
                 </div>
