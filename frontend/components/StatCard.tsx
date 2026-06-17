@@ -34,26 +34,26 @@ export default function StatCard({
         <Icon className="w-5 md:w-6 h-5 md:h-6 text-white" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm truncate">
+        <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm break-words">
           {title}
         </p>
         <div className="flex items-center justify-center md:justify-start gap-2">
-          <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white break-words leading-tight truncate">
+          <p className="text-lg md:text-2xl font-bold text-gray-800 dark:text-white break-words leading-tight">
             {value}
           </p>
           {badge && (
-            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300">
+            <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-300 whitespace-nowrap">
               {badge}
             </span>
           )}
         </div>
         {additionalInfo && (
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 break-words truncate">
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 break-words">
             {additionalInfo}
           </p>
         )}
         {subtitle && !additionalInfo && (
-          <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
+          <p className="text-xs text-gray-500 dark:text-gray-500 break-words">
             {subtitle}
           </p>
         )}
