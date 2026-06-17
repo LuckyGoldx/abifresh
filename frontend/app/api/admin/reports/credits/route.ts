@@ -130,13 +130,6 @@ export async function GET(req: NextRequest) {
     let cancelledUnpaidItems = 0;
     let cancelledCost = 0;
 
-    // Build a map of credit_sale_id -> total approved payment amount for accurate cancelled credit amounts
-    const salePaymentMap: Record<string, number> = {};
-    (payments || []).forEach((p: any) => {
-      const saleId = p.credit_sale_id;
-      if (saleId) salePaymentMap[saleId] = (salePaymentMap[saleId] || 0) + (Number(p.amount) || 0);
-    });
-
     itemsData.forEach((ri: any) => {
       const qty = Number(ri.quantity) || 0;
       const paidQty = Number(ri.quantity_paid) || 0;
@@ -145,22 +138,19 @@ export async function GET(req: NextRequest) {
       const cancelled = isCancelled(ri);
 
       if (cancelled) {
-        // Cancelled: use actual approved payment amount (not paidQty * unitPrice which has rounding errors)
-        const actualPaidAmount = salePaymentMap[ri.credit_sale_id] || 0;
+        const paidAmount = paidQty * unitPrice;
         const fullAmount = qty * unitPrice;
         const fullCost = qty * costPrice;
-        const paidRatio = fullAmount > 0 ? actualPaidAmount / fullAmount : 0;
-        totalIssuance += actualPaidAmount;
+        const paidRatio = qty > 0 ? paidQty / qty : 0;
+        totalIssuance += paidAmount;
         totalQuantity += paidQty;
         totalCostPriceIssued += paidRatio * fullCost;
-        // Track the unpaid portion: use full amount minus actual paid amount to avoid rounding errors
-        const unpaidAmount = fullAmount - actualPaidAmount;
+        const unpaidAmount = fullAmount - paidAmount;
         cancelledUnpaidAmount += unpaidAmount;
-        cancelledUnpaidQuantity += unpaidAmount / (unitPrice || 1);
+        cancelledUnpaidQuantity += qty - paidQty;
         cancelledCost += (1 - paidRatio) * fullCost;
         if (unpaidAmount > 0) cancelledUnpaidItems += 1;
       } else {
-        // Not cancelled: full amount
         totalIssuance += qty * unitPrice;
         totalQuantity += qty;
         totalCostPriceIssued += qty * costPrice;
@@ -179,14 +169,6 @@ export async function GET(req: NextRequest) {
     // Includes items from current period AND previous periods that received payments this period
     const allPaidItems = [...itemsData, ...paidItemsData];
     const totalCostPriceCollected = allPaidItems.reduce((sum, ri) => {
-      const cancelled = isCancelled(ri);
-      if (cancelled) {
-        // For cancelled items, use actual payment proportion to avoid paidQty rounding
-        const actualPaidAmount = salePaymentMap[ri.credit_sale_id] || 0;
-        const fullAmount = (Number(ri.quantity) || 0) * (Number(ri.unit_price) || 0);
-        const paidRatio = fullAmount > 0 ? actualPaidAmount / fullAmount : 0;
-        return sum + paidRatio * (Number(ri.quantity) || 0) * (Number(ri.cost_price) || 0);
-      }
       const paidQty = paidQtyMap.get(ri.id) || 0;
       const effectivePaid = Math.min(paidQty, Number(ri.quantity) || 0);
       return sum + effectivePaid * (Number(ri.cost_price) || 0);
