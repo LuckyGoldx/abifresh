@@ -781,12 +781,25 @@ export default function SalesCreditPaymentsPage() {
               </div>
 
                {receiptFile && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-900/50 rounded-xl flex items-center gap-3">
-                  <FileText className="w-6 h-6 text-blue-500 dark:text-blue-400" />
-                  <div>
-                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">Receipt Attached</p>
-                    <p className="text-sm font-bold text-blue-800 dark:text-blue-200">{receiptFile.name}</p>
+                <div className="space-y-3">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-900/50 rounded-xl flex items-center gap-3">
+                    <FileText className="w-6 h-6 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase">Receipt Attached</p>
+                      <p className="text-sm font-bold text-blue-800 dark:text-blue-200">{receiptFile.name}</p>
+                    </div>
                   </div>
+                  {receiptPreview && (
+                    <div
+                      className="relative rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 cursor-zoom-in bg-gray-100 dark:bg-gray-800 h-32 flex items-center justify-center group"
+                      onClick={() => setShowUploadPreview(true)}
+                    >
+                      <img src={receiptPreview} alt="Receipt preview" className="object-contain h-full w-full group-hover:scale-105 transition-transform duration-300" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
