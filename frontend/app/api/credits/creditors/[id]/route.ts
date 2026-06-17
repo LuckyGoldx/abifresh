@@ -39,11 +39,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     ? await supabaseAdmin.from('credit_payment_items').select('*').in('credit_payment_id', approvedPaymentIds)
     : { data: [] };
 
-  // 1. Lifetime Totals
-  const nonCancelledSales = allSales.filter(s => s.status !== 'cancelled');
-  const lifetimeTotalCredited = nonCancelledSales.reduce((sum, s) => sum + Number(s.total_amount), 0);
+  // 1. Lifetime Totals — for cancelled sales, only count what was actually paid
+  let lifetimeTotalCredited = 0;
+  let lifetimeTotalQuantity = 0;
+  allSales.forEach(s => {
+    if (s.status === 'cancelled') {
+      const paidOnSale = allPayments.filter(p => p.credit_sale_id === s.id && p.status === 'approved')
+        .reduce((sum, p) => sum + Number(p.amount), 0);
+      lifetimeTotalCredited += paidOnSale;
+      // Find what quantity was paid via payment items
+      const saleItemIds = (s.credit_sale_items || []).map((i: any) => String(i.id));
+      const paidQtyForSale = (allPaymentItems || [])
+        .filter((pi: any) => saleItemIds.includes(String(pi.credit_sale_item_id)))
+        .reduce((sum, pi) => sum + Number(pi.quantity), 0);
+      lifetimeTotalQuantity += Math.round(paidQtyForSale * 100) / 100;
+    } else {
+      lifetimeTotalCredited += Number(s.total_amount) || 0;
+      lifetimeTotalQuantity += Number(s.total_quantity) || 0;
+    }
+  });
   const lifetimeTotalPaid = allPayments.filter(p => p.status === 'approved').reduce((sum, p) => sum + Number(p.amount), 0);
-  const lifetimeTotalQuantity = nonCancelledSales.reduce((sum, s) => sum + Number(s.total_quantity), 0);
 
   // 2. Outstanding & Active Quantity
   let outstanding = 0;
