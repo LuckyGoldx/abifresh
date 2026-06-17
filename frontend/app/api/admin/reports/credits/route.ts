@@ -145,14 +145,16 @@ export async function GET(req: NextRequest) {
       const cancelled = isCancelled(ri);
 
       if (cancelled) {
-        const paidAmount = paidQty * sellingPrice;
+        // Use actual payment amounts from credit_payment_items for cancelled items
+        // This ensures totalIssuance matches totalCollection exactly
+        const actualPaidAmount = paidAmountMap.get(ri.id) || 0;
         const fullAmount = qty * sellingPrice;
         const fullCost = qty * costPrice;
-        const paidRatio = qty > 0 ? paidQty / qty : 0;
-        totalIssuance += paidAmount;
+        const paidRatio = fullAmount > 0 ? actualPaidAmount / fullAmount : 0;
+        totalIssuance += actualPaidAmount;
         totalQuantity += paidQty;
         totalCostPriceIssued += paidRatio * fullCost;
-        const unpaidAmount = fullAmount - paidAmount;
+        const unpaidAmount = fullAmount - actualPaidAmount;
         cancelledUnpaidAmount += unpaidAmount;
         cancelledUnpaidQuantity += qty - paidQty;
         cancelledCost += (1 - paidRatio) * fullCost;
@@ -238,7 +240,7 @@ export async function GET(req: NextRequest) {
       const paidQty = Number(ri.quantity_paid) || 0;
       const sellingPrice = getSellingPrice(ri);
       const cancelled = isCancelled(ri);
-      const issuanceAmount = cancelled ? paidQty * sellingPrice : qty * sellingPrice;
+      const issuanceAmount = cancelled ? (paidAmountMap.get(ri.id) || 0) : qty * sellingPrice;
       if (!staffPerf[id]) staffPerf[id] = { staff_name: 'Loading...', issuance: 0, collection: 0, transactions: 0, saleIds: new Set() };
       staffPerf[id].issuance += issuanceAmount;
       staffPerf[id].saleIds.add(ri.credit_sale_id);
@@ -267,8 +269,9 @@ export async function GET(req: NextRequest) {
       const paidQty = Number(ri.quantity_paid) || 0;
       const sellingPrice = getSellingPrice(ri);
       if (isCancelled(ri)) {
+        const actualPaidAmount = paidAmountMap.get(ri.id) || 0;
         itemAnalysis[name].quantity += paidQty;
-        itemAnalysis[name].amount += paidQty * sellingPrice;
+        itemAnalysis[name].amount += actualPaidAmount;
       } else {
         itemAnalysis[name].quantity += qty;
         itemAnalysis[name].amount += qty * sellingPrice;
@@ -284,7 +287,7 @@ export async function GET(req: NextRequest) {
       const paidQty = Number(ri.quantity_paid) || 0;
       const sellingPrice = getSellingPrice(ri);
       const cancelled = isCancelled(ri);
-      const issuanceAmount = cancelled ? paidQty * sellingPrice : qty * sellingPrice;
+      const issuanceAmount = cancelled ? (paidAmountMap.get(ri.id) || 0) : qty * sellingPrice;
       if (!creditorPerf[id]) creditorPerf[id] = { creditor_name: 'Loading...', issuance: 0, collection: 0 };
       creditorPerf[id].issuance += issuanceAmount;
     });
