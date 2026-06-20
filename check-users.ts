@@ -1,30 +1,35 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = 'https://wkyakaunbejmuzqnvgno.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndreWFrYXVuYmVqbXV6cW52Z25vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODM2NjMwMiwiZXhwIjoyMDkzOTQyMzAyfQ.aV2Z7O4HrBGnOZSlYSMgjx5xkrTumPBGkEbpyS414JY';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("{0} Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables", String.fromCharCode(0x274C));
+  console.error("   Set them in your .env file or export them before running this script.");
+  process.exit(1);
+}
 
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 async function checkUsers() {
-  console.log('🔍 Checking users in Supabase...\n');
+  console.log("{0} Checking users in Supabase...\n", String.fromCharCode(0x1F50D));
 
-  // Get all users
   const { data: users, error } = await supabaseAdmin
-    .from('users')
-    .select('id, email, username, full_name, role, is_active')
-    .order('created_at', { ascending: false });
+    .from("users")
+    .select("id, email, username, full_name, role, is_active")
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error('❌ Error fetching users:', error.message);
+    console.error("{0} Error fetching users:", String.fromCharCode(0x274C), error.message);
     return;
   }
 
   if (!users || users.length === 0) {
-    console.log('⚠️  No users found in the database!');
+    console.log("{0}  No users found in the database!", String.fromCharCode(0x26A0));
     return;
   }
 
-  console.log(`✅ Found ${users.length} users:\n`);
+  console.log("{0} Found " + users.length + " users:\n", String.fromCharCode(0x2705));
   console.table(users);
 }
 

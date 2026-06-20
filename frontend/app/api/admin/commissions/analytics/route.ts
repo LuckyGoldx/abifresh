@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   // 1. Get all commission sales in date range
   const { data: salesData, error: salesError } = await supabaseAdmin
     .from('staff_sales')
-    .select('id, staff_id, item_id, quantity, total_amount, commission, sale_date, created_at')
+    .select('id, staff_id, item_id, quantity, total_amount, approved_commission, sale_date, created_at')
     .gte('sale_date', startISO)
     .lte('sale_date', endISO);
 
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
   sales.forEach((s: any) => {
     const id = s.staff_id;
     if (!staffTotals[id]) staffTotals[id] = { commission: 0, sales: 0, units: 0 };
-    staffTotals[id].commission += parseFloat(s.commission) || 0;
+    staffTotals[id].commission += parseFloat(s.approved_commission) || 0;
     staffTotals[id].sales += parseFloat(s.total_amount) || 0;
     staffTotals[id].units += s.quantity || 0;
   });
@@ -71,8 +71,8 @@ export async function GET(req: NextRequest) {
   sales.forEach((s: any) => {
     const date = s.sale_date || s.created_at;
     if (!date) return;
-    const day = date.substring(0, 10); // YYYY-MM-DD
-    dailyTotals[day] = (dailyTotals[day] || 0) + (parseFloat(s.commission) || 0);
+    const day = date.substring(0, 10);
+    dailyTotals[day] = (dailyTotals[day] || 0) + (parseFloat(s.approved_commission) || 0);
   });
   const commissionTrends = Object.entries(dailyTotals)
     .map(([date, commission]) => ({ date, commission }))
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
   sales.forEach((s: any) => {
     if (!s.item_id) return;
     if (!itemTotals[s.item_id]) itemTotals[s.item_id] = { commission: 0, quantity: 0 };
-    itemTotals[s.item_id].commission += parseFloat(s.commission) || 0;
+    itemTotals[s.item_id].commission += parseFloat(s.approved_commission) || 0;
     itemTotals[s.item_id].quantity += s.quantity || 0;
   });
   const itemsWithHighestCommission = Object.entries(itemTotals)

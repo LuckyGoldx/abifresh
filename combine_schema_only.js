@@ -4,12 +4,12 @@ const schema = fs.readFileSync('SCHEMA_ONLY.sql', 'utf8');
 
 let master = `-- ============================================================================
 -- AKV SCHEMA ONLY MIGRATION
--- Source: cifzlkspxjghpgxhrwkg (OLD)
--- Target: wkyakaunbejmuzqnvgno (NEW)
+-- Source: OLD_PROJECT (OLD)
+-- Target: NEW_PROJECT (NEW)
 -- Generated: ${new Date().toISOString()}
 -- ============================================================================
 
--- ⚠️ Run this in the NEW project's Supabase SQL Editor
+-- âš ï¸ Run this in the NEW project's Supabase SQL Editor
 -- This file contains SCHEMA + STORAGE only (no data)
 -- ============================================================================
 

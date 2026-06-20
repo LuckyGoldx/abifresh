@@ -32,7 +32,7 @@ export async function GET(
     // Build query for staff_sales (primary source - matches staff dashboard)
     let salesQuery = supabaseAdmin
       .from('staff_sales')
-      .select('*, items:item_id(id, name, commission, category)')
+      .select('*, items:item_id(id, name, category)')
       .eq('staff_id', staffId)
       .order('created_at', { ascending: false });
 
@@ -63,8 +63,8 @@ export async function GET(
     // Transform staff_sales data to match the receipts format expected by frontend
     const receiptsWithCommission = sales.map((sale: any) => {
       const item = sale.items || {};
-      const commissionPerUnit = item.commission || 0;
-      const totalCommission = commissionPerUnit * sale.quantity;
+      const commissionRate = parseFloat(sale.commission_rate) || 0;
+      const totalCommission = parseFloat(sale.approved_commission) || 0;
 
       return {
         id: sale.id,
@@ -80,7 +80,7 @@ export async function GET(
             quantity: sale.quantity,
             unit_price: sale.unit_price,
             total_price: sale.total_amount,
-            commission_per_unit: commissionPerUnit,
+            commission_per_unit: commissionRate,
             total_commission: totalCommission,
           },
         ],
@@ -91,8 +91,8 @@ export async function GET(
     const commissionByItem: Record<string, any> = {};
     sales.forEach((sale: any) => {
       const item = sale.items || {};
-      const commissionPerUnit = item.commission || 0;
-      const totalCommission = commissionPerUnit * sale.quantity;
+      const totalCommission = parseFloat(sale.approved_commission) || 0;
+      const commissionRate = parseFloat(sale.commission_rate) || 0;
 
       if (!commissionByItem[sale.item_id]) {
         commissionByItem[sale.item_id] = {
@@ -101,9 +101,11 @@ export async function GET(
           category: item.category || 'Uncategorized',
           quantity_sold: 0,
           total_sales: 0,
-          commission_per_unit: commissionPerUnit,
+          commission_per_unit: commissionRate,
           total_commission: 0,
         };
+      } else if (commissionRate > 0) {
+        commissionByItem[sale.item_id].commission_per_unit = commissionRate;
       }
 
       commissionByItem[sale.item_id].quantity_sold += sale.quantity;

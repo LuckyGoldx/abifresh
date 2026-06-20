@@ -15,7 +15,9 @@ const nextConfig = withBundleAnalyzer({
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'wkyakaunbejmuzqnvgno.supabase.co',
+        hostname: process.env.NEXT_PUBLIC_SUPABASE_URL
+          ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+          : 'placeholder.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
     ],

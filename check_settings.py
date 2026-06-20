@@ -1,10 +1,16 @@
+import os
 from supabase import create_client
 
-url = 'https://wkyakaunbejmuzqnvgno.supabase.co'
-key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndreWFrYXVuYmVqbXV6cW52Z25vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODM2NjMwMiwiZXhwIjoyMDkzOTQyMzAyfQ.aV2Z7O4HrBGnOZSlYSMgjx5xkrTumPBGkEbpyS414JY'
+url = os.environ.get("SUPABASE_URL") or os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or ""
+key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or ""
+
+if not url or not key:
+    print("ERROR: Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables")
+    exit(1)
+
 sb = create_client(url, key)
 
-r = sb.table('settings').select('*').execute()
-print('=== SETTINGS TABLE ===')
+r = sb.table("settings").select("*").execute()
+print("=== SETTINGS TABLE ===")
 for s in r.data:
     print(f"{s['setting_key']:20s} = {s['setting_value']}")

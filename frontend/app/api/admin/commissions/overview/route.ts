@@ -33,13 +33,13 @@ export async function GET(req: NextRequest) {
   if (staffIds.length > 0) {
     const { data: salesData } = await supabaseAdmin
       .from('staff_sales')
-      .select('staff_id, commission, quantity, total_amount')
+      .select('staff_id, approved_commission, quantity, total_amount')
       .in('staff_id', staffIds);
 
     (salesData || []).forEach((s: any) => {
       const id = s.staff_id;
       if (!salesTotals[id]) salesTotals[id] = { generated: 0, count: 0, units: 0, amount: 0 };
-      salesTotals[id].generated += parseFloat(s.commission) || 0;
+      salesTotals[id].generated += parseFloat(s.approved_commission) || 0;
       salesTotals[id].count += 1;
       salesTotals[id].units += s.quantity || 0;
       salesTotals[id].amount += parseFloat(s.total_amount) || 0;

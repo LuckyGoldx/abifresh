@@ -38,7 +38,6 @@ export async function POST(req: NextRequest) {
       }
 
       // Subtract any quantities locked in pending returns
-      // Note: returned_items table does NOT have a location column, so locking is by item_id only.
       const { data: pendingReturns } = await supabaseAdmin
         .from('returned_items')
         .select('quantity')
@@ -55,14 +54,15 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Get item details for commission calculation and cost price
+      // Get item details for commission and cost price
       const { data: itemData } = await supabaseAdmin
         .from('items')
         .select('commission, name, unit_price')
         .eq('id', item_id)
         .single();
 
-      const commissionPerUnit = isCommissionStaff ? (itemData?.commission || 0) : 0;
+      const itemCommissionRate = itemData?.commission || 0;
+      const commissionPerUnit = isCommissionStaff ? itemCommissionRate : 0;
       const commissionEarned = commissionPerUnit * quantity;
       const totalAmount = (unit_price * quantity) + (logistics_fee * quantity);
 
@@ -88,6 +88,8 @@ export async function POST(req: NextRequest) {
           cost_price: itemData?.unit_price || 0,
           total_amount: totalAmount,
           commission: commissionEarned,
+          commission_rate: itemCommissionRate,
+          approved_commission: 0,
           location: itemLocation,
           payment_method: payment_method || 'cash',
           sold_outside_jalingo: sold_outside_jalingo || false,

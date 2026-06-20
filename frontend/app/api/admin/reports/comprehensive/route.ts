@@ -113,18 +113,18 @@ export async function GET(req: NextRequest) {
         .in('receipt_id', receiptIdList)
     : { data: [] };
 
-  // Fetch total commission generated: sum of staff_sales.commission within the date range.
+  // Fetch total commission generated: sum of staff_sales.approved_commission within the date range.
   let totalCommissionGenerated = 0;
   if (!hasStaffFilter || filteredStaffIds.length > 0) {
     let commissionSalesQuery = supabaseAdmin
       .from('staff_sales')
-      .select('commission')
+      .select('approved_commission')
       .gte('created_at', fromISO)
       .lte('created_at', toISO);
     if (filteredStaffIds.length > 0) commissionSalesQuery = commissionSalesQuery.in('staff_id', filteredStaffIds);
     const { data: commissionSalesData } = await commissionSalesQuery;
     totalCommissionGenerated = (commissionSalesData || []).reduce(
-      (sum: number, s: any) => sum + (parseFloat(s.commission) || 0), 0
+      (sum: number, s: any) => sum + (parseFloat(s.approved_commission) || 0), 0
     );
   }
 

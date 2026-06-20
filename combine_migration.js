@@ -5,12 +5,12 @@ const data = fs.readFileSync('COMPLETE_DATABASE_DUMP.sql', 'utf8');
 
 let master = `-- ============================================================================
 -- AKV COMPLETE DATABASE MIGRATION
--- Source: cifzlkspxjghpgxhrwkg (OLD)
--- Target: wkyakaunbejmuzqnvgno (NEW)
+-- Source: OLD_PROJECT (OLD)
+-- Target: NEW_PROJECT (NEW)
 -- Generated: ${new Date().toISOString()}
 -- ============================================================================
 
--- ⚠️ IMPORTANT: Run this ENTIRE script in the NEW project's Supabase SQL Editor
+-- âš ï¸ IMPORTANT: Run this ENTIRE script in the NEW project's Supabase SQL Editor
 -- ============================================================================
 
 -- Clear existing data first (reverse order to respect FKs)

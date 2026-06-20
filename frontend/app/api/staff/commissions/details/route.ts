@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   // 1. Get all sales for this staff
   const { data: sales, error: salesError } = await supabaseAdmin
     .from('staff_sales')
-    .select('id, item_id, quantity, unit_price, total_amount, commission, payment_method, sale_date, created_at')
+    .select('id, item_id, quantity, unit_price, total_amount, approved_commission, payment_method, sale_date, created_at')
     .eq('staff_id', staffId)
     .order('sale_date', { ascending: false });
 
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 4. Compute summary
-  const totalCommissionGenerated = allSales.reduce((sum: number, s: any) => sum + (parseFloat(s.commission) || 0), 0);
+  const totalCommissionGenerated = allSales.reduce((sum: number, s: any) => sum + (parseFloat(s.approved_commission) || 0), 0);
   const totalCommissionPaid = allPayments.reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
   const pendingCommission = Math.max(0, totalCommissionGenerated - totalCommissionPaid);
   const totalItemsSold = allSales.length;
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     if (!s.item_id) return;
     if (!itemTotals[s.item_id]) itemTotals[s.item_id] = { quantity: 0, commission: 0, sales: 0 };
     itemTotals[s.item_id].quantity += s.quantity || 0;
-    itemTotals[s.item_id].commission += parseFloat(s.commission) || 0;
+    itemTotals[s.item_id].commission += parseFloat(s.approved_commission) || 0;
     itemTotals[s.item_id].sales += 1;
   });
   const topItems = Object.entries(itemTotals)
@@ -79,8 +79,8 @@ export async function GET(req: NextRequest) {
   allSales.forEach((s: any) => {
     const date = s.sale_date || s.created_at;
     if (!date) return;
-    const key = date.substring(0, 7); // YYYY-MM
-    monthly[key] = (monthly[key] || 0) + (parseFloat(s.commission) || 0);
+    const key = date.substring(0, 7);
+    monthly[key] = (monthly[key] || 0) + (parseFloat(s.approved_commission) || 0);
   });
 
   // 7. Format commissions list for page (needs amount and approved_date)

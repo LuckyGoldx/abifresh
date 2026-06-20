@@ -17,9 +17,12 @@ export async function GET(
     .from('users')
     .select('*')
     .eq('id', params.id)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  if (error || !data) {
+    console.error(`[GET /api/admin/staff/[id]] User not found: id="${params.id}", error=`, error);
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
   return NextResponse.json(data);
 }
 
@@ -39,14 +42,23 @@ export async function PUT(
       await req.json();
     const { id } = params;
 
-    // Verify user exists
+    if (!id || id === 'undefined' || id === 'null' || id.length < 10) {
+      console.error(`[PUT /api/admin/staff/[id]] Invalid id param: "${id}"`);
+      return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 });
+    }
+
+    // Verify user exists — use maybeSingle() to avoid PGRST116 error when 0 rows match.
+    // After a DB backup/restore, UUID case/format can cause .single() to fail silently.
     const { data: existing, error: fetchErr } = await supabaseAdmin
       .from('users')
       .select('id, email, auth_user_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (fetchErr || !existing) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (fetchErr || !existing) {
+      console.error(`[PUT /api/admin/staff/[id]] User not found: id="${id}", error=`, fetchErr);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
 
     const oldEmail = existing.email as string;
     const newEmail = email as string | undefined;
@@ -189,9 +201,12 @@ export async function DELETE(
     .from('users')
     .select('id, email, full_name, auth_user_id')
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
-  if (fetchErr || !user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  if (fetchErr || !user) {
+    console.error(`[DELETE /api/admin/staff/[id]] User not found: id="${id}", error=`, fetchErr);
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
 
   // Clean up related records safely
   const tables = [

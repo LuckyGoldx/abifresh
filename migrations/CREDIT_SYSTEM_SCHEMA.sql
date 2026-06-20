@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS credit_payments (
     credit_sale_id UUID NOT NULL REFERENCES credit_sales(id),
     staff_id UUID NOT NULL REFERENCES users(id),
     amount DECIMAL(12,2) NOT NULL,
-    payment_method TEXT NOT NULL CHECK (payment_method IN ('cash', 'pos', 'online_transfer')),
+    payment_method TEXT NOT NULL CHECK (payment_method IN ('cash', 'pos', 'online_transfer', 'bank_deposit')),
     reference_number TEXT,
     receipt_url TEXT,
     notes TEXT,
