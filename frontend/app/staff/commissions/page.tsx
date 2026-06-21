@@ -318,14 +318,14 @@ export default function CommissionStaffPage() {
           title="Items Sold"
           value={formatQty(commissions.summary.total_items_sold)}
           color="bg-blue-500"
-          subtitle="With commission"
+          subtitle="Approved & paid"
         />
         <StatCard
           icon={TrendingUp}
           title="Units Commissioned"
           value={formatQty(commissions.summary.total_units_commissioned)}
           color="bg-indigo-500"
-          subtitle="Total units"
+          subtitle="Approved & paid"
         />
       </div>
 

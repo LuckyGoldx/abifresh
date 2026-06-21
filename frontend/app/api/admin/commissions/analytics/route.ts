@@ -35,7 +35,10 @@ export async function GET(req: NextRequest) {
 
   if (salesError) return NextResponse.json({ error: salesError.message }, { status: 400 });
 
-  const sales = salesData || [];
+  const allSales = salesData || [];
+
+  // Filter to only approved sales (payment submitted & approved by admin)
+  const sales = allSales.filter((s: any) => parseFloat(s.approved_commission) > 0);
 
   // 2. Get commission staff info
   const { data: staffData } = await supabaseAdmin

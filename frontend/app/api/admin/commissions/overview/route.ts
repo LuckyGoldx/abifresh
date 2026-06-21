@@ -40,9 +40,12 @@ export async function GET(req: NextRequest) {
       const id = s.staff_id;
       if (!salesTotals[id]) salesTotals[id] = { generated: 0, count: 0, units: 0, amount: 0 };
       salesTotals[id].generated += parseFloat(s.approved_commission) || 0;
-      salesTotals[id].count += 1;
-      salesTotals[id].units += s.quantity || 0;
-      salesTotals[id].amount += parseFloat(s.total_amount) || 0;
+      const isApproved = parseFloat(s.approved_commission) > 0;
+      if (isApproved) {
+        salesTotals[id].count += 1;
+        salesTotals[id].units += s.quantity || 0;
+        salesTotals[id].amount += parseFloat(s.total_amount) || 0;
+      }
     });
   }
 
@@ -64,21 +67,24 @@ export async function GET(req: NextRequest) {
   }
 
   // 4. Build per-staff commission breakdown
-  const staffCommissions = staffList.map((staff: any) => {
-    const generated = salesTotals[staff.id]?.generated || 0;
-    const paid = paidTotals[staff.id] || 0;
-    return {
-      staff_id: staff.id,
-      staff_name: staff.full_name,
-      staff_email: staff.email,
-      staff_username: staff.username,
-      total_commission_generated: generated,
-      total_commission_paid: paid,
-      commission_pending: Math.max(0, generated - paid),
-      total_sales: salesTotals[staff.id]?.amount || 0,
-      items_sold: salesTotals[staff.id]?.units || 0,
-    };
-  });
+  const staffCommissions = staffList
+    .map((staff: any) => {
+      const generated = salesTotals[staff.id]?.generated || 0;
+      const paid = paidTotals[staff.id] || 0;
+      return {
+        staff_id: staff.id,
+        staff_name: staff.full_name,
+        staff_email: staff.email,
+        staff_username: staff.username,
+        total_commission_generated: generated,
+        total_commission_paid: paid,
+        commission_pending: Math.max(0, generated - paid),
+        total_sales: salesTotals[staff.id]?.amount || 0,
+        items_sold: salesTotals[staff.id]?.units || 0,
+      };
+    })
+    .filter((s) => s.total_commission_generated > 0)
+    .sort((a, b) => b.total_commission_generated - a.total_commission_generated);
 
   // 5. Totals
   const total_commission_generated = staffCommissions.reduce((s: number, c: any) => s + c.total_commission_generated, 0);
@@ -89,7 +95,7 @@ export async function GET(req: NextRequest) {
     total_commission_generated,
     total_commission_paid,
     total_commission_pending,
-    commission_staff_count: staffList.length,
+    commission_staff_count: staffCommissions.length,
     staff_commissions: staffCommissions,
   });
 }

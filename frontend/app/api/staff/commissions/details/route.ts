@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
 
   const allSales = sales || [];
 
+  // Filter to only approved sales (payment submitted & approved by admin)
+  const approvedSales = allSales.filter((s: any) => parseFloat(s.approved_commission) > 0);
+
   // 2. Get commission payments made to this staff BY ADMIN via commission management
   // Only include payments where paid_by IS NOT NULL (admin-initiated, not staff-submitted)
   const { data: payments, error: paymentsError } = await supabaseAdmin
@@ -35,7 +38,7 @@ export async function GET(req: NextRequest) {
   const allPayments = payments || [];
 
   // 3. Get item details for top_items
-  const itemIds = [...new Set(allSales.map((s: any) => s.item_id).filter(Boolean))];
+  const itemIds = [...new Set(approvedSales.map((s: any) => s.item_id).filter(Boolean))];
   let itemMap: Record<string, any> = {};
   if (itemIds.length > 0) {
     const { data: itemsData } = await supabaseAdmin
@@ -49,12 +52,12 @@ export async function GET(req: NextRequest) {
   const totalCommissionGenerated = allSales.reduce((sum: number, s: any) => sum + (parseFloat(s.approved_commission) || 0), 0);
   const totalCommissionPaid = allPayments.reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
   const pendingCommission = Math.max(0, totalCommissionGenerated - totalCommissionPaid);
-  const totalItemsSold = allSales.length;
-  const totalUnitsSold = allSales.reduce((sum: number, s: any) => sum + (s.quantity || 0), 0);
+  const totalItemsSold = approvedSales.length;
+  const totalUnitsSold = approvedSales.reduce((sum: number, s: any) => sum + (s.quantity || 0), 0);
 
-  // 5. Build top_items (group by item_id)
+  // 5. Build top_items (group by item_id from approved sales only)
   const itemTotals: Record<string, { quantity: number; commission: number; sales: number }> = {};
-  allSales.forEach((s: any) => {
+  approvedSales.forEach((s: any) => {
     if (!s.item_id) return;
     if (!itemTotals[s.item_id]) itemTotals[s.item_id] = { quantity: 0, commission: 0, sales: 0 };
     itemTotals[s.item_id].quantity += s.quantity || 0;
@@ -76,7 +79,7 @@ export async function GET(req: NextRequest) {
 
   // 6. Build monthly_commission (keyed by YYYY-MM)
   const monthly: Record<string, number> = {};
-  allSales.forEach((s: any) => {
+  approvedSales.forEach((s: any) => {
     const date = s.sale_date || s.created_at;
     if (!date) return;
     const key = date.substring(0, 7);
@@ -101,7 +104,7 @@ export async function GET(req: NextRequest) {
       total_units_commissioned: totalUnitsSold,
     },
     commissions: commissionsList,
-    sales: allSales,
+    sales: approvedSales,
     top_items: topItems,
     monthly_commission: monthly,
   });

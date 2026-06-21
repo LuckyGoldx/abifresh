@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth';
 import LoadingLogo from '@/components/LoadingLogo';
 import { formatQty } from '@/lib/format-quantity';
 import { useAlert } from '@/context/AlertContext';
+import { Download, FileText, BarChart3, RefreshCw, DollarSign, CheckCircle2, Clock, Users, CreditCard, TrendingUp, Trophy, Gem } from 'lucide-react';
 import type {
   StaffCommission,
   CommissionOverview,
@@ -438,7 +439,7 @@ export default function AdminCommissionsPage() {
               onClick={() => setShowExportMenu(!showExportMenu)}
               className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center sm:justify-start gap-2"
             >
-              📥 Export
+              <Download className="w-4 h-4" /> Export
               <span className="text-sm">▼</span>
             </button>
             {showExportMenu && (
@@ -450,7 +451,7 @@ export default function AdminCommissionsPage() {
                   }}
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-t-lg transition"
                 >
-                  📄 Export as CSV
+                  <FileText className="w-4 h-4 inline mr-1" /> Export as CSV
                 </button>
                 <button
                   onClick={() => {
@@ -459,7 +460,7 @@ export default function AdminCommissionsPage() {
                   }}
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition"
                 >
-                  📊 Export as Excel
+                  <BarChart3 className="w-4 h-4 inline mr-1" /> Export as Excel
                 </button>
                 <button
                   onClick={() => {
@@ -468,7 +469,7 @@ export default function AdminCommissionsPage() {
                   }}
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white rounded-b-lg transition"
                 >
-                  📋 Export as PDF
+                  <FileText className="w-4 h-4 inline mr-1" /> Export as PDF
                 </button>
               </div>
             )}
@@ -477,7 +478,7 @@ export default function AdminCommissionsPage() {
             onClick={fetchData}
             className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
-            🔄 Refresh
+            <RefreshCw className="w-4 h-4 inline mr-1" /> Refresh
           </button>
         </div>
       </div>
@@ -493,7 +494,7 @@ export default function AdminCommissionsPage() {
                   {formatCurrency(overview.total_commission_generated)}
                 </p>
               </div>
-              <div className="text-2xl sm:text-4xl opacity-80 text-right">💰</div>
+              <DollarSign className="text-2xl sm:text-4xl opacity-80 ml-auto" />
             </div>
           </div>
 
@@ -505,7 +506,7 @@ export default function AdminCommissionsPage() {
                   {formatCurrency(overview.total_commission_paid)}
                 </p>
               </div>
-              <div className="text-2xl sm:text-4xl opacity-80 text-right">✅</div>
+              <CheckCircle2 className="text-2xl sm:text-4xl opacity-80 ml-auto" />
             </div>
           </div>
 
@@ -517,7 +518,7 @@ export default function AdminCommissionsPage() {
                   {formatCurrency(overview.total_commission_pending)}
                 </p>
               </div>
-              <div className="text-2xl sm:text-4xl opacity-80 text-right">⏳</div>
+              <Clock className="text-2xl sm:text-4xl opacity-80 ml-auto" />
             </div>
           </div>
 
@@ -527,7 +528,7 @@ export default function AdminCommissionsPage() {
                 <p className="text-purple-100 text-xs sm:text-sm">Commission Staff</p>
                 <p className="text-lg sm:text-3xl font-bold mt-1">{overview.commission_staff_count}</p>
               </div>
-              <div className="text-2xl sm:text-4xl opacity-80 text-right">👥</div>
+              <Users className="text-2xl sm:text-4xl opacity-80 ml-auto" />
             </div>
           </div>
         </div>
@@ -544,7 +545,7 @@ export default function AdminCommissionsPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            📊 Overview
+            <BarChart3 className="w-4 h-4 inline mr-1" /> Overview
           </button>
           <button
             onClick={() => setActiveTab('payments')}
@@ -554,7 +555,7 @@ export default function AdminCommissionsPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            💳 Payment History
+            <CreditCard className="w-4 h-4 inline mr-1" /> Payment History
           </button>
           <button
             onClick={() => setActiveTab('analytics')}
@@ -564,7 +565,7 @@ export default function AdminCommissionsPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            📈 Analytics
+            <TrendingUp className="w-4 h-4 inline mr-1" /> Analytics
           </button>
         </nav>
       </div>
@@ -607,7 +608,6 @@ export default function AdminCommissionsPage() {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {overview.staff_commissions
-                    .sort((a, b) => b.commission_pending - a.commission_pending)
                     .map((staff) => (
                     <tr key={staff.staff_id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -641,7 +641,7 @@ export default function AdminCommissionsPage() {
                             onClick={() => window.location.href = `/admin/commissions/${staff.staff_id}`}
                             className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                           >
-                            📊 Details
+                            <BarChart3 className="w-4 h-4 inline mr-1" /> Details
                           </button>
                           <button
                             onClick={() => openPaymentModal(staff)}
@@ -652,12 +652,21 @@ export default function AdminCommissionsPage() {
                                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }`}
                           >
-                            💳 Pay
+                            <CreditCard className="w-4 h-4 inline mr-1" /> Pay
                           </button>
                         </div>
                       </td>
                     </tr>
                   ))}
+                  {overview.staff_commissions.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-12 text-center">
+                        <BarChart3 className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
+                        <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">No commission generated yet</p>
+                        <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Approved commission data will appear here once payments are processed.</p>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -910,8 +919,10 @@ export default function AdminCommissionsPage() {
                 </tbody>
               </table>
               {payments.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  No commission payments found
+                <div className="text-center py-12">
+                  <CreditCard className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
+                  <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">No commission payments yet</p>
+                  <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Payments will appear here once commissions are processed by admin.</p>
                 </div>
               )}
             </div>
@@ -1046,7 +1057,7 @@ export default function AdminCommissionsPage() {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    🏆 Top Performers
+                    <Trophy className="w-5 h-5 inline mr-1" /> Top Performers
                   </h3>
                 </div>
                 <div className="overflow-x-auto">
@@ -1093,8 +1104,10 @@ export default function AdminCommissionsPage() {
                     </tbody>
                   </table>
                   {analytics.top_performers.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                      No data available for the selected period
+                    <div className="text-center py-12">
+                      <Trophy className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
+                      <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">No top performers yet</p>
+                      <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Approved commission data will appear here once payments are processed.</p>
                     </div>
                   )}
                 </div>
@@ -1104,7 +1117,7 @@ export default function AdminCommissionsPage() {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    💎 Items with Highest Commission
+                    <Gem className="w-5 h-5 inline mr-1" /> Items with Highest Commission
                   </h3>
                 </div>
                 <div className="overflow-x-auto">
@@ -1151,19 +1164,21 @@ export default function AdminCommissionsPage() {
                     </tbody>
                   </table>
                   {analytics.items_with_highest_commission.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                      No data available for the selected period
+                    <div className="text-center py-12">
+                      <Gem className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
+                      <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">No item commission data yet</p>
+                      <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Approved commission by item will appear here once payments are processed.</p>
                     </div>
                   )}
                 </div>
               </div>
 
               {/* Commission Trends */}
-              {analytics.commission_trends.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    📊 Commission Trends
-                  </h3>
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  <TrendingUp className="w-5 h-5 inline mr-1" /> Commission Trends
+                </h3>
+                {analytics.commission_trends.length > 0 ? (
                   <div className="space-y-2">
                     {analytics.commission_trends.map((trend) => (
                       <div key={trend.date} className="flex items-center justify-between">
@@ -1187,8 +1202,14 @@ export default function AdminCommissionsPage() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-12">
+                    <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-gray-500" />
+                    <p className="text-gray-500 dark:text-gray-400 text-lg font-medium">No commission trends yet</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">Daily commission trends will appear here once payments are processed.</p>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
@@ -1263,7 +1284,7 @@ export default function AdminCommissionsPage() {
                 disabled={processingPayment}
                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
               >
-                {processingPayment ? 'Processing...' : '💳 Pay Commission'}
+                {processingPayment ? 'Processing...' : <><CreditCard className="w-4 h-4 inline mr-1" /> Pay Commission</>}
               </button>
               <button
                 onClick={() => {
