@@ -65,7 +65,7 @@ async function generateCommissionForPayment(paymentId: string) {
     if (totalOriginalQty <= 0) continue;
 
     let remainingQty = paidQuantity;
-    const updates: { id: string; commission: number; commission_rate?: number }[] = [];
+    const updates: { id: string; approved_commission: number; commission_rate?: number }[] = [];
 
     for (const sale of salesRecords) {
       if (remainingQty <= 0) break;
