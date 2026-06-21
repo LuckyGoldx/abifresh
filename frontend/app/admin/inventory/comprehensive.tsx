@@ -119,13 +119,14 @@ export default function ComprehensiveInventoryPage() {
   });
 
   const [transferData, setTransferData] = useState({
-    quantity: 0,
+    quantity: '' as number | string,
     direction: 'main-to-active' as 'main-to-active' | 'active-to-main',
   });
 
   // Image preview state
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
@@ -183,6 +184,7 @@ export default function ComprehensiveInventoryPage() {
   };
 
   const handleAddItem = async () => {
+    setSubmitting(true);
     try {
       // Check for duplicate item (by SKU or Name)
       const existingBySku = items.find(item => item.sku.toLowerCase() === formData.sku.toLowerCase());
@@ -190,6 +192,7 @@ export default function ComprehensiveInventoryPage() {
       
       if (existingBySku || existingByName) {
         const duplicateItem = (existingBySku || existingByName)!;
+        setSubmitting(false);
         toast.error(
           `⚠️ "${duplicateItem.name}" already exists in inventory! Search for it and edit instead.`,
           { duration: 5000 }
@@ -219,6 +222,7 @@ export default function ComprehensiveInventoryPage() {
       resetForm();
       await fetchData();
     } catch (err: any) {
+      setSubmitting(false);
       const errorMsg = err.response?.data?.error || err.message || 'Error adding item';
       setError(errorMsg);
       if (!errorMsg.includes('SKU')) {
@@ -230,6 +234,7 @@ export default function ComprehensiveInventoryPage() {
 
   const handleEditItem = async () => {
     if (!selectedItem) return;
+    setSubmitting(true);
     try {
       // Check for SKU uniqueness (excluding current item)
       const existingSku = items.some(item => 
@@ -276,6 +281,7 @@ export default function ComprehensiveInventoryPage() {
       setSelectedItem(null);
       await fetchData();
     } catch (err: any) {
+      setSubmitting(false);
       const errorMsg = err.response?.data?.error || err.message || 'Error editing item';
       setError(errorMsg);
       if (!errorMsg.includes('SKU')) {
@@ -287,6 +293,7 @@ export default function ComprehensiveInventoryPage() {
 
   const handleTransfer = async () => {
     if (!selectedItem) return;
+    setSubmitting(true);
     try {
       const endpoint = transferData.direction === 'main-to-active'
         ? '/api/inventory/transfer/main-to-active'
@@ -298,11 +305,13 @@ export default function ComprehensiveInventoryPage() {
       });
 
       toast.success(`✅ Transferred ${transferData.quantity} units ${transferData.direction === 'main-to-active' ? 'to Active Store' : 'to Main Store'}`);
+      setSubmitting(false);
       setModalType(null);
-      setTransferData({ quantity: 0, direction: 'main-to-active' });
+      setTransferData({ quantity: '', direction: 'main-to-active' });
       setSelectedItem(null);
       fetchData();
     } catch (err: any) {
+      setSubmitting(false);
       const errorMsg = err.response?.data?.error || err.message || 'Error transferring item';
       setError(errorMsg);
       toast.error(errorMsg);
@@ -401,6 +410,7 @@ export default function ComprehensiveInventoryPage() {
   };
 
   const openEditModal = (item: Item) => {
+    setSubmitting(false);
     setSelectedItem(item);
     console.log('🔍 EDIT MODAL OPENED - Item:', {
       id: item.id,
@@ -430,8 +440,9 @@ export default function ComprehensiveInventoryPage() {
   };
 
   const openTransferModal = (item: Item) => {
+    setSubmitting(false);
     setSelectedItem(item);
-    setTransferData({ quantity: 0, direction: 'main-to-active' });
+    setTransferData({ quantity: '', direction: 'main-to-active' });
     setModalType('transfer');
   };
 
@@ -691,6 +702,7 @@ export default function ComprehensiveInventoryPage() {
 
           <button
             onClick={() => {
+              setSubmitting(false);
               resetForm();
               setSelectedItem(null);
               setModalType('add');
@@ -876,10 +888,10 @@ export default function ComprehensiveInventoryPage() {
       </div>
 
       {/* Modals */}
-      {modalType === 'add' && <AddEditModal type="add" formData={formData} setFormData={setFormData} imagePreview={imagePreview} setImagePreview={setImagePreview} onSubmit={handleAddItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} />}
-      {modalType === 'edit' && <AddEditModal type="edit" formData={formData} setFormData={setFormData} imagePreview={imagePreview} setImagePreview={setImagePreview} onSubmit={handleEditItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} />}
+      {modalType === 'add' && <AddEditModal type="add" formData={formData} setFormData={setFormData} imagePreview={imagePreview} setImagePreview={setImagePreview} onSubmit={handleAddItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} submitting={submitting} />}
+      {modalType === 'edit' && <AddEditModal type="edit" formData={formData} setFormData={setFormData} imagePreview={imagePreview} setImagePreview={setImagePreview} onSubmit={handleEditItem} onClose={() => setModalType(null)} onNameChange={handleNameChange} token={token} submitting={submitting} />}
       {modalType === 'transfer' && selectedItem && (
-        <TransferModal item={selectedItem} transferData={transferData} setTransferData={setTransferData} onSubmit={handleTransfer} onClose={() => setModalType(null)} />
+        <TransferModal item={selectedItem} transferData={transferData} setTransferData={setTransferData} onSubmit={handleTransfer} onClose={() => setModalType(null)} submitting={submitting} />
       )}
 
       {/* Fullscreen Image Modal */}
@@ -972,6 +984,7 @@ function AddEditModal({
   onClose,
   onNameChange,
   token,
+  submitting,
 }: {
   type: 'add' | 'edit';
   formData: any;
@@ -982,6 +995,7 @@ function AddEditModal({
   onClose: () => void;
   onNameChange: (name: string) => void;
   token: string | null;
+  submitting: boolean;
 }) {
   const [uploading, setUploading] = useState(false);
 
@@ -1374,16 +1388,17 @@ function AddEditModal({
         <div className="flex gap-3 mt-6 pt-4 border-t dark:border-gray-700">
           <button
             onClick={() => { setImagePreview(null); onClose(); }}
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            disabled={submitting || uploading}
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={onSubmit}
-            disabled={uploading}
-            className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50"
+            disabled={submitting || uploading}
+            className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {type === 'add' ? 'Add' : 'Update'}
+            {submitting ? (type === 'add' ? 'Adding...' : 'Updating...') : (type === 'add' ? 'Add' : 'Update')}
           </button>
         </div>
       </div>
@@ -1397,21 +1412,29 @@ function TransferModal({
   setTransferData,
   onSubmit,
   onClose,
+  submitting,
 }: {
   item: Item;
   transferData: any;
   setTransferData: (data: any) => void;
   onSubmit: () => void;
   onClose: () => void;
+  submitting: boolean;
 }) {
   const maxQuantity = transferData.direction === 'main-to-active' ? item.main_store_quantity : item.active_store_quantity;
+
+  const isValidQuantity = (val: number) => {
+    if (isNaN(val) || val <= 0 || val > maxQuantity) return false;
+    const remainder = val % 0.5;
+    return remainder === 0 || Math.abs(remainder - 0.5) < 0.001;
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Transfer Items</h2>
-          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+          <button onClick={onClose} disabled={submitting} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-50">
             <X size={24} />
           </button>
         </div>
@@ -1423,8 +1446,9 @@ function TransferModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Direction</label>
             <select
               value={transferData.direction}
-              onChange={(e) => setTransferData({ ...transferData, direction: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              onChange={(e) => setTransferData({ ...transferData, direction: e.target.value, quantity: '' })}
+              disabled={submitting}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white disabled:opacity-50"
             >
               <option value="main-to-active">Main Store → Active Store</option>
               <option value="active-to-main">Active Store → Main Store</option>
@@ -1439,26 +1463,30 @@ function TransferModal({
               type="number"
               min="0"
               max={maxQuantity}
-              step="1"
+              step="0.5"
               value={transferData.quantity}
+              placeholder="0"
               onChange={(e) => {
                 const val = e.target.value;
                 if (val === '') {
-                  setTransferData({ ...transferData, quantity: 0 });
+                  setTransferData({ ...transferData, quantity: '' });
                 } else {
                   const num = Number(val);
-                  // Only accept integers (whole numbers)
-                  if (!isNaN(num) && Number.isInteger(num) && num >= 0 && num <= maxQuantity) {
-                    setTransferData({ ...transferData, quantity: num });
+                  if (!isNaN(num) && num >= 0 && num <= maxQuantity) {
+                    const remainder = num % 0.5;
+                    if (remainder === 0 || Math.abs(remainder - 0.5) < 0.001) {
+                      setTransferData({ ...transferData, quantity: num });
+                    }
                   }
                 }
               }}
               onKeyDown={(e) => {
-                if (['-', '+', 'e', 'E', '.'].includes(e.key)) {
+                if (['-', '+', 'e', 'E'].includes(e.key)) {
                   e.preventDefault();
                 }
               }}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+              disabled={submitting}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white disabled:opacity-50"
             />
           </div>
         </div>
@@ -1466,16 +1494,17 @@ function TransferModal({
         <div className="flex gap-3 mt-6">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            disabled={submitting}
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={onSubmit}
-            disabled={transferData.quantity <= 0 || transferData.quantity > maxQuantity}
+            disabled={submitting || !transferData.quantity || Number(transferData.quantity) <= 0 || Number(transferData.quantity) > maxQuantity || !isValidQuantity(Number(transferData.quantity))}
             className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Transfer
+            {submitting ? 'Transferring...' : 'Transfer'}
           </button>
         </div>
       </div>
