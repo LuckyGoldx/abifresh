@@ -14,15 +14,20 @@ export async function GET(
 
   const { staffId } = params;
 
-  const [storeResult, salesResult, userResult] = await Promise.all([
+  const [storeResult, salesResult, approvedSalesResult, userResult] = await Promise.all([
     supabaseAdmin
       .from('staff_store')
       .select(`*, items:item_id(id, name, sku, category, unit_price, commission, price_jalingo, price_outside)`)
       .eq('staff_id', staffId),
     supabaseAdmin
       .from('staff_sales')
-      .select('total_amount, commission')
+      .select('total_amount')
       .eq('staff_id', staffId),
+    supabaseAdmin
+      .from('staff_sales')
+      .select('approved_commission')
+      .eq('staff_id', staffId)
+      .not('approved_commission', 'is', null),
     supabaseAdmin
       .from('users')
       .select('id, full_name, email, role')
@@ -33,11 +38,12 @@ export async function GET(
   const userData = userResult.data;
   const storeItems = storeResult.data || [];
   const salesRecords = salesResult.data || [];
+  const approvedSalesRecords = approvedSalesResult.data || [];
 
   // Compute totals from actual sales records (source of truth for amounts)
   const total_amount_sold = salesRecords.reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
-  const total_commission_earned = salesRecords.reduce((sum: number, s: any) => sum + (parseFloat(s.commission) || 0), 0);
-  const receipts_count = salesRecords.length;
+  const total_commission_earned = approvedSalesRecords.reduce((sum: number, s: any) => sum + (parseFloat(s.approved_commission) || 0), 0);
+  const receipts_count = approvedSalesRecords.length;
 
   // Compute quantity totals from staff_store entries
   const total_items = storeItems.length;
