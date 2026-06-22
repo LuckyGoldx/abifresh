@@ -146,7 +146,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Fetch expenses (all statuses, matching legacy behavior)
+  // Fetch expenses (all statuses — we filter by role below)
   let expensesQuery = supabaseAdmin
     .from('staff_expenses')
     .select('*')
@@ -169,10 +169,19 @@ export async function GET(req: NextRequest) {
       .in('id', expenseStaffIds);
     (expenseStaffData || []).forEach((u: any) => expenseUsersMap.set(u.id, u));
   }
-  const expenses = (expensesRaw || []).map((e: any) => ({
-    ...e,
-    users: expenseUsersMap.get(e.staff_id) || { full_name: null, email: null, role: null },
-  }));
+
+  // Filter expenses: include approved staff expenses + ALL admin/superadmin expenses (auto-approved)
+  const expenses = (expensesRaw || [])
+    .map((e: any) => ({
+      ...e,
+      users: expenseUsersMap.get(e.staff_id) || { full_name: null, email: null, role: null },
+    }))
+    .filter((e: any) => {
+      const userRole = (e.users?.role || '').toLowerCase();
+      const isAdminOrSuperadmin = userRole === 'admin' || userRole === 'superadmin';
+      const isApproved = (e.status || '').toLowerCase() === 'approved';
+      return isAdminOrSuperadmin || isApproved;
+    });
 
   // Fetch all items for inventory data
   const { data: allItems } = await supabaseAdmin
