@@ -61,14 +61,13 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Only logout on explicit 401 from auth endpoints
-    if (status === 401 && url?.includes('/auth')) {
+    // Auto-logout on any 401 (expired/invalid JWT), except the login endpoint itself
+    if (status === 401 && !url?.includes('/auth/login')) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth-storage');
         window.location.href = '/login';
       }
     }
-    // For other 401s, let the component handle retry logic
     return Promise.reject(error);
   }
 );
