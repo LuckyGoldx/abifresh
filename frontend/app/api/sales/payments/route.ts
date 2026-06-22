@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
         .from('staff_payments')
         .select('*')
         .eq('staff_id', authResult.id)
-        .eq('payment_type', 'sale')
+        .or('payment_type.neq.commission,paid_by.is.null')
         .order('created_at', { ascending: false }),
       supabaseAdmin
         .from('users')

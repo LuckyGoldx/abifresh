@@ -131,97 +131,20 @@ export default function SalesPaymentsPage() {
     }
   };
 
-  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
-
-  const roundQuantity = (val: number): number => {
-    if (isNaN(val) || val <= 0) return 0;
-    // Round to the nearest multiple of 0.5:
-    // - 0.1 or 0.2 rounds down to 0
-    // - 0.3 or 0.4 rounds up to 0.5
-    // - 2.2 rounds down to 2, 2.3 or 2.4 rounds up to 2.5
-    // - 4.6 or 4.7 rounds down to 4.5
-    // - 4.8 or 4.9 rounds up to 5.0
-    return Math.round(val * 2) / 2;
-  };
-
-  const handleQuantityChange = (itemId: string, valString: string, maxQty: number) => {
-    let num = parseFloat(valString);
-    if (isNaN(num) || num <= 0) {
-      setSelectedQuantities(prev => ({ ...prev, [itemId]: 0 }));
-      setSelectedItems(prev => prev.filter(id => id !== itemId));
-      return;
-    }
-
-    if (num > maxQty) {
-      num = maxQty;
-    }
-
-    setSelectedQuantities(prev => ({
-      ...prev,
-      [itemId]: num
-    }));
-
-    setSelectedItems(prev => prev.includes(itemId) ? prev : [...prev, itemId]);
-  };
-
-  const handleQuantityBlur = (itemId: string, valString: string, maxQty: number) => {
-    let num = parseFloat(valString);
-    if (isNaN(num) || num <= 0) {
-      setSelectedQuantities(prev => ({ ...prev, [itemId]: 0 }));
-      setSelectedItems(prev => prev.filter(id => id !== itemId));
-      return;
-    }
-
-    if (num > maxQty) {
-      num = maxQty;
-    }
-
-    const rounded = roundQuantity(num);
-    const finalVal = Math.min(rounded, maxQty);
-
-    setSelectedQuantities(prev => ({
-      ...prev,
-      [itemId]: finalVal
-    }));
-
-    if (finalVal > 0) {
-      setSelectedItems(prev => prev.includes(itemId) ? prev : [...prev, itemId]);
-    } else {
-      setSelectedItems(prev => prev.filter(id => id !== itemId));
-    }
-  };
-
   const toggleItemSelection = (itemId: string) => {
-    setSelectedItems(prev => {
-      const isSelected = prev.includes(itemId);
-      if (isSelected) {
-        const newQuants = { ...selectedQuantities };
-        delete newQuants[itemId];
-        setSelectedQuantities(newQuants);
-        return prev.filter(id => id !== itemId);
-      } else {
-        const item = soldItems.find(i => i.id === itemId);
-        setSelectedQuantities(prevQ => ({
-          ...prevQ,
-          [itemId]: item ? item.quantity : 0
-        }));
-        return [...prev, itemId];
-      }
-    });
+    setSelectedItems(prev =>
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
   };
 
   const toggleSelectAll = () => {
     const allSelected = soldItems.length > 0 && soldItems.every(item => selectedItems.includes(item.id));
     if (allSelected) {
       setSelectedItems([]);
-      setSelectedQuantities({});
     } else {
       setSelectedItems(soldItems.map(item => item.id));
-      const newQuants: Record<string, number> = {};
-      soldItems.forEach(item => {
-        newQuants[item.id] = item.quantity;
-      });
-      setSelectedQuantities(newQuants);
     }
   };
 
@@ -354,10 +277,7 @@ export default function SalesPaymentsPage() {
   const calculateSelectedTotal = () => {
     return soldItems
       .filter(item => selectedItems.includes(item.id))
-      .reduce((sum, item) => {
-        const qty = selectedQuantities[item.id] !== undefined ? selectedQuantities[item.id] : item.quantity;
-        return sum + (qty * item.unit_price);
-      }, 0);
+      .reduce((sum, item) => sum + item.total_amount, 0);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -477,16 +397,13 @@ export default function SalesPaymentsPage() {
     // Get selected items from the grouped view
     const selectedSalesData = soldItems
       .filter(item => selectedItems.includes(item.id))
-      .map(item => {
-        const qty = selectedQuantities[item.id] !== undefined ? selectedQuantities[item.id] : item.quantity;
-        return {
-          item_id: item.item_id,
-          item_name: item.item_name,
-          quantity: qty,
-          amount: qty * item.unit_price,
-          sale_ids: item.sale_ids || []
-        };
-      });
+      .map(item => ({
+        item_id: item.item_id,
+        item_name: item.item_name,
+        quantity: item.quantity,
+        amount: item.total_amount,
+        sale_ids: item.sale_ids || []
+      }));
 
     setSubmitting(true);
     try {
@@ -529,7 +446,6 @@ export default function SalesPaymentsPage() {
       setShowPreview(false);
       setStaffName('');
       setSelectedItems([]);
-      setSelectedQuantities({});
       setPaymentAmount('');
       setReferenceNumber('');
       setNotes('');
@@ -774,27 +690,8 @@ export default function SalesPaymentsPage() {
                               </span>
                             )}
                           </td>
-                          <td className="py-2 px-3">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                max={item.quantity}
-                                value={selectedQuantities[item.id] !== undefined ? selectedQuantities[item.id] : item.quantity}
-                                onChange={(e) => handleQuantityChange(item.id, e.target.value, item.quantity)}
-                                onBlur={(e) => handleQuantityBlur(item.id, e.target.value, item.quantity)}
-                                className="w-20 px-2 py-1 text-center border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-semibold"
-                                style={{ appearance: 'textfield' }}
-                              />
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                / {formatQty(item.quantity)}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-2 px-3 font-semibold">
-                            ₦{((selectedQuantities[item.id] !== undefined ? selectedQuantities[item.id] : item.quantity) * item.unit_price).toLocaleString()}
-                          </td>
+                          <td className="py-2 px-3">{formatQty(item.quantity)}</td>
+                          <td className="py-2 px-3 font-semibold">₦{item.total_amount.toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
