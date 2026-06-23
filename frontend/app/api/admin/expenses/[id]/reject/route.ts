@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const { error: updateError } = await supabaseAdmin
       .from('staff_expenses')
       .update({ 
-        status: 'disapproved', 
+        status: 'rejected', 
         approved_date: new Date().toISOString(), 
         approved_by: authResult.id,
         description: finalDescription

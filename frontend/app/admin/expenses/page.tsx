@@ -215,8 +215,8 @@ export default function ExpensesPage() {
   // 2. Pending Expenses: status is strictly 'pending' and NOT recorded by admin/superadmin
   const pendingList = expenses.filter(e => e.status === 'pending' && e.staff_role?.toLowerCase() !== 'admin' && e.staff_role?.toLowerCase() !== 'superadmin');
 
-  // 3. Rejected/Disapproved Expenses: status is strictly 'disapproved' and NOT recorded by admin/superadmin
-  const rejectedList = expenses.filter(e => e.status === 'disapproved' && e.staff_role?.toLowerCase() !== 'admin' && e.staff_role?.toLowerCase() !== 'superadmin');
+  // 3. Rejected/Disapproved Expenses: status is strictly 'rejected' and NOT recorded by admin/superadmin
+  const rejectedList = expenses.filter(e => e.status === 'rejected' && e.staff_role?.toLowerCase() !== 'admin' && e.staff_role?.toLowerCase() !== 'superadmin');
 
   // For tab item counts
   const recordedExpenses = expenses.filter(isApprovedOrAdminOwn);
@@ -685,7 +685,7 @@ export default function ExpensesPage() {
                       className={`px-2.5 py-0.5 rounded-full text-xs font-bold inline-block ${
                         isApprovedOrAdminOwn(expense)
                           ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400'
-                          : expense.status === 'disapproved'
+                          : expense.status === 'rejected'
                           ? 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400'
                           : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400'
                       }`}
@@ -885,7 +885,7 @@ export default function ExpensesPage() {
                     <span className={`inline-block font-bold text-xs px-2.5 py-0.5 rounded-full mt-1.5 ${
                       isApprovedOrAdminOwn(selectedExpense)
                         ? 'bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-400'
-                        : selectedExpense.status === 'disapproved'
+                        : selectedExpense.status === 'rejected'
                         ? 'bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-400'
                         : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-400'
                     }`}>
@@ -917,7 +917,7 @@ export default function ExpensesPage() {
                 <p className="text-gray-700 dark:text-gray-350 text-sm italic whitespace-pre-wrap leading-relaxed">
                   {selectedExpense.admin_notes
                     ? selectedExpense.admin_notes
-                    : selectedExpense.status === 'disapproved'
+                    : selectedExpense.status === 'rejected'
                     ? 'Disapproved. No specific reason entered by administrator.'
                     : isApprovedOrAdminOwn(selectedExpense)
                     ? 'Approved / direct ledger entry. No additional administrative notes.'
