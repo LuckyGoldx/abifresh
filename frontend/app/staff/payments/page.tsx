@@ -37,6 +37,7 @@ export default function PaymentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(true);
+  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
   const [stats, setStats] = useState<any>({
     todaysTotalQuantity: 0,
     todaysTotalAmount: 0,
@@ -117,12 +118,28 @@ export default function PaymentsPage() {
     }
   };
 
+  const roundQuantity = (val: number): number => {
+    if (isNaN(val) || val <= 0) return 0;
+    return Math.round(val * 2) / 2;
+  };
+
   const toggleItemSelection = (itemId: string) => {
-    setSelectedItems(prev =>
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
+    setSelectedItems(prev => {
+      const isSelected = prev.includes(itemId);
+      if (isSelected) {
+        const newQuants = { ...selectedQuantities };
+        delete newQuants[itemId];
+        setSelectedQuantities(newQuants);
+        return prev.filter(id => id !== itemId);
+      } else {
+        const sale = getAvailableSales().find(s => s.id === itemId);
+        setSelectedQuantities(prevQ => ({
+          ...prevQ,
+          [itemId]: sale ? sale.quantity : 0
+        }));
+        return [...prev, itemId];
+      }
+    });
   };
 
   const toggleSelectAll = () => {
@@ -130,15 +147,24 @@ export default function PaymentsPage() {
     const allSelected = available.length > 0 && available.every(s => selectedItems.includes(s.id));
     if (allSelected) {
       setSelectedItems([]);
+      setSelectedQuantities({});
     } else {
       setSelectedItems(available.map(s => s.id));
+      const newQuants: Record<string, number> = {};
+      available.forEach(s => {
+        newQuants[s.id] = s.quantity;
+      });
+      setSelectedQuantities(newQuants);
     }
   };
 
   const calculateSelectedTotal = () => {
     return getAvailableSales()
       .filter(s => selectedItems.includes(s.id))
-      .reduce((sum, s) => sum + s.total_amount, 0);
+      .reduce((sum, s) => {
+        const qty = selectedQuantities[s.id] !== undefined ? selectedQuantities[s.id] : s.quantity;
+        return sum + (qty * s.price_jalingo);
+      }, 0);
   };
 
   // Normalize item ID for consistent comparison
@@ -266,13 +292,16 @@ export default function PaymentsPage() {
 
     const selectedSalesData = sales
       .filter(s => selectedItems.includes(s.id))
-      .map(s => ({
-        sale_ids: s.sale_ids && s.sale_ids.length > 0 ? s.sale_ids : [s.id],
-        item_id: s.item_id,
-        item_name: s.item_name,
-        quantity: s.quantity,
-        amount: s.total_amount
-      }));
+      .map(s => {
+        const qty = selectedQuantities[s.id] !== undefined ? selectedQuantities[s.id] : s.quantity;
+        return {
+          sale_ids: s.sale_ids && s.sale_ids.length > 0 ? s.sale_ids : [s.id],
+          item_id: s.item_id,
+          item_name: s.item_name,
+          quantity: qty,
+          amount: qty * s.price_jalingo
+        };
+      });
 
     setSubmitting(true);
     try {
@@ -315,6 +344,7 @@ export default function PaymentsPage() {
       setShowPreview(false);
       setStaffName('');
       setSelectedItems([]);
+      setSelectedQuantities({});
       setPaymentAmount('');
       setReferenceNumber('');
       setNotes('');
@@ -568,8 +598,53 @@ export default function PaymentsPage() {
                             />
                             {sale.item_name}
                           </td>
-                          <td className="py-2 px-3">{formatQty(sale.quantity)}</td>
-                          <td className="py-2 px-3 font-semibold">₦{sale.total_amount.toLocaleString()}</td>
+                          <td className="py-2 px-3">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                max={sale.quantity}
+                                value={selectedQuantities[sale.id] !== undefined ? selectedQuantities[sale.id] : sale.quantity}
+                                onChange={(e) => {
+                                  let num = parseFloat(e.target.value);
+                                  if (isNaN(num) || num <= 0) {
+                                    setSelectedQuantities(prev => ({ ...prev, [sale.id]: 0 }));
+                                    setSelectedItems(prev => prev.filter(id => id !== sale.id));
+                                    return;
+                                  }
+                                  if (num > sale.quantity) num = sale.quantity;
+                                  setSelectedQuantities(prev => ({ ...prev, [sale.id]: num }));
+                                  setSelectedItems(prev => prev.includes(sale.id) ? prev : [...prev, sale.id]);
+                                }}
+                                onBlur={(e) => {
+                                  let num = parseFloat(e.target.value);
+                                  if (isNaN(num) || num <= 0) {
+                                    setSelectedQuantities(prev => ({ ...prev, [sale.id]: 0 }));
+                                    setSelectedItems(prev => prev.filter(id => id !== sale.id));
+                                    return;
+                                  }
+                                  if (num > sale.quantity) num = sale.quantity;
+                                  const rounded = roundQuantity(num);
+                                  const finalVal = Math.min(rounded, sale.quantity);
+                                  setSelectedQuantities(prev => ({ ...prev, [sale.id]: finalVal }));
+                                  if (finalVal > 0) {
+                                    setSelectedItems(prev => prev.includes(sale.id) ? prev : [...prev, sale.id]);
+                                  } else {
+                                    setSelectedItems(prev => prev.filter(id => id !== sale.id));
+                                  }
+                                }}
+                                className="w-20 px-2 py-1 text-center border rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs font-semibold"
+                                style={{ appearance: 'textfield' }}
+                              />
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                / {formatQty(sale.quantity)}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-2 px-3 font-semibold">
+                            ₦{((selectedQuantities[sale.id] !== undefined ? selectedQuantities[sale.id] : sale.quantity) * sale.price_jalingo).toLocaleString()}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -767,6 +842,7 @@ export default function PaymentsPage() {
                   setShowPreview(false);
                   setStaffName('');
                   setSelectedItems([]);
+                  setSelectedQuantities({});
                   setPaymentAmount('');
                   setReferenceNumber('');
                   setNotes('');

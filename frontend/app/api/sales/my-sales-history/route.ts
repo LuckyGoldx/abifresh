@@ -57,20 +57,44 @@ export async function GET(req: NextRequest) {
       .eq('staff_id', userId)
       .or('payment_type.neq.commission,paid_by.is.null');
 
-    const approvedPayments = (paymentsData || []).filter((p: any) => p.status === 'approved');
-    const pendingPayments = (paymentsData || []).filter((p: any) => p.status === 'pending');
+    const paidOrPendingQuantities = new Map<string, number>();
 
-    const paidItemIds = new Set<string>();
-    const pendingItemIds = new Set<string>();
+    if (paymentsData) {
+      paymentsData.forEach((payment: any) => {
+        if ((payment.status === 'approved' || payment.status === 'pending') && payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
+          payment.items_paid_for.forEach((paidItem: any) => {
+            const saleIds: string[] = Array.isArray(paidItem.sale_ids)
+              ? paidItem.sale_ids
+              : paidItem.sale_id
+              ? [paidItem.sale_id]
+              : [];
+            const paidQty = parseFloat(paidItem.quantity) || 0;
+            if (paidQty <= 0) return;
 
-    for (const payment of approvedPayments) {
-      (payment.items_paid_for || []).forEach((item: any) => {
-        (item.sale_ids || []).forEach((sid: string) => { if (sid) paidItemIds.add(String(sid)); });
-      });
-    }
-    for (const payment of pendingPayments) {
-      (payment.items_paid_for || []).forEach((item: any) => {
-        (item.sale_ids || []).forEach((sid: string) => { if (sid) pendingItemIds.add(String(sid)); });
+            if (saleIds.length === 1) {
+              const sid = saleIds[0];
+              const existing = paidOrPendingQuantities.get(sid) || 0;
+              paidOrPendingQuantities.set(sid, existing + paidQty);
+            } else if (saleIds.length > 1) {
+              let remaining = paidQty;
+              for (const sid of saleIds) {
+                if (remaining <= 0) break;
+                const found = salesItemsData?.find((si: any) => si.id === sid);
+                const origQty = found ? parseFloat(found.quantity) || 0 : 0;
+                if (origQty <= 0) continue;
+                const already = paidOrPendingQuantities.get(sid) || 0;
+                const cap = Math.max(0, origQty - already);
+                const alloc = Math.min(cap, remaining);
+                paidOrPendingQuantities.set(sid, already + alloc);
+                remaining -= alloc;
+              }
+              if (remaining > 0 && saleIds[0]) {
+                const sid = saleIds[0];
+                paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + remaining);
+              }
+            }
+          });
+        }
       });
     }
 
@@ -87,16 +111,16 @@ export async function GET(req: NextRequest) {
       const itemObj = Array.isArray(item.items) ? item.items[0] : item.items;
       const saleObj = Array.isArray(item.sale) ? item.sale[0] : item.sale;
       const originalQuantity = parseFloat(item.quantity) || 0;
+      const paidOrPendingQty = paidOrPendingQuantities.get(item.id) || 0;
+      const remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
 
       const soldOutsideJalingo = saleObj?.sold_outside_jalingo || false;
       const baseUnitPrice = parseFloat(item.unit_price) || 0;
       const logisticsFee = parseFloat(item.logistics_fee) || 0;
       const effectiveUnitPrice = soldOutsideJalingo ? baseUnitPrice + logisticsFee : baseUnitPrice;
+      const totalAmount = remainingQuantity * effectiveUnitPrice;
       const originalTotalAmount = originalQuantity * effectiveUnitPrice;
       const saleDate = new Date(item.created_at);
-
-      const isApproved = paidItemIds.has(item.id);
-      const isPending = pendingItemIds.has(item.id);
 
       allTimeQuantity += originalQuantity;
       allTimeTotalAmount += originalTotalAmount;
@@ -106,28 +130,22 @@ export async function GET(req: NextRequest) {
         todaysTotalAmount += originalTotalAmount;
       }
 
-      if (isApproved) paidQuantity += originalQuantity;
+      if (remainingQuantity === 0) paidQuantity += originalQuantity;
 
       return {
         id: item.id,
         item_id: item.item_id,
         item_name: itemObj?.name || 'Unknown',
-        quantity: originalQuantity,
+        quantity: remainingQuantity,
         unit_price: effectiveUnitPrice,
-        total_amount: originalTotalAmount,
+        total_amount: totalAmount,
         sale_date: item.created_at,
         sold_outside_jalingo: soldOutsideJalingo,
-        isApproved,
-        isPending,
       };
     });
 
-    // Filter: return items not in approved or pending state
-    const unpaidItems = allSales.filter((item: any) => !item.isApproved && !item.isPending);
-
-    const approvedAmount = approvedPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-    const pendingAmount = pendingPayments.reduce((sum: number, p: any) => sum + parseFloat(p.amount || 0), 0);
-    const outstandingAmount = allTimeTotalAmount - approvedAmount - pendingAmount;
+    const unpaidItems = allSales.filter((item: any) => item.quantity > 0);
+    const outstandingAmount = unpaidItems.reduce((sum: number, item: any) => sum + item.total_amount, 0);
 
     return NextResponse.json({
       allItems: unpaidItems,
