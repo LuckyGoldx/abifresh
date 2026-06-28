@@ -380,6 +380,14 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
+      <div className="card border-l-4 border-l-red-700 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Grand Expenses</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-red-800 dark:text-red-300 break-words">₦{((report?.summary.total_expenses || 0) + (report?.summary.total_commission_paid || 0)).toLocaleString()}</p>
+          <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-red-700 opacity-20 self-end flex-shrink-0" />
+        </div>
+      </div>
+
       <div className="card border-l-4 border-l-purple-500 overflow-hidden">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Items Sold</p>

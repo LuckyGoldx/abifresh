@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     description: e.description || '',
     expense_date: e.expense_date,
     created_at: e.created_at,
-    status: e.status || 'approved',
+    status: 'approved',
   }));
 
   return NextResponse.json(expenses);
