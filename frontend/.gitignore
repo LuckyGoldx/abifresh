@@ -1,4 +1,3 @@
 .vercel
 .env*.local
-.env.local.example
 scratch/
