@@ -229,7 +229,7 @@ export default function AdminPostItemsPage() {
       setCart(cart.map(c => c.id === item.id ? { ...c, post_quantity: c.post_quantity + 1 } : c));
       setToast({ message: `${item.name} quantity increased`, type: 'success' });
     } else if (!existing) {
-      setCart([...cart, { ...item, post_quantity: 1 }]);
+      setCart([...cart, { ...item, post_quantity: Math.min(1, item.active_store_quantity) }]);
       setToast({ message: `${item.name} added`, type: 'success' });
     }
   };
