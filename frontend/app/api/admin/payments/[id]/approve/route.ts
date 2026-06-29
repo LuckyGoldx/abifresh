@@ -73,7 +73,7 @@ async function generateCommissionForPayment(paymentId: string) {
       if (commissionRate <= 0) continue;
 
       const proportion = origQty / totalOriginalQty;
-      const allocatedQty = Math.min(remainingQty, Math.round(paidQuantity * proportion * 10) / 10);
+      const allocatedQty = Math.min(remainingQty, paidQuantity * proportion);
       const finalAllocated = Math.min(allocatedQty, origQty);
       const commissionEarned = finalAllocated * commissionRate;
 
@@ -86,7 +86,14 @@ async function generateCommissionForPayment(paymentId: string) {
     }
 
     for (const update of updates) {
-      const updateData: any = { approved_commission: update.approved_commission };
+      const { data: currentRow } = await supabaseAdmin
+        .from('staff_sales')
+        .select('approved_commission')
+        .eq('id', update.id)
+        .single();
+      const currentComm = parseFloat(currentRow?.approved_commission) || 0;
+      const newComm = Math.round((currentComm + update.approved_commission) * 100) / 100;
+      const updateData: any = { approved_commission: newComm };
       if (update.commission_rate !== undefined) {
         updateData.commission_rate = update.commission_rate;
       }
