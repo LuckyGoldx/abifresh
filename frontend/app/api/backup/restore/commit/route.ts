@@ -18,6 +18,11 @@ const GENERATED_ALWAYS_COLUMNS: Record<string, string[]> = {
   staff_store: ['quantity_available'],
 };
 
+// Tables with non-PK unique constraints that require pre-deletion of conflicts
+const UNIQUE_CONFLICT_COLUMNS: Record<string, string[]> = {
+  expense_categories: ['name'],
+};
+
 // Restore order: parent tables before children to respect foreign key constraints
 const RESTORE_ORDER = [
   'users', 'items', 'expense_categories',
@@ -118,18 +123,13 @@ export async function POST(req: NextRequest) {
 
     const results: any[] = [];
 
-    // Phase 1: Delete all rows in DELETE_ORDER (children before parents)
-    // Only runs when replacing ALL tables (selectedTables empty).
-    // When specific tables are selected, upsert is used instead to avoid FK violations.
-    if (mode === 'replace' && selectedTables.length === 0) {
-      const sortedForDelete = [...sheetPairs].sort((a, b) => {
-        const ai = DELETE_ORDER.indexOf(a.tableName);
-        const bi = DELETE_ORDER.indexOf(b.tableName);
-        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-      });
-      for (const { tableName } of sortedForDelete) {
+    // Phase 1: Delete all rows from EVERY table in DELETE_ORDER (children before parents)
+    // unconditionally, so FK constraints are always satisfied. Merge mode skips this.
+    // If you need to preserve a table, use merge mode instead of replace.
+    if (mode === 'replace') {
+      for (const tableName of DELETE_ORDER) {
         const { error: delErr } = await supabaseAdmin.from(tableName).delete().not('id', 'is', null);
-        if (delErr) {
+        if (delErr && !delErr.message.includes('does not exist')) {
           results.push({ table: tableName, rowsTotal: 0, rowsInserted: 0, success: false, error: `Delete failed: ${delErr.message}` });
         }
       }
@@ -140,6 +140,26 @@ export async function POST(req: NextRequest) {
     for (const { tableName, rows } of sheetPairs) {
       if (selectedTables.length > 0 && !selectedTables.includes(tableName)) continue;
       const generatedCols = [...(GENERATED_ALWAYS_COLUMNS[tableName] ?? [])];
+
+      // Pre-delete conflicts on non-PK unique constraints (e.g. expense_categories.name)
+      // so upsert with onConflict: 'id' doesn't hit a unique violation on another column.
+      const conflictCols = UNIQUE_CONFLICT_COLUMNS[tableName];
+      if (conflictCols && rows.length > 0) {
+        for (const col of conflictCols) {
+          const values = [...new Set(rows.map(r => r[col]).filter(v => v != null))];
+          if (values.length > 0) {
+            const { error: conflictDelErr } = await supabaseAdmin
+              .from(tableName)
+              .delete()
+              .in(col, values);
+            if (conflictDelErr) {
+              results.push({ table: tableName, rowsTotal: 0, rowsInserted: 0, success: false, error: `Pre-delete failed on ${col}: ${conflictDelErr.message}` });
+              continue;
+            }
+          }
+        }
+        if (results.some(r => r.table === tableName && !r.success)) continue;
+      }
 
       try {
         const BATCH = 500;
