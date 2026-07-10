@@ -19,38 +19,58 @@ export async function GET(req: NextRequest) {
     const todayStartISO = todayStart.toISOString();
     const todayEndISO = todayEnd.toISOString();
 
-    // Fetch ALL credit sales (including cancelled)
-    let allSalesQuery = supabaseAdmin
-      .from('credit_sales')
-      .select('id, total_amount, total_quantity, status, created_at');
+    const PAGE = 1000;
 
-    let todaySalesQuery = supabaseAdmin
-      .from('credit_sales')
-      .select('id, total_amount, total_quantity, status')
-      .gte('created_at', todayStartISO)
-      .lte('created_at', todayEndISO);
-
-    if (isSalesStaff) {
-      allSalesQuery = allSalesQuery.eq('staff_id', authResult.id);
-      todaySalesQuery = todaySalesQuery.eq('staff_id', authResult.id);
+    // Fetch ALL credit sales (including cancelled) — paginated
+    const allSales: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        let q = supabaseAdmin
+          .from('credit_sales')
+          .select('id, total_amount, total_quantity, status, created_at');
+        if (isSalesStaff) q = q.eq('staff_id', authResult.id);
+        const { data } = await q.range(from, from + PAGE - 1);
+        if (!data || data.length === 0) break;
+        allSales.push(...data);
+        from += PAGE;
+      }
     }
 
-    const [allSalesRes, todaySalesRes] = await Promise.all([allSalesQuery, todaySalesQuery]);
-    const allSales = allSalesRes.data || [];
-    const todaySales = todaySalesRes.data || [];
-
-    // Fetch approved payments for computing paid amounts
-    let paymentsQuery = supabaseAdmin
-      .from('credit_payments')
-      .select('credit_sale_id, amount')
-      .eq('status', 'approved');
-
-    if (isSalesStaff) {
-      paymentsQuery = paymentsQuery.eq('staff_id', authResult.id);
+    // Today's credit sales
+    const todaySales: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        let q = supabaseAdmin
+          .from('credit_sales')
+          .select('id, total_amount, total_quantity, status')
+          .gte('created_at', todayStartISO)
+          .lte('created_at', todayEndISO);
+        if (isSalesStaff) q = q.eq('staff_id', authResult.id);
+        const { data } = await q.range(from, from + PAGE - 1);
+        if (!data || data.length === 0) break;
+        todaySales.push(...data);
+        from += PAGE;
+      }
     }
 
-    const { data: paymentsData } = await paymentsQuery;
-    const payments = paymentsData || [];
+    // Fetch approved payments for computing paid amounts — paginated
+    const payments: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        let q = supabaseAdmin
+          .from('credit_payments')
+          .select('credit_sale_id, amount')
+          .eq('status', 'approved');
+        if (isSalesStaff) q = q.eq('staff_id', authResult.id);
+        const { data } = await q.range(from, from + PAGE - 1);
+        if (!data || data.length === 0) break;
+        payments.push(...data);
+        from += PAGE;
+      }
+    }
 
     // Paid amount per sale
     const paidAmountBySale = new Map<string, number>();

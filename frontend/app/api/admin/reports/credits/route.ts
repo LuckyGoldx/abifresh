@@ -47,49 +47,85 @@ export async function GET(req: NextRequest) {
   const toISO = to.toISOString();
 
   try {
-    // 1. Fetch Credit Sales
-    let salesQuery = supabaseAdmin
-      .from('credit_sales')
-      .select('*, creditors(full_name), users:staff_id(full_name, username)')
-      .gte('created_at', fromISO)
-      .lte('created_at', toISO);
-    
-    if (staffId) salesQuery = salesQuery.eq('staff_id', staffId);
-    const { data: sales, error: salesError } = await salesQuery;
-    if (salesError) throw salesError;
+    const PAGE = 1000;
 
-    // 2. Fetch Credit Payments
-    let paymentsQuery = supabaseAdmin
-      .from('credit_payments')
-      .select('*, creditors(full_name), users:staff_id(full_name, username)')
-      .gte('created_at', fromISO)
-      .lte('created_at', toISO)
-      .eq('status', 'approved');
-    
-    if (staffId) paymentsQuery = paymentsQuery.eq('staff_id', staffId);
-    const { data: payments, error: paymentsError } = await paymentsQuery;
-    if (paymentsError) throw paymentsError;
-
-    // 3. Fetch Sale Items and Payment Items for cost/profit calculations
-    const saleIds = (sales || []).map(s => s.id);
-    let itemsData: any[] = [];
-    if (saleIds.length > 0) {
-      const { data: saleItems } = await supabaseAdmin
-        .from('credit_sale_items')
-        .select('*, item:item_id(price_jalingo), credit_sales(staff_id, creditor_id, status)')
-        .in('credit_sale_id', saleIds);
-      itemsData = saleItems || [];
+    // 1. Fetch Credit Sales — paginated
+    const sales: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        let q = supabaseAdmin
+          .from('credit_sales')
+          .select('*, creditors(full_name), users:staff_id(full_name, username)')
+          .gte('created_at', fromISO)
+          .lte('created_at', toISO);
+        if (staffId) q = q.eq('staff_id', staffId);
+        const { data, error } = await q.range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        sales.push(...data);
+        from += PAGE;
+      }
     }
 
-    // 3b. Fetch credit_payment_items for approved payments to track paid quantities and amounts
-    const paymentIds = (payments || []).map(p => p.id);
+    // 2. Fetch Credit Payments — paginated
+    const payments: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        let q = supabaseAdmin
+          .from('credit_payments')
+          .select('*, creditors(full_name), users:staff_id(full_name, username)')
+          .gte('created_at', fromISO)
+          .lte('created_at', toISO)
+          .eq('status', 'approved');
+        if (staffId) q = q.eq('staff_id', staffId);
+        const { data, error } = await q.range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        payments.push(...data);
+        from += PAGE;
+      }
+    }
+
+    // 3. Fetch Sale Items — paginated
+    const saleIds = sales.map(s => s.id);
+    let itemsData: any[] = [];
+    if (saleIds.length > 0) {
+      for (let i = 0; i < saleIds.length; i += 50) {
+        const batch = saleIds.slice(i, i + 50);
+        let from = 0;
+        while (true) {
+          const { data: saleItems } = await supabaseAdmin
+            .from('credit_sale_items')
+            .select('*, item:item_id(price_jalingo), credit_sales(staff_id, creditor_id, status)')
+            .in('credit_sale_id', batch)
+            .range(from, from + PAGE - 1);
+          if (!saleItems || saleItems.length === 0) break;
+          itemsData.push(...saleItems);
+          from += PAGE;
+        }
+      }
+    }
+
+    // 3b. Fetch credit_payment_items — paginated
+    const paymentIds = payments.map(p => p.id);
     let paymentItems: any[] = [];
     if (paymentIds.length > 0) {
-      const { data: pi } = await supabaseAdmin
-        .from('credit_payment_items')
-        .select('credit_sale_item_id, quantity, amount')
-        .in('credit_payment_id', paymentIds);
-      paymentItems = pi || [];
+      for (let i = 0; i < paymentIds.length; i += 50) {
+        const batch = paymentIds.slice(i, i + 50);
+        let from = 0;
+        while (true) {
+          const { data: pi } = await supabaseAdmin
+            .from('credit_payment_items')
+            .select('credit_sale_item_id, quantity, amount')
+            .in('credit_payment_id', batch)
+            .range(from, from + PAGE - 1);
+          if (!pi || pi.length === 0) break;
+          paymentItems.push(...pi);
+          from += PAGE;
+        }
+      }
     }
 
     // Build map: credit_sale_item_id → total paid quantity and total paid amount (from approved payments)
@@ -193,20 +229,43 @@ export async function GET(req: NextRequest) {
       return sum + Math.max(0, qty - paid);
     }, 0);
 
-    // All-time total quantity (ignoring date filter)
-    // For cancelled sales, only count what was paid
-    const { data: allTimeSales } = await supabaseAdmin
-      .from('credit_sales')
-      .select('id, total_quantity, status');
+    // All-time total quantity (ignoring date filter) — paginated
+    const allTimeSalesList: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        const { data } = await supabaseAdmin
+          .from('credit_sales')
+          .select('id, total_quantity, status')
+          .range(from, from + PAGE - 1);
+        if (!data || data.length === 0) break;
+        allTimeSalesList.push(...data);
+        from += PAGE;
+      }
+    }
 
-    const { data: allTimeItems } = await supabaseAdmin
-      .from('credit_sale_items')
-      .select('credit_sale_id, quantity, quantity_paid')
-      .in('credit_sale_id', (allTimeSales || []).map(s => s.id).filter(Boolean));
+    const allTimeItemsList: any[] = [];
+    {
+      const allTimeIds = allTimeSalesList.map(s => s.id).filter(Boolean);
+      for (let i = 0; i < allTimeIds.length; i += 50) {
+        const batch = allTimeIds.slice(i, i + 50);
+        let from = 0;
+        while (true) {
+          const { data } = await supabaseAdmin
+            .from('credit_sale_items')
+            .select('credit_sale_id, quantity, quantity_paid')
+            .in('credit_sale_id', batch)
+            .range(from, from + PAGE - 1);
+          if (!data || data.length === 0) break;
+          allTimeItemsList.push(...data);
+          from += PAGE;
+        }
+      }
+    }
 
-    const allTimeSaleStatus = new Map((allTimeSales || []).map(s => [s.id, s.status]));
+    const allTimeSaleStatus = new Map(allTimeSalesList.map(s => [s.id, s.status]));
     let totalQuantityAllTime = 0;
-    (allTimeItems || []).forEach((ri: any) => {
+    allTimeItemsList.forEach((ri: any) => {
       const status = allTimeSaleStatus.get(ri.credit_sale_id);
       const qty = Number(ri.quantity) || 0;
       const paidQty = Number(ri.quantity_paid) || 0;
@@ -304,16 +363,28 @@ export async function GET(req: NextRequest) {
       creditorPerf[id].collection += Number(p.amount) || 0;
     });
 
-    // 5. Fetch ALL staff who have EVER used the credit system (issuance, collection, or adding creditors)
-    const { data: salesStaffIds } = await supabaseAdmin.from('credit_sales').select('staff_id');
-    const { data: paymentsStaffIds } = await supabaseAdmin.from('credit_payments').select('staff_id');
-    const { data: addedByStaffIds } = await supabaseAdmin.from('creditors').select('added_by');
+    // 5. Fetch ALL staff who have EVER used the credit system — paginated
+    const creditStaffIds: string[] = [];
+    {
+      for (const tbl of ['credit_sales', 'credit_payments', 'creditors'] as const) {
+        const col = tbl === 'creditors' ? 'added_by' : 'staff_id';
+        let from = 0;
+        while (true) {
+          const { data } = await supabaseAdmin
+            .from(tbl)
+            .select(col)
+            .range(from, from + PAGE - 1);
+          if (!data || data.length === 0) break;
+          for (const row of data) {
+            const id = row[col as keyof typeof row] as string | undefined;
+            if (id) creditStaffIds.push(id);
+          }
+          from += PAGE;
+        }
+      }
+    }
 
-    const uniqueActiveIds = [...new Set([
-      ...(salesStaffIds || []).map(s => s.staff_id),
-      ...(paymentsStaffIds || []).map(p => p.staff_id),
-      ...(addedByStaffIds || []).map(c => c.added_by)
-    ])].filter(Boolean);
+    const uniqueActiveIds = [...new Set(creditStaffIds)].filter(Boolean);
 
     let activeStaffList: any[] = [];
     if (uniqueActiveIds.length > 0) {

@@ -13,52 +13,79 @@ export async function GET(req: NextRequest) {
   const activeOnly = searchParams.get('active') !== 'false';
   const isSalesStaff = authResult.role === 'sales' || authResult.role === 'sales_staff';
 
-  // 1. Fetch Creditors
-  let query = supabaseAdmin.from('creditors').select('*');
-  if (activeOnly) {
-    query = query.eq('is_active', true);
-  } else {
-    query = query.eq('is_active', false);
-  }
-  
-  // IF Sales Staff, strictly show ONLY creditors they added
-  if (isSalesStaff) {
-    query = query.eq('added_by', authResult.id);
-  }
+  const PAGE = 1000;
 
-  query = query.order('created_at', { ascending: false });
+  // 1. Fetch Creditors — paginated
+  const creditors: any[] = [];
+  {
+    let from = 0;
+    while (true) {
+      let q = supabaseAdmin.from('creditors').select('*');
+      if (activeOnly) q = q.eq('is_active', true);
+      else q = q.eq('is_active', false);
+      if (isSalesStaff) q = q.eq('added_by', authResult.id);
+      q = q.order('created_at', { ascending: false });
 
-  const { data: creditors, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-
-  // 2. Fetch sales and payments for calculations
-  let salesQuery = supabaseAdmin.from('credit_sales').select('id, creditor_id, staff_id, total_amount, total_quantity, receipt_number, created_at, status');
-  let paymentsQuery = supabaseAdmin.from('credit_payments').select('creditor_id, staff_id, amount, credit_sale_id').eq('status', 'approved');
-
-  // IF Sales Staff, only fetch THEIR sales and payments to calculate THEIR outstanding
-  if (isSalesStaff) {
-    salesQuery = salesQuery.eq('staff_id', authResult.id);
-    paymentsQuery = paymentsQuery.eq('staff_id', authResult.id);
+      const { data, error } = await q.range(from, from + PAGE - 1);
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      if (!data || data.length === 0) break;
+      creditors.push(...data);
+      from += PAGE;
+    }
   }
 
-  const [salesRes, paymentsRes] = await Promise.all([salesQuery, paymentsQuery]);
+  // 2. Fetch sales and payments for calculations — paginated
+  const allSales: any[] = [];
+  const allPayments: any[] = [];
+  {
+    let from = 0;
+    while (true) {
+      let q = supabaseAdmin
+        .from('credit_sales')
+        .select('id, creditor_id, staff_id, total_amount, total_quantity, receipt_number, created_at, status');
+      if (isSalesStaff) q = q.eq('staff_id', authResult.id);
+      const { data } = await q.range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      allSales.push(...data);
+      from += PAGE;
+    }
+  }
+  {
+    let from = 0;
+    while (true) {
+      let q = supabaseAdmin
+        .from('credit_payments')
+        .select('creditor_id, staff_id, amount, credit_sale_id')
+        .eq('status', 'approved');
+      if (isSalesStaff) q = q.eq('staff_id', authResult.id);
+      const { data } = await q.range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      allPayments.push(...data);
+      from += PAGE;
+    }
+  }
 
-  const allSales = salesRes.data || [];
-  const allPayments = paymentsRes.data || [];
-
-  // 3. Fetch items count per sale
+  // 3. Fetch items count per sale — paginated
   const saleIds = allSales.map(s => s.id);
   let countsMap: Record<string, number> = {};
   
   if (saleIds.length > 0) {
-    const { data: itemsCounts } = await supabaseAdmin
-      .from('credit_sale_items')
-      .select('credit_sale_id')
-      .in('credit_sale_id', saleIds);
-
-    itemsCounts?.forEach(item => {
-      countsMap[item.credit_sale_id] = (countsMap[item.credit_sale_id] || 0) + 1;
-    });
+    for (let i = 0; i < saleIds.length; i += 50) {
+      const batch = saleIds.slice(i, i + 50);
+      let from = 0;
+      while (true) {
+        const { data: itemsCounts } = await supabaseAdmin
+          .from('credit_sale_items')
+          .select('credit_sale_id')
+          .in('credit_sale_id', batch)
+          .range(from, from + PAGE - 1);
+        if (!itemsCounts || itemsCounts.length === 0) break;
+        itemsCounts.forEach(item => {
+          countsMap[item.credit_sale_id] = (countsMap[item.credit_sale_id] || 0) + 1;
+        });
+        from += PAGE;
+      }
+    }
   }
 
   const enhancedCreditors = creditors.map(c => {
