@@ -87,6 +87,8 @@ export default function ComprehensiveReportsPage() {
   const pathname = usePathname();
   const [report, setReport] = useState<ComprehensiveReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const loadProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'expenses' | 'inventory' | 'performance' | 'credits'>('overview');
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -145,6 +147,10 @@ export default function ComprehensiveReportsPage() {
 
   const fetchReport = async () => {
     setIsLoading(true);
+    setLoadProgress(0);
+    loadProgressRef.current = setInterval(() => {
+      setLoadProgress(prev => prev < 90 ? prev + 1 : prev);
+    }, 150);
     try {
       // Only send staffId OR staffRole, never both - they should be mutually exclusive
       const params = new URLSearchParams({
@@ -160,7 +166,12 @@ export default function ComprehensiveReportsPage() {
     } catch (error) {
       console.error('Failed to fetch report:', error);
     } finally {
-      setIsLoading(false);
+      setLoadProgress(100);
+      if (loadProgressRef.current) {
+        clearInterval(loadProgressRef.current);
+        loadProgressRef.current = null;
+      }
+      setTimeout(() => setIsLoading(false), 300);
     }
   };
 
@@ -333,7 +344,7 @@ export default function ComprehensiveReportsPage() {
     const isCreditProfitable = creditProfit >= 0;
 
     return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
       <div className="card border-l-4 border-l-blue-600 overflow-hidden">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales</p>
@@ -1219,6 +1230,10 @@ export default function ComprehensiveReportsPage() {
 
       {renderFilterSection()}
 
+      {isLoading ? (
+        <LoadingLogo text="Loading report data..." fullScreen={false} progress={loadProgress} />
+      ) : report ? (
+        <>
       {/* Tab Navigation with Scroll Indicators */}
       <div className="relative">
         {/* Left Arrow - visible on mobile/tablet */}
@@ -1286,6 +1301,13 @@ export default function ComprehensiveReportsPage() {
       {activeTab === 'inventory' && renderInventoryTab()}
       {activeTab === 'performance' && renderPerformanceTab()}
       {activeTab === 'credits' && renderCreditsTab()}
+
+      </>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400">No report data available</p>
+        </div>
+      )}
 
       {showDetailsModal && selectedStaffDetail && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

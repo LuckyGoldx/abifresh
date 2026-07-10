@@ -5,9 +5,10 @@ import { useThemeStore } from '@/store/auth';
 interface LoadingLogoProps {
   text?: string;
   fullScreen?: boolean;
+  progress?: number; // 0-100, shows progress bar when provided
 }
 
-export default function LoadingLogo({ text, fullScreen = false }: LoadingLogoProps) {
+export default function LoadingLogo({ text, fullScreen = false, progress }: LoadingLogoProps) {
   const theme = useThemeStore((state) => state.theme);
   const isDarkMode = theme === 'dark';
 
@@ -58,6 +59,19 @@ export default function LoadingLogo({ text, fullScreen = false }: LoadingLogoPro
             <circle cx="204" cy="47" r="2" fill="#f472b6" />
           </svg>
         </div>
+        {progress !== undefined && (
+          <div className="w-48 flex flex-col items-center gap-1">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-pink-500 h-2 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+              />
+            </div>
+            <span className="text-xs font-semibold text-pink-600 dark:text-pink-400">
+              {Math.round(progress)}%
+            </span>
+          </div>
+        )}
         {text && (
           <p className="text-sm text-gray-500 dark:text-gray-400 tracking-wide">{text}</p>
         )}
