@@ -104,14 +104,27 @@ export async function GET(req: NextRequest) {
       : [];
   const hasStaffFilter = staffId !== undefined || roleStaffIds !== null;
 
-  // Fetch receipt items for receipts we found
+  // Fetch receipt items for receipts we found, paginated to avoid Supabase's 1000-row cap
   const receiptIdList = receipts.map((r: any) => r.id);
-  const { data: receiptItems } = receiptIdList.length > 0
-    ? await supabaseAdmin
-        .from('receipt_items')
-        .select('*, items(id, name, category, unit_price)')
-        .in('receipt_id', receiptIdList)
-    : { data: [] };
+  const receiptItems: any[] = [];
+  if (receiptIdList.length > 0) {
+    const PAGE = 1000;
+    // Batch receipt IDs by 50 to stay within Supabase's URL length limit for .in()
+    for (let i = 0; i < receiptIdList.length; i += 50) {
+      const idBatch = receiptIdList.slice(i, i + 50);
+      let from = 0;
+      while (true) {
+        const { data } = await supabaseAdmin
+          .from('receipt_items')
+          .select('*, items(id, name, category, unit_price)')
+          .in('receipt_id', idBatch)
+          .range(from, from + PAGE - 1);
+        if (!data || data.length === 0) break;
+        receiptItems.push(...data);
+        from += PAGE;
+      }
+    }
+  }
 
   // Fetch total commission generated: sum of staff_sales.approved_commission within the date range.
   let totalCommissionGenerated = 0;
