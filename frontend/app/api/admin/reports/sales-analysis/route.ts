@@ -113,66 +113,83 @@ export async function GET(req: NextRequest) {
 
     const allSalesRows: SaleRow[] = [];
 
-    // 4a. Query staff_sales (commission / non-commission staff)
-    let ssQuery = supabaseAdmin
-      .from('staff_sales')
-      .select('id, staff_id, item_id, quantity, unit_price, total_amount, sale_date, created_at, sold_outside_jalingo, location');
+    // 4a. Query staff_sales (commission / non-commission staff) — paginated to avoid 1000-row cap
+    {
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        let ssQuery = supabaseAdmin
+          .from('staff_sales')
+          .select('id, staff_id, item_id, quantity, unit_price, total_amount, sale_date, created_at, sold_outside_jalingo, location');
 
-    if (applyDateFilter) {
-      ssQuery = ssQuery.gte('created_at', fromISO).lte('created_at', toISO);
-    }
-    if (staffId) {
-      ssQuery = ssQuery.eq('staff_id', staffId);
-    } else if (roleStaffIds !== null) {
-      ssQuery = ssQuery.in('staff_id', roleStaffIds);
-    }
+        if (applyDateFilter) {
+          ssQuery = ssQuery.gte('created_at', fromISO).lte('created_at', toISO);
+        }
+        if (staffId) {
+          ssQuery = ssQuery.eq('staff_id', staffId);
+        } else if (roleStaffIds !== null) {
+          ssQuery = ssQuery.in('staff_id', roleStaffIds);
+        }
 
-    const { data: staffSalesData, error: ssError } = await ssQuery;
-    if (ssError) throw ssError;
+        const { data: staffSalesData, error: ssError } = await ssQuery.range(from, from + PAGE - 1);
+        if (ssError) throw ssError;
+        if (!staffSalesData || staffSalesData.length === 0) break;
 
-    for (const row of staffSalesData || []) {
-      const qty = Number(row.quantity) || 0;
-      const unitPrice = Number(row.unit_price) || 0;
-      const totalAmt = Number(row.total_amount) || (qty * unitPrice);
-      const outsideJalingo = row.sold_outside_jalingo || row.location === 'Outside Jalingo';
-      allSalesRows.push({
-        staff_id: row.staff_id,
-        item_id: row.item_id,
-        quantity: qty,
-        unit_price: unitPrice,
-        total_amount: totalAmt,
-        transaction_id: `ss_${row.id}`,
-        created_at: row.created_at || row.sale_date,
-        sold_outside_jalingo: outsideJalingo,
-      });
-    }
-
-    // 4b. Query sales + sales_items (sales portal staff)
-    let salesQuery = supabaseAdmin
-      .from('sales')
-      .select('id, staff_id, created_at, sold_outside_jalingo');
-
-    if (applyDateFilter) {
-      salesQuery = salesQuery.gte('created_at', fromISO).lte('created_at', toISO);
-    }
-    if (staffId) {
-      salesQuery = salesQuery.eq('staff_id', staffId);
-    } else if (roleStaffIds !== null) {
-      salesQuery = salesQuery.in('staff_id', roleStaffIds);
+        for (const row of staffSalesData) {
+          const qty = Number(row.quantity) || 0;
+          const unitPrice = Number(row.unit_price) || 0;
+          const totalAmt = Number(row.total_amount) || (qty * unitPrice);
+          const outsideJalingo = row.sold_outside_jalingo || row.location === 'Outside Jalingo';
+          allSalesRows.push({
+            staff_id: row.staff_id,
+            item_id: row.item_id,
+            quantity: qty,
+            unit_price: unitPrice,
+            total_amount: totalAmt,
+            transaction_id: `ss_${row.id}`,
+            created_at: row.created_at || row.sale_date,
+            sold_outside_jalingo: outsideJalingo,
+          });
+        }
+        from += PAGE;
+      }
     }
 
-    const { data: salesData, error: salesError } = await salesQuery;
-    if (salesError) throw salesError;
-
-    const portalSaleIds = (salesData || []).map((s: any) => s.id);
+    // 4b. Query sales + sales_items (sales portal staff) — paginated
+    const portalSaleIds: string[] = [];
     const saleStaffMap = new Map<string, string>();
     const saleDateMap = new Map<string, string>();
     const saleLocationMap = new Map<string, boolean>();
-    (salesData || []).forEach((s: any) => {
-      saleStaffMap.set(s.id, s.staff_id);
-      saleDateMap.set(s.id, s.created_at);
-      saleLocationMap.set(s.id, s.sold_outside_jalingo || false);
-    });
+    {
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        let salesQuery = supabaseAdmin
+          .from('sales')
+          .select('id, staff_id, created_at, sold_outside_jalingo');
+
+        if (applyDateFilter) {
+          salesQuery = salesQuery.gte('created_at', fromISO).lte('created_at', toISO);
+        }
+        if (staffId) {
+          salesQuery = salesQuery.eq('staff_id', staffId);
+        } else if (roleStaffIds !== null) {
+          salesQuery = salesQuery.in('staff_id', roleStaffIds);
+        }
+
+        const { data: salesData, error: salesError } = await salesQuery.range(from, from + PAGE - 1);
+        if (salesError) throw salesError;
+        if (!salesData || salesData.length === 0) break;
+
+        for (const s of salesData) {
+          portalSaleIds.push(s.id);
+          saleStaffMap.set(s.id, s.staff_id);
+          saleDateMap.set(s.id, s.created_at);
+          saleLocationMap.set(s.id, s.sold_outside_jalingo || false);
+        }
+        from += PAGE;
+      }
+    }
 
     if (portalSaleIds.length > 0) {
       const { data: salesItemsData, error: siError } = await supabaseAdmin
