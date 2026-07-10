@@ -42,11 +42,23 @@ export async function GET(req: NextRequest) {
     query = query.lte('created_at', endDate.toISOString());
   }
 
-  // When no perPage and no search ? return ALL receipts (backward compatible)
+  // When no perPage and no search ? return ALL receipts — paginated to avoid 1000-row cap
   if ((!perPage || perPage <= 0) && !search && !staffId && !dateFrom && !dateTo) {
-    const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-    return NextResponse.json(data || []);
+    const PAGE = 1000;
+    const allReceipts: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        const { data, error } = await query
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+        if (!data || data.length === 0) break;
+        allReceipts.push(...data);
+        from += PAGE;
+      }
+    }
+    return NextResponse.json(allReceipts);
   }
 
   // Paginated: always used when search/filter is active, or when perPage is set

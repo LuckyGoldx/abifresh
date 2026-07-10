@@ -129,34 +129,42 @@ export async function GET(req: NextRequest) {
   // Fetch total commission generated: sum of staff_sales.approved_commission within the date range.
   let totalCommissionGenerated = 0;
   if (!hasStaffFilter || filteredStaffIds.length > 0) {
-    let commissionSalesQuery = supabaseAdmin
-      .from('staff_sales')
-      .select('approved_commission')
-      .gte('created_at', fromISO)
-      .lte('created_at', toISO);
-    if (filteredStaffIds.length > 0) commissionSalesQuery = commissionSalesQuery.in('staff_id', filteredStaffIds);
-    const { data: commissionSalesData } = await commissionSalesQuery;
-    totalCommissionGenerated = (commissionSalesData || []).reduce(
-      (sum: number, s: any) => sum + (parseFloat(s.approved_commission) || 0), 0
-    );
+    const PAGE = 1000;
+    let from = 0;
+    while (true) {
+      let q = supabaseAdmin
+        .from('staff_sales')
+        .select('approved_commission')
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO);
+      if (filteredStaffIds.length > 0) q = q.in('staff_id', filteredStaffIds);
+      const { data } = await q.range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      totalCommissionGenerated += data.reduce((sum: number, s: any) => sum + (parseFloat(s.approved_commission) || 0), 0);
+      from += PAGE;
+    }
   }
 
   // Fetch total commission paid: sum of staff_payments.amount where admin paid commission.
   let totalCommissionPaid = 0;
   if (!hasStaffFilter || filteredStaffIds.length > 0) {
-    let commissionPaidQuery = supabaseAdmin
-      .from('staff_payments')
-      .select('amount')
-      .eq('payment_type', 'commission')
-      .in('status', ['paid', 'approved'])
-      .not('paid_by', 'is', null)
-      .gte('created_at', fromISO)
-      .lte('created_at', toISO);
-    if (filteredStaffIds.length > 0) commissionPaidQuery = commissionPaidQuery.in('staff_id', filteredStaffIds);
-    const { data: commissionPaidData } = await commissionPaidQuery;
-    totalCommissionPaid = (commissionPaidData || []).reduce(
-      (sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0
-    );
+    const PAGE = 1000;
+    let from = 0;
+    while (true) {
+      let q = supabaseAdmin
+        .from('staff_payments')
+        .select('amount')
+        .eq('payment_type', 'commission')
+        .in('status', ['paid', 'approved'])
+        .not('paid_by', 'is', null)
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO);
+      if (filteredStaffIds.length > 0) q = q.in('staff_id', filteredStaffIds);
+      const { data } = await q.range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      totalCommissionPaid += data.reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
+      from += PAGE;
+    }
   }
 
   // Fetch expenses (all statuses — we filter by role below)

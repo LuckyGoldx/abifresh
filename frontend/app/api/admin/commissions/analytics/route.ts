@@ -26,16 +26,24 @@ export async function GET(req: NextRequest) {
   const startISO = effectiveStart.toISOString();
   const endISO = effectiveEnd.toISOString();
 
-  // 1. Get all commission sales in date range
-  const { data: salesData, error: salesError } = await supabaseAdmin
-    .from('staff_sales')
-    .select('id, staff_id, item_id, quantity, total_amount, approved_commission, sale_date, created_at')
-    .gte('sale_date', startISO)
-    .lte('sale_date', endISO);
-
-  if (salesError) return NextResponse.json({ error: salesError.message }, { status: 400 });
-
-  const allSales = salesData || [];
+  // 1. Get all commission sales in date range — paginated
+  const PAGE = 1000;
+  const allSales: any[] = [];
+  {
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabaseAdmin
+        .from('staff_sales')
+        .select('id, staff_id, item_id, quantity, total_amount, approved_commission, sale_date, created_at')
+        .gte('sale_date', startISO)
+        .lte('sale_date', endISO)
+        .range(from, from + PAGE - 1);
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      if (!data || data.length === 0) break;
+      allSales.push(...data);
+      from += PAGE;
+    }
+  }
 
   // Filter to only approved sales (payment submitted & approved by admin)
   const sales = allSales.filter((s: any) => parseFloat(s.approved_commission) > 0);

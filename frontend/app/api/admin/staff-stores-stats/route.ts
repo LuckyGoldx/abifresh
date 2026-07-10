@@ -9,22 +9,43 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
-  // Get all staff_store entries grouped by staff
-  const { data: storeData, error } = await supabaseAdmin
-    .from('staff_store')
-    .select(`
-      staff_id,
-      quantity,
-      quantity_sold,
-      users:staff_id(full_name, role)
-    `);
+  // Get all staff_store entries grouped by staff — paginated to avoid 1000-row cap
+  const PAGE = 1000;
+  const storeData: any[] = [];
+  {
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabaseAdmin
+        .from('staff_store')
+        .select(`
+          staff_id,
+          quantity,
+          quantity_sold,
+          users:staff_id(full_name, role)
+        `)
+        .range(from, from + PAGE - 1);
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      if (!data || data.length === 0) break;
+      storeData.push(...data);
+      from += PAGE;
+    }
+  }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-
-  // Get actual amounts sold from staff_sales (source of truth)
-  const { data: salesData } = await supabaseAdmin
-    .from('staff_sales')
-    .select('staff_id, total_amount');
+  // Get actual amounts sold from staff_sales (source of truth) — paginated
+  const salesData: any[] = [];
+  {
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabaseAdmin
+        .from('staff_sales')
+        .select('staff_id, total_amount')
+        .range(from, from + PAGE - 1);
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      if (!data || data.length === 0) break;
+      salesData.push(...data);
+      from += PAGE;
+    }
+  }
 
   // Build a map of actual total_amount_sold per staff from sales records
   const salesAmountMap = new Map<string, number>();

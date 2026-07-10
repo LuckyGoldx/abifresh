@@ -26,47 +26,88 @@ export async function GET(req: NextRequest) {
     if (usersErr) throw usersErr;
     if (!users || users.length === 0) return NextResponse.json([]);
 
-    // 2. Batch fetch all data in parallel
-    const [staffSalesRes, salesRes, paymentsRes] = await Promise.all([
-      // Non-sales staff sales (staff_sales table)
-      supabaseAdmin.from('staff_sales').select('staff_id, quantity, total_amount'),
-      // Sales staff sales (sales table)
-      supabaseAdmin.from('sales').select('id, staff_id, total_amount'),
-      // All approved/pending payments across all staff
-      supabaseAdmin
-        .from('staff_payments')
-        .select('staff_id, amount, status')
-        .in('status', ['approved', 'pending'])
-        .or('payment_type.neq.commission,paid_by.is.null')
-        .neq('payment_type', 'credit_remittance'),
-    ]);
+    // 2. Batch fetch all data — all paginated to avoid 1000-row cap
+    const PAGE = 1000;
 
-    if (staffSalesRes.error) throw staffSalesRes.error;
-    if (salesRes.error) throw salesRes.error;
-    if (paymentsRes.error) throw paymentsRes.error;
+    // staff_sales
+    const staffSalesAll: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('staff_sales')
+          .select('staff_id, quantity, total_amount')
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        staffSalesAll.push(...data);
+        from += PAGE;
+      }
+    }
+
+    // sales
+    const salesAll: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('sales')
+          .select('id, staff_id, total_amount')
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        salesAll.push(...data);
+        from += PAGE;
+      }
+    }
+
+    // staff_payments (approved/pending)
+    const paymentsAll: any[] = [];
+    {
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('staff_payments')
+          .select('staff_id, amount, status')
+          .in('status', ['approved', 'pending'])
+          .or('payment_type.neq.commission,paid_by.is.null')
+          .neq('payment_type', 'credit_remittance')
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        paymentsAll.push(...data);
+        from += PAGE;
+      }
+    }
 
     // 3. For sales staff qty: fetch sales_items only for relevant sale IDs
     const salesStaffIds = new Set(
       users.filter((u: any) => SALES_ROLES.has(u.role)).map((u: any) => u.id)
     );
-    const salesStaffSaleIds = (salesRes.data || [])
+    const salesStaffSaleIds = salesAll
       .filter((s: any) => salesStaffIds.has(s.staff_id))
       .map((s: any) => s.id);
 
     let salesItemsData: any[] = [];
     if (salesStaffSaleIds.length > 0) {
-      const { data: si, error: siErr } = await supabaseAdmin
-        .from('sales_items')
-        .select('sale_id, quantity');
-      if (siErr) throw siErr;
-      // Filter to only relevant sale_ids in memory (avoids .in() length limits for large sets)
-      const idSet = new Set(salesStaffSaleIds);
-      salesItemsData = (si || []).filter((x: any) => idSet.has(x.sale_id));
+      const PAGE = 1000;
+      let from = 0;
+      while (true) {
+        const { data: si, error: siErr } = await supabaseAdmin
+          .from('sales_items')
+          .select('sale_id, quantity')
+          .range(from, from + PAGE - 1);
+        if (siErr) throw siErr;
+        if (!si || si.length === 0) break;
+        const idSet = new Set(salesStaffSaleIds);
+        salesItemsData.push(...si.filter((x: any) => idSet.has(x.sale_id)));
+        from += PAGE;
+      }
     }
 
     // 4. Aggregate staff_sales per staff_id
     const staffSalesAgg: Record<string, { qty: number; amount: number }> = {};
-    for (const s of staffSalesRes.data || []) {
+    for (const s of staffSalesAll) {
       if (!staffSalesAgg[s.staff_id]) staffSalesAgg[s.staff_id] = { qty: 0, amount: 0 };
       staffSalesAgg[s.staff_id].qty += parseFloat(s.quantity) || 0;
       staffSalesAgg[s.staff_id].amount += parseFloat(s.total_amount) || 0;
@@ -75,7 +116,7 @@ export async function GET(req: NextRequest) {
     // 5. Aggregate sales (sales staff)
     const saleToStaff: Record<string, string> = {};
     const salesAgg: Record<string, { qty: number; amount: number }> = {};
-    for (const s of salesRes.data || []) {
+    for (const s of salesAll) {
       saleToStaff[s.id] = s.staff_id;
       if (!salesAgg[s.staff_id]) salesAgg[s.staff_id] = { qty: 0, amount: 0 };
       salesAgg[s.staff_id].amount += parseFloat(s.total_amount) || 0;
@@ -89,7 +130,7 @@ export async function GET(req: NextRequest) {
 
     // 6. Aggregate payments per staff_id
     const pmAgg: Record<string, { approved: number; pending: number }> = {};
-    for (const p of paymentsRes.data || []) {
+    for (const p of paymentsAll) {
       if (!pmAgg[p.staff_id]) pmAgg[p.staff_id] = { approved: 0, pending: 0 };
       const amt = parseFloat(p.amount) || 0;
       if (p.status === 'approved') pmAgg[p.staff_id].approved += amt;

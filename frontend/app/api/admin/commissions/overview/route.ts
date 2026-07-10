@@ -28,42 +28,55 @@ export async function GET(req: NextRequest) {
   const staffList = commissionStaff || [];
   const staffIds = staffList.map((s: any) => s.id);
 
-  // 2. Get all commission-generating sales grouped by staff_id
+  // 2. Get all commission-generating sales grouped by staff_id — paginated
+  const PAGE = 1000;
   let salesTotals: Record<string, { generated: number; count: number; units: number; amount: number }> = {};
   if (staffIds.length > 0) {
-    const { data: salesData } = await supabaseAdmin
-      .from('staff_sales')
-      .select('staff_id, approved_commission, quantity, total_amount')
-      .in('staff_id', staffIds);
+    let from = 0;
+    while (true) {
+      const { data: salesData } = await supabaseAdmin
+        .from('staff_sales')
+        .select('staff_id, approved_commission, quantity, total_amount')
+        .in('staff_id', staffIds)
+        .range(from, from + PAGE - 1);
+      if (!salesData || salesData.length === 0) break;
 
-    (salesData || []).forEach((s: any) => {
-      const id = s.staff_id;
-      if (!salesTotals[id]) salesTotals[id] = { generated: 0, count: 0, units: 0, amount: 0 };
-      salesTotals[id].generated += parseFloat(s.approved_commission) || 0;
-      const isApproved = parseFloat(s.approved_commission) > 0;
-      if (isApproved) {
-        salesTotals[id].count += 1;
-        salesTotals[id].units += s.quantity || 0;
-        salesTotals[id].amount += parseFloat(s.total_amount) || 0;
+      for (const s of salesData) {
+        const id = s.staff_id;
+        if (!salesTotals[id]) salesTotals[id] = { generated: 0, count: 0, units: 0, amount: 0 };
+        salesTotals[id].generated += parseFloat(s.approved_commission) || 0;
+        const isApproved = parseFloat(s.approved_commission) > 0;
+        if (isApproved) {
+          salesTotals[id].count += 1;
+          salesTotals[id].units += s.quantity || 0;
+          salesTotals[id].amount += parseFloat(s.total_amount) || 0;
+        }
       }
-    });
+      from += PAGE;
+    }
   }
 
-  // 3. Get all commission payments grouped by staff_id
+  // 3. Get all commission payments grouped by staff_id — paginated
   let paidTotals: Record<string, number> = {};
   if (staffIds.length > 0) {
-    const { data: paymentsData } = await supabaseAdmin
-      .from('staff_payments')
-      .select('staff_id, amount')
-      .in('staff_id', staffIds)
-      .eq('payment_type', 'commission')
-      .in('status', ['paid', 'approved'])
-      .not('paid_by', 'is', null);
+    let from = 0;
+    while (true) {
+      const { data: paymentsData } = await supabaseAdmin
+        .from('staff_payments')
+        .select('staff_id, amount')
+        .in('staff_id', staffIds)
+        .eq('payment_type', 'commission')
+        .in('status', ['paid', 'approved'])
+        .not('paid_by', 'is', null)
+        .range(from, from + PAGE - 1);
+      if (!paymentsData || paymentsData.length === 0) break;
 
-    (paymentsData || []).forEach((p: any) => {
-      const id = p.staff_id;
-      paidTotals[id] = (paidTotals[id] || 0) + (parseFloat(p.amount) || 0);
-    });
+      for (const p of paymentsData) {
+        const id = p.staff_id;
+        paidTotals[id] = (paidTotals[id] || 0) + (parseFloat(p.amount) || 0);
+      }
+      from += PAGE;
+    }
   }
 
   // 4. Build per-staff commission breakdown

@@ -55,8 +55,19 @@ export async function GET(req: NextRequest) {
   if (startDate) query = query.gte('created_at', startDate);
   if (endDate) query = query.lte('created_at', endDate);
 
-  const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  // Paginate to avoid 1000-row cap
+  const PAGE = 1000;
+  const allPayments: any[] = [];
+  {
+    let from = 0;
+    while (true) {
+      const { data, error } = await query.range(from, from + PAGE - 1);
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      if (!data || data.length === 0) break;
+      allPayments.push(...data);
+      from += PAGE;
+    }
+  }
 
-  return NextResponse.json(await enrichPayments(data || []));
+  return NextResponse.json(await enrichPayments(allPayments));
 }

@@ -25,50 +25,65 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. Sum from staff_sales (non-commission & commission staff)
-    const { data: staffSalesData, error: staffSalesError } = await supabaseAdmin
-      .from('staff_sales')
-      .select('total_amount');
+    const PAGE = 1000;
 
-    if (staffSalesError) throw staffSalesError;
+    // 1. Sum from staff_sales (non-commission & commission staff) — paginated
+    let staffSalesTotal = 0;
+    {
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('staff_sales')
+          .select('total_amount')
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        staffSalesTotal += data.reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
+        from += PAGE;
+      }
+    }
 
-    const staffSalesTotal = (staffSalesData || []).reduce(
-      (sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0),
-      0
-    );
-
-    // 2. Sum from sales table (sales staff)
-    const { data: salesData, error: salesError } = await supabaseAdmin
-      .from('sales')
-      .select('total_amount');
-
-    if (salesError) throw salesError;
-
-    const salesStaffTotal = (salesData || []).reduce(
-      (sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0),
-      0
-    );
+    // 2. Sum from sales table (sales staff) — paginated
+    let salesStaffTotal = 0;
+    {
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('sales')
+          .select('total_amount')
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        salesStaffTotal += data.reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
+        from += PAGE;
+      }
+    }
 
     const totalSalesAmount = staffSalesTotal + salesStaffTotal;
 
-    // 3. Sum approved and pending payments across all staff
-    //    Exclude admin-paid commission records (same filter as other payment routes)
-    const { data: paymentsData, error: paymentsError } = await supabaseAdmin
-      .from('staff_payments')
-      .select('amount, status')
-      .in('status', ['approved', 'pending'])
-      .or('payment_type.neq.commission,paid_by.is.null')
-      .neq('payment_type', 'credit_remittance');
-
-    if (paymentsError) throw paymentsError;
-
+    // 3. Sum approved and pending payments across all staff — paginated
     let approvedAmount = 0;
     let pendingAmount = 0;
-    (paymentsData || []).forEach((p: any) => {
-      const amt = parseFloat(p.amount) || 0;
-      if (p.status === 'approved') approvedAmount += amt;
-      else if (p.status === 'pending') pendingAmount += amt;
-    });
+    {
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabaseAdmin
+          .from('staff_payments')
+          .select('amount, status')
+          .in('status', ['approved', 'pending'])
+          .or('payment_type.neq.commission,paid_by.is.null')
+          .neq('payment_type', 'credit_remittance')
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const p of data) {
+          const amt = parseFloat(p.amount) || 0;
+          if (p.status === 'approved') approvedAmount += amt;
+          else if (p.status === 'pending') pendingAmount += amt;
+        }
+        from += PAGE;
+      }
+    }
 
     const outstandingTotal = Math.max(0, totalSalesAmount - approvedAmount - pendingAmount);
 
