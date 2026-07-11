@@ -219,7 +219,7 @@ export default function AdminStaffStorePage() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-yellow-700 dark:text-yellow-300 font-medium">Total Quantity</p>
-              <p className="break-words text-3xl font-bold text-yellow-900 dark:text-yellow-100 mt-2">{totalStats.total_quantity.toLocaleString()}</p>
+              <p className="break-words text-3xl font-bold text-yellow-900 dark:text-yellow-100 mt-2">{formatQty(totalStats.total_quantity)}</p>
             </div>
             <ShoppingCart className="w-8 h-8 text-yellow-300 opacity-50" />
           </div>
@@ -229,7 +229,7 @@ export default function AdminStaffStorePage() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs text-green-700 dark:text-green-300 font-medium">Sold</p>
-              <p className="break-words text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{totalStats.total_sold.toLocaleString()}</p>
+              <p className="break-words text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{formatQty(totalStats.total_sold)}</p>
             </div>
             <TrendingUp className="w-8 h-8 text-green-300 opacity-50" />
           </div>
@@ -421,7 +421,7 @@ export default function AdminStaffStorePage() {
             </div>
             <div className="bg-green-50 dark:bg-green-900 p-3 rounded overflow-hidden">
               <p className="text-xs text-green-700 dark:text-green-300">Sold</p>
-              <p className="break-words text-2xl font-bold text-green-900 dark:text-green-100">{(staffDetails.total_sold || 0).toLocaleString()}</p>
+              <p className="break-words text-2xl font-bold text-green-900 dark:text-green-100">{formatQty(staffDetails.total_sold || 0)}</p>
             </div>
             <div className="bg-indigo-50 dark:bg-indigo-900 p-3 rounded overflow-hidden">
               <p className="text-xs text-indigo-700 dark:text-indigo-300">Amount Sold</p>
