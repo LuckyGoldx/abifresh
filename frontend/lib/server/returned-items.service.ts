@@ -107,6 +107,7 @@ export class ReturnedItemsService {
             receiver_staff_id: actualReceiverSalesStaffId,
             quantity: item.quantity,
             unit_price: item.unit_price,
+            location: item.location || 'Inside Jalingo',
             status: 'pending',
           },
         ])
@@ -362,7 +363,6 @@ export class ReturnedItemsService {
     if (storeError) throw storeError;
 
     // Only subtract PENDING returns (soft-locked). Accepted returns already reduced staff_store.quantity.
-    // Note: returned_items table does NOT have a location column, so locking is by item_id only.
     const { data: returnedItems, error: returnError } = await supabaseAdmin
       .from('returned_items')
       .select('item_id, quantity, status')

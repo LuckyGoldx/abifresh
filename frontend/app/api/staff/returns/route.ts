@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       item_id: item.item_id,
       quantity: item.quantity,
       unit_price: item.unit_price,
+      location: item.location || 'Inside Jalingo',
       status: 'pending',
     }));
 

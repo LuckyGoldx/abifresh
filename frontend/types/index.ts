@@ -293,6 +293,7 @@ export interface ReturnedItem {
   item_name: string;
   quantity: number;
   unit_price: number;
+  location?: string;
   requester_name: string;
   receiver_name: string;
   status: 'pending' | 'accepted' | 'rejected';
