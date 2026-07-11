@@ -457,7 +457,7 @@ export default function PaymentsPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300 font-medium">
-                      {staff.total_qty.toLocaleString()}
+                      {formatQty(staff.total_qty)}
                     </td>
                     <td className="py-3 px-4 text-right font-semibold text-blue-600 dark:text-blue-400">
                       ₦{(staff.total_sales_amount || 0).toLocaleString()}
@@ -493,7 +493,7 @@ export default function PaymentsPage() {
                 <tr className="bg-gray-100 dark:bg-gray-700 border-t-2 dark:border-gray-600 font-bold text-sm">
                   <td colSpan={2} className="py-3 px-4 text-gray-700 dark:text-gray-200">Totals</td>
                   <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-200">
-                    {visibleStaff.reduce((s, r) => s + r.total_qty, 0).toLocaleString()}
+                    {formatQty(visibleStaff.reduce((s, r) => s + r.total_qty, 0))}
                   </td>
                   <td className="py-3 px-4 text-right text-blue-700 dark:text-blue-300">
                     ₦{visibleStaff.reduce((s, r) => s + r.total_sales_amount, 0).toLocaleString()}

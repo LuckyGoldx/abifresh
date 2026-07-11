@@ -221,7 +221,7 @@ export default function StaffPaymentDetailPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="card bg-purple-50 dark:bg-purple-950 border-l-4 border-l-purple-500">
           <div className="flex items-start gap-2">
             <Package className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 text-purple-600 mt-0.5 flex-shrink-0" />

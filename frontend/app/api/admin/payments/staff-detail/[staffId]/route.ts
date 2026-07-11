@@ -150,7 +150,7 @@ export async function GET(
       );
 
       // Build paid quantities map using quantity-based proportional distribution
-      // (matching sales-history/route.ts logic)
+      // matching sales-history/route.ts logic
       const paidQuantities = new Map<string, number>();
       for (const p of paymentsData || []) {
         if (p.status !== 'approved' && p.status !== 'pending') continue;
@@ -180,40 +180,40 @@ export async function GET(
               paidQuantities.set(sid, already + alloc);
               remaining -= alloc;
             }
-            if (remaining > 0 && saleIds[0]) {
+            if (remaining > 0 && saleIds[0] && (ssData || []).find((s: any) => s.id === saleIds[0])) {
               paidQuantities.set(saleIds[0], (paidQuantities.get(saleIds[0]) || 0) + remaining);
             }
           }
         }
       }
 
-      // Filter staff_sales with remaining quantity > 0
-      const unpaid = (ssData || []).filter((s: any) => {
-        const paidQty = paidQuantities.get(s.id) || 0;
-        return (parseFloat(s.quantity) || 0) - paidQty > 0.01;
-      });
-
-      // Group by item_id + unit_price
+      // Group staff_sales with remaining quantity > 0
+      // Proportional share of total_amount accounts for logistics fees
       const map = new Map<string, any>();
-      for (const s of unpaid) {
-        const name = (s.items as any)?.name || 'Unknown';
-        const qty = parseFloat(s.quantity) || 0;
+      for (const s of ssData || []) {
+        const paidQty = paidQuantities.get(s.id) || 0;
+        const origQty = parseFloat(s.quantity) || 0;
+        const origTotal = parseFloat(s.total_amount) || 0;
         const price = parseFloat(s.unit_price) || 0;
-        const total = parseFloat(s.total_amount) || 0;
+        const remainingQty = Math.max(0, origQty - paidQty);
+        if (remainingQty <= 0) continue;
+
+        const remainingAmount = origQty > 0 ? origTotal * (remainingQty / origQty) : 0;
+        const name = (s.items as any)?.name || 'Unknown';
         const key = `${s.item_id}_${price}`;
         if (map.has(key)) {
           const ex = map.get(key)!;
-          ex.quantity += qty;
-          ex.total_amount += total;
+          ex.quantity += remainingQty;
+          ex.total_amount += remainingAmount;
           ex.sale_ids.push(s.id);
         } else {
           map.set(key, {
             id: key,
             item_id: s.item_id,
             item_name: name,
-            quantity: qty,
+            quantity: remainingQty,
             unit_price: price,
-            total_amount: total,
+            total_amount: remainingAmount,
             sale_ids: [s.id],
             sale_date: s.sale_date,
           });
@@ -224,6 +224,23 @@ export async function GET(
 
     // Use simple math for outstanding (matches staff-summary calculation)
     const outstandingAmount = Math.max(0, allTimeTotalSales - approvedAmount - pendingAmount);
+
+    // Normalize unpaid items total_amount to match monetary outstanding
+    if (unpaidItems.length > 0) {
+      const rawTotal = unpaidItems.reduce((sum: number, i: any) => sum + (i.total_amount || 0), 0);
+      if (rawTotal > 0 && Math.abs(rawTotal - outstandingAmount) > 1) {
+        const scale = outstandingAmount / rawTotal;
+        let adj = 0;
+        for (let i = 0; i < unpaidItems.length; i++) {
+          const scaled = unpaidItems[i].total_amount * scale;
+          const rounded = Math.round(scaled * 100) / 100;
+          unpaidItems[i].total_amount = rounded;
+          adj += rounded;
+        }
+        const diff = Math.round((outstandingAmount - adj) * 100) / 100;
+        if (unpaidItems.length > 0) unpaidItems[unpaidItems.length - 1].total_amount += diff;
+      }
+    }
 
     return NextResponse.json({
       staff,
