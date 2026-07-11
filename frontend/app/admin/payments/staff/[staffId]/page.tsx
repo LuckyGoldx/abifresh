@@ -370,6 +370,7 @@ export default function StaffPaymentDetailPage() {
             <p>No payment records yet</p>
           </div>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -480,7 +481,8 @@ export default function StaffPaymentDetailPage() {
               </div>
             </div>
           )}
-        )}
+        </>
+      )}
       </div>
 
       {/* Payment Details Modal */}
