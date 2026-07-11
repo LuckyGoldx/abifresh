@@ -99,26 +99,12 @@ export async function GET(
           0
         );
 
-        // Unpaid = compute remaining amount from payment items
-        const unpaid = (siData || []).filter((si: any) => {
-          const qty = parseFloat(si.quantity) || 0;
-          const price = parseFloat(si.unit_price) || 0;
-          const total = qty * price;
-          let paidOnItem = 0;
-          for (const p of paymentsData || []) {
-            if (Array.isArray(p.items_paid_for)) {
-              for (const pi of p.items_paid_for) {
-                const ids: string[] = Array.isArray(pi.sale_ids) ? pi.sale_ids : pi.sale_id ? [pi.sale_id] : [];
-                if (ids.length > 0 && ids.includes(si.id) && (p.status === 'approved' || p.status === 'pending')) {
-                  paidOnItem += (parseFloat(pi.amount) || 0) / ids.length;
-                }
-              }
-            }
-          }
-          return total - paidOnItem > 1;
-        });
+        // Unpaid = sales_items not covered by any payment's sale_ids
+        const unpaid = (siData || []).filter((si: any) =>
+          !approvedSaleIds.has(si.id) && !pendingSaleIds.has(si.id)
+        );
 
-        // Group by item_id (same item at same price combined)
+        // Group by item_id
         const map = new Map<string, any>();
         for (const si of unpaid) {
           const name = (si.items as any)?.name || 'Unknown';
@@ -163,24 +149,51 @@ export async function GET(
         0
       );
 
-      // Unpaid = compute remaining amount from payment items
-      const unpaid = (ssData || []).filter((s: any) => {
-        const total = parseFloat(s.total_amount) || 0;
-        let paidOnItem = 0;
-        for (const p of paymentsData || []) {
-          if (Array.isArray(p.items_paid_for)) {
-            for (const pi of p.items_paid_for) {
-              const ids: string[] = Array.isArray(pi.sale_ids) ? pi.sale_ids : pi.sale_id ? [pi.sale_id] : [];
-              if (ids.length > 0 && ids.includes(s.id) && (p.status === 'approved' || p.status === 'pending')) {
-                paidOnItem += (parseFloat(pi.amount) || 0) / ids.length;
-              }
+      // Build paid quantities map using quantity-based proportional distribution
+      // (matching sales-history/route.ts logic)
+      const paidQuantities = new Map<string, number>();
+      for (const p of paymentsData || []) {
+        if (p.status !== 'approved' && p.status !== 'pending') continue;
+        if (!Array.isArray(p.items_paid_for)) continue;
+        for (const item of p.items_paid_for) {
+          const saleIds: string[] = Array.isArray(item.sale_ids)
+            ? item.sale_ids
+            : item.sale_id
+            ? [item.sale_id]
+            : [];
+          const paidQty = parseFloat(item.quantity) || 0;
+          if (paidQty <= 0) continue;
+
+          if (saleIds.length === 1) {
+            const sid = saleIds[0];
+            paidQuantities.set(sid, (paidQuantities.get(sid) || 0) + paidQty);
+          } else {
+            let remaining = paidQty;
+            for (const sid of saleIds) {
+              if (remaining <= 0) break;
+              const found = (ssData || []).find((s: any) => s.id === sid);
+              const origQty = found ? parseFloat(found.quantity) || 0 : 0;
+              if (origQty <= 0) continue;
+              const already = paidQuantities.get(sid) || 0;
+              const cap = Math.max(0, origQty - already);
+              const alloc = Math.min(cap, remaining);
+              paidQuantities.set(sid, already + alloc);
+              remaining -= alloc;
+            }
+            if (remaining > 0 && saleIds[0]) {
+              paidQuantities.set(saleIds[0], (paidQuantities.get(saleIds[0]) || 0) + remaining);
             }
           }
         }
-        return total - paidOnItem > 1;
+      }
+
+      // Filter staff_sales with remaining quantity > 0
+      const unpaid = (ssData || []).filter((s: any) => {
+        const paidQty = paidQuantities.get(s.id) || 0;
+        return (parseFloat(s.quantity) || 0) - paidQty > 0.01;
       });
 
-      // Group by item_id + unit_price (mirrors staff-store.service.ts logic)
+      // Group by item_id + unit_price
       const map = new Map<string, any>();
       for (const s of unpaid) {
         const name = (s.items as any)?.name || 'Unknown';
@@ -209,8 +222,8 @@ export async function GET(
       unpaidItems = Array.from(map.values());
     }
 
-    // Compute outstanding amount from unpaid items for consistency
-    const outstandingAmount = unpaidItems.reduce((sum, item) => sum + (item.total_amount || 0), 0);
+    // Use simple math for outstanding (matches staff-summary calculation)
+    const outstandingAmount = Math.max(0, allTimeTotalSales - approvedAmount - pendingAmount);
 
     return NextResponse.json({
       staff,
