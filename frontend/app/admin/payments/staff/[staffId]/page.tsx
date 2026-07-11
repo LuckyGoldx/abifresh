@@ -80,6 +80,8 @@ export default function StaffPaymentDetailPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [actionInProgress, setActionInProgress] = useState(false);
   const { alert: showAlert, confirm: showConfirm } = useAlert();
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchData();
@@ -89,6 +91,7 @@ export default function StaffPaymentDetailPage() {
     try {
       setIsLoading(true);
       setError('');
+      setCurrentPage(1);
       const res = await api.get(`/api/admin/payments/staff-detail/${staffId}`);
       setData(res.data);
     } catch (err: any) {
@@ -175,6 +178,11 @@ export default function StaffPaymentDetailPage() {
 
   const { staff, stats, payments, unpaidItems } = data;
   const totalUnpaid = unpaidItems.reduce((sum, item) => sum + item.total_amount, 0);
+  const totalPages = Math.max(1, Math.ceil((payments || []).length / ITEMS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedPayments = (payments || []).slice(startIndex, endIndex);
 
   return (
     <div className="space-y-6">
@@ -352,11 +360,11 @@ export default function StaffPaymentDetailPage() {
           <CreditCard className="w-5 h-5 text-pink-500" />
           Payment History
           <span className="ml-auto text-sm font-normal text-gray-500 dark:text-gray-400">
-            {payments.length} record{payments.length !== 1 ? 's' : ''}
+            {(payments || []).length} record{(payments || []).length !== 1 ? 's' : ''}
           </span>
         </h2>
 
-        {payments.length === 0 ? (
+        {(payments || []).length === 0 ? (
           <div className="text-center py-10 text-gray-500 dark:text-gray-400">
             <CreditCard className="w-10 h-10 mx-auto mb-2 opacity-40" />
             <p>No payment records yet</p>
@@ -375,7 +383,7 @@ export default function StaffPaymentDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {payments.map(payment => (
+                {paginatedPayments.map(payment => (
                   <tr key={payment.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                     <td className="py-3 px-4">
                       <div>
@@ -436,6 +444,42 @@ export default function StaffPaymentDetailPage() {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t dark:border-gray-700">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Showing {startIndex + 1}–{Math.min(endIndex, (payments || []).length)} of {(payments || []).length}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  className="px-3 py-1.5 text-sm rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1.5 text-sm rounded border transition ${
+                      page === safePage
+                        ? 'bg-pink-500 text-white border-pink-500'
+                        : 'border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className="px-3 py-1.5 text-sm rounded border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         )}
       </div>
 

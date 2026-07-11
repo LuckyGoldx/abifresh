@@ -109,8 +109,8 @@ export async function GET(
             if (Array.isArray(p.items_paid_for)) {
               for (const pi of p.items_paid_for) {
                 const ids: string[] = Array.isArray(pi.sale_ids) ? pi.sale_ids : pi.sale_id ? [pi.sale_id] : [];
-                if (ids.includes(si.id) && (p.status === 'approved' || p.status === 'pending')) {
-                  paidOnItem += parseFloat(pi.amount) || 0;
+                if (ids.length > 0 && ids.includes(si.id) && (p.status === 'approved' || p.status === 'pending')) {
+                  paidOnItem += (parseFloat(pi.amount) || 0) / ids.length;
                 }
               }
             }
@@ -171,8 +171,8 @@ export async function GET(
           if (Array.isArray(p.items_paid_for)) {
             for (const pi of p.items_paid_for) {
               const ids: string[] = Array.isArray(pi.sale_ids) ? pi.sale_ids : pi.sale_id ? [pi.sale_id] : [];
-              if (ids.includes(s.id) && (p.status === 'approved' || p.status === 'pending')) {
-                paidOnItem += parseFloat(pi.amount) || 0;
+              if (ids.length > 0 && ids.includes(s.id) && (p.status === 'approved' || p.status === 'pending')) {
+                paidOnItem += (parseFloat(pi.amount) || 0) / ids.length;
               }
             }
           }
