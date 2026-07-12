@@ -262,31 +262,8 @@ export default function MakeSalePage() {
 
     try {
       const receiptNumber = `RCP-${Date.now()}`;
-      
-      // Try to save receipt to database (optional - won't fail the sale if it doesn't work)
-      const receiptData = {
-        receipt_number: receiptNumber,
-        items: cart.map(item => ({
-          item_id: item.id,
-          quantity: item.sale_quantity,
-          unit_price: getCartItemPrice(item),
-          total_price: getCartItemPrice(item) * item.sale_quantity,
-        })),
-        total_amount: calculateCartTotal(),
-        payment_method: globalPaymentMethod,
-        sold_outside_jalingo: globalOutsideJalingo,
-      };
 
-      try {
-        await api.post('/api/receipts/create', receiptData, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-      } catch (receiptError) {
-        console.warn('Receipt creation failed (non-critical):', receiptError);
-        // Continue with sale even if receipt fails
-      }
-
-      // Create the staff store sale(s)
+      // Create the staff store sale(s) FIRST (includes inventory deduction)
       const saleData = {
         items: cart.map(item => ({
           item_id: item.id,
@@ -302,6 +279,24 @@ export default function MakeSalePage() {
       };
 
       await api.post('/api/staff/store/make-sales', saleData, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      // Create receipt only after sale + inventory succeeded
+      const receiptData = {
+        receipt_number: receiptNumber,
+        items: cart.map(item => ({
+          item_id: item.id,
+          quantity: item.sale_quantity,
+          unit_price: getCartItemPrice(item),
+          total_price: getCartItemPrice(item) * item.sale_quantity,
+        })),
+        total_amount: calculateCartTotal(),
+        payment_method: globalPaymentMethod,
+        sold_outside_jalingo: globalOutsideJalingo,
+      };
+
+      await api.post('/api/receipts/create', receiptData, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 

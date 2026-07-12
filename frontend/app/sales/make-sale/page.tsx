@@ -285,12 +285,7 @@ export default function MakeSalePage() {
         sold_outside_jalingo: globalOutsideJalingo,
       };
 
-      // Save receipt
-      await api.post('/api/receipts/create', receiptData, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      // Then create the sale
+      // Create the sale FIRST (includes inventory deduction)
       const saleData = {
         items: cart.map(item => ({
           item_id: item.id,
@@ -306,6 +301,11 @@ export default function MakeSalePage() {
       };
 
       await api.post('/api/sales/create-sale', saleData, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      // Create receipt only after sale + inventory succeeded
+      const receiptRes = await api.post('/api/receipts/create', receiptData, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 

@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { items, total_amount, payment_method, sold_outside_jalingo } = await req.json();
+    const { items, total_amount, payment_method, sold_outside_jalingo, receipt_id } = await req.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'No items provided' }, { status: 400 });
@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
         {
           staff_id: authResult.id,
           receipt_number: `REC-${Date.now()}`,
+          receipt_id: receipt_id || null,
           total_amount,
           payment_method,
           sold_outside_jalingo,
@@ -68,19 +69,7 @@ export async function POST(req: NextRequest) {
 
     if (bulkInsertError) return NextResponse.json({ error: bulkInsertError.message }, { status: 400 });
 
-    // Batch update active_store_quantity for all items in parallel
-    await Promise.all(
-      items.map((item: any) => {
-        const currentQty = quantitiesMap.get(item.item_id) || 0;
-        const newQty = Math.max(0, currentQty - item.quantity);
-        return supabaseAdmin
-          .from('items')
-          .update({ active_store_quantity: newQty })
-          .eq('id', item.item_id);
-      })
-    );
-
-    // Update daily sales summary
+    // Update daily sales summary (before inventory deduction)
     const saleDate = new Date().toISOString().split('T')[0];
     const itemsCount = items.reduce((sum: number, i: any) => sum + (i.quantity || 1), 0);
     const { data: existingDSS } = await supabaseAdmin
@@ -91,7 +80,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (existingDSS) {
-      await supabaseAdmin
+      const { error: dssError } = await supabaseAdmin
         .from('daily_sales_summary')
         .update({
           total_items_sold: (existingDSS.total_items_sold || 0) + itemsCount,
@@ -99,15 +88,29 @@ export async function POST(req: NextRequest) {
           number_of_transactions: (existingDSS.number_of_transactions || 0) + 1,
         })
         .eq('id', existingDSS.id);
+      if (dssError) return NextResponse.json({ error: dssError.message }, { status: 400 });
     } else {
-      await supabaseAdmin.from('daily_sales_summary').insert({
+      const { error: dssError } = await supabaseAdmin.from('daily_sales_summary').insert({
         salesperson_id: authResult.id,
         sale_date: saleDate,
         total_items_sold: itemsCount,
         total_revenue: total_amount,
         number_of_transactions: 1,
       });
+      if (dssError) return NextResponse.json({ error: dssError.message }, { status: 400 });
     }
+
+    // Batch update active_store_quantity for all items in parallel (last step)
+    await Promise.all(
+      items.map((item: any) => {
+        const currentQty = quantitiesMap.get(item.item_id) || 0;
+        const newQty = Math.max(0, currentQty - item.quantity);
+        return supabaseAdmin
+          .from('items')
+          .update({ active_store_quantity: newQty })
+          .eq('id', item.item_id);
+      })
+    );
 
     return NextResponse.json(
       { sale_id: saleData.id, receipt_number: saleData.receipt_number, message: 'Sale completed successfully' },

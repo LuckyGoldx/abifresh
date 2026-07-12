@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   if (authResult instanceof NextResponse) return authResult;
 
   try {
-    const { items, payment_method, sold_outside_jalingo } = await req.json();
+    const { items, payment_method, sold_outside_jalingo, receipt_id } = await req.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'items array is required' }, { status: 400 });
@@ -66,18 +66,7 @@ export async function POST(req: NextRequest) {
       const commissionEarned = commissionPerUnit * quantity;
       const totalAmount = (unit_price * quantity) + (logistics_fee * quantity);
 
-      // Update staff_store quantity_sold
-      const { error: updateError } = await supabaseAdmin
-        .from('staff_store')
-        .update({
-          quantity_sold: (storeEntry.quantity_sold || 0) + quantity,
-          last_updated: new Date().toISOString(),
-        })
-        .eq('id', storeEntry.id);
-
-      if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
-
-      // Create staff_sales record
+      // Create staff_sales record FIRST (inventory update only happens if this succeeds)
       const { data: saleRecord, error: saleError } = await supabaseAdmin
         .from('staff_sales')
         .insert([{
@@ -90,6 +79,7 @@ export async function POST(req: NextRequest) {
           commission: commissionEarned,
           commission_rate: itemCommissionRate,
           approved_commission: 0,
+          receipt_id: receipt_id || null,
           location: itemLocation,
           payment_method: payment_method || 'cash',
           sold_outside_jalingo: sold_outside_jalingo || false,
@@ -98,6 +88,18 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (saleError) return NextResponse.json({ error: saleError.message }, { status: 400 });
+
+      // Update staff_store quantity_sold (only runs if staff_sales insert succeeded)
+      const { error: updateError } = await supabaseAdmin
+        .from('staff_store')
+        .update({
+          quantity_sold: (storeEntry.quantity_sold || 0) + quantity,
+          last_updated: new Date().toISOString(),
+        })
+        .eq('id', storeEntry.id);
+
+      if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
+
       salesRecords.push(saleRecord);
     }
 
