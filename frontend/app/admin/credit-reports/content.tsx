@@ -399,6 +399,7 @@ export default function CreditReportsPage() {
                 type="date" 
                 value={filters.customFrom}
                 onChange={(e) => setFilters({...filters, customFrom: e.target.value})}
+                max={new Date().toISOString().split('T')[0]}
                 className="w-full text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent"
               />
             </div>
@@ -408,6 +409,7 @@ export default function CreditReportsPage() {
                 type="date" 
                 value={filters.customTo}
                 onChange={(e) => setFilters({...filters, customTo: e.target.value})}
+                max={new Date().toISOString().split('T')[0]}
                 className="w-full text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent"
               />
             </div>

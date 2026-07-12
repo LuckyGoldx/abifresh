@@ -281,6 +281,7 @@ export default function ComprehensiveReportsPage() {
                 type="date"
                 value={filters.customFrom || ''}
                 onChange={(e) => setFilters({ ...filters, customFrom: e.target.value })}
+                max={new Date().toISOString().split('T')[0]}
                 className="text-sm font-bold text-gray-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none"
               />
             </div>
@@ -290,6 +291,7 @@ export default function ComprehensiveReportsPage() {
                 type="date"
                 value={filters.customTo || ''}
                 onChange={(e) => setFilters({ ...filters, customTo: e.target.value })}
+                max={new Date().toISOString().split('T')[0]}
                 className="text-sm font-bold text-gray-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none"
               />
             </div>

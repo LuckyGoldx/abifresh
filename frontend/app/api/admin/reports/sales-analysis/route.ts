@@ -47,9 +47,10 @@ export async function GET(req: NextRequest) {
       case 'custom':
         if (customFrom) from = new Date(customFrom);
         if (customTo) {
-          // Set to end of custom day
           const toDate = new Date(customTo);
-          to = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate() + 1);
+          const nextDay = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate() + 1);
+          const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+          to = new Date(Math.min(nextDay.getTime(), endOfToday.getTime()));
         }
         break;
     }
