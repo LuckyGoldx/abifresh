@@ -18,7 +18,7 @@ import { useAlert } from '@/context/AlertContext';
 interface ReportFilters {
   staffId?: string;
   staffRole?: string;
-  dateRange: 'all' | 'today' | 'week' | 'month' | 'year' | 'custom';
+  dateRange: 'all' | 'today' | 'week' | 'month' | 'year' | 'custom' | 'custom_date';
   customFrom?: string;
   customTo?: string;
 }
@@ -88,6 +88,7 @@ export default function ComprehensiveReportsPage() {
   const [report, setReport] = useState<ComprehensiveReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
+  const [loadingLabel, setLoadingLabel] = useState('Loading report data...');
   const loadProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'sales' | 'expenses' | 'inventory' | 'performance' | 'credits'>('overview');
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -108,6 +109,8 @@ export default function ComprehensiveReportsPage() {
   }, []);
 
   useEffect(() => {
+    if (filters.dateRange === 'custom' && (!filters.customFrom || !filters.customTo)) return;
+    if (filters.dateRange === 'custom_date' && !filters.customFrom) return;
     fetchReport();
   }, [filters]);
 
@@ -148,17 +151,39 @@ export default function ComprehensiveReportsPage() {
   const fetchReport = async () => {
     setIsLoading(true);
     setLoadProgress(0);
+
+    const stages = [
+      { label: 'Fetching receipts...', target: 25 },
+      { label: 'Fetching receipt items...', target: 40 },
+      { label: 'Fetching commissions...', target: 50 },
+      { label: 'Fetching expenses...', target: 60 },
+      { label: 'Fetching inventory...', target: 72 },
+      { label: 'Fetching credits...', target: 84 },
+      { label: 'Computing statistics...', target: 95 },
+    ];
+    let stageIndex = 0;
+    setLoadingLabel(stages[0].label);
     loadProgressRef.current = setInterval(() => {
-      setLoadProgress(prev => prev < 90 ? prev + 1 : prev);
-    }, 150);
+      const stage = stages[stageIndex];
+      if (!stage) return;
+      setLoadProgress(prev => {
+        const next = prev + Math.max(1, Math.floor((stage.target - prev) / 6));
+        if (next >= stage.target && stageIndex < stages.length - 1) {
+          stageIndex++;
+          setLoadingLabel(stages[stageIndex].label);
+        }
+        return Math.min(next, stage.target);
+      });
+    }, 200);
     try {
       // Only send staffId OR staffRole, never both - they should be mutually exclusive
       const params = new URLSearchParams({
-        dateRange: filters.dateRange,
+        dateRange: filters.dateRange === 'custom_date' ? 'custom' : filters.dateRange,
         ...(filters.staffId && { staffId: filters.staffId }),
         ...(filters.staffRole && !filters.staffId && { staffRole: filters.staffRole }),
         ...(filters.customFrom && { customFrom: filters.customFrom }),
         ...(filters.customTo && { customTo: filters.customTo }),
+        ...(filters.dateRange === 'custom_date' && filters.customFrom && { customTo: filters.customFrom }),
       });
 
       const response = await api.get(`/api/admin/reports/comprehensive?${params}`);
@@ -171,7 +196,7 @@ export default function ComprehensiveReportsPage() {
         clearInterval(loadProgressRef.current);
         loadProgressRef.current = null;
       }
-      setTimeout(() => setIsLoading(false), 300);
+      setIsLoading(false);
     }
   };
 
@@ -269,10 +294,23 @@ export default function ComprehensiveReportsPage() {
             <option value="week">This Week</option>
             <option value="month">This Month</option>
             <option value="year">This Year</option>
-            <option value="custom">Custom Date</option>
+            <option value="custom_date">Custom Date</option>
+            <option value="custom">Custom Range</option>
           </select>
         </div>
 
+        {filters.dateRange === 'custom_date' && (
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <Calendar size={16} className="text-gray-400" />
+            <input
+              type="date"
+              value={filters.customFrom || ''}
+              onChange={(e) => setFilters({ ...filters, customFrom: e.target.value })}
+              max={new Date().toISOString().split('T')[0]}
+              className="text-sm font-bold text-gray-700 dark:text-gray-200 bg-transparent border-none focus:ring-0 outline-none"
+            />
+          </div>
+        )}
         {filters.dateRange === 'custom' && (
           <>
             <div className="flex items-center gap-2 bg-white dark:bg-gray-800 px-4 py-2 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -1233,7 +1271,7 @@ export default function ComprehensiveReportsPage() {
       {renderFilterSection()}
 
       {isLoading ? (
-        <LoadingLogo text="Loading report data..." fullScreen={false} progress={loadProgress} />
+        <LoadingLogo text={loadingLabel} fullScreen={false} progress={loadProgress} />
       ) : report ? (
         <>
       {/* Tab Navigation with Scroll Indicators */}

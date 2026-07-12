@@ -53,6 +53,9 @@ export default function CreditReportsPage() {
   const pathname = usePathname();
   const [report, setReport] = useState<CreditReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadProgress, setLoadProgress] = useState(0);
+  const [loadingLabel, setLoadingLabel] = useState('Loading credit report data...');
+  const loadProgressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'issuance' | 'payments' | 'items' | 'creditors' | 'staff'>('overview');
   const [filters, setFilters] = useState({
     dateRange: 'month',
@@ -69,17 +72,46 @@ export default function CreditReportsPage() {
   }, []);
 
   useEffect(() => {
+    if (filters.dateRange === 'custom' && (!filters.customFrom || !filters.customTo)) return;
+    if (filters.dateRange === 'custom_date' && !filters.customFrom) return;
     fetchReport();
   }, [filters]);
 
   const fetchReport = async () => {
     setIsLoading(true);
+    setLoadProgress(0);
+
+    // Realistic stages matching actual backend work
+    const stages = [
+      { label: 'Fetching credit sales...', target: 25 },
+      { label: 'Fetching payments...', target: 40 },
+      { label: 'Fetching sale items...', target: 55 },
+      { label: 'Fetching payment items...', target: 65 },
+      { label: 'Computing statistics...', target: 75 },
+      { label: 'Fetching all-time data...', target: 85 },
+      { label: 'Loading staff data...', target: 95 },
+    ];
+    let stageIndex = 0;
+    setLoadingLabel(stages[0].label);
+    loadProgressRef.current = setInterval(() => {
+      const stage = stages[stageIndex];
+      if (!stage) return;
+      setLoadProgress(prev => {
+        const next = prev + Math.max(1, Math.floor((stage.target - prev) / 6));
+        if (next >= stage.target && stageIndex < stages.length - 1) {
+          stageIndex++;
+          setLoadingLabel(stages[stageIndex].label);
+        }
+        return Math.min(next, stage.target);
+      });
+    }, 200);
     try {
       const params = new URLSearchParams({
-        dateRange: filters.dateRange,
+        dateRange: filters.dateRange === 'custom_date' ? 'custom' : filters.dateRange,
         ...(filters.staffId && { staffId: filters.staffId }),
         ...(filters.customFrom && { customFrom: filters.customFrom }),
         ...(filters.customTo && { customTo: filters.customTo }),
+        ...(filters.dateRange === 'custom_date' && filters.customFrom && { customTo: filters.customFrom }),
       });
       const res = await api.get(`/api/admin/reports/credits?${params}`);
       setReport(res.data);
@@ -90,6 +122,11 @@ export default function CreditReportsPage() {
       console.error('Failed to fetch credit report');
       setToast({ message: 'Failed to load report data', type: 'error' });
     } finally {
+      setLoadProgress(100);
+      if (loadProgressRef.current) {
+        clearInterval(loadProgressRef.current);
+        loadProgressRef.current = null;
+      }
       setIsLoading(false);
     }
   };
@@ -125,7 +162,7 @@ export default function CreditReportsPage() {
     }
   };
 
-  if (isLoading && !report) return <LoadingLogo />;
+  // First load shows Abifreshing logo; filter changes update data without extra loading state
 
   const renderSummaryCards = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -366,6 +403,7 @@ export default function CreditReportsPage() {
                 <option value="month">This Month</option>
                 <option value="year">This Year</option>
                 <option value="all">All Time</option>
+                <option value="custom_date">Custom Date</option>
                 <option value="custom">Custom Range</option>
               </select>
             </div>
@@ -390,6 +428,21 @@ export default function CreditReportsPage() {
             <Download size={18} /> Export PDF
           </button>
         </div>
+
+        {filters.dateRange === 'custom_date' && (
+          <div className="mb-8 max-w-md animate-in slide-in-from-top-2 duration-300">
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-gray-200 dark:border-gray-700">
+              <p className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 mb-1 ml-1">Date</p>
+              <input 
+                type="date" 
+                value={filters.customFrom}
+                onChange={(e) => setFilters({...filters, customFrom: e.target.value})}
+                max={new Date().toISOString().split('T')[0]}
+                className="w-full text-sm font-bold text-gray-700 dark:text-gray-200 outline-none bg-transparent"
+              />
+            </div>
+          </div>
+        )}
 
         {filters.dateRange === 'custom' && (
           <div className="grid grid-cols-2 gap-4 mb-8 max-w-md animate-in slide-in-from-top-2 duration-300">
@@ -417,6 +470,9 @@ export default function CreditReportsPage() {
         )}
 
         {/* Report Content */}
+        {isLoading ? (
+          <LoadingLogo text={loadingLabel} fullScreen={false} progress={loadProgress} />
+        ) : (
         <div ref={reportRef} className="space-y-8">
           {renderSummaryCards()}
 
@@ -633,7 +689,8 @@ export default function CreditReportsPage() {
              </div>
             )}
           </div>
-        </div>
+          </div>
+        )}
       </div>
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
