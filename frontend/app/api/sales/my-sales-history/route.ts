@@ -68,29 +68,37 @@ export async function GET(req: NextRequest) {
               : paidItem.sale_id
               ? [paidItem.sale_id]
               : [];
-            const paidQty = parseFloat(paidItem.quantity) || 0;
-            if (paidQty <= 0) return;
+            const paidAmount = parseFloat(paidItem.amount) || 0;
+            if (paidAmount <= 0) return;
 
             if (saleIds.length === 1) {
               const sid = saleIds[0];
-              const existing = paidOrPendingQuantities.get(sid) || 0;
-              paidOrPendingQuantities.set(sid, existing + paidQty);
+              const found = salesItemsData?.find((si: any) => si.id === sid);
+              const price = found ? (parseFloat(found.unit_price) || 0) + (parseFloat(found.logistics_fee) || 0) : 1;
+              const paidQty = price > 0 ? paidAmount / price : 0;
+              paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + paidQty);
             } else if (saleIds.length > 1) {
-              let remaining = paidQty;
+              // Proportional distribution by item value
+              const itemValues: Record<string, number> = {};
+              let totalValue = 0;
               for (const sid of saleIds) {
-                if (remaining <= 0) break;
                 const found = salesItemsData?.find((si: any) => si.id === sid);
-                const origQty = found ? parseFloat(found.quantity) || 0 : 0;
-                if (origQty <= 0) continue;
-                const already = paidOrPendingQuantities.get(sid) || 0;
-                const cap = Math.max(0, origQty - already);
-                const alloc = Math.min(cap, remaining);
-                paidOrPendingQuantities.set(sid, already + alloc);
-                remaining -= alloc;
+                if (found) {
+                  const price = (parseFloat(found.unit_price) || 0) + (parseFloat(found.logistics_fee) || 0);
+                  const val = (parseFloat(found.quantity) || 0) * price;
+                  itemValues[sid] = val;
+                  totalValue += val;
+                }
               }
-              if (remaining > 0 && saleIds[0]) {
-                const sid = saleIds[0];
-                paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + remaining);
+              if (totalValue > 0) {
+                for (const sid of saleIds) {
+                  if (!itemValues[sid]) continue;
+                  const found = salesItemsData?.find((si: any) => si.id === sid);
+                  const price = found ? (parseFloat(found.unit_price) || 0) + (parseFloat(found.logistics_fee) || 0) : 1;
+                  const share = paidAmount * (itemValues[sid] / totalValue);
+                  const shareQty = price > 0 ? share / price : 0;
+                  paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + shareQty);
+                }
               }
             }
           });
@@ -145,10 +153,33 @@ export async function GET(req: NextRequest) {
     });
 
     const unpaidItems = allSales.filter((item: any) => item.quantity > 0);
-    const outstandingAmount = unpaidItems.reduce((sum: number, item: any) => sum + item.total_amount, 0);
+    const rawOutstanding = unpaidItems.reduce((sum: number, item: any) => sum + item.total_amount, 0);
+
+    // Scale unpaid items to match financial outstanding (same as admin staff-detail)
+    let approvedTotal = 0;
+    for (const p of paymentsData || []) {
+      if (p.status === 'approved') approvedTotal += parseFloat(p.amount) || 0;
+    }
+    const financialOutstanding = Math.max(0, allTimeTotalAmount - approvedTotal);
+
+    if (financialOutstanding <= 0) {
+      // All money paid — clear all items
+      for (const item of unpaidItems) item.quantity = 0;
+    } else if (rawOutstanding > 0 && Math.abs(rawOutstanding - financialOutstanding) > 1) {
+      const scale = financialOutstanding / rawOutstanding;
+      let adj = 0;
+      for (let i = 0; i < unpaidItems.length; i++) {
+        unpaidItems[i].total_amount = Math.round(unpaidItems[i].total_amount * scale * 100) / 100;
+        adj += unpaidItems[i].total_amount;
+      }
+      const diff = Math.round((financialOutstanding - adj) * 100) / 100;
+      if (unpaidItems.length > 0) unpaidItems[unpaidItems.length - 1].total_amount += diff;
+    }
+
+    const visibleItems = unpaidItems.filter((item: any) => item.quantity > 0);
 
     return NextResponse.json({
-      allItems: unpaidItems,
+      allItems: visibleItems,
       stats: {
         todaysTotalQuantity,
         todaysTotalAmount,
@@ -158,7 +189,7 @@ export async function GET(req: NextRequest) {
         totalQuantity: allTimeQuantity,
         totalItems: allSales.length,
         totalSalesAmount: allTimeTotalAmount,
-        outstandingAmount: Math.max(0, outstandingAmount),
+        outstandingAmount: financialOutstanding,
       },
     });
   } catch (error: any) {

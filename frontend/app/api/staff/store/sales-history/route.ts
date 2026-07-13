@@ -40,28 +40,37 @@ export async function GET(req: NextRequest) {
           : item.sale_id
           ? [item.sale_id]
           : [];
-        const paidQty = parseFloat(item.quantity) || 0;
-        if (paidQty <= 0) return;
+        const paidAmount = parseFloat(item.amount) || 0;
+        if (paidAmount <= 0) return;
 
         if (saleIds.length === 1) {
           const sid = saleIds[0];
-          const existing = paidOrPendingQuantities.get(sid) || 0;
-          paidOrPendingQuantities.set(sid, existing + paidQty);
+          const found = (sales || []).find((s: any) => s.id === sid);
+          const price = found ? (parseFloat(found.unit_price) || 1) : 1;
+          const paidQty = price > 0 ? paidAmount / price : 0;
+          paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + paidQty);
         } else if (saleIds.length > 1) {
-          let remaining = paidQty;
+          // Proportional distribution by item value
+          const itemValues: Record<string, number> = {};
+          let totalValue = 0;
           for (const sid of saleIds) {
-            if (remaining <= 0) break;
             const found = (sales || []).find((s: any) => s.id === sid);
-            const origQty = found ? parseFloat(found.quantity) || 0 : 0;
-            if (origQty <= 0) continue;
-            const already = paidOrPendingQuantities.get(sid) || 0;
-            const cap = Math.max(0, origQty - already);
-            const alloc = Math.min(cap, remaining);
-            paidOrPendingQuantities.set(sid, already + alloc);
-            remaining -= alloc;
+            if (found) {
+              const price = parseFloat(found.unit_price) || 1;
+              const val = (parseFloat(found.quantity) || 0) * price;
+              itemValues[sid] = val;
+              totalValue += val;
+            }
           }
-          if (remaining > 0 && saleIds[0]) {
-            paidOrPendingQuantities.set(saleIds[0], (paidOrPendingQuantities.get(saleIds[0]) || 0) + remaining);
+          if (totalValue > 0) {
+            for (const sid of saleIds) {
+              if (!itemValues[sid]) continue;
+              const found = (sales || []).find((s: any) => s.id === sid);
+              const price = found ? (parseFloat(found.unit_price) || 1) : 1;
+              const share = paidAmount * (itemValues[sid] / totalValue);
+              const shareQty = price > 0 ? share / price : 0;
+              paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + shareQty);
+            }
           }
         }
       });
@@ -100,7 +109,34 @@ export async function GET(req: NextRequest) {
   }
   const allItems = Array.from(groupedMap.values());
 
-  const outstandingAmount = allItems.reduce((sum: number, i: any) => sum + i.total_amount, 0);
+  const rawOutstanding = allItems.reduce((sum: number, i: any) => sum + i.total_amount, 0);
+
+  // Scale unpaid items to match financial outstanding (same as admin staff-detail)
+  let approvedTotal = 0;
+  let pendingTotal = 0;
+  for (const p of payments || []) {
+    const amt = parseFloat(p.amount) || 0;
+    if (p.status === 'approved') approvedTotal += amt;
+    if (p.status === 'pending') pendingTotal += amt;
+  }
+  const financialOutstanding = Math.max(0, allTimeTotalAmount - approvedTotal - pendingTotal);
+
+  if (financialOutstanding <= 0) {
+    // All money paid — clear all items
+    for (const item of allItems) item.quantity = 0;
+  } else if (allItems.length > 0 && rawOutstanding > 0 && Math.abs(rawOutstanding - financialOutstanding) > 1) {
+    const scale = financialOutstanding / rawOutstanding;
+    let adj = 0;
+    for (let i = 0; i < allItems.length; i++) {
+      allItems[i].total_amount = Math.round(allItems[i].total_amount * scale * 100) / 100;
+      adj += allItems[i].total_amount;
+    }
+    const diff = Math.round((financialOutstanding - adj) * 100) / 100;
+    if (allItems.length > 0) allItems[allItems.length - 1].total_amount += diff;
+  }
+
+  // Remove items with zero quantity after scaling
+  const visibleItems = allItems.filter((item: any) => item.quantity > 0);
 
   // Recent sales (individual rows, most recent first)
   const recentSales = (sales || []).map((sale: any) => ({
@@ -117,10 +153,10 @@ export async function GET(req: NextRequest) {
     commission: parseFloat(sale.commission) || 0,
   }));
 
-  const totalQuantity = allItems.reduce((s: number, i: any) => s + i.quantity, 0);
+  const totalQuantity = visibleItems.reduce((s: number, i: any) => s + i.quantity, 0);
 
   return NextResponse.json({
-    allItems,
+    allItems: visibleItems,
     recentSales,
     stats: {
       // Field names must match what staff/payments/page.tsx displays
@@ -129,7 +165,7 @@ export async function GET(req: NextRequest) {
       totalQuantity,
       totalSalesAmount: allTimeTotalAmount,
       outstandingQuantity: totalQuantity,
-      outstandingAmount,
+      outstandingAmount: financialOutstanding,
     },
   });
 }
