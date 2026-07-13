@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
 
     if (paymentsData) {
       paymentsData.forEach((payment: any) => {
-        if ((payment.status === 'approved' || payment.status === 'pending') && payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
+        if ((payment.status === 'approved') && payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
           payment.items_paid_for.forEach((paidItem: any) => {
             const saleIds: string[] = Array.isArray(paidItem.sale_ids)
               ? paidItem.sale_ids
