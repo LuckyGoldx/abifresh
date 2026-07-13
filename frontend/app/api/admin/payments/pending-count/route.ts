@@ -14,7 +14,6 @@ export async function GET(req: NextRequest) {
     .select('id')
     .eq('status', 'pending')
     // Exclude admin-paid commission records (managed in /admin/commissions)
-    .or('payment_type.neq.commission,paid_by.is.null')
     .neq('payment_type', 'credit_remittance');
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

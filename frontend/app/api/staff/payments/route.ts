@@ -11,7 +11,6 @@ export async function GET(req: NextRequest) {
     .select('*')
     .eq('staff_id', authResult.id)
     .neq('payment_type', 'credit_remittance')
-    .or('payment_type.neq.commission,paid_by.is.null')
     .order('created_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });

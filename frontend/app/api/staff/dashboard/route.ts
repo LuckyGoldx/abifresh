@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       .select('amount, status, payment_type, paid_by')
       .eq('staff_id', authResult.id)
       // Exclude admin-paid commissions (those belong to commission management, not payments)
-      .or('payment_type.neq.commission,paid_by.is.null'),
+      .neq('payment_type', 'credit_remittance'),
     // Separate query: only admin-paid commissions (paid_by IS NOT NULL) for the Paid Commission card
     supabaseAdmin
       .from('staff_payments')

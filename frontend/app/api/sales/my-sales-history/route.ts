@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       .from('staff_payments')
       .select('id, amount, items_paid_for, status, created_at')
       .eq('staff_id', userId)
-      .or('payment_type.neq.commission,paid_by.is.null');
+      .neq('payment_type', 'credit_remittance');
 
     const paidOrPendingQuantities = new Map<string, number>();
 

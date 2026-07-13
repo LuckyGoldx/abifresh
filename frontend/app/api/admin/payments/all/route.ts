@@ -46,7 +46,6 @@ export async function GET(req: NextRequest) {
     .from('staff_payments')
     .select('*')
     // Exclude admin-paid commission records (managed in /admin/commissions)
-    .or('payment_type.neq.commission,paid_by.is.null')
     .neq('payment_type', 'credit_remittance')
     .order('created_at', { ascending: false });
 

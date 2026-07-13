@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     const paymentType = ['commission_staff', 'staff_commission', 'sales_staff', 'sales'].includes(authResult.role)
       ? 'commission'
       : ['non_commission_staff', 'staff_non_commission'].includes(authResult.role)
-        ? 'salary'
+        ? 'non_commission'
         : 'other';
 
     const { data, error } = await supabaseAdmin
