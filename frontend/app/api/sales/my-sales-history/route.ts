@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
 
     if (paymentsData) {
       paymentsData.forEach((payment: any) => {
-        if ((payment.status === 'approved') && payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
+        if ((payment.status === 'approved' || payment.status === 'pending') && payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
           payment.items_paid_for.forEach((paidItem: any) => {
             const saleIds: string[] = Array.isArray(paidItem.sale_ids)
               ? paidItem.sale_ids
@@ -157,10 +157,12 @@ export async function GET(req: NextRequest) {
 
     // Scale unpaid items to match financial outstanding (same as admin staff-detail)
     let approvedTotal = 0;
+    let pendingTotal = 0;
     for (const p of paymentsData || []) {
       if (p.status === 'approved') approvedTotal += parseFloat(p.amount) || 0;
+      if (p.status === 'pending') pendingTotal += parseFloat(p.amount) || 0;
     }
-    const financialOutstanding = Math.max(0, allTimeTotalAmount - approvedTotal);
+    const financialOutstanding = Math.max(0, allTimeTotalAmount - approvedTotal - pendingTotal);
 
     if (financialOutstanding <= 0) {
       // All money paid — clear all items

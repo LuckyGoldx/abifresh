@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   // Collect paid quantities per sale_id from approved and pending payments
   const paidOrPendingQuantities = new Map<string, number>();
   (payments || [])
-    .filter((p: any) => p.status === 'approved')
+    .filter((p: any) => p.status === 'pending' || p.status === 'approved')
     .forEach((p: any) => {
       (p.items_paid_for || []).forEach((item: any) => {
         const saleIds: string[] = Array.isArray(item.sale_ids)
