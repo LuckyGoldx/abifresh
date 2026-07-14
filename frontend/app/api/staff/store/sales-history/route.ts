@@ -39,37 +39,31 @@ export async function GET(req: NextRequest) {
           : item.sale_id
           ? [item.sale_id]
           : [];
-        const paidAmount = parseFloat(item.amount) || 0;
-        if (paidAmount <= 0) return;
+        const paidQty = parseFloat(item.quantity) || 0;
+        if (paidQty <= 0) return;
 
         if (saleIds.length === 1) {
           const sid = saleIds[0];
           const found = (sales || []).find((s: any) => s.id === sid);
-          const price = found ? (parseFloat(found.unit_price) || 1) : 1;
-          const paidQty = price > 0 ? paidAmount / price : 0;
-          paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + paidQty);
+          const origQty = found ? (parseFloat(found.quantity) || 0) : 0;
+          const currentPaid = paidOrPendingQuantities.get(sid) || 0;
+          const cap = Math.max(0, origQty - currentPaid);
+          paidOrPendingQuantities.set(sid, currentPaid + Math.min(paidQty, cap));
         } else if (saleIds.length > 1) {
-          // Proportional distribution by item value
-          const itemValues: Record<string, number> = {};
-          let totalValue = 0;
+          let remaining = paidQty;
           for (const sid of saleIds) {
+            if (remaining <= 0) break;
             const found = (sales || []).find((s: any) => s.id === sid);
-            if (found) {
-              const price = parseFloat(found.unit_price) || 1;
-              const val = (parseFloat(found.quantity) || 0) * price;
-              itemValues[sid] = val;
-              totalValue += val;
-            }
+            const origQty = found ? parseFloat(found.quantity) || 0 : 0;
+            if (origQty <= 0) continue;
+            const already = paidOrPendingQuantities.get(sid) || 0;
+            const cap = Math.max(0, origQty - already);
+            const alloc = Math.min(cap, remaining);
+            paidOrPendingQuantities.set(sid, already + alloc);
+            remaining -= alloc;
           }
-          if (totalValue > 0) {
-            for (const sid of saleIds) {
-              if (!itemValues[sid]) continue;
-              const found = (sales || []).find((s: any) => s.id === sid);
-              const price = found ? (parseFloat(found.unit_price) || 1) : 1;
-              const share = paidAmount * (itemValues[sid] / totalValue);
-              const shareQty = price > 0 ? share / price : 0;
-              paidOrPendingQuantities.set(sid, (paidOrPendingQuantities.get(sid) || 0) + shareQty);
-            }
+          if (remaining > 0 && saleIds[0] && (sales || []).find((s: any) => s.id === saleIds[0])) {
+            paidOrPendingQuantities.set(saleIds[0], (paidOrPendingQuantities.get(saleIds[0]) || 0) + remaining);
           }
         }
       });
@@ -80,8 +74,9 @@ export async function GET(req: NextRequest) {
   for (const sale of sales || []) {
     const originalQuantity = parseFloat(sale.quantity) || 0;
     const paidOrPendingQty = paidOrPendingQuantities.get(sale.id) || 0;
-    const remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
-    if (remainingQuantity <= 0) continue;
+    let remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
+    remainingQuantity = Math.round(remainingQuantity * 100) / 100;
+    if (remainingQuantity < 0.001) continue;
 
     const outsideJalingo = sale.sold_outside_jalingo || sale.location === 'Outside Jalingo';
     const locKey = outsideJalingo ? 'outside' : 'inside';
@@ -124,7 +119,7 @@ export async function GET(req: NextRequest) {
     // All money paid — clear all items
     for (const item of allItems) item.quantity = 0;
   } else if (allItems.length > 0 && rawOutstanding > 0 && Math.abs(rawOutstanding - financialOutstanding) > 1) {
-    const scale = financialOutstanding / rawOutstanding;
+    const scale = Math.min(financialOutstanding / rawOutstanding, 1.0);
     let adj = 0;
     for (let i = 0; i < allItems.length; i++) {
       allItems[i].total_amount = Math.round(allItems[i].total_amount * scale * 100) / 100;
