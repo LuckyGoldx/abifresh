@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
 
     const outsideJalingo = sale.sold_outside_jalingo || sale.location === 'Outside Jalingo';
     const locKey = outsideJalingo ? 'outside' : 'inside';
-    const key = `${sale.item_id}_${locKey}`;
+    const key = `${sale.item_id}_${locKey}_${parseFloat(sale.unit_price).toFixed(2)}`;
     if (groupedMap.has(key)) {
       const existing = groupedMap.get(key);
       existing.quantity += remainingQuantity;
