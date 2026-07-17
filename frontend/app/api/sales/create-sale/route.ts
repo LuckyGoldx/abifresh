@@ -100,17 +100,30 @@ export async function POST(req: NextRequest) {
       if (dssError) return NextResponse.json({ error: dssError.message }, { status: 400 });
     }
 
-    // Batch update active_store_quantity for all items in parallel (last step)
-    await Promise.all(
+    // Batch update active_store_quantity for all items (optimistic lock prevents race conditions)
+    const updateResults = await Promise.all(
       items.map((item: any) => {
         const currentQty = quantitiesMap.get(item.item_id) || 0;
         const newQty = Math.max(0, currentQty - item.quantity);
         return supabaseAdmin
           .from('items')
           .update({ active_store_quantity: newQty })
-          .eq('id', item.item_id);
+          .eq('id', item.item_id)
+          .eq('active_store_quantity', currentQty)
+          .select()
+          .single();
       })
     );
+
+    // Check if any item's stock changed during checkout (race condition)
+    for (const r of updateResults) {
+      if (r.error || !r.data) {
+        return NextResponse.json(
+          { error: 'Stock level changed during checkout. Please retry.' },
+          { status: 409 }
+        );
+      }
+    }
 
     return NextResponse.json(
       { sale_id: saleData.id, receipt_number: saleData.receipt_number, message: 'Sale completed successfully' },

@@ -89,16 +89,24 @@ export async function POST(req: NextRequest) {
 
       if (saleError) return NextResponse.json({ error: saleError.message }, { status: 400 });
 
-      // Update staff_store quantity_sold (only runs if staff_sales insert succeeded)
-      const { error: updateError } = await supabaseAdmin
+      // Update staff_store quantity_sold atomically — rejects if another checkout changed it
+      const { data: updated, error: updateError } = await supabaseAdmin
         .from('staff_store')
         .update({
           quantity_sold: (storeEntry.quantity_sold || 0) + quantity,
           last_updated: new Date().toISOString(),
         })
-        .eq('id', storeEntry.id);
+        .eq('id', storeEntry.id)
+        .eq('quantity_sold', storeEntry.quantity_sold)
+        .select()
+        .single();
 
-      if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
+      if (updateError || !updated) {
+        return NextResponse.json(
+          { error: 'Stock level changed during checkout. Please retry.' },
+          { status: 409 }
+        );
+      }
 
       salesRecords.push(saleRecord);
     }
