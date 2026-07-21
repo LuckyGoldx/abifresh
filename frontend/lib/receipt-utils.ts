@@ -265,10 +265,15 @@ export async function printReceipt(receipt: {
     phone?: string;
   };
 }) {
+  const printWindow = window.open('', '', 'width=800,height=600');
+  const popupBlocked = !printWindow;
+
+  let tempContainer: HTMLDivElement | null = null;
+
   try {
     const html2canvas = (await import('html2canvas')).default;
 
-    const tempContainer = document.createElement('div');
+    tempContainer = document.createElement('div');
     tempContainer.innerHTML = generateReceiptHTML(receipt);
     tempContainer.style.position = 'absolute';
     tempContainer.style.left = '-9999px';
@@ -283,38 +288,25 @@ export async function printReceipt(receipt: {
       backgroundColor: '#ffffff',
     });
 
-    // Open print window
-    const printWindow = window.open('', '', 'width=800,height=600');
-    if (printWindow) {
-      const imgData = canvas.toDataURL('image/png');
-      const html = `
-        <html>
-          <head>
-            <title>Receipt #${receipt.receipt_number}</title>
-            <style>
-              body { margin: 0; padding: 20px; background: #f5f5f5; }
-              img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
-            </style>
-          </head>
-          <body>
-            <img src="${imgData}" />
-          </body>
-        </html>
-      `;
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print();
-        }, 250);
-      };
-    }
+    const imgData = canvas.toDataURL('image/png');
 
-    // Clean up
-    document.body.removeChild(tempContainer);
+    if (popupBlocked) {
+      const link = document.createElement('a');
+      link.href = imgData;
+      link.download = `receipt_${receipt.receipt_number}.png`;
+      link.click();
+    } else {
+      printWindow.document.write(`<html><head><title>Receipt #${receipt.receipt_number}</title><style>body{margin:0;padding:20px;background:#f5f5f5}img{max-width:100%;height:auto;display:block;margin:0 auto}</style></head><body><img src="${imgData}" /></body></html>`);
+      printWindow.document.close();
+      printWindow.onload = () => setTimeout(() => printWindow.print(), 250);
+    }
   } catch (error) {
+    if (!popupBlocked && printWindow) printWindow.close();
     console.error('Error printing receipt:', error);
-    console.error('Failed to print receipt. Please try again.');
+  } finally {
+    if (tempContainer && tempContainer.parentNode) {
+      tempContainer.parentNode.removeChild(tempContainer);
+    }
   }
 }
 

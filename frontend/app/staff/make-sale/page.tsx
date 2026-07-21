@@ -278,11 +278,12 @@ export default function MakeSalePage() {
         sold_outside_jalingo: globalOutsideJalingo,
       };
 
-      await api.post('/api/staff/store/make-sales', saleData, {
+      const saleRes = await api.post('/api/staff/store/make-sales', saleData, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
+      const saleIds: string[] = saleRes.data?.sales?.map((s: any) => s.id) || [];
 
-      // Create receipt only after sale + inventory succeeded
+      // Create receipt
       const receiptData = {
         receipt_number: receiptNumber,
         items: cart.map(item => ({
@@ -296,9 +297,19 @@ export default function MakeSalePage() {
         sold_outside_jalingo: globalOutsideJalingo,
       };
 
-      await api.post('/api/receipts/create', receiptData, {
+      const receiptRes = await api.post('/api/receipts/create', receiptData, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
+      const receiptId = receiptRes.data?.id;
+
+      // Link receipt back to sale records
+      if (receiptId && saleIds.length > 0) {
+        await fetch('/api/staff/store/link-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ sale_ids: saleIds, receipt_id: receiptId, receipt_number: receiptNumber }),
+        });
+      }
 
       // Generate receipt display
       setLastReceipt({

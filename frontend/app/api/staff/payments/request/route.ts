@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import { validateItemsPaidFor } from '@/lib/server/payment-validation';
 
 /**
  * Compress image receipt to WebP format.
@@ -43,7 +44,11 @@ export async function POST(req: NextRequest) {
     const itemsRaw = formData.get('items_paid_for') as string | null;
     let items_paid_for: any[] = [];
     if (itemsRaw) {
-      try { items_paid_for = JSON.parse(itemsRaw); } catch {}
+      try {
+        items_paid_for = validateItemsPaidFor(JSON.parse(itemsRaw));
+      } catch (e: any) {
+        return NextResponse.json({ error: e.message || 'Invalid items_paid_for format' }, { status: 422 });
+      }
     }
 
     if (!amount || isNaN(parseFloat(amount))) {

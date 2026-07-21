@@ -30,21 +30,22 @@ export async function GET(req: NextRequest) {
 
   // 2. Get all commission-generating sales grouped by staff_id — paginated
   const PAGE = 1000;
-  let salesTotals: Record<string, { generated: number; count: number; units: number; amount: number }> = {};
+  let salesTotals: Record<string, { generated: number; estimated: number; count: number; units: number; amount: number }> = {};
   if (staffIds.length > 0) {
     let from = 0;
     while (true) {
       const { data: salesData } = await supabaseAdmin
         .from('staff_sales')
-        .select('staff_id, approved_commission, quantity, total_amount')
+        .select('staff_id, commission, approved_commission, quantity, total_amount')
         .in('staff_id', staffIds)
         .range(from, from + PAGE - 1);
       if (!salesData || salesData.length === 0) break;
 
       for (const s of salesData) {
         const id = s.staff_id;
-        if (!salesTotals[id]) salesTotals[id] = { generated: 0, count: 0, units: 0, amount: 0 };
+        if (!salesTotals[id]) salesTotals[id] = { generated: 0, estimated: 0, count: 0, units: 0, amount: 0 };
         salesTotals[id].generated += parseFloat(s.approved_commission) || 0;
+        salesTotals[id].estimated += parseFloat(s.commission) || 0;
         const isApproved = parseFloat(s.approved_commission) > 0;
         if (isApproved) {
           salesTotals[id].count += 1;
@@ -83,6 +84,7 @@ export async function GET(req: NextRequest) {
   const staffCommissions = staffList
     .map((staff: any) => {
       const generated = salesTotals[staff.id]?.generated || 0;
+      const estimated = salesTotals[staff.id]?.estimated || 0;
       const paid = paidTotals[staff.id] || 0;
       return {
         staff_id: staff.id,
@@ -90,6 +92,7 @@ export async function GET(req: NextRequest) {
         staff_email: staff.email,
         staff_username: staff.username,
         total_commission_generated: generated,
+        estimated_total_commission: estimated,
         total_commission_paid: paid,
         commission_pending: Math.max(0, generated - paid),
         total_sales: salesTotals[staff.id]?.amount || 0,
@@ -101,11 +104,13 @@ export async function GET(req: NextRequest) {
 
   // 5. Totals
   const total_commission_generated = staffCommissions.reduce((s: number, c: any) => s + c.total_commission_generated, 0);
+  const total_estimated_commission = staffCommissions.reduce((s: number, c: any) => s + c.estimated_total_commission, 0);
   const total_commission_paid = staffCommissions.reduce((s: number, c: any) => s + c.total_commission_paid, 0);
   const total_commission_pending = staffCommissions.reduce((s: number, c: any) => s + c.commission_pending, 0);
 
   return NextResponse.json({
     total_commission_generated,
+    total_estimated_commission,
     total_commission_paid,
     total_commission_pending,
     commission_staff_count: staffCommissions.length,

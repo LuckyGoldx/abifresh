@@ -34,7 +34,7 @@ export default function PaymentsPage() {
   const [actionInProgress, setActionInProgress] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
   const [outstandingSummary, setOutstandingSummary] = useState<{ outstandingTotal: number } | null>(null);
   const [activeTab, setActiveTab] = useState<'payments' | 'breakdown'>('payments');
   const { alert: showAlert, confirm: showConfirm } = useAlert();

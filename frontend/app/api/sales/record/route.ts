@@ -63,9 +63,22 @@ export async function POST(req: NextRequest) {
 
     if (siError) return NextResponse.json({ error: siError.message }, { status: 400 });
 
-    // Deduct from active store inventory
-    const newQty = Math.max(0, (item.active_store_quantity || 0) - quantity);
-    await supabaseAdmin.from('items').update({ active_store_quantity: newQty }).eq('id', item_id);
+    const currentQty = item.active_store_quantity || 0;
+    const newQty = Math.max(0, currentQty - quantity);
+    const { error: updateError, data: updateResult } = await supabaseAdmin
+      .from('items')
+      .update({ active_store_quantity: newQty })
+      .eq('id', item_id)
+      .eq('active_store_quantity', currentQty)
+      .select()
+      .single();
+
+    if (updateError || !updateResult) {
+      return NextResponse.json(
+        { error: 'Stock level changed during checkout. Please retry.' },
+        { status: 409 }
+      );
+    }
 
     // Update daily sales summary
     const saleDate = new Date().toISOString().split('T')[0];

@@ -143,36 +143,21 @@ export async function GET(req: NextRequest) {
         total_amount: totalAmount,
         sale_date: item.created_at,
         sold_outside_jalingo: soldOutsideJalingo,
+        sale_ids: [item.id],
+        receipt_number: (salesData || []).find((s: any) => s.id === item.sale_id)?.receipt_number || '',
       };
     });
 
-    const unpaidItems = allSales.filter((item: any) => item.quantity > 0);
-    const rawOutstanding = unpaidItems.reduce((sum: number, item: any) => sum + item.total_amount, 0);
+    const visibleItems = allSales.filter((item: any) => item.quantity > 0);
 
-    // Scale unpaid items to match financial outstanding (same as admin staff-detail)
-    let approvedTotal = 0;
-    let pendingTotal = 0;
-    for (const p of paymentsData || []) {
-      if (p.status === 'approved') approvedTotal += parseFloat(p.amount) || 0;
-      if (p.status === 'pending') pendingTotal += parseFloat(p.amount) || 0;
-    }
+    const rawOutstanding = visibleItems.reduce((s: number, i: any) => s + (i.total_amount || 0), 0);
+    const approvedTotal = (paymentsData || [])
+      .filter((p: any) => p.status === 'approved')
+      .reduce((s: number, p: any) => s + (parseFloat(p.amount) || 0), 0);
+    const pendingTotal = (paymentsData || [])
+      .filter((p: any) => p.status === 'pending')
+      .reduce((s: number, p: any) => s + (parseFloat(p.amount) || 0), 0);
     const financialOutstanding = Math.max(0, allTimeTotalAmount - approvedTotal - pendingTotal);
-
-    if (financialOutstanding <= 0) {
-      // All money paid — clear all items
-      for (const item of unpaidItems) item.quantity = 0;
-    } else if (rawOutstanding > 0 && Math.abs(rawOutstanding - financialOutstanding) > 1) {
-      const scale = Math.min(financialOutstanding / rawOutstanding, 1.0);
-      let adj = 0;
-      for (let i = 0; i < unpaidItems.length; i++) {
-        unpaidItems[i].total_amount = Math.round(unpaidItems[i].total_amount * scale * 100) / 100;
-        adj += unpaidItems[i].total_amount;
-      }
-      const diff = Math.round((financialOutstanding - adj) * 100) / 100;
-      if (unpaidItems.length > 0) unpaidItems[unpaidItems.length - 1].total_amount += diff;
-    }
-
-    const visibleItems = unpaidItems.filter((item: any) => item.quantity > 0);
 
     return NextResponse.json({
       allItems: visibleItems,
@@ -185,7 +170,7 @@ export async function GET(req: NextRequest) {
         totalQuantity: allTimeQuantity,
         totalItems: allSales.length,
         totalSalesAmount: allTimeTotalAmount,
-        outstandingAmount: financialOutstanding,
+        outstandingAmount: Math.max(rawOutstanding, financialOutstanding),
       },
     });
   } catch (error: any) {

@@ -485,7 +485,7 @@ export default function AdminCommissionsPage() {
 
       {/* Summary Cards */}
       {overview && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
           <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 sm:p-6 text-white">
             <div className="flex flex-col gap-2 h-full">
               <div className="flex-1">
@@ -495,6 +495,18 @@ export default function AdminCommissionsPage() {
                 </p>
               </div>
               <DollarSign className="text-2xl sm:text-4xl opacity-80 ml-auto" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-lg p-3 sm:p-6 text-white">
+            <div className="flex flex-col gap-2 h-full">
+              <div className="flex-1">
+                <p className="text-cyan-100 text-xs sm:text-sm">Estimated Total</p>
+                <p className="text-lg sm:text-3xl font-bold mt-1 break-all leading-tight">
+                  {formatCurrency(overview.total_estimated_commission)}
+                </p>
+              </div>
+              <BarChart3 className="text-2xl sm:text-4xl opacity-80 ml-auto" />
             </div>
           </div>
 

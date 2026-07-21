@@ -11,13 +11,16 @@ export async function GET(req: NextRequest) {
   // 1. Get all sales for this staff
   const { data: sales, error: salesError } = await supabaseAdmin
     .from('staff_sales')
-    .select('id, item_id, quantity, unit_price, total_amount, approved_commission, payment_method, sale_date, created_at')
+    .select('id, item_id, quantity, unit_price, total_amount, commission, approved_commission, payment_method, receipt_number, sold_outside_jalingo, sale_date, created_at, items:item_id(id, name)')
     .eq('staff_id', staffId)
     .order('sale_date', { ascending: false });
 
   if (salesError) return NextResponse.json({ error: salesError.message }, { status: 400 });
 
-  const allSales = sales || [];
+  const allSales = (sales || []).map((s: any) => ({
+    ...s,
+    item_name: s.items?.name || 'Unknown',
+  }));
 
   // Filter to only approved sales (payment submitted & approved by admin)
   const approvedSales = allSales.filter((s: any) => parseFloat(s.approved_commission) > 0);
@@ -50,6 +53,7 @@ export async function GET(req: NextRequest) {
 
   // 4. Compute summary
   const totalCommissionGenerated = allSales.reduce((sum: number, s: any) => sum + (parseFloat(s.approved_commission) || 0), 0);
+  const estimatedTotalCommission = allSales.reduce((sum: number, s: any) => sum + (parseFloat(s.commission) || 0), 0);
   const totalCommissionPaid = allPayments.reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
   const pendingCommission = Math.max(0, totalCommissionGenerated - totalCommissionPaid);
   const totalItemsSold = approvedSales.length;
@@ -98,13 +102,14 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     summary: {
       total_commission_generated: totalCommissionGenerated,
+      estimated_total_commission: estimatedTotalCommission,
       total_commission_paid: totalCommissionPaid,
       pending_commission: pendingCommission,
       total_items_sold: totalItemsSold,
       total_units_commissioned: totalUnitsSold,
     },
     commissions: commissionsList,
-    sales: approvedSales,
+    sales: allSales,
     top_items: topItems,
     monthly_commission: monthly,
   });

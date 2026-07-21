@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   if (authResult instanceof NextResponse) return authResult;
 
   try {
-    const { items, payment_method, sold_outside_jalingo, receipt_id } = await req.json();
+    const { items, payment_method, sold_outside_jalingo, receipt_id, receipt_number } = await req.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'items array is required' }, { status: 400 });
@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
           commission_rate: itemCommissionRate,
           approved_commission: 0,
           receipt_id: receipt_id || null,
+          receipt_number: receipt_number || null,
           location: itemLocation,
           payment_method: payment_method || 'cash',
           sold_outside_jalingo: sold_outside_jalingo || false,

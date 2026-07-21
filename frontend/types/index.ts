@@ -352,6 +352,7 @@ export interface StaffCommission {
   staff_email: string;
   staff_username: string;
   total_commission_generated: number;
+  estimated_total_commission: number;
   total_commission_paid: number;
   commission_pending: number;
   total_sales: number;
@@ -360,6 +361,7 @@ export interface StaffCommission {
 
 export interface CommissionOverview {
   total_commission_generated: number;
+  total_estimated_commission: number;
   total_commission_paid: number;
   total_commission_pending: number;
   commission_staff_count: number;

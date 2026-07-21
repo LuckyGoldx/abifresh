@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { formatQty } from '@/lib/format-quantity';
 import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, User, Phone, X, Eye, Maximize2, Download, Camera } from 'lucide-react';
+import Pagination from '@/components/Pagination';
 import StylishSuccessModal from '@/components/StylishSuccessModal';
 import LoadingLogo from '@/components/LoadingLogo';
 
@@ -38,6 +39,12 @@ export default function PaymentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(true);
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedReceiptSale, setSelectedReceiptSale] = useState<any>(null);
+  const [receiptData, setReceiptData] = useState<any>(null);
+  const [loadingReceipt, setLoadingReceipt] = useState(false);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const paymentItemsPerPage = 20;
   const [stats, setStats] = useState<any>({
     todaysTotalQuantity: 0,
     todaysTotalAmount: 0,
@@ -70,44 +77,26 @@ export default function PaymentsPage() {
     try {
       const [paymentsRes, salesRes] = await Promise.all([
         api.get('/api/staff/payments'),
-        api.get('/api/staff/store/sales-history'), // Use sales history from staff_sales table
+        api.get('/api/staff/store/sales-history'),
       ]);
       setPayments(paymentsRes.data);
-      
-      // Handle new response format with stats
-      let salesData = [];
-      let stats = { totalQuantity: 0, outstandingQuantity: 0, totalSales: 0, outstandingAmount: 0 };
-      
-      if (salesRes.data.allItems) {
-        // New format with stats
-        salesData = (salesRes.data.allItems || []).map((sale: any) => ({
-          id: sale.id,
-          item_id: sale.item_id,
-          item_name: sale.item_name || sale.items?.name || 'Unknown',
-          quantity: parseFloat(sale.quantity) || 0,
-          price_jalingo: parseFloat(sale.price_jalingo || sale.unit_price) || 0,
-          total_amount: parseFloat(sale.total_amount) || 0,
-          sale_date: sale.sale_date,
-          sale_ids: Array.isArray(sale.sale_ids) ? sale.sale_ids : undefined,
-          sold_outside_jalingo: sale.sold_outside_jalingo || false,
-        }));
-        stats = salesRes.data.stats || {};
-      } else if (Array.isArray(salesRes.data)) {
-        // Old format (array)
-        salesData = (salesRes.data || []).map((sale: any) => ({
-          id: sale.id,
-          item_id: sale.item_id,
-          item_name: sale.item_name || sale.items?.name || 'Unknown',
-          quantity: parseFloat(sale.quantity) || 0,
-          price_jalingo: parseFloat(sale.price_jalingo || sale.unit_price) || 0,
-          total_amount: parseFloat(sale.total_amount) || 0,
-          sale_date: sale.sale_date,
-          sale_ids: Array.isArray(sale.sale_ids) ? sale.sale_ids : undefined,
-          sold_outside_jalingo: sale.sold_outside_jalingo || false,
-        }));
-      }
-      
-      console.log('📦 Sales data mapped:', salesData);
+
+      const salesData = (salesRes.data.allItems || []).map((sale: any) => ({
+        id: sale.id,
+        item_id: sale.item_id,
+        item_name: sale.item_name || 'Unknown',
+        quantity: parseFloat(sale.quantity) || 0,
+        price_jalingo: parseFloat(sale.price_jalingo || sale.unit_price) || 0,
+        total_amount: parseFloat(sale.total_amount) || 0,
+        sale_date: sale.sale_date,
+        sale_ids: Array.isArray(sale.sale_ids) ? sale.sale_ids : [sale.id],
+        sold_outside_jalingo: sale.sold_outside_jalingo || false,
+        receipt_number: sale.receipt_number || '',
+        payment_method: sale.payment_method || 'cash',
+      }));
+      const stats = salesRes.data.stats || {};
+
+      console.log('📦 Individual sales rows:', salesData.length);
       console.log('📊 Stats:', stats);
       setSales(salesData);
       setStats(stats);
@@ -576,8 +565,10 @@ export default function PaymentsPage() {
                           />
                         </th>
                         <th className="text-left py-2 px-3">Item</th>
-                        <th className="text-left py-2 px-3">Qty</th>
+                        <th className="text-left py-2 px-3">Quantity</th>
                         <th className="text-left py-2 px-3">Amount</th>
+                        <th className="text-left py-2 px-3">Date</th>
+                        <th className="text-left py-2 px-3">Receipt</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -644,6 +635,29 @@ export default function PaymentsPage() {
                           </td>
                           <td className="py-2 px-3 font-semibold">
                             ₦{((selectedQuantities[sale.id] !== undefined ? selectedQuantities[sale.id] : sale.quantity) * sale.price_jalingo).toLocaleString()}
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-500">
+                            {sale.sale_date ? new Date(sale.sale_date).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="py-2 px-3 text-xs">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!sale.receipt_number) return;
+                                if (receiptData?.receipt_number === sale.receipt_number) { setShowReceiptModal(true); return; }
+                                setSelectedReceiptSale(sale);
+                                setShowReceiptModal(true);
+                                setLoadingReceipt(true);
+                                try {
+                                  const res = await api.get(`/api/receipts/by-number?receipt_number=${encodeURIComponent(sale.receipt_number)}`);
+                                  setReceiptData(res.data);
+                                } catch { setReceiptData(null); }
+                                finally { setLoadingReceipt(false); }
+                              }}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium disabled:opacity-50"
+                            >
+                              {sale.receipt_number || '-'}
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -953,7 +967,11 @@ export default function PaymentsPage() {
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment) => (
+              {(() => {
+                const sorted = [...payments].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                const totalPages = Math.ceil(sorted.length / paymentItemsPerPage);
+                const paginated = sorted.slice((paymentPage - 1) * paymentItemsPerPage, paymentPage * paymentItemsPerPage);
+                return paginated.map((payment) => (
                 <tr key={payment.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="py-3 px-4">
                     {new Date(payment.created_at).toLocaleString()}
@@ -990,10 +1008,17 @@ export default function PaymentsPage() {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ));
+              })()}
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={paymentPage}
+          totalPages={Math.ceil(payments.length / paymentItemsPerPage)}
+          onPageChange={setPaymentPage}
+        />
 
         {payments.length === 0 && (
           <div className="text-center py-12 text-gray-500">
@@ -1203,6 +1228,88 @@ export default function PaymentsPage() {
         title="Payment Submitted!"
         message="Your payment request has been sent successfully and is now awaiting admin approval. You will be notified once it is cleared."
       />
+
+      {/* Receipt Modal */}
+      {showReceiptModal && selectedReceiptSale && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowReceiptModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full p-5 max-h-screen overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Receipt</h2>
+              <button onClick={() => setShowReceiptModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+            {loadingReceipt ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <div className="animate-pulse">
+                  <img src="/favicon.svg" alt="" className="w-14 h-14" />
+                </div>
+                <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+                  <div className="w-4 h-4 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm font-bold">Loading receipt...</span>
+                </div>
+              </div>
+            ) : receiptData ? (
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-inner overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div className="bg-gradient-to-r from-pink-500 to-pink-600 p-5 text-center">
+                  <h2 className="text-xl font-bold text-white mb-0.5">ABIFRESH & KIDDIES VENTURES</h2>
+                  <p className="text-pink-100 text-sm">Receipt #{receiptData.receipt_number}</p>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-3 gap-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Date</p>
+                      <p className="font-semibold text-gray-900 dark:text-white mt-0.5">{new Date(selectedReceiptSale.sale_date || selectedReceiptSale.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Items</p>
+                      <p className="font-semibold text-gray-900 dark:text-white mt-0.5">{receiptData.item_count} item(s)</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Location</p>
+                      <p className={`font-semibold mt-0.5 ${selectedReceiptSale.sold_outside_jalingo ? 'text-orange-500' : 'text-green-500'}`}>
+                        {selectedReceiptSale.sold_outside_jalingo ? 'Outside Jalingo' : 'Inside Jalingo'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="border-t-2 border-b-2 border-pink-300 dark:border-pink-600">
+                    <div className="bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                      <div className="flex justify-between text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wide">
+                        <span className="flex-1">Item</span>
+                        <span className="w-14 text-right">Qty</span>
+                        <span className="w-20 text-right">Price</span>
+                        <span className="w-20 text-right">Total</span>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2 space-y-1.5">
+                      {receiptData.items.map((item: any, idx: number) => {
+                        const isHighlighted = item.item_id === selectedReceiptSale.item_id;
+                        return (
+                          <div key={idx} className={`flex justify-between text-sm items-center rounded px-2 py-1 ${isHighlighted ? 'bg-yellow-100 dark:bg-yellow-900/40 ring-2 ring-yellow-400 dark:ring-yellow-500 font-bold' : 'text-gray-700 dark:text-gray-300'}`}>
+                            <span className="flex-1 truncate">{item.item_name}</span>
+                            <span className="w-14 text-right">{formatQty(item.quantity)}</span>
+                            <span className="w-20 text-right">₦{(item.unit_price || 0).toLocaleString()}</span>
+                            <span className="w-20 text-right font-semibold">₦{(item.total_amount || 0).toLocaleString()}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-lg p-4 border border-pink-200 dark:border-pink-700">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400 text-sm font-semibold">Total</span>
+                      <span className="text-xl font-bold text-pink-600 dark:text-pink-400">₦{receiptData.total_amount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">Failed to load receipt</div>
+            )}
+            <button onClick={() => setShowReceiptModal(false)} className="mt-3 w-full py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm font-medium">Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

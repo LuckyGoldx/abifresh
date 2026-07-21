@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { formatQty } from '@/lib/format-quantity';
-import { TrendingUp, DollarSign, CheckCircle2, Clock, Package, BarChart3, Download, Filter, ChevronDown } from 'lucide-react';
+import { TrendingUp, DollarSign, CheckCircle2, Clock, Package, BarChart3, Download, Filter, ChevronDown, X } from 'lucide-react';
+import Pagination from '@/components/Pagination';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
 
 interface CommissionData {
   summary: {
     total_commission_generated: number;
+    estimated_total_commission: number;
     total_commission_paid: number;
     pending_commission: number;
     total_items_sold: number;
@@ -47,7 +49,13 @@ export default function CommissionStaffPage() {
   const user = useAuthStore((state) => state.user);
   const [commissions, setCommissions] = useState<CommissionData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'items' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'items' | 'history' | 'breakdown'>('breakdown');
+  const [breakdownFilter, setBreakdownFilter] = useState<'all' | 'paid'>('paid');
+  const [breakdownPage, setBreakdownPage] = useState(1);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
+  const [receiptData, setReceiptData] = useState<any>(null);
+  const [loadingReceipt, setLoadingReceipt] = useState(false);
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [filterPeriod, setFilterPeriod] = useState<'all' | '30d' | '90d' | '1y'>('all');
 
@@ -75,6 +83,7 @@ export default function CommissionStaffPage() {
     let csv = 'Commission Report Export\n';
     csv += `Generated: ${new Date().toLocaleString()}\n\n`;
     csv += 'SUMMARY\n';
+    csv += `Estimated Total Commission,₦${commissions.summary.estimated_total_commission.toLocaleString()}\n`;
     csv += `Total Commission Generated,₦${commissions.summary.total_commission_generated.toLocaleString()}\n`;
     csv += `Total Commission Paid,₦${commissions.summary.total_commission_paid.toLocaleString()}\n`;
     csv += `Pending Commission,₦${commissions.summary.pending_commission.toLocaleString()}\n`;
@@ -119,6 +128,7 @@ export default function CommissionStaffPage() {
         [`Generated: ${new Date().toLocaleString()}`],
         [],
         ['SUMMARY'],
+        ['Estimated Total Commission', `₦${commissions?.summary.estimated_total_commission.toLocaleString()}`],
         ['Total Commission Generated', `₦${commissions?.summary.total_commission_generated.toLocaleString()}`],
         ['Total Commission Paid', `₦${commissions?.summary.total_commission_paid.toLocaleString()}`],
         ['Pending Commission', `₦${commissions?.summary.pending_commission.toLocaleString()}`],
@@ -165,6 +175,10 @@ export default function CommissionStaffPage() {
         
         <h2 style="font-size: 18px; margin-top: 20px; margin-bottom: 10px;">Summary</h2>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 8px;">Estimated Total Commission</td>
+            <td style="padding: 8px; text-align: right; font-weight: bold;">₦${commissions?.summary.estimated_total_commission.toLocaleString()}</td>
+          </tr>
           <tr style="border-bottom: 1px solid #ddd;">
             <td style="padding: 8px;">Total Commission Generated</td>
             <td style="padding: 8px; text-align: right; font-weight: bold;">₦${commissions?.summary.total_commission_generated.toLocaleString()}</td>
@@ -291,13 +305,20 @@ export default function CommissionStaffPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           icon={DollarSign}
           title="Total Commission"
           value={`₦${commissions.summary.total_commission_generated.toLocaleString()}`}
           color="bg-purple-500"
-          subtitle="All time earned"
+          subtitle="Earned from paid sales"
+        />
+        <StatCard
+          icon={BarChart3}
+          title="Estimated Total"
+          value={`₦${commissions.summary.estimated_total_commission.toLocaleString()}`}
+          color="bg-cyan-500"
+          subtitle="If all items were paid"
         />
         <StatCard
           icon={CheckCircle2}
@@ -361,6 +382,16 @@ export default function CommissionStaffPage() {
             }`}
           >
             Payment History
+          </button>
+          <button
+            onClick={() => { setActiveTab('breakdown'); setBreakdownPage(1); }}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'breakdown'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:border-gray-300'
+            }`}
+          >
+            📋 Commission Breakdown
           </button>
         </div>
       </div>
@@ -510,6 +541,220 @@ export default function CommissionStaffPage() {
                 <p>No commission payments yet</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'breakdown' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Commission Breakdown</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setBreakdownFilter('paid'); setBreakdownPage(1); }}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                  breakdownFilter === 'paid'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+              >
+                Paid ({commissions.sales.filter((s: any) => (s.approved_commission || 0) > 0).length})
+              </button>
+              <button
+                onClick={() => { setBreakdownFilter('all'); setBreakdownPage(1); }}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                  breakdownFilter === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+              >
+                All ({commissions.sales.length})
+              </button>
+            </div>
+          </div>
+
+          {(() => {
+            const filtered = breakdownFilter === 'paid'
+              ? commissions.sales.filter((s: any) => (s.approved_commission || 0) > 0)
+              : commissions.sales;
+            const itemsPerPage = 20;
+            const totalPages = Math.ceil(filtered.length / itemsPerPage);
+            const paginated = filtered.slice(
+              (breakdownPage - 1) * itemsPerPage,
+              breakdownPage * itemsPerPage
+            );
+
+            return (
+              <>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-900">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Receipt</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Comm/Unit</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Commission</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {paginated.length > 0 ? (
+                          paginated.map((sale: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap">{sale.item_name || 'Unknown'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{new Date(sale.sale_date || sale.created_at).toLocaleDateString()}</td>
+                              <td className="px-4 py-3 text-sm text-right whitespace-nowrap">
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!sale.receipt_number) return;
+                                    if (receiptData?.receipt_number === sale.receipt_number) { setShowReceiptModal(true); return; }
+                                    setSelectedReceipt(sale);
+                                    setShowReceiptModal(true);
+                                    setLoadingReceipt(true);
+                                    try {
+                                      const res = await api.get(`/api/receipts/by-number?receipt_number=${encodeURIComponent(sale.receipt_number)}`);
+                                      setReceiptData(res.data);
+                                    } catch { setReceiptData(null); }
+                                    finally { setLoadingReceipt(false); }
+                                  }}
+                                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium"
+                                >
+                                  {sale.receipt_number || '—'}
+                                </button>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white text-right whitespace-nowrap">{formatQty(sale.quantity)}</td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white text-right whitespace-nowrap">₦{(sale.unit_price || 0).toLocaleString()}</td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white text-right whitespace-nowrap">₦{(sale.total_amount || 0).toLocaleString()}</td>
+                              <td className="px-4 py-3 text-sm text-blue-600 dark:text-blue-400 text-right whitespace-nowrap">
+                                ₦{((sale.approved_commission || 0) / Math.max(sale.quantity, 1)).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-3 text-sm font-semibold text-green-600 dark:text-green-400 text-right whitespace-nowrap">
+                                ₦{(sale.approved_commission || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={8} className="px-4 py-8 text-center text-gray-500">No commission sales found</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <Pagination
+                  currentPage={breakdownPage}
+                  totalPages={totalPages}
+                  onPageChange={setBreakdownPage}
+                />
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Receipt Modal */}
+      {showReceiptModal && selectedReceipt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowReceiptModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full p-5 max-h-screen overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Receipt</h2>
+              <button onClick={() => setShowReceiptModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+
+            {loadingReceipt ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <div className="animate-pulse">
+                  <img src="/favicon.svg" alt="" className="w-14 h-14" />
+                </div>
+                <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+                  <div className="w-4 h-4 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm font-bold">Loading receipt...</span>
+                </div>
+              </div>
+            ) : receiptData ? (
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-inner overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div className="bg-gradient-to-r from-pink-500 to-pink-600 p-5 text-center">
+                  <h2 className="text-xl font-bold text-white mb-0.5">ABIFRESH & KIDDIES VENTURES</h2>
+                  <p className="text-pink-100 text-sm">Receipt #{receiptData.receipt_number}</p>
+                </div>
+
+                <div className="p-4 space-y-3">
+                  <div className="grid grid-cols-3 gap-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Date</p>
+                      <p className="font-semibold text-gray-900 dark:text-white mt-0.5">{new Date(selectedReceipt.sale_date || selectedReceipt.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Items</p>
+                      <p className="font-semibold text-gray-900 dark:text-white mt-0.5">{receiptData.item_count} item(s)</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Location</p>
+                      <p className={`font-semibold mt-0.5 ${selectedReceipt.sold_outside_jalingo ? 'text-orange-500' : 'text-green-500'}`}>
+                        {selectedReceipt.sold_outside_jalingo ? 'Outside Jalingo' : 'Inside Jalingo'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t-2 border-b-2 border-pink-300 dark:border-pink-600">
+                    <div className="bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                      <div className="flex justify-between text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wide">
+                        <span className="flex-1">Item</span>
+                        <span className="w-14 text-right">Qty</span>
+                        <span className="w-20 text-right">Price</span>
+                        <span className="w-20 text-right">Total</span>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2 space-y-1.5">
+                      {receiptData.items.map((item: any, idx: number) => {
+                        const isHighlighted = item.item_id === selectedReceipt.item_id;
+                        return (
+                          <div key={idx} className={`flex justify-between text-sm items-center rounded px-2 py-1 ${
+                            isHighlighted ? 'bg-yellow-100 dark:bg-yellow-900/40 ring-2 ring-yellow-400 dark:ring-yellow-500 font-bold' : 'text-gray-700 dark:text-gray-300'
+                          }`}>
+                            <span className="flex-1 truncate">{item.item_name}</span>
+                            <span className="w-14 text-right">{formatQty(item.quantity)}</span>
+                            <span className="w-20 text-right">₦{(item.unit_price || 0).toLocaleString()}</span>
+                            <span className="w-20 text-right font-semibold">₦{(item.total_amount || 0).toLocaleString()}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-lg p-4 border border-pink-200 dark:border-pink-700">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400 text-sm font-semibold">Total</span>
+                      <span className="text-xl font-bold text-pink-600 dark:text-pink-400">₦{receiptData.total_amount.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-700">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600 dark:text-gray-400 text-sm">Commission (highlighted item)</span>
+                      <span className="text-lg font-bold text-green-600 dark:text-green-400">₦{(selectedReceipt.approved_commission || 0).toLocaleString('en-NG', { minimumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">Failed to load receipt</div>
+            )}
+
+            <button
+              onClick={() => setShowReceiptModal(false)}
+              className="mt-3 w-full py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm font-medium"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

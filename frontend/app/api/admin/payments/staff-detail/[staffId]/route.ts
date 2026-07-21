@@ -134,7 +134,7 @@ export async function GET(
       // Non-sales staff (commission + non-commission) → staff_sales table
       const { data: ssData, error: ssErr } = await supabaseAdmin
         .from('staff_sales')
-        .select('id, item_id, quantity, unit_price, total_amount, sale_date, items:item_id(name)')
+        .select('id, item_id, quantity, unit_price, total_amount, sold_outside_jalingo, sale_date, items:item_id(name)')
         .eq('staff_id', staffId)
         .order('sale_date', { ascending: false });
       if (ssErr) throw ssErr;
@@ -197,9 +197,10 @@ export async function GET(
         const remainingQty = Math.max(0, origQty - paidQty);
         if (remainingQty <= 0) continue;
 
-        const remainingAmount = origQty > 0 ? origTotal * (remainingQty / origQty) : 0;
+        const remainingAmount = remainingQty * price;
         const name = (s.items as any)?.name || 'Unknown';
-        const key = `${s.item_id}_${price}`;
+        const outside = s.sold_outside_jalingo || false;
+        const key = `${s.item_id}_${price}_${outside}`;
         if (map.has(key)) {
           const ex = map.get(key)!;
           ex.quantity += remainingQty;
@@ -213,6 +214,7 @@ export async function GET(
             quantity: remainingQty,
             unit_price: price,
             total_amount: remainingAmount,
+            sold_outside_jalingo: outside,
             sale_ids: [s.id],
             sale_date: s.sale_date,
           });

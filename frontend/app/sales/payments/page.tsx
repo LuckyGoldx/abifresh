@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { formatQty } from '@/lib/format-quantity';
 import { CreditCard, Plus, CheckCircle, XCircle, Clock, Upload, DollarSign, FileText, User, Phone, X, Eye, Maximize2, Download, Camera } from 'lucide-react';
+import Pagination from '@/components/Pagination';
 import StylishSuccessModal from '@/components/StylishSuccessModal';
 import LoadingLogo from '@/components/LoadingLogo';
 
@@ -46,6 +47,10 @@ export default function SalesPaymentsPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [selectedReceiptSale, setSelectedReceiptSale] = useState<any>(null);
+  const [paymentPage, setPaymentPage] = useState(1);
+  const paymentItemsPerPage = 20;
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(true);
@@ -81,47 +86,22 @@ export default function SalesPaymentsPage() {
         api.get('/api/sales/my-sales-history'),
       ]);
       setPayments(paymentsRes.data);
-      
-      // Handle new response format with stats
-      let salesData = [];
-      let stats = { totalQuantity: 0, outstandingQuantity: 0, totalSales: 0, outstandingAmount: 0 };
-      
-      if (salesRes.data.allItems) {
-        // New format with stats
-        salesData = (salesRes.data.allItems || []).map((sale: any) => {
-          const quantity = parseFloat(sale.quantity as any) || 0;
-          const itemName = sale.item_name || sale.items?.name || 'Unknown Item';
-          return {
-            id: sale.id,
-            item_id: sale.item_id,
-            item_name: itemName,
-            quantity: quantity,
-            unit_price: parseFloat(sale.unit_price as any) || 0,
-            total_amount: parseFloat(sale.total_amount as any) || 0,
-            sale_date: sale.sale_date || sale.created_at,
-            sold_outside_jalingo: sale.sold_outside_jalingo || false,
-          };
-        });
-        stats = salesRes.data.stats || {};
-      } else if (Array.isArray(salesRes.data)) {
-        // Old format (array)
-        salesData = (salesRes.data || []).map((sale: any) => {
-          const quantity = parseFloat(sale.quantity as any) || 0;
-          const itemName = sale.item_name || sale.items?.name || 'Unknown Item';
-          return {
-            id: sale.id,
-            item_id: sale.item_id,
-            item_name: itemName,
-            quantity: quantity,
-            unit_price: parseFloat(sale.unit_price as any) || 0,
-            total_amount: parseFloat(sale.total_amount as any) || 0,
-            sale_date: sale.sale_date || sale.created_at,
-            sold_outside_jalingo: sale.sold_outside_jalingo || false,
-          };
-        });
-      }
-      
-      console.log('📦 Sales data mapped:', salesData);
+
+      const salesData = (salesRes.data.allItems || []).map((sale: any) => ({
+        id: sale.id,
+        item_id: sale.item_id,
+        item_name: sale.item_name || 'Unknown Item',
+        quantity: parseFloat(sale.quantity) || 0,
+        unit_price: parseFloat(sale.unit_price) || 0,
+        total_amount: parseFloat(sale.total_amount) || 0,
+        sale_date: sale.sale_date || sale.created_at,
+        sold_outside_jalingo: sale.sold_outside_jalingo || false,
+        sale_ids: Array.isArray(sale.sale_ids) ? sale.sale_ids : [sale.id],
+        receipt_number: sale.receipt_number || '',
+      }));
+      const stats = salesRes.data.stats || {};
+
+      console.log('📦 Individual sales rows:', salesData.length);
       console.log('📊 Stats:', stats);
       setSales(salesData);
       setStats(stats);
@@ -146,7 +126,7 @@ export default function SalesPaymentsPage() {
         setSelectedQuantities(newQuants);
         return prev.filter(id => id !== itemId);
       } else {
-        const item = soldItems.find(i => i.id === itemId);
+        const item = sales.find(i => i.id === itemId);
         setSelectedQuantities(prevQ => ({
           ...prevQ,
           [itemId]: item ? item.quantity : 0
@@ -157,152 +137,24 @@ export default function SalesPaymentsPage() {
   };
 
   const toggleSelectAll = () => {
-    const allSelected = soldItems.length > 0 && soldItems.every(item => selectedItems.includes(item.id));
+    const allSelected = sales.length > 0 && sales.every(item => selectedItems.includes(item.id));
     if (allSelected) {
       setSelectedItems([]);
       setSelectedQuantities({});
     } else {
-      setSelectedItems(soldItems.map(item => item.id));
+      setSelectedItems(sales.map(item => item.id));
       const newQuants: Record<string, number> = {};
-      soldItems.forEach(item => {
-        newQuants[item.id] = item.quantity;
-      });
+      sales.forEach(item => { newQuants[item.id] = item.quantity; });
       setSelectedQuantities(newQuants);
     }
   };
 
-  // Normalize item ID for consistent comparison
-  const normalizeId = (id: any): string => {
-    if (!id) return '';
-    return String(id).toLowerCase().trim();
-  };
-
-  // Filter out individual sales that are in pending or approved payments
-  const getUnpaidSales = () => {
-    // Track paid sale IDs
-    const paidSaleIds = new Set<string>();
-    
-    console.log('🔍 FILTERING DEBUG:');
-    console.log('Total payments to check:', payments.length);
-    
-    // Method 1: Filter by explicit sale_ids (if items_paid_for exists)
-    let paidByItemsData = 0;
-    payments.forEach((payment, idx) => {
-      if ((payment.status === 'pending' || payment.status === 'approved') && payment.items_paid_for && Array.isArray(payment.items_paid_for)) {
-        console.log(`  ✓ Payment ${idx} has items_paid_for data`);
-        payment.items_paid_for.forEach((item: any) => {
-          if (Array.isArray(item.sale_ids)) {
-            item.sale_ids.forEach((sid: any) => {
-              if (sid) {
-                paidSaleIds.add(normalizeId(sid));
-                paidByItemsData++;
-              }
-            });
-          }
-        });
-      }
-    });
-    
-    console.log(`  Paid by items_data: ${paidByItemsData} sales`);
-    
-    // Method 2: Fallback - Filter by matching payment amounts (for old payments without items_paid_for)
-    if (paidByItemsData === 0) {
-      console.log('⚠️ No items_paid_for data found, using amount-based filtering as fallback...');
-      
-      // Get approved and pending payment amounts
-      const approvedAmount = payments
-        .filter(p => p.status === 'approved')
-        .reduce((sum, p) => sum + (parseFloat(p.amount as any) || 0), 0);
-      const pendingAmount = payments
-        .filter(p => p.status === 'pending')
-        .reduce((sum, p) => sum + (parseFloat(p.amount as any) || 0), 0);
-      const totalPaidAmount = approvedAmount + pendingAmount;
-      
-      console.log(`  Total approved amount: ₦${approvedAmount}`);
-      console.log(`  Total pending amount: ₦${pendingAmount}`);
-      console.log(`  Total to filter: ₦${totalPaidAmount}`);
-      
-      // Sort sales by amount descending and accumulate
-      let accumulatedAmount = 0;
-      const sortedSales = [...sales].sort((a, b) => (parseFloat(b.total_amount as any) || 0) - (parseFloat(a.total_amount as any) || 0));
-      
-      for (const sale of sortedSales) {
-        const saleAmount = parseFloat(sale.total_amount as any) || 0;
-        if (accumulatedAmount + saleAmount <= totalPaidAmount) {
-          paidSaleIds.add(normalizeId(sale.id));
-          accumulatedAmount += saleAmount;
-          console.log(`  ✓ Filtering out: ${sale.item_name} - ₦${saleAmount} (cumulative: ₦${accumulatedAmount})`);
-          if (accumulatedAmount >= totalPaidAmount) break;
-        }
-      }
-      
-      console.log(`  Fallback filtered: ${paidSaleIds.size} sales totaling ₦${accumulatedAmount}`);
-    }
-    
-    console.log('\n📊 Paid Sale IDs to filter:', Array.from(paidSaleIds));
-    console.log('Total sales before filter:', sales.length);
-    
-    // Filter out sales that are in pending or approved payments
-    const unpaidSales = sales.filter(sale => {
-      const normalizedSaleId = normalizeId(sale.id);
-      return !paidSaleIds.has(normalizedSaleId);
-    });
-    
-    console.log('\n✅ Unpaid sales after filter:', unpaidSales.length);
-    console.log('Unpaid items total: ₦' + unpaidSales.reduce((sum, s) => sum + (parseFloat(s.total_amount as any) || 0), 0));
-    
-    return unpaidSales;
-  };
-
-  // Group unpaid sales by item + actual unit price.
-  // Items of the same product sold at DIFFERENT prices (inside Jalingo vs outside Jalingo)
-  // stay as separate rows so the displayed amount is always the actual sold price.
-  const getSoldItemsGrouped = () => {
-    const itemMap = new Map<string, any>();
-    
-    sales.forEach((sale) => {
-      // Derive the actual per-unit price from what is stored on the sale record.
-      // Never use items.unit_price (that is the purchase/base price, not the sold price).
-      const effectiveUnitPrice = (sale.unit_price ?? 0) > 0
-        ? sale.unit_price!
-        : (sale.total_amount / (sale.quantity || 1));
-      // Key = item_id + actual unit price → preserves inside/outside Jalingo differences
-      const key = `${sale.item_id}_${effectiveUnitPrice}`;
-      if (itemMap.has(key)) {
-        const existing = itemMap.get(key);
-        existing.quantity += sale.quantity;
-        existing.total_amount += sale.total_amount;
-        existing.sale_ids.push(sale.id);
-      } else {
-        itemMap.set(key, {
-          id: `item_${key}`,       // Compound key used by frontend checkbox selection
-          item_id: sale.item_id,
-          item_name: sale.item_name,
-          quantity: sale.quantity,
-          unit_price: effectiveUnitPrice,
-          total_amount: sale.total_amount,
-          sale_ids: [sale.id],     // Track individual sale IDs for payment payload
-          sold_outside_jalingo: sale.sold_outside_jalingo || false,
-        });
-      }
-    });
-    
-    return Array.from(itemMap.values());
-  };
-
-  // Get available items for payment (filtered and grouped)
-  const getAvailableItems = () => {
-    return getSoldItemsGrouped();
-  };
-
-  const soldItems = getAvailableItems();
-
   const calculateSelectedTotal = () => {
-    return soldItems
+    return sales
       .filter(item => selectedItems.includes(item.id))
       .reduce((sum, item) => {
         const qty = selectedQuantities[item.id] !== undefined ? selectedQuantities[item.id] : item.quantity;
-        return sum + (qty * item.unit_price);
+        return sum + (qty * (item.unit_price || 0));
       }, 0);
   };
 
@@ -421,7 +273,7 @@ export default function SalesPaymentsPage() {
     }
 
     // Get selected items from the grouped view
-    const selectedSalesData = soldItems
+    const selectedSalesData = sales
       .filter(item => selectedItems.includes(item.id))
       .map(item => {
         const qty = selectedQuantities[item.id] !== undefined ? selectedQuantities[item.id] : item.quantity;
@@ -429,7 +281,7 @@ export default function SalesPaymentsPage() {
           item_id: item.item_id,
           item_name: item.item_name,
           quantity: qty,
-          amount: qty * item.unit_price,
+          amount: qty * (item.unit_price || 0),
           sale_ids: item.sale_ids || []
         };
       });
@@ -682,27 +534,29 @@ export default function SalesPaymentsPage() {
                 </p>
               </div>
               <div className="border dark:border-gray-700 rounded-lg max-h-60 overflow-x-auto overflow-y-auto">
-                {soldItems.length > 0 ? (
+                {sales.length > 0 ? (
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
                       <tr>
                         <th className="py-2 px-3">
                           <input
                             type="checkbox"
-                            checked={soldItems.length > 0 && soldItems.every(item => selectedItems.includes(item.id))}
-                            ref={(el) => { if (el) el.indeterminate = soldItems.some(item => selectedItems.includes(item.id)) && !soldItems.every(item => selectedItems.includes(item.id)); }}
+                            checked={sales.length > 0 && sales.every(item => selectedItems.includes(item.id))}
+                            ref={(el) => { if (el) el.indeterminate = sales.some(item => selectedItems.includes(item.id)) && !sales.every(item => selectedItems.includes(item.id)); }}
                             onChange={toggleSelectAll}
                             className="w-4 h-4"
                             title="Select / deselect all"
                           />
                         </th>
                         <th className="text-left py-2 px-3">Item</th>
-                        <th className="text-left py-2 px-3">Qty</th>
+                        <th className="text-left py-2 px-3">Quantity</th>
                         <th className="text-left py-2 px-3">Amount</th>
+                        <th className="text-left py-2 px-3">Date</th>
+                        <th className="text-left py-2 px-3">Receipt</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {soldItems.map((item) => (
+                      {sales.map((item) => (
                         <tr key={item.id} className="border-t dark:border-gray-700">
                           <td className="py-2 px-3">
                             <input
@@ -765,7 +619,22 @@ export default function SalesPaymentsPage() {
                             </div>
                           </td>
                           <td className="py-2 px-3 font-semibold">
-                            ₦{((selectedQuantities[item.id] !== undefined ? selectedQuantities[item.id] : item.quantity) * item.unit_price).toLocaleString()}
+                            ₦{((selectedQuantities[item.id] !== undefined ? selectedQuantities[item.id] : item.quantity) * (item.unit_price || 0)).toLocaleString()}
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-500">{item.sale_date ? new Date(item.sale_date).toLocaleDateString() : '-'}</td>
+                          <td className="py-2 px-3 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!item.receipt_number) return;
+                                if (selectedReceiptSale?.receipt_number === item.receipt_number) { setShowReceiptModal(true); return; }
+                                setSelectedReceiptSale(item);
+                                setShowReceiptModal(true);
+                              }}
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium"
+                            >
+                              {item.receipt_number || '-'}
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -780,7 +649,7 @@ export default function SalesPaymentsPage() {
                   Selected items total: <strong>₦{calculateSelectedTotal().toLocaleString()}</strong>
                 </p>
               )}
-              {selectedItems.length === 0 && soldItems.length > 0 && (
+              {selectedItems.length === 0 && sales.length > 0 && (
                 <p className="text-sm text-red-600 dark:text-red-400 mt-2">
                   Please select at least one item
                 </p>
@@ -1019,7 +888,7 @@ export default function SalesPaymentsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Items Being Paid For</p>
                 <ul className="mt-2 space-y-1 text-sm">
-                  {soldItems.filter(item => selectedItems.includes(item.id)).map(item => (
+                  {sales.filter(item => selectedItems.includes(item.id)).map(item => (
                     <li key={item.id}>
                       • {item.item_name} (x{formatQty(item.quantity)}) - ₦{item.total_amount.toLocaleString()}
                     </li>
@@ -1090,7 +959,11 @@ export default function SalesPaymentsPage() {
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment) => (
+              {(() => {
+                const sorted = [...payments].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                const totalPages = Math.ceil(sorted.length / paymentItemsPerPage);
+                const paginated = sorted.slice((paymentPage - 1) * paymentItemsPerPage, paymentPage * paymentItemsPerPage);
+                return paginated.map((payment) => (
                 <tr key={payment.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
                   <td className="py-3 px-4">
                     {new Date(payment.created_at).toLocaleString()}
@@ -1127,10 +1000,17 @@ export default function SalesPaymentsPage() {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ));
+              })()}
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={paymentPage}
+          totalPages={Math.ceil(payments.length / paymentItemsPerPage)}
+          onPageChange={setPaymentPage}
+        />
 
         {payments.length === 0 && (
           <div className="text-center py-12 text-gray-500">
@@ -1332,6 +1212,80 @@ export default function SalesPaymentsPage() {
         title="Payment Submitted!"
         message="Your payment request has been sent successfully and is now awaiting admin approval. You will be notified once it is cleared."
       />
+
+      {/* Receipt Modal */}
+      {showReceiptModal && selectedReceiptSale && (() => {
+        const receiptItems = sales.filter((s: any) => s.receipt_number === selectedReceiptSale.receipt_number);
+        const receiptTotal = receiptItems.reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0);
+        return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowReceiptModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full p-5 max-h-screen overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Receipt</h2>
+              <button onClick={() => setShowReceiptModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-inner overflow-hidden border border-gray-200 dark:border-gray-700">
+              <div className="bg-gradient-to-r from-pink-500 to-pink-600 p-5 text-center">
+                <h2 className="text-xl font-bold text-white mb-0.5">ABIFRESH & KIDDIES VENTURES</h2>
+                <p className="text-pink-100 text-sm">Receipt #{selectedReceiptSale.receipt_number}</p>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="grid grid-cols-3 gap-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Date</p>
+                    <p className="font-semibold text-gray-900 dark:text-white mt-0.5">{new Date(selectedReceiptSale.sale_date || selectedReceiptSale.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Items</p>
+                    <p className="font-semibold text-gray-900 dark:text-white mt-0.5">{receiptItems.length} item(s)</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Location</p>
+                    <p className={`font-semibold mt-0.5 ${selectedReceiptSale.sold_outside_jalingo ? 'text-orange-500' : 'text-green-500'}`}>
+                      {selectedReceiptSale.sold_outside_jalingo ? 'Outside Jalingo' : 'Inside Jalingo'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border-t-2 border-b-2 border-pink-300 dark:border-pink-600">
+                  <div className="bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                    <div className="flex justify-between text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wide">
+                      <span className="flex-1">Item</span>
+                      <span className="w-14 text-right">Qty</span>
+                      <span className="w-20 text-right">Price</span>
+                      <span className="w-20 text-right">Total</span>
+                    </div>
+                  </div>
+                  <div className="px-3 py-2 space-y-1.5">
+                    {receiptItems.map((s: any, idx: number) => {
+                      const isHighlighted = s.id === selectedReceiptSale.id;
+                      return (
+                        <div key={idx} className={`flex justify-between text-sm items-center rounded px-2 py-1 ${isHighlighted ? 'bg-yellow-100 dark:bg-yellow-900/40 ring-2 ring-yellow-400 dark:ring-yellow-500 font-bold' : 'text-gray-700 dark:text-gray-300'}`}>
+                          <span className="flex-1 truncate">{s.item_name}</span>
+                          <span className="w-14 text-right">{formatQty(s.quantity)}</span>
+                          <span className="w-20 text-right">₦{(s.unit_price || 0).toLocaleString()}</span>
+                          <span className="w-20 text-right font-semibold">₦{(s.total_amount || 0).toLocaleString()}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-lg p-4 border border-pink-200 dark:border-pink-700">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 dark:text-gray-400 text-sm font-semibold">Total</span>
+                    <span className="text-xl font-bold text-pink-600 dark:text-pink-400">₦{receiptTotal.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => setShowReceiptModal(false)} className="mt-3 w-full py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm font-medium">Close</button>
+          </div>
+        </div>
+        );
+      })()}
     </div>
   );
 }

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const [salesResult, postedResult, paymentsResult, commissionPaidResult, expensesResult, notificationsResult] = await Promise.all([
     supabaseAdmin
       .from('staff_sales')
-      .select('quantity, total_amount, commission')
+      .select('quantity, total_amount, approved_commission')
       .eq('staff_id', authResult.id),
     supabaseAdmin
       .from('posted_items')
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
   const total_items_sold = sales.reduce((s: number, r: any) => s + (r.quantity || 0), 0);
   const total_amount_sold = sales.reduce((s: number, r: any) => s + (parseFloat(r.total_amount) || 0), 0);
   const total_commission = isCommissionStaff
-    ? sales.reduce((s: number, r: any) => s + (parseFloat(r.commission) || 0), 0)
+    ? sales.reduce((s: number, r: any) => s + (parseFloat(r.approved_commission) || 0), 0)
     : 0;
 
   const total_posted_items = posted.length;

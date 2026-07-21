@@ -6,10 +6,10 @@ export async function GET(req: NextRequest) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
 
-  // Get all staff_sales for this staff
+  // Get all staff_sales for this staff with receipt info
   const { data: sales, error } = await supabaseAdmin
     .from('staff_sales')
-    .select('*, items:item_id(id, name, sku, unit_price, price_jalingo, price_outside)')
+    .select('*, items:item_id(id, name, sku, unit_price, price_jalingo, price_outside), receipt:receipt_id(id, receipt_number)')
     .eq('staff_id', authResult.id)
     .neq('payment_method', 'credit')
     .order('sale_date', { ascending: false });
@@ -69,97 +69,49 @@ export async function GET(req: NextRequest) {
       });
     });
 
-  // Build allItems grouped by item_id — compute remaining quantity
-  const groupedMap = new Map<string, any>();
-  for (const sale of sales || []) {
+  // Build individual items — one row per staff_sale with remaining quantity
+  const allItems = (sales || []).map((sale: any) => {
     const originalQuantity = parseFloat(sale.quantity) || 0;
     const paidOrPendingQty = paidOrPendingQuantities.get(sale.id) || 0;
     let remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
     remainingQuantity = Math.round(remainingQuantity * 100) / 100;
-    if (remainingQuantity < 0.001) continue;
 
     const outsideJalingo = sale.sold_outside_jalingo || sale.location === 'Outside Jalingo';
-    const locKey = outsideJalingo ? 'outside' : 'inside';
-    const key = `${sale.item_id}_${locKey}_${parseFloat(sale.unit_price).toFixed(2)}`;
-    if (groupedMap.has(key)) {
-      const existing = groupedMap.get(key);
-      existing.quantity += remainingQuantity;
-      existing.total_amount += remainingQuantity * (parseFloat(sale.unit_price) || 0);
-      existing.sale_ids.push(sale.id);
-    } else {
-      groupedMap.set(key, {
-        id: key,
-        item_id: sale.item_id,
-        item_name: sale.items?.name || 'Unknown',
-        quantity: remainingQuantity,
-        unit_price: parseFloat(sale.unit_price) || 0,
-        price_jalingo: parseFloat(sale.unit_price) || 0,
-        total_amount: remainingQuantity * (parseFloat(sale.unit_price) || 0),
-        sale_date: sale.sale_date,
-        sale_ids: [sale.id],
-        sold_outside_jalingo: outsideJalingo,
-      });
-    }
-  }
-  const allItems = Array.from(groupedMap.values());
+    const unitPrice = parseFloat(sale.unit_price) || 0;
 
-  const rawOutstanding = allItems.reduce((sum: number, i: any) => sum + i.total_amount, 0);
+    return {
+      id: sale.id,
+      item_id: sale.item_id,
+      item_name: sale.items?.name || 'Unknown',
+      quantity: remainingQuantity,
+      unit_price: unitPrice,
+      price_jalingo: unitPrice,
+      total_amount: remainingQuantity * unitPrice,
+      sale_date: sale.sale_date,
+      sale_ids: [sale.id],
+      sold_outside_jalingo: outsideJalingo,
+      receipt_number: sale.receipt_number || (Array.isArray(sale.receipt) ? sale.receipt[0]?.receipt_number : sale.receipt?.receipt_number) || '',
+      payment_method: sale.payment_method || 'cash',
+    };
+  }).filter((item: any) => item.quantity > 0);
 
-  // Scale unpaid items to match financial outstanding (same as admin staff-detail)
-  let approvedTotal = 0;
-  let pendingTotal = 0;
-  for (const p of payments || []) {
-    const amt = parseFloat(p.amount) || 0;
-    if (p.status === 'approved') approvedTotal += amt;
-    if (p.status === 'pending') pendingTotal += amt;
-  }
+  const rawOutstanding = allItems.reduce((s: number, i: any) => s + (i.total_amount || 0), 0);
+
+  const approvedTotal = (payments || []).filter((p: any) => p.status === 'approved').reduce((s: number, p: any) => s + (parseFloat(p.amount) || 0), 0);
+  const pendingTotal = (payments || []).filter((p: any) => p.status === 'pending').reduce((s: number, p: any) => s + (parseFloat(p.amount) || 0), 0);
   const financialOutstanding = Math.max(0, allTimeTotalAmount - approvedTotal - pendingTotal);
 
-  if (financialOutstanding <= 0) {
-    // All money paid — clear all items
-    for (const item of allItems) item.quantity = 0;
-  } else if (allItems.length > 0 && rawOutstanding > 0 && Math.abs(rawOutstanding - financialOutstanding) > 1) {
-    const scale = Math.min(financialOutstanding / rawOutstanding, 1.0);
-    let adj = 0;
-    for (let i = 0; i < allItems.length; i++) {
-      allItems[i].total_amount = Math.round(allItems[i].total_amount * scale * 100) / 100;
-      adj += allItems[i].total_amount;
-    }
-    const diff = Math.round((financialOutstanding - adj) * 100) / 100;
-    if (allItems.length > 0) allItems[allItems.length - 1].total_amount += diff;
-  }
-
-  // Remove items with zero quantity after scaling
-  const visibleItems = allItems.filter((item: any) => item.quantity > 0);
-
-  // Recent sales (individual rows, most recent first)
-  const recentSales = (sales || []).map((sale: any) => ({
-    id: sale.id,
-    item_id: sale.item_id,
-    item_name: sale.items?.name || 'Unknown',
-    quantity: sale.quantity,
-    unit_price: parseFloat(sale.unit_price) || 0,
-    total_amount: parseFloat(sale.total_amount) || 0,
-    payment_method: sale.payment_method || 'cash',
-    sale_date: sale.sale_date,
-    receipt_number: sale.receipt_number || '',
-    sold_outside_jalingo: sale.sold_outside_jalingo || sale.location === 'Outside Jalingo',
-    commission: parseFloat(sale.commission) || 0,
-  }));
-
-  const totalQuantity = visibleItems.reduce((s: number, i: any) => s + i.quantity, 0);
+  const totalQuantity = allItems.reduce((s: number, i: any) => s + i.quantity, 0);
 
   return NextResponse.json({
-    allItems: visibleItems,
-    recentSales,
+    allItems,
     stats: {
-      // Field names must match what staff/payments/page.tsx displays
       allTimeQuantity,
       allTimeTotalAmount,
       totalQuantity,
       totalSalesAmount: allTimeTotalAmount,
       outstandingQuantity: totalQuantity,
-      outstandingAmount: financialOutstanding,
+      outstandingAmount: Math.max(rawOutstanding, financialOutstanding),
     },
   });
 }

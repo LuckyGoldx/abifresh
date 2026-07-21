@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
-  if (!hasRole(authResult.role, 'admin')) {
+  if (!hasRole(authResult.role, 'admin', 'superadmin')) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
-  if (!hasRole(authResult.role, 'admin')) {
+  if (!hasRole(authResult.role, 'admin', 'superadmin')) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 

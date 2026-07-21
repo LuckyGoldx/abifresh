@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
-  if (!hasRole(authResult.role, 'admin')) {
+  if (!hasRole(authResult.role, 'admin', 'superadmin')) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 

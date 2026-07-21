@@ -308,6 +308,16 @@ export default function StaffPaymentDetailPage() {
           </div>
         ) : (
           <>
+            <div className="flex items-center gap-3 mb-3 text-xs text-gray-500 dark:text-gray-400">
+              <span className="inline-flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#22C55E' }} />
+                Inside Jalingo
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: '#EAB308' }} />
+                Outside Jalingo
+              </span>
+            </div>
             <div className="overflow-x-auto rounded-lg border dark:border-gray-700">
               <table className="w-full text-sm">
                 <thead>
@@ -324,6 +334,10 @@ export default function StaffPaymentDetailPage() {
                     <tr key={item.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                       <td className="py-3 px-4 text-gray-400 dark:text-gray-500">{idx + 1}</td>
                       <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle"
+                          style={{ backgroundColor: item.sold_outside_jalingo ? '#EAB308' : '#22C55E' }}
+                        />
                         {item.item_name}
                       </td>
                       <td className="py-3 px-4 text-right text-gray-700 dark:text-gray-300">
@@ -554,11 +568,27 @@ export default function StaffPaymentDetailPage() {
               </div>
 
               {/* Items Paid For */}
-              {selectedPayment.items_paid_for && selectedPayment.items_paid_for.length > 0 && (
+              {selectedPayment.items_paid_for && selectedPayment.items_paid_for.length > 0 && (() => {
+                const itemsTotal = selectedPayment.items_paid_for.reduce((s: number, i: any) => s + (i.amount || 0), 0);
+                const payAmount = selectedPayment.amount || 0;
+                const hasAdjustment = Math.abs(itemsTotal - payAmount) > 1;
+                return (
                 <div className="border-b dark:border-gray-700 pb-4">
                   <h3 className="font-semibold text-gray-800 dark:text-white mb-3">Items Paid For</h3>
+                  {hasAdjustment && (
+                    <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-3 rounded mb-3 text-sm">
+                      <p className="font-semibold text-red-700 dark:text-red-300 flex items-center gap-1">
+                        <AlertTriangle className="w-4 h-4" /> Amount Adjusted
+                      </p>
+                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        Items total (₦{itemsTotal.toLocaleString()}) differs from payment amount (₦{payAmount.toLocaleString()})
+                        by ₦{Math.abs(itemsTotal - payAmount).toLocaleString()}. This payment was corrected to fix
+                        an over-allocation from the old grouped-item payment model.
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-2">
-                    {selectedPayment.items_paid_for.map((item, idx) => (
+                    {selectedPayment.items_paid_for.map((item: any, idx: number) => (
                       <div key={idx} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded">
                         <div>
                           <p className="font-medium text-gray-800 dark:text-white">{item.item_name}</p>
@@ -569,7 +599,8 @@ export default function StaffPaymentDetailPage() {
                     ))}
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Receipt */}
               {selectedPayment.receipt_url && selectedPayment.receipt_url.trim() !== '' && (

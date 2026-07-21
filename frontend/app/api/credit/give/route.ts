@@ -104,16 +104,28 @@ export async function POST(req: NextRequest) {
       status: 'active',
     }));
 
-    await Promise.all(
+    const updateResults = await Promise.all(
       quantityDeltas.map((delta) => {
         const currentQty = dbItemsMap.get(delta.item_id)?.active_store_quantity || 0;
         const newQty = Math.max(0, currentQty - delta.quantity);
         return supabaseAdmin
           .from('items')
           .update({ active_store_quantity: newQty })
-          .eq('id', delta.item_id);
+          .eq('id', delta.item_id)
+          .eq('active_store_quantity', currentQty)
+          .select()
+          .single();
       })
     );
+
+    for (const r of updateResults) {
+      if (r.error || !r.data) {
+        return NextResponse.json(
+          { error: 'Stock level changed during checkout. Please retry.' },
+          { status: 409 }
+        );
+      }
+    }
 
     const { error: storeError } = await supabaseAdmin.from('credit_store').insert(creditStoreEntries);
     if (storeError) return NextResponse.json({ error: storeError.message }, { status: 400 });

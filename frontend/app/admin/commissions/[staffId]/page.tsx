@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import LoadingLogo from '@/components/LoadingLogo';
+import Pagination from '@/components/Pagination';
 import { formatQty } from '@/lib/format-quantity';
 import { formatDateTime, formatDateShort } from '@/lib/format-date';
 import type { StaffCommissionDetails } from '@/types';
@@ -65,7 +66,9 @@ export default function StaffCommissionDetailPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'receipts' | 'items'>('receipts');
+  const [viewMode, setViewMode] = useState<'all' | 'paid' | 'items'>('paid');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const { alert: showAlert, confirm: showConfirm } = useAlert();
 
   useEffect(() => {
@@ -286,17 +289,27 @@ export default function StaffCommissionDetailPage() {
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-8">
           <button
-            onClick={() => setViewMode('receipts')}
+            onClick={() => { setViewMode('paid'); setCurrentPage(1); }}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              viewMode === 'receipts'
+              viewMode === 'paid'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            📄 Receipts ({details.receipts.length})
+            ✅ Paid ({details.receipts.filter((r: any) => r.commission > 0).length})
           </button>
           <button
-            onClick={() => setViewMode('items')}
+            onClick={() => { setViewMode('all'); setCurrentPage(1); }}
+            className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              viewMode === 'all'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            📄 All ({details.receipts.length})
+          </button>
+          <button
+            onClick={() => { setViewMode('items'); setCurrentPage(1); }}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               viewMode === 'items'
                 ? 'border-blue-500 text-blue-600'
@@ -309,9 +322,20 @@ export default function StaffCommissionDetailPage() {
       </div>
 
       {/* Receipts View */}
-      {viewMode === 'receipts' && (
+      {(viewMode === 'all' || viewMode === 'paid') && (
         <div className="space-y-4">
-          {details.receipts.map((receipt) => (
+          {(() => {
+            const filtered = viewMode === 'paid'
+              ? details.receipts.filter((r: any) => r.commission > 0)
+              : details.receipts;
+            const totalPages = Math.ceil(filtered.length / itemsPerPage);
+            const paginated = filtered.slice(
+              (currentPage - 1) * itemsPerPage,
+              currentPage * itemsPerPage
+            );
+            return (
+              <>
+                {paginated.map((receipt: any) => (
             <div
               key={receipt.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
@@ -390,13 +414,21 @@ export default function StaffCommissionDetailPage() {
               </div>
             </div>
           ))}
-          {details.receipts.length === 0 && (
+          {filtered.length === 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
               <p className="text-gray-500">No receipts found for the selected period</p>
             </div>
           )}
-        </div>
-      )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      );
+    })()}
+  </div>
+)}
 
       {/* Items View */}
       {viewMode === 'items' && (

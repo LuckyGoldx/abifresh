@@ -8,6 +8,7 @@ import { formatQty } from '@/lib/format-quantity';
 import { SkeletonStatGrid, SkeletonTable } from '@/components/Skeleton';
 import type { StaffDashboardData, Sale } from '@/types';
 import { AbifreshLoading } from '@/components/AbifreshLoading';
+import Link from 'next/link';
 
 export default function StaffDashboard() {
   const user = useAuthStore((state) => state.user);
@@ -66,7 +67,7 @@ export default function StaffDashboard() {
   if (isLoading) return <AbifreshLoading />;
 
   const StatCard = ({ icon: Icon, title, value, color, subtitle }: any) => (
-    <div className="card flex flex-col md:flex-row items-center md:space-x-4 text-center md:text-left">
+    <div className="card flex flex-col md:flex-row items-center md:space-x-4 text-center md:text-left cursor-pointer hover:shadow-lg transition-shadow">
       <div className={`${color} p-2 md:p-3 rounded-lg flex-shrink-0`}>
         <Icon className="w-5 md:w-6 h-5 md:h-6 text-white" />
       </div>
@@ -147,22 +148,26 @@ export default function StaffDashboard() {
           subtitle="By admin"
         />
         {dashboard?.is_commission_staff && (
-          <StatCard
-            icon={TrendingUp}
-            title="Total Commission"
-            value={`₦${(dashboard?.total_commission || 0).toLocaleString()}`}
-            color="bg-orange-500"
-            subtitle="Commission earned"
-          />
+          <Link href="/staff/commissions">
+            <StatCard
+              icon={TrendingUp}
+              title="Total Commission"
+              value={`₦${(dashboard?.total_commission || 0).toLocaleString()}`}
+              color="bg-orange-500"
+              subtitle="Commission earned"
+            />
+          </Link>
         )}
         {dashboard?.is_commission_staff && (
-          <StatCard
-            icon={CheckCircle2}
-            title="Paid Commission"
-            value={`₦${(dashboard?.paid_commission || 0).toLocaleString()}`}
-            color="bg-green-500"
-            subtitle={`Out of ₦${(dashboard?.total_commission || 0).toLocaleString()}`}
-          />
+          <Link href="/staff/commissions">
+            <StatCard
+              icon={CheckCircle2}
+              title="Paid Commission"
+              value={`₦${(dashboard?.paid_commission || 0).toLocaleString()}`}
+              color="bg-green-500"
+              subtitle={`Balance: ₦${((dashboard?.total_commission || 0) - (dashboard?.paid_commission || 0)).toLocaleString()}`}
+            />
+          </Link>
         )}
       </div>
 
