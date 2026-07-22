@@ -368,10 +368,11 @@ export default function SalesDashboard() {
         staff_name: user?.full_name,
         items: cart.map(item => ({
           id: item.id,
-          name: item.name,
+          item_id: item.id,
+          item_name: item.name,
           quantity: item.sale_quantity,
           unit_price: item.price_jalingo || 0,
-          subtotal: (item.price_jalingo || 0) * item.sale_quantity,
+          total_price: (item.price_jalingo || 0) * item.sale_quantity,
         })),
         logistics_fee: cart[0].sold_outside_jalingo ? logisticPrice * cart.reduce((sum, item) => sum + item.sale_quantity, 0) : 0,
         total_amount: calculateCartTotal(),
@@ -449,8 +450,8 @@ export default function SalesDashboard() {
               <div class="items">
                 ${receipt.items?.map((item: any) => `
                   <div class="item">
-                    <span>${item.name} x${formatQty(item.quantity)}</span>
-                    <span>₦${item.subtotal.toLocaleString()}</span>
+                     <span>${item.item_name} x${formatQty(item.quantity)}</span>
+                     <span>₦${item.total_price.toLocaleString()}</span>
                   </div>
                 `).join('')}
               </div>
@@ -491,8 +492,8 @@ export default function SalesDashboard() {
         <div style="margin: 20px 0; border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; padding: 10px 0;">
           ${receipt.items.map((item: any) => `
             <div style="display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px;">
-              <span>${item.name} x${formatQty(item.quantity)}</span>
-              <span>₦${item.subtotal.toLocaleString()}</span>
+              <span>${item.item_name} x${formatQty(item.quantity)}</span>
+              <span>₦${item.total_price.toLocaleString()}</span>
             </div>
           `).join('')}
         </div>
