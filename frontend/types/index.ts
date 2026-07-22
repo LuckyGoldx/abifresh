@@ -137,7 +137,7 @@ export interface Receipt {
   staff_name?: string;
   sold_outside_jalingo?: boolean;
   receipt_items?: ReceiptItem[];
-  items?: any[];
+  items?: ReceiptItem[];
   date?: Date | string;
   logistics_fee?: number;
 }
