@@ -165,19 +165,20 @@ export async function GET(req: NextRequest) {
       if (!payments || payments.length === 0) break;
 
       // Collect all sale_ids from items_paid_for across these payments
-      const saleIds: string[] = [];
+      const saleIdSet = new Set<string>();
       for (const p of payments) {
         const items = Array.isArray(p.items_paid_for) ? p.items_paid_for : [];
         for (const item of items) {
           const ids: string[] = Array.isArray(item.sale_ids) ? item.sale_ids : (item.sale_id ? [item.sale_id] : []);
-          saleIds.push(...ids);
+          for (const sid of ids) saleIdSet.add(sid);
         }
       }
 
-      if (saleIds.length > 0) {
+      const uniqueSaleIds = [...saleIdSet];
+      if (uniqueSaleIds.length > 0) {
         // Batch sale_ids by 50 to stay within Supabase URL length
-        for (let i = 0; i < saleIds.length; i += 50) {
-          const batch = saleIds.slice(i, i + 50);
+        for (let i = 0; i < uniqueSaleIds.length; i += 50) {
+          const batch = uniqueSaleIds.slice(i, i + 50);
           const { data: sales } = await supabaseAdmin
             .from('staff_sales')
             .select('approved_commission')
