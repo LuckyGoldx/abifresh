@@ -313,7 +313,12 @@ export default function AdminPostItemsPage() {
       });
 
       const staffName = staffList.find(s => s.id === selectedStaff)?.full_name || 'Staff';
-      const totalValue = cart.reduce((sum, item) => sum + (item.price_jalingo || 0) * item.post_quantity, 0);
+      const totalValue = cart.reduce((sum, item) => {
+        const price = selectedLocation === 'Outside Jalingo'
+          ? (item.price_outside || item.price_jalingo || 0)
+          : (item.price_jalingo || 0);
+        return sum + price * item.post_quantity;
+      }, 0);
       setShowMobileCart(false);
       setShowConfirmation(false);
       setSuccessInfo({ staffName, itemCount: cart.length, totalValue });
@@ -532,7 +537,11 @@ export default function AdminPostItemsPage() {
                   <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">{item.category} • {item.sku}</p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mb-2">📊 Stock: {formatQty(item.active_store_quantity)}</p>
                   
-                  <p className="text-lg font-bold text-pink-600 mt-auto pt-2">₦{(item.price_jalingo || 0).toLocaleString()}</p>
+                  <p className="text-lg font-bold text-pink-600 mt-auto pt-2">
+                    ₦{(selectedLocation === 'Outside Jalingo' && item.price_outside
+                      ? item.price_outside
+                      : (item.price_jalingo || 0)).toLocaleString()}
+                  </p>
                 </div>
 
                 <button
@@ -1191,11 +1200,15 @@ export default function AdminPostItemsPage() {
                           {index + 1}. {item.name}
                         </p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {item.post_quantity} × ₦{(item.price_jalingo || 0).toLocaleString()}
+                          {item.post_quantity} × ₦{(selectedLocation === 'Outside Jalingo'
+                            ? (item.price_outside || item.price_jalingo || 0)
+                            : (item.price_jalingo || 0)).toLocaleString()}
                         </p>
                       </div>
                       <p className="font-bold text-pink-600 dark:text-pink-400 text-lg">
-                        ₦{((item.price_jalingo || 0) * item.post_quantity).toLocaleString()}
+                        ₦{((selectedLocation === 'Outside Jalingo'
+                          ? (item.price_outside || item.price_jalingo || 0)
+                          : (item.price_jalingo || 0)) * item.post_quantity).toLocaleString()}
                       </p>
                     </div>
                   ))}
