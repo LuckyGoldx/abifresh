@@ -27,6 +27,7 @@ interface ComprehensiveReport {
   summary: {
     total_transactions: number;
     total_sales: number;
+    total_sales_receipts: number;
     total_expenses: number;
     total_profit: number;
     total_main_profit: number;
@@ -387,11 +388,21 @@ export default function ComprehensiveReportsPage() {
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
       <div className="card border-l-4 border-l-blue-600 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales (Staff Attributed)</p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-400 break-words">₦{(report?.summary.total_sales || 0).toLocaleString()}</p>
           <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 opacity-20 self-end flex-shrink-0" />
         </div>
       </div>
+
+      {pathname.startsWith('/superadmin') && (
+      <div className="card border-l-4 border-l-purple-600 overflow-hidden">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales (Receipts)</p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-700 dark:text-purple-400 break-words">₦{(report?.summary.total_sales_receipts || 0).toLocaleString()}</p>
+          <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 opacity-20 self-end flex-shrink-0" />
+        </div>
+      </div>
+      )}
 
       <div className={`card border-l-4 ${isOverallProfitable ? 'border-l-green-500' : 'border-l-red-500'} overflow-hidden`}>
         <div className="flex flex-col gap-2">

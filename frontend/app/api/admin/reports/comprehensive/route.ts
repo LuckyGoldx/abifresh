@@ -300,6 +300,9 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Total revenue from receipts (all POS transactions including non-attributed sales)
+  const totalRevenueFromReceipts = receipts.reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0);
+
   // Total revenue = staff-attributed sales only (matches payments system)
   const totalRevenue = staffSalesTotal + salesTableTotal;
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + (e.expense_amount || 0), 0);
@@ -544,7 +547,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     summary: {
-      total_transactions: receipts.length, total_sales: totalRevenue, total_expenses: totalExpenses,
+      total_transactions: receipts.length, total_sales: totalRevenue, total_sales_receipts: totalRevenueFromReceipts, total_expenses: totalExpenses,
       total_profit: totalOverallProfit,
       total_main_profit: totalMainProfit,
       total_credit_profit: totalCreditProfit,
