@@ -131,63 +131,29 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Resolve commission staff IDs (only these roles earn commission)
+  // Fetch total commission generated: sum of staff_sales.approved_commission for commission-only staff.
   const COMMISSION_ROLES = ['commission_staff', 'staff_commission'];
-  let commissionStaffIds: string[] | null = null;
-  {
-    const { data: commUsers } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .in('role', COMMISSION_ROLES);
-    commissionStaffIds = (commUsers || []).map((u: any) => u.id);
-  }
+  const { data: commissionStaffData } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .in('role', COMMISSION_ROLES);
+  const commissionStaffIds = (commissionStaffData || []).map((u: any) => u.id);
 
-  // Fetch total commission generated: sum of approved_commission from payments approved within the date range.
   let totalCommissionGenerated = 0;
-  if (commissionStaffIds.length > 0) {
+  if (commissionStaffIds.length > 0 && (!hasStaffFilter || filteredStaffIds.length > 0)) {
     const PAGE = 1000;
     let from = 0;
     while (true) {
       let q = supabaseAdmin
-        .from('staff_payments')
-        .select('items_paid_for')
-        .in('staff_id', commissionStaffIds)
-        .in('status', ['approved', 'paid'])
-        .not('paid_by', 'is', null)
-        .gte('approved_date', fromISO)
-        .lte('approved_date', toISO);
-      if (staffId) {
-        q = q.eq('staff_id', staffId);
-      } else if (roleStaffIds !== null && roleStaffIds.length > 0) {
-        q = q.in('staff_id', roleStaffIds);
-      }
-      const { data: payments } = await q.range(from, from + PAGE - 1);
-      if (!payments || payments.length === 0) break;
-
-      // Collect all sale_ids from items_paid_for across these payments
-      const saleIdSet = new Set<string>();
-      for (const p of payments) {
-        const items = Array.isArray(p.items_paid_for) ? p.items_paid_for : [];
-        for (const item of items) {
-          const ids: string[] = Array.isArray(item.sale_ids) ? item.sale_ids : (item.sale_id ? [item.sale_id] : []);
-          for (const sid of ids) saleIdSet.add(sid);
-        }
-      }
-
-      const uniqueSaleIds = [...saleIdSet];
-      if (uniqueSaleIds.length > 0) {
-        // Batch sale_ids by 50 to stay within Supabase URL length
-        for (let i = 0; i < uniqueSaleIds.length; i += 50) {
-          const batch = uniqueSaleIds.slice(i, i + 50);
-          const { data: sales } = await supabaseAdmin
-            .from('staff_sales')
-            .select('approved_commission')
-            .in('id', batch);
-          if (sales) {
-            totalCommissionGenerated += sales.reduce((sum: number, s: any) => sum + (parseFloat(s.approved_commission) || 0), 0);
-          }
-        }
-      }
+        .from('staff_sales')
+        .select('approved_commission')
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO)
+        .in('staff_id', commissionStaffIds);
+      if (filteredStaffIds.length > 0) q = q.in('staff_id', filteredStaffIds);
+      const { data } = await q.range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      totalCommissionGenerated += data.reduce((sum: number, s: any) => sum + (parseFloat(s.approved_commission) || 0), 0);
       from += PAGE;
     }
   }
