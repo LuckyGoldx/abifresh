@@ -64,28 +64,32 @@ export class ReturnedItemsService {
     // Only count PENDING returns as locked. Accepted returns already reduced staff_store.quantity.
     const { data: existingReturns } = await supabaseAdmin
       .from('returned_items')
-      .select('item_id, quantity')
+      .select('item_id, quantity, location')
       .eq('requester_staff_id', actualRequesterStaffId)
       .eq('status', 'pending');
 
     const lockedQuantities = new Map<string, number>();
     (existingReturns || []).forEach((ret: any) => {
-      const current = lockedQuantities.get(ret.item_id) || 0;
-      lockedQuantities.set(ret.item_id, current + ret.quantity);
+      const key = `${ret.item_id}_${ret.location || 'Inside Jalingo'}`;
+      const current = lockedQuantities.get(key) || 0;
+      lockedQuantities.set(key, current + ret.quantity);
     });
 
     for (const item of items) {
+      const itemLoc = item.location || 'Inside Jalingo';
       const { data: staffStoreItem, error: storeError } = await supabaseAdmin
         .from('staff_store')
         .select('quantity, quantity_sold')
         .eq('staff_id', actualRequesterStaffId)
         .eq('item_id', item.item_id)
+        .eq('location', itemLoc)
         .single();
 
       if (storeError) throw new Error(`Item not found in your store: ${item.item_id}`);
       if (!staffStoreItem) throw new Error(`Item not found in your store: ${item.item_id}`);
 
-      const lockedQty = lockedQuantities.get(item.item_id) || 0;
+      const lockKey = `${item.item_id}_${itemLoc}`;
+      const lockedQty = lockedQuantities.get(lockKey) || 0;
       // Use real-time quantity - quantity_sold (not stale quantity_available column)
       const netAvailable = (staffStoreItem.quantity || 0) - (staffStoreItem.quantity_sold || 0);
       const actualAvailable = Math.max(0, netAvailable - lockedQty);
@@ -96,7 +100,7 @@ export class ReturnedItemsService {
         );
       }
 
-      lockedQuantities.set(item.item_id, lockedQty + item.quantity);
+      lockedQuantities.set(lockKey, lockedQty + item.quantity);
 
       const { data: returnedItem, error: returnError } = await supabaseAdmin
         .from('returned_items')
@@ -219,6 +223,32 @@ export class ReturnedItemsService {
       // Admin can reject any return. Staff can only reject returns sent to them.
       if (!isAdmin && returnedItem.receiver_staff_id !== actualUserId) {
         throw new Error('Unauthorized: This return was not sent to you');
+      }
+
+      // Restore quantity back to staff_store (it was never removed, but ensure consistency)
+      const { data: staffStoreItem } = await supabaseAdmin
+        .from('staff_store')
+        .select('id, quantity')
+        .eq('staff_id', returnedItem.requester_staff_id)
+        .eq('item_id', returnedItem.item_id)
+        .eq('location', returnedItem.location || 'Inside Jalingo')
+        .single();
+
+      if (staffStoreItem) {
+        const restoredQty = staffStoreItem.quantity + returnedItem.quantity;
+        await supabaseAdmin
+          .from('staff_store')
+          .update({ quantity: restoredQty, last_updated: new Date().toISOString() })
+          .eq('id', staffStoreItem.id);
+      } else {
+        // If staff_store entry was removed, recreate it
+        await supabaseAdmin.from('staff_store').insert([{
+          staff_id: returnedItem.requester_staff_id,
+          item_id: returnedItem.item_id,
+          quantity: returnedItem.quantity,
+          location: returnedItem.location || 'Inside Jalingo',
+          last_updated: new Date().toISOString(),
+        }]);
       }
 
       const { data: updated, error: statusError } = await supabaseAdmin
@@ -380,7 +410,7 @@ export class ReturnedItemsService {
     // Only subtract PENDING returns (soft-locked). Accepted returns already reduced staff_store.quantity.
     const { data: returnedItems, error: returnError } = await supabaseAdmin
       .from('returned_items')
-      .select('item_id, quantity, status')
+      .select('item_id, quantity, location, status')
       .eq('requester_staff_id', actualId)
       .eq('status', 'pending');
 
@@ -388,14 +418,16 @@ export class ReturnedItemsService {
 
     const lockedQuantities = new Map<string, number>();
     (returnedItems || []).forEach((ret: any) => {
-      const current = lockedQuantities.get(ret.item_id) || 0;
-      lockedQuantities.set(ret.item_id, current + ret.quantity);
+      const key = `${ret.item_id}_${ret.location || 'Inside Jalingo'}`;
+      const current = lockedQuantities.get(key) || 0;
+      lockedQuantities.set(key, current + ret.quantity);
     });
 
     const availableItems = (staffStoreItems || [])
       .map((item: any) => {
         const itemLoc = item.location || 'Inside Jalingo';
-        const lockedQty = lockedQuantities.get(item.item_id) || 0;
+        const lockKey = `${item.item_id}_${itemLoc}`;
+        const lockedQty = lockedQuantities.get(lockKey) || 0;
         // Real-time available = quantity - quantity_sold - pending/accepted returns
         const netAvailable = (item.quantity || 0) - (item.quantity_sold || 0);
         const remainingQty = Math.max(0, netAvailable - lockedQty);
