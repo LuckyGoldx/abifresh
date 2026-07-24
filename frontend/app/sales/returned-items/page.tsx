@@ -217,7 +217,20 @@ export default function ReturnedItemsPage() {
               : `No ${filterStatus} items`}
           </p>
         </div>
-      ) : (
+              ) : (
+        <div className="space-y-3">
+          {/* Location Legend */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow px-4 py-3 flex items-center gap-6 text-sm">
+            <span className="text-gray-600 dark:text-gray-400 font-medium">Location:</span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+              <span className="text-gray-700 dark:text-gray-300">Inside Jalingo</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+              <span className="text-gray-700 dark:text-gray-300">Outside Jalingo</span>
+            </span>
+          </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -259,13 +272,16 @@ export default function ReturnedItemsPage() {
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                   >
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {item.item_name}
+                      <span className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${item.location === 'Outside Jalingo' ? 'bg-yellow-500' : 'bg-green-500'}`} />
+                        {item.item_name}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                       {item.requester_name}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${item.location === 'Outside Jalingo' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${item.location === 'Outside Jalingo' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'}`}>
                         {item.location === 'Outside Jalingo' ? 'Outside' : 'Inside'}
                       </span>
                     </td>
@@ -350,6 +366,7 @@ export default function ReturnedItemsPage() {
             </table>
           </div>
         </div>
+      </div>
       )}
 
       {/* Accept Confirmation Modal */}
@@ -481,7 +498,8 @@ export default function ReturnedItemsPage() {
                       <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
                         Item Name
                       </p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${selectedDetailItem.location === 'Outside Jalingo' ? 'bg-yellow-500' : 'bg-green-500'}`} />
                         {selectedDetailItem.item_name}
                       </p>
                     </div>
@@ -489,10 +507,8 @@ export default function ReturnedItemsPage() {
                       <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
                         Location
                       </p>
-                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${selectedDetailItem.location === 'Outside Jalingo' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
-                          {selectedDetailItem.location === 'Outside Jalingo' ? 'Outside Jalingo' : 'Inside Jalingo'}
-                        </span>
+                      <p className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${selectedDetailItem.location === 'Outside Jalingo' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'}`}>
+                        {selectedDetailItem.location === 'Outside Jalingo' ? 'Outside Jalingo' : 'Inside Jalingo'}
                       </p>
                     </div>
                     <div>
