@@ -21,6 +21,7 @@ export default function SuperAdminDashboard() {
     today_amount: 0,
     total_sales: 0,
     total_amount: 0,
+    total_staff_sales: 0,
     total_items: 0,
     total_staff: 0,
     pending_approvals: 0,
@@ -95,11 +96,15 @@ export default function SuperAdminDashboard() {
         const activeUsers = allStaff.filter((s: StaffInfo) => s.is_active !== false).length;
         const inactiveUsers = allStaff.filter((s: StaffInfo) => s.is_active === false).length;
 
+        const dashboardRes = await api.get('/api/admin/dashboard/stats', { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => ({ data: {} as any }));
+        const dashboardData = dashboardRes.data || {};
+
         setStats({
           today_sales: todayStats.sales,
           today_amount: todayStats.amount,
           total_sales: allTimeStats.sales,
           total_amount: allTimeStats.amount,
+          total_staff_sales: dashboardData.total_staff_sales || 0,
           total_items: allTimeStats.items,
           total_staff: allStaff.length,
           pending_approvals: paymentRes.data?.length || 0,
@@ -272,6 +277,7 @@ export default function SuperAdminDashboard() {
             <StatCard icon={UserCheck} title="Active Users" value={stats.active_users} color="bg-teal-500" />
             <StatCard icon={ShoppingCart} title="Total Items Sold" value={formatQty(stats.total_items)} color="bg-sky-500" />
             <StatCard icon={TrendingUp} title="Total Transactions" value={stats.total_sales} color="bg-indigo-500" />
+            <StatCard icon={Database} title="Total Sales (Staff Table)" value={`₦${stats.total_staff_sales.toLocaleString()}`} color="bg-purple-600" />
           </div>
 
           {/* Charts Row */}

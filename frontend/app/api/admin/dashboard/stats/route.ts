@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
     today_items: todayItems,
     total_sales: totalSales,
     total_amount: totalAmount,
+    total_staff_sales: totalAmount,
     total_items: totalItems,
     total_staff: staffCount.count ?? 0,
     pending_approvals: pending.length,
