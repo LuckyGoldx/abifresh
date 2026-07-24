@@ -225,32 +225,6 @@ export class ReturnedItemsService {
         throw new Error('Unauthorized: This return was not sent to you');
       }
 
-      // Restore quantity back to staff_store (it was never removed, but ensure consistency)
-      const { data: staffStoreItem } = await supabaseAdmin
-        .from('staff_store')
-        .select('id, quantity')
-        .eq('staff_id', returnedItem.requester_staff_id)
-        .eq('item_id', returnedItem.item_id)
-        .eq('location', returnedItem.location || 'Inside Jalingo')
-        .single();
-
-      if (staffStoreItem) {
-        const restoredQty = staffStoreItem.quantity + returnedItem.quantity;
-        await supabaseAdmin
-          .from('staff_store')
-          .update({ quantity: restoredQty, last_updated: new Date().toISOString() })
-          .eq('id', staffStoreItem.id);
-      } else {
-        // If staff_store entry was removed, recreate it
-        await supabaseAdmin.from('staff_store').insert([{
-          staff_id: returnedItem.requester_staff_id,
-          item_id: returnedItem.item_id,
-          quantity: returnedItem.quantity,
-          location: returnedItem.location || 'Inside Jalingo',
-          last_updated: new Date().toISOString(),
-        }]);
-      }
-
       const { data: updated, error: statusError } = await supabaseAdmin
         .from('returned_items')
         .update({ 
