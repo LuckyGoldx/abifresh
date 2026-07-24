@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       .eq('staff_id', authResult.id),
     supabaseAdmin
       .from('returned_items')
-      .select('item_id, quantity')
+      .select('item_id, quantity, location')
       .eq('requester_staff_id', authResult.id)
       .eq('status', 'pending'),
   ]);
@@ -27,17 +27,19 @@ export async function GET(req: NextRequest) {
   const { data, error } = storeResult;
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  // Build locked quantities map from pending/accepted returns
+  // Build locked quantities map from pending returns — keyed by item_id + location
   const lockedQuantities = new Map<string, number>();
   (returnsResult.data || []).forEach((ret: any) => {
-    const current = lockedQuantities.get(ret.item_id) || 0;
-    lockedQuantities.set(ret.item_id, current + ret.quantity);
+    const key = `${ret.item_id}_${ret.location || 'Inside Jalingo'}`;
+    const current = lockedQuantities.get(key) || 0;
+    lockedQuantities.set(key, current + ret.quantity);
   });
 
   const storeItems = (data || [])
     .map((entry: any) => {
       const grossAvailable = (entry.quantity || 0) - (entry.quantity_sold || 0);
-      const lockedQty = lockedQuantities.get(entry.items?.id) || 0;
+      const lockKey = `${entry.items?.id}_${entry.location || 'Inside Jalingo'}`;
+      const lockedQty = lockedQuantities.get(lockKey) || 0;
       const available = Math.max(0, grossAvailable - lockedQty);
       return {
         id: entry.items?.id,
