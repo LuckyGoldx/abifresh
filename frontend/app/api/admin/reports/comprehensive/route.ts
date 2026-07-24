@@ -262,11 +262,50 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  // Summaries
-  const totalRevenue = receipts.reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0);
+  // Fetch staff_sales total (commission & non-commission staff) — paginated
+  let staffSalesTotal = 0;
+  {
+    const PAGE = 1000;
+    let from = 0;
+    while (true) {
+      let q = supabaseAdmin
+        .from('staff_sales')
+        .select('total_amount')
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO);
+      if (filteredStaffIds.length > 0) q = q.in('staff_id', filteredStaffIds);
+      const { data } = await q.range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      staffSalesTotal += data.reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
+      from += PAGE;
+    }
+  }
+
+  // Fetch sales table total (sales staff) — paginated
+  let salesTableTotal = 0;
+  {
+    const PAGE = 1000;
+    let from = 0;
+    while (true) {
+      let q = supabaseAdmin
+        .from('sales')
+        .select('total_amount')
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO);
+      if (filteredStaffIds.length > 0) q = q.in('staff_id', filteredStaffIds);
+      const { data } = await q.range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      salesTableTotal += data.reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
+      from += PAGE;
+    }
+  }
+
+  // Total revenue = staff-attributed sales only (matches payments system)
+  const totalRevenue = staffSalesTotal + salesTableTotal;
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + (e.expense_amount || 0), 0);
   const totalItemsSold = (receiptItems || []).reduce((sum: number, ri: any) => sum + (ri.quantity || 0), 0);
-  const avgTransaction = receipts.length > 0 ? totalRevenue / receipts.length : 0;
+  const totalTransactionsCount = (receiptsRaw || []).length;
+  const avgTransaction = totalTransactionsCount > 0 ? totalRevenue / totalTransactionsCount : 0;
 
   // Calculate Total Cost Price Sold using immutable transaction-time cost_price
   // with dynamic fallback to items.unit_price for complete safety
