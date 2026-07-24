@@ -33,11 +33,38 @@ export default function PaymentsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [actionInProgress, setActionInProgress] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(true);
+  const [showReceiptPopup, setShowReceiptPopup] = useState(false);
+  const [receiptPopupData, setReceiptPopupData] = useState<{ receipts: any[]; itemName: string; itemId: string } | null>(null);
+  const [receiptPopupLoading, setReceiptPopupLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [outstandingSummary, setOutstandingSummary] = useState<{ outstandingTotal: number } | null>(null);
   const [activeTab, setActiveTab] = useState<'payments' | 'breakdown'>('payments');
   const { alert: showAlert, confirm: showConfirm } = useAlert();
+
+  // View receipt popup - fetches the receipt for this payment item's sale_ids
+  const handleViewReceipt = async (itemId: string, itemName: string, saleIds?: string[]) => {
+    setReceiptPopupLoading(true);
+    setShowReceiptPopup(true);
+    setReceiptPopupData({ receipts: [], itemName, itemId });
+    try {
+      if (saleIds && saleIds.length > 0) {
+        const res = await fetch(`/api/admin/payments/receipt-for-sale?saleIds=${saleIds.join(',')}`);
+        const data = await res.json();
+        if (data.receipt_number && data.items.length > 0) {
+          setReceiptPopupData({ receipts: [data], itemName, itemId });
+        } else {
+          setReceiptPopupData({ receipts: [], itemName, itemId });
+        }
+      } else {
+        setReceiptPopupData({ receipts: [], itemName, itemId });
+      }
+    } catch {
+      setReceiptPopupData({ receipts: [], itemName, itemId });
+    } finally {
+      setReceiptPopupLoading(false);
+    }
+  };
 
   // Download receipt handler - handles cross-origin downloads
   const handleDownloadReceipt = async (url: string, filename?: string) => {
@@ -871,12 +898,19 @@ export default function PaymentsPage() {
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Items Paid For</h3>
                   <div className="space-y-2">
                     {selectedPayment.items_paid_for.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded">
+                      <div
+                        key={idx}
+                        className="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-3 rounded cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                        onClick={() => handleViewReceipt(item.item_id, item.item_name, item.sale_ids)}
+                      >
                         <div>
                           <p className="font-semibold text-gray-800 dark:text-white">{item.item_name}</p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">Quantity: {formatQty(item.quantity)}</p>
                         </div>
-                        <p className="font-bold text-lg text-orange-600">₦{item.amount.toLocaleString()}</p>
+                        <div className="flex items-center gap-3">
+                          <p className="font-bold text-lg text-orange-600">₦{item.amount.toLocaleString()}</p>
+                          <FileText className="w-4 h-4 text-blue-500" />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1160,6 +1194,123 @@ export default function PaymentsPage() {
               alt="Receipt"
               className="max-w-full h-auto"
             />
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Popup Modal - shows receipts containing a clicked item */}
+      {showReceiptPopup && receiptPopupData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Receipt Details</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Item: <span className="font-semibold text-blue-600 dark:text-blue-400">{receiptPopupData.itemName}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => setShowReceiptPopup(false)}
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {receiptPopupLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <LoadingLogo text="Loading receipts..." />
+                </div>
+              ) : receiptPopupData.receipts.length === 0 ? (
+                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                  <p>No receipts found for this item.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {receiptPopupData.receipts.map((receipt, rIdx) => {
+                    const receiptItems = receipt.items || receipt.receipt_items || [];
+                    return (
+                    <div key={rIdx} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 border-b border-gray-200 dark:border-gray-600">
+                        <div className="flex justify-between items-center">
+                          <p className="font-semibold text-gray-900 dark:text-white">
+                            Receipt #{receipt.receipt_number}
+                          </p>
+                          {receipt.created_at && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {new Date(receipt.created_at).toLocaleDateString('en-GB', {
+                                day: '2-digit', month: 'short', year: 'numeric'
+                              })}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                          {receipt.payment_method && <span className="capitalize">{receipt.payment_method}</span>}
+                          {receipt.sold_outside_jalingo && (
+                            <span className="text-orange-500">Outside Jalingo</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {receiptItems.map((ritem: any, riIdx: number) => {
+                          const itemName = ritem.item_name || (typeof ritem.item_id === 'object' ? ritem.item_id.name : 'Item');
+                          const isHighlighted = itemName === receiptPopupData.itemName;
+                          return (
+                            <div
+                              key={riIdx}
+                              className={`flex justify-between items-center p-4 ${
+                                isHighlighted
+                                  ? 'bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-400 dark:ring-yellow-500'
+                                  : ''
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                {isHighlighted && (
+                                  <span className="text-yellow-500 text-lg" title="Clicked item">▶</span>
+                                )}
+                                <div>
+                                  <p className={`font-medium ${isHighlighted ? 'text-yellow-800 dark:text-yellow-200' : 'text-gray-800 dark:text-white'}`}>
+                                    {itemName}
+                                  </p>
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    Qty: {formatQty(ritem.quantity)} × ₦{(ritem.unit_price || 0).toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                ₦{(ritem.total_price || ritem.total_amount || 0).toLocaleString()}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 border-t border-gray-200 dark:border-gray-600">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-gray-900 dark:text-white">Total</span>
+                          <span className="font-bold text-lg text-pink-600 dark:text-pink-400">
+                            ₦{(receipt.total_amount || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowReceiptPopup(false)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

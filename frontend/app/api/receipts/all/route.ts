@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
   const perPage = parseInt(url.searchParams.get('perPage') || '0');
   const search = url.searchParams.get('search')?.trim();
   const staffId = url.searchParams.get('staffId')?.trim();
+  const itemId = url.searchParams.get('itemId')?.trim();
   const dateFrom = url.searchParams.get('dateFrom')?.trim();
   const dateTo = url.searchParams.get('dateTo')?.trim();
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
@@ -33,6 +34,18 @@ export async function GET(req: NextRequest) {
   if (staffId) {
     query = query.eq('staff_id', staffId);
   }
+  if (itemId) {
+    const { data: receiptItems } = await supabaseAdmin
+      .from('receipt_items')
+      .select('receipt_id')
+      .eq('item_id', itemId);
+    const receiptIds = [...new Set((receiptItems || []).map(r => r.receipt_id))];
+    if (receiptIds.length > 0) {
+      query = query.in('id', receiptIds);
+    } else {
+      query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+    }
+  }
   if (dateFrom) {
     query = query.gte('created_at', new Date(dateFrom).toISOString());
   }
@@ -42,8 +55,8 @@ export async function GET(req: NextRequest) {
     query = query.lte('created_at', endDate.toISOString());
   }
 
-  // When no perPage and no search ? return ALL receipts — paginated to avoid 1000-row cap
-  if ((!perPage || perPage <= 0) && !search && !staffId && !dateFrom && !dateTo) {
+  // When no perPage and no search/filter ? return ALL receipts — paginated to avoid 1000-row cap
+  if ((!perPage || perPage <= 0) && !search && !staffId && !itemId && !dateFrom && !dateTo) {
     const PAGE = 1000;
     const allReceipts: any[] = [];
     {
