@@ -13,6 +13,7 @@ interface ReturnedItem {
   item_name: string;
   quantity: number;
   unit_price: number;
+  location: string;
   requester_name: string;
   receiver_name: string;
   status: 'pending' | 'accepted' | 'rejected';
@@ -235,6 +236,9 @@ export default function AdminReturnedItemsPage() {
                     To (Receiver)
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">
+                    Location
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">
                     Qty
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-200">
@@ -273,6 +277,11 @@ export default function AdminReturnedItemsPage() {
                       <span className="flex items-center gap-1">
                         <User size={14} className="text-gray-400" />
                         {item.receiver_name}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${item.location === 'Outside Jalingo' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
+                        {item.location === 'Outside Jalingo' ? 'Outside' : 'Inside'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -468,45 +477,55 @@ export default function AdminReturnedItemsPage() {
             {/* Content Grid */}
             <div className="space-y-4 mb-6">
               {/* Item Information Section */}
-              <div className="border-l-4 border-blue-500 pl-4 py-2">
-                <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">
-                  Item Information
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
-                      Item Name
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {selectedDetailItem.item_name}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
-                      Quantity
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {formatQty(selectedDetailItem.quantity)} units
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
-                      Unit Price
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      ₦{selectedDetailItem.unit_price.toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
-                      Total Value
-                    </p>
-                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      ₦{(selectedDetailItem.quantity * selectedDetailItem.unit_price).toLocaleString()}
-                    </p>
+                <div className="border-l-4 border-blue-500 pl-4 py-2">
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">
+                    Item Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
+                        Item Name
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {selectedDetailItem.item_name}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
+                        Location
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${selectedDetailItem.location === 'Outside Jalingo' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
+                          {selectedDetailItem.location === 'Outside Jalingo' ? 'Outside Jalingo' : 'Inside Jalingo'}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
+                        Quantity
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {formatQty(selectedDetailItem.quantity)} units
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
+                        Unit Price
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                        ₦{selectedDetailItem.unit_price.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wider mb-1">
+                        Total Value
+                      </p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                        ₦{(selectedDetailItem.quantity * selectedDetailItem.unit_price).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* Participants Section */}
               <div className="border-l-4 border-green-500 pl-4 py-2">

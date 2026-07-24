@@ -250,7 +250,7 @@ export class ReturnedItemsService {
       .from('returned_items')
       .select(`
         *,
-        item:item_id(id, name, price_jalingo),
+        item:item_id(id, name, price_jalingo, price_outside),
         receiver:receiver_staff_id(id, full_name)
       `)
       .eq('requester_staff_id', actualId)
@@ -258,19 +258,24 @@ export class ReturnedItemsService {
 
     if (error) throw error;
 
-    return (data || []).map((item: any) => ({
-      id: item.id,
-      item_id: item.item_id,
-      item_name: item.item?.name || 'Unknown',
-      quantity: item.quantity,
-      unit_price: item.item?.price_jalingo || 0,
-      location: item.location || 'Inside Jalingo',
-      status: item.status,
-      reject_reason: item.reject_reason,
-      receiver_name: item.receiver?.full_name || 'Unknown',
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-    }));
+    return (data || []).map((item: any) => {
+      const itemLoc = item.location || 'Inside Jalingo';
+      return {
+        id: item.id,
+        item_id: item.item_id,
+        item_name: item.item?.name || 'Unknown',
+        quantity: item.quantity,
+        unit_price: itemLoc === 'Outside Jalingo'
+          ? (item.item?.price_outside || item.item?.price_jalingo || 0)
+          : (item.item?.price_jalingo || 0),
+        location: itemLoc,
+        status: item.status,
+        reject_reason: item.reject_reason,
+        receiver_name: item.receiver?.full_name || 'Unknown',
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      };
+    });
   }
 
   /**
@@ -283,7 +288,7 @@ export class ReturnedItemsService {
       .from('returned_items')
       .select(`
         *,
-        item:item_id(id, name, price_jalingo),
+        item:item_id(id, name, price_jalingo, price_outside),
         requester:requester_staff_id(id, full_name)
       `)
       .eq('receiver_staff_id', actualId)
@@ -291,20 +296,25 @@ export class ReturnedItemsService {
 
     if (error) throw error;
 
-    return (data || []).map((item: any) => ({
-      id: item.id,
-      item_id: item.item_id,
-      item_name: item.item?.name || 'Unknown',
-      quantity: item.quantity,
-      unit_price: item.item?.price_jalingo || 0,
-      location: item.location || 'Inside Jalingo',
-      status: item.status,
-      reject_reason: item.reject_reason,
-      requester_name: item.requester?.full_name || 'Unknown',
-      requester_id: item.requester_staff_id,
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-    }));
+    return (data || []).map((item: any) => {
+      const itemLoc = item.location || 'Inside Jalingo';
+      return {
+        id: item.id,
+        item_id: item.item_id,
+        item_name: item.item?.name || 'Unknown',
+        quantity: item.quantity,
+        unit_price: itemLoc === 'Outside Jalingo'
+          ? (item.item?.price_outside || item.item?.price_jalingo || 0)
+          : (item.item?.price_jalingo || 0),
+        location: itemLoc,
+        status: item.status,
+        reject_reason: item.reject_reason,
+        requester_name: item.requester?.full_name || 'Unknown',
+        requester_id: item.requester_staff_id,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      };
+    });
   }
 
   /**
@@ -316,7 +326,7 @@ export class ReturnedItemsService {
       .from('returned_items')
       .select(`
         *,
-        item:item_id(id, name, price_jalingo),
+        item:item_id(id, name, price_jalingo, price_outside),
         requester:requester_staff_id(id, full_name),
         receiver:receiver_staff_id(id, full_name)
       `)
@@ -324,20 +334,25 @@ export class ReturnedItemsService {
 
     if (error) throw error;
 
-    return (data || []).map((item: any) => ({
-      id: item.id,
-      item_id: item.item_id,
-      item_name: item.item?.name || 'Unknown',
-      quantity: item.quantity,
-      unit_price: item.item?.price_jalingo || 0,
-      location: item.location || 'Inside Jalingo',
-      status: item.status,
-      reject_reason: item.reject_reason,
-      requester_name: item.requester?.full_name || 'Unknown',
-      receiver_name: item.receiver?.full_name || 'Unknown',
-      created_at: item.created_at,
-      updated_at: item.updated_at,
-    }));
+    return (data || []).map((item: any) => {
+      const itemLoc = item.location || 'Inside Jalingo';
+      return {
+        id: item.id,
+        item_id: item.item_id,
+        item_name: item.item?.name || 'Unknown',
+        quantity: item.quantity,
+        unit_price: itemLoc === 'Outside Jalingo'
+          ? (item.item?.price_outside || item.item?.price_jalingo || 0)
+          : (item.item?.price_jalingo || 0),
+        location: itemLoc,
+        status: item.status,
+        reject_reason: item.reject_reason,
+        requester_name: item.requester?.full_name || 'Unknown',
+        receiver_name: item.receiver?.full_name || 'Unknown',
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+      };
+    });
   }
 
   /**
