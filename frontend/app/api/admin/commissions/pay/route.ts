@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     .select('amount')
     .eq('staff_id', staff_id)
     .eq('payment_type', 'commission')
-    .in('status', ['paid', 'approved'])
+    .eq('status', 'paid')
     .not('paid_by', 'is', null);
 
   const totalCommissionPaid = (paidData || []).reduce(

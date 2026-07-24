@@ -136,34 +136,43 @@ async function backfillCommissions() {
         let remainingQty = paidQuantity;
         const updates: { id: string; approved_commission: number; commission_rate?: number }[] = [];
 
-        for (const sale of salesRecords) {
-          if (remainingQty <= 0) break;
-          const { quantity: origQty, commissionRate } = saleMap[sale.id];
-          if (commissionRate <= 0) continue;
+    for (const sale of salesRecords) {
+      if (remainingQty <= 0) break;
+      const { quantity: origQty, commissionRate } = saleMap[sale.id];
+      if (commissionRate <= 0) continue;
 
-          const proportion = origQty / totalOriginalQty;
-          const allocatedQty = Math.min(remainingQty, Math.round(paidQuantity * proportion * 10) / 10);
-          const finalAllocated = Math.min(allocatedQty, origQty);
-          const commissionEarned = Math.round(finalAllocated * commissionRate * 100) / 100;
+      const proportion = origQty / totalOriginalQty;
+      const allocatedQty = Math.min(remainingQty, Math.round(paidQuantity * proportion * 10) / 10);
+      const finalAllocated = Math.min(allocatedQty, origQty);
+      const commissionEarned = Math.round(finalAllocated * commissionRate * 100) / 100;
 
-          const updateEntry: any = { id: sale.id, approved_commission: commissionEarned };
-          if ((sale as any).commission_rate == null && liveCommissionMap[paidItem.item_id]) {
-            updateEntry.commission_rate = liveCommissionMap[paidItem.item_id];
-          }
-          updates.push(updateEntry);
-          remainingQty -= finalAllocated;
-        }
+      const updateEntry: any = { id: sale.id, approved_commission: commissionEarned, quantity: origQty, commissionRate };
+      if ((sale as any).commission_rate == null && liveCommissionMap[paidItem.item_id]) {
+        updateEntry.commission_rate = liveCommissionMap[paidItem.item_id];
+      }
+      updates.push(updateEntry);
+      remainingQty -= finalAllocated;
+    }
 
-        for (const update of updates) {
-          const updateData: any = { approved_commission: update.approved_commission };
-          if (update.commission_rate !== undefined) {
-            updateData.commission_rate = update.commission_rate;
-          }
-          await supabase.from('staff_sales').update(updateData).eq('id', update.id);
+    for (const update of updates) {
+      const { data: currentRow } = await supabase
+        .from('staff_sales')
+        .select('approved_commission')
+        .eq('id', update.id)
+        .single();
+      const currentComm = parseFloat(currentRow?.approved_commission) || 0;
+      const maxComm = (update as any).quantity * (update as any).commissionRate;
+      const candidateComm = Math.round((currentComm + update.approved_commission) * 100) / 100;
+      const newComm = Math.min(candidateComm, maxComm);
+      const updateData: any = { approved_commission: newComm };
+      if (update.commission_rate !== undefined) {
+        updateData.commission_rate = update.commission_rate;
+      }
+      await supabase.from('staff_sales').update(updateData).eq('id', update.id);
 
-          totalCommissionGenerated += update.approved_commission;
-          totalSalesUpdated++;
-        }
+      totalCommissionGenerated += newComm;
+      totalSalesUpdated++;
+    }
       }
     } catch (err) {
       console.error(`Error processing payment ${payment.id}:`, err);

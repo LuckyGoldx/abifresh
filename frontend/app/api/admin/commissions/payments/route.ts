@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
     .from('staff_payments')
     .select('id, staff_id, amount, status, notes, requested_date, approved_date, paid_date, created_at')
     .eq('payment_type', 'commission')
+    .eq('status', 'paid')
     .in('staff_id', commissionStaffIds)
     .not('paid_by', 'is', null)
     .order('created_at', { ascending: false });

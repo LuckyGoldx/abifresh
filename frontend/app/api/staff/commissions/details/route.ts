@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     .select('id, amount, status, approved_date, paid_date, notes, created_at')
     .eq('staff_id', staffId)
     .eq('payment_type', 'commission')
-    .in('status', ['paid', 'approved'])
+    .eq('status', 'paid')
     .not('paid_by', 'is', null)
     .order('approved_date', { ascending: false });
 

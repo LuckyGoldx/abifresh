@@ -160,7 +160,7 @@ export async function GET(req: NextRequest) {
         .from('staff_payments')
         .select('amount')
         .eq('payment_type', 'commission')
-        .in('status', ['paid', 'approved'])
+        .eq('status', 'paid')
         .not('paid_by', 'is', null)
         .gte('created_at', fromISO)
         .lte('created_at', toISO);

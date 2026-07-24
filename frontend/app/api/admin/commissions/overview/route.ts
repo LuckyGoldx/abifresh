@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
         .select('staff_id, amount')
         .in('staff_id', staffIds)
         .eq('payment_type', 'commission')
-        .in('status', ['paid', 'approved'])
+        .eq('status', 'paid')
         .not('paid_by', 'is', null)
         .range(from, from + PAGE - 1);
       if (!paymentsData || paymentsData.length === 0) break;

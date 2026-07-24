@@ -7,11 +7,11 @@ const COMMISSION_ROLES = ['commission_staff', 'staff_commission'];
 async function generateCommissionForPayment(paymentId: string) {
   const { data: payment } = await supabaseAdmin
     .from('staff_payments')
-    .select('staff_id, items_paid_for')
+    .select('staff_id, items_paid_for, status')
     .eq('id', paymentId)
     .single();
 
-  if (!payment || !payment.items_paid_for || !Array.isArray(payment.items_paid_for) || payment.items_paid_for.length === 0) {
+  if (!payment || payment.status !== 'pending' || !payment.items_paid_for || !Array.isArray(payment.items_paid_for) || payment.items_paid_for.length === 0) {
     return;
   }
 
@@ -53,12 +53,12 @@ async function generateCommissionForPayment(paymentId: string) {
 
     if (!salesRecords || salesRecords.length === 0) continue;
 
-    const saleMap: Record<string, { quantity: number; commissionRate: number }> = {};
+    const saleMap: Record<string, { quantity: number; commissionRate: number; maxCommission: number }> = {};
     let totalOriginalQty = 0;
     (salesRecords || []).forEach((s: any) => {
       const qty = parseFloat(s.quantity) || 0;
       const rate = parseFloat(s.commission_rate) || liveCommissionMap[paidItem.item_id] || 0;
-      saleMap[s.id] = { quantity: qty, commissionRate: rate };
+      saleMap[s.id] = { quantity: qty, commissionRate: rate, maxCommission: qty * rate };
       totalOriginalQty += qty;
     });
 
@@ -88,11 +88,15 @@ async function generateCommissionForPayment(paymentId: string) {
     for (const update of updates) {
       const { data: currentRow } = await supabaseAdmin
         .from('staff_sales')
-        .select('approved_commission')
+        .select('approved_commission, quantity, commission_rate')
         .eq('id', update.id)
         .single();
       const currentComm = parseFloat(currentRow?.approved_commission) || 0;
-      const newComm = Math.round((currentComm + update.approved_commission) * 100) / 100;
+      const qty = parseFloat(currentRow?.quantity) || 0;
+      const rate = parseFloat(currentRow?.commission_rate) || 0;
+      const maxComm = qty * rate;
+      const candidateComm = Math.round((currentComm + update.approved_commission) * 100) / 100;
+      const newComm = Math.min(candidateComm, maxComm);
       const updateData: any = { approved_commission: newComm };
       if (update.commission_rate !== undefined) {
         updateData.commission_rate = update.commission_rate;
@@ -117,10 +121,24 @@ export async function POST(
 
   const paymentId = params.id;
 
+  const { data: existingPayment } = await supabaseAdmin
+    .from('staff_payments')
+    .select('status')
+    .eq('id', paymentId)
+    .single();
+
+  if (!existingPayment) {
+    return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
+  }
+  if (existingPayment.status !== 'pending') {
+    return NextResponse.json({ error: 'Payment has already been processed' }, { status: 409 });
+  }
+
   const { error: updateError } = await supabaseAdmin
     .from('staff_payments')
     .update({ status: 'approved', approved_date: new Date().toISOString(), approved_by: authResult.id, paid_by: authResult.id })
-    .eq('id', paymentId);
+    .eq('id', paymentId)
+    .eq('status', 'pending');
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 });
 
