@@ -496,7 +496,7 @@ export default function ReturnItemsPage() {
               ) : (
                 <div className="space-y-3 max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-3">
                   {availableItems.map((item) => {
-                    const selectedItem = selectedItems.find((i) => i.item_id === item.id);
+                    const selectedItem = selectedItems.find((i) => i.item_id === item.id && (i as any).location === item.location);
                     const remainingQuantity = item.available_quantity - (selectedItem?.quantity || 0);
                     
                     // Only show items with remaining quantity > 0
@@ -504,7 +504,7 @@ export default function ReturnItemsPage() {
                     
                     return (
                       <div
-                        key={item.id}
+                        key={`${item.id}_${item.location}`}
                         className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition"
                       >
                         <input

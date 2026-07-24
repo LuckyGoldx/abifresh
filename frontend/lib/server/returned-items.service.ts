@@ -356,7 +356,7 @@ export class ReturnedItemsService {
       .from('staff_store')
       .select(`
         id, item_id, quantity, quantity_sold, location,
-        item:item_id(id, name, price_jalingo)
+        item:item_id(id, name, price_jalingo, price_outside)
       `)
       .eq('staff_id', actualId);
 
@@ -385,7 +385,9 @@ export class ReturnedItemsService {
         const netAvailable = (item.quantity || 0) - (item.quantity_sold || 0);
         const remainingQty = Math.max(0, netAvailable - lockedQty);
         
-        const sellingPrice = item.item?.price_jalingo || 0;
+        const sellingPrice = itemLoc === 'Outside Jalingo'
+          ? (item.item?.price_outside || item.item?.price_jalingo || 0)
+          : (item.item?.price_jalingo || 0);
         
         return {
           id: item.item_id,
