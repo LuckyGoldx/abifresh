@@ -34,33 +34,37 @@ export default function PaymentsPage() {
   const [actionInProgress, setActionInProgress] = useState(false);
   const [receiptLoading, setReceiptLoading] = useState(true);
   const [showReceiptPopup, setShowReceiptPopup] = useState(false);
-  const [receiptPopupData, setReceiptPopupData] = useState<{ receipts: any[]; itemName: string; itemId: string } | null>(null);
+  const [receiptPopupData, setReceiptPopupData] = useState<any>(null);
   const [receiptPopupLoading, setReceiptPopupLoading] = useState(false);
+  const [selectedReceiptSale, setSelectedReceiptSale] = useState<{ item_id: string; sale_date?: string; created_at?: string; sold_outside_jalingo?: boolean } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [outstandingSummary, setOutstandingSummary] = useState<{ outstandingTotal: number } | null>(null);
   const [activeTab, setActiveTab] = useState<'payments' | 'breakdown'>('payments');
   const { alert: showAlert, confirm: showConfirm } = useAlert();
 
-  // View receipt popup - fetches the receipt for this payment item's sale_ids
+  // View original sale receipt - highlights the clicked item
   const handleViewReceipt = async (itemId: string, itemName: string, saleIds?: string[]) => {
-    setReceiptPopupLoading(true);
+    if (!saleIds || saleIds.length === 0) {
+      showAlert('No sale reference for this item');
+      return;
+    }
     setShowReceiptPopup(true);
-    setReceiptPopupData({ receipts: [], itemName, itemId });
+    setReceiptPopupLoading(true);
+    setReceiptPopupData(null);
     try {
-      if (saleIds && saleIds.length > 0) {
-        const res = await fetch(`/api/admin/payments/receipt-for-sale?saleIds=${saleIds.join(',')}`);
-        const data = await res.json();
-        if (data.receipt_number && data.items.length > 0) {
-          setReceiptPopupData({ receipts: [data], itemName, itemId });
-        } else {
-          setReceiptPopupData({ receipts: [], itemName, itemId });
-        }
+      const res = await api.get(`/api/admin/payments/receipt-for-sale?saleIds=${saleIds.join(',')}`);
+      const data = res.data;
+      if (data.receipt_number && data.items?.length > 0) {
+        setReceiptPopupData(data);
+        setSelectedReceiptSale({ item_id: data.sale_item_id, sale_date: data.sale_date, sold_outside_jalingo: data.sold_outside_jalingo });
       } else {
-        setReceiptPopupData({ receipts: [], itemName, itemId });
+        setReceiptPopupData(null);
+        setSelectedReceiptSale(null);
       }
     } catch {
-      setReceiptPopupData({ receipts: [], itemName, itemId });
+      setReceiptPopupData(null);
+      setSelectedReceiptSale(null);
     } finally {
       setReceiptPopupLoading(false);
     }
@@ -1198,115 +1202,99 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      {/* Receipt Popup Modal - shows receipts containing a clicked item */}
-      {showReceiptPopup && receiptPopupData && (
+      {/* Receipt Popup - shows original sale receipt with highlighted item */}
+      {showReceiptPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Receipt Details</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Item: <span className="font-semibold text-blue-600 dark:text-blue-400">{receiptPopupData.itemName}</span>
-                </p>
-              </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                {receiptPopupData ? `Receipt #${receiptPopupData.receipt_number}` : 'Receipt'}
+              </h2>
               <button
-                onClick={() => setShowReceiptPopup(false)}
+                onClick={() => { setShowReceiptPopup(false); setReceiptPopupData(null); setSelectedReceiptSale(null); }}
                 className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-4">
               {receiptPopupLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <LoadingLogo text="Loading receipts..." />
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <div className="animate-pulse">
+                    <img src="/favicon.svg" alt="" className="w-14 h-14" />
+                  </div>
+                  <div className="flex items-center gap-2 text-pink-600 dark:text-pink-400">
+                    <div className="w-4 h-4 border-2 border-pink-600 dark:border-pink-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm font-bold">Loading receipt...</span>
+                  </div>
                 </div>
-              ) : receiptPopupData.receipts.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                  <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
-                  <p>No receipts found for this item.</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {receiptPopupData.receipts.map((receipt, rIdx) => {
-                    const receiptItems = receipt.items || receipt.receipt_items || [];
-                    return (
-                    <div key={rIdx} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 border-b border-gray-200 dark:border-gray-600">
-                        <div className="flex justify-between items-center">
-                          <p className="font-semibold text-gray-900 dark:text-white">
-                            Receipt #{receipt.receipt_number}
-                          </p>
-                          {receipt.created_at && (
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {new Date(receipt.created_at).toLocaleDateString('en-GB', {
-                                day: '2-digit', month: 'short', year: 'numeric'
-                              })}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
-                          {receipt.payment_method && <span className="capitalize">{receipt.payment_method}</span>}
-                          {receipt.sold_outside_jalingo && (
-                            <span className="text-orange-500">Outside Jalingo</span>
-                          )}
+              ) : receiptPopupData ? (
+                <div className="bg-white dark:bg-gray-900 rounded-lg shadow-inner overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <div className="bg-gradient-to-r from-pink-500 to-pink-600 p-5 text-center">
+                    <h2 className="text-xl font-bold text-white mb-0.5">ABIFRESH & KIDDIES VENTURES</h2>
+                    <p className="text-pink-100 text-sm">Receipt #{receiptPopupData.receipt_number}</p>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {selectedReceiptSale && (
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Date</p>
+                        <p className="font-semibold text-gray-900 dark:text-white mt-0.5">
+                          {new Date(selectedReceiptSale.sale_date || selectedReceiptSale.created_at || new Date()).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 dark:text-gray-400 uppercase font-semibold">Location</p>
+                        <p className={`font-semibold mt-0.5 ${selectedReceiptSale.sold_outside_jalingo ? 'text-orange-500' : 'text-green-500'}`}>
+                          {selectedReceiptSale.sold_outside_jalingo ? 'Outside Jalingo' : 'Inside Jalingo'}
+                        </p>
+                      </div>
+                    </div>
+                    )}
+                    <div className="border-t-2 border-b-2 border-pink-300 dark:border-pink-600">
+                      <div className="bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                        <div className="flex justify-between text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wide">
+                          <span className="flex-1">Item</span>
+                          <span className="w-14 text-right">Qty</span>
+                          <span className="w-20 text-right">Price</span>
+                          <span className="w-20 text-right">Total</span>
                         </div>
                       </div>
-
-                      <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {receiptItems.map((ritem: any, riIdx: number) => {
-                          const itemName = ritem.item_name || (typeof ritem.item_id === 'object' ? ritem.item_id.name : 'Item');
-                          const isHighlighted = itemName === receiptPopupData.itemName;
+                      <div className="px-3 py-2 space-y-1.5">
+                        {receiptPopupData.items.map((item: any, idx: number) => {
+                          const isHighlighted = item.item_id === receiptPopupData.sale_item_id;
                           return (
-                            <div
-                              key={riIdx}
-                              className={`flex justify-between items-center p-4 ${
-                                isHighlighted
-                                  ? 'bg-yellow-50 dark:bg-yellow-900/20 ring-2 ring-yellow-400 dark:ring-yellow-500'
-                                  : ''
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                {isHighlighted && (
-                                  <span className="text-yellow-500 text-lg" title="Clicked item">▶</span>
-                                )}
-                                <div>
-                                  <p className={`font-medium ${isHighlighted ? 'text-yellow-800 dark:text-yellow-200' : 'text-gray-800 dark:text-white'}`}>
-                                    {itemName}
-                                  </p>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Qty: {formatQty(ritem.quantity)} × ₦{(ritem.unit_price || 0).toLocaleString()}
-                                  </p>
-                                </div>
-                              </div>
-                              <p className="font-semibold text-gray-900 dark:text-white">
-                                ₦{(ritem.total_price || ritem.total_amount || 0).toLocaleString()}
-                              </p>
+                            <div key={idx} className={`flex justify-between text-sm items-center rounded px-2 py-1 ${isHighlighted ? 'bg-yellow-100 dark:bg-yellow-900/40 ring-2 ring-yellow-400 dark:ring-yellow-500 font-bold' : 'text-gray-700 dark:text-gray-300'}`}>
+                              <span className="flex-1 truncate">{item.item_name}</span>
+                              <span className="w-14 text-right">{formatQty(item.quantity)}</span>
+                              <span className="w-20 text-right">₦{(item.unit_price || 0).toLocaleString()}</span>
+                              <span className="w-20 text-right font-semibold">₦{(item.total_amount || 0).toLocaleString()}</span>
                             </div>
                           );
                         })}
                       </div>
-
-                      <div className="bg-gray-50 dark:bg-gray-700 p-4 border-t border-gray-200 dark:border-gray-600">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-gray-900 dark:text-white">Total</span>
-                          <span className="font-bold text-lg text-pink-600 dark:text-pink-400">
-                            ₦{(receipt.total_amount || 0).toLocaleString()}
-                          </span>
-                        </div>
+                    </div>
+                    <div className="bg-gradient-to-r from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 rounded-lg p-4 border border-pink-200 dark:border-pink-700">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600 dark:text-gray-400 text-sm font-semibold">Total</span>
+                        <span className="text-xl font-bold text-pink-600 dark:text-pink-400">₦{receiptPopupData.total_amount.toLocaleString()}</span>
                       </div>
                     </div>
-                    );
-                  })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                  <p>No receipt found for this item.</p>
                 </div>
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <button
-                onClick={() => setShowReceiptPopup(false)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition"
+                onClick={() => { setShowReceiptPopup(false); setReceiptPopupData(null); setSelectedReceiptSale(null); }}
+                className="w-full py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm font-medium"
               >
                 Close
               </button>

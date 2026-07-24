@@ -11,7 +11,7 @@ async function generateCommissionForPayment(paymentId: string) {
     .eq('id', paymentId)
     .single();
 
-  if (!payment || payment.status !== 'pending' || !payment.items_paid_for || !Array.isArray(payment.items_paid_for) || payment.items_paid_for.length === 0) {
+  if (!payment || payment.status !== 'approved' || !payment.items_paid_for || !Array.isArray(payment.items_paid_for) || payment.items_paid_for.length === 0) {
     return;
   }
 
