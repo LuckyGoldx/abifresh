@@ -903,11 +903,15 @@ export default function PaymentsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Items Being Paid For</p>
                 <ul className="mt-2 space-y-1 text-sm">
-                  {sales.filter(s => selectedItems.includes(s.id)).map(s => (
+                  {sales.filter(s => selectedItems.includes(s.id)).map(s => {
+                    const previewQty = selectedQuantities[s.id] !== undefined ? selectedQuantities[s.id] : s.quantity;
+                    const previewAmount = previewQty * s.price_jalingo;
+                    return (
                     <li key={s.id}>
-                      • {s.item_name} (x{formatQty(s.quantity)}) - ₦{s.total_amount.toLocaleString()}
+                      • {s.item_name} (x{formatQty(previewQty)}) - ₦{previewAmount.toLocaleString()}
                     </li>
-                  ))}
+                  );
+                  })}
                 </ul>
               </div>
             )}
