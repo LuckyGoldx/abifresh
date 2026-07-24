@@ -25,16 +25,46 @@ export async function GET(req: NextRequest) {
   ]);
 
   const todayData = todayReceipts.data || [];
-  const allData = allReceipts.data || [];
+  const allReceiptsData = allReceipts.data || [];
   const pending = pendingPayments.data || [];
 
   const todaySales = todayData.length;
   const todayAmount = todayData.reduce((s, r) => s + (Number(r.total_amount) || 0), 0);
   const todayItems = todayData.reduce((s, r) => s + (r.items_count || 0), 0);
 
-  const totalSales = allData.length;
-  const totalAmount = allData.reduce((s, r) => s + (Number(r.total_amount) || 0), 0);
-  const totalItems = allData.reduce((s, r) => s + (r.items_count || 0), 0);
+  // All-time stats from receipts (for total_sales count and items count)
+  const totalSales = allReceiptsData.length;
+  const totalItems = allReceiptsData.reduce((s, r) => s + (r.items_count || 0), 0);
+
+  // All-time total amount from staff_sales + sales (matches payments/reports)
+  let totalAmount = 0;
+  {
+    const PAGE = 1000;
+    let from = 0;
+    while (true) {
+      const { data } = await supabaseAdmin
+        .from('staff_sales')
+        .select('total_amount')
+        .range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      totalAmount += data.reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
+      from += PAGE;
+    }
+  }
+  {
+    const PAGE = 1000;
+    let from = 0;
+    while (true) {
+      const { data } = await supabaseAdmin
+        .from('sales')
+        .select('total_amount')
+        .range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      totalAmount += data.reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
+      from += PAGE;
+    }
+  }
+
   const pendingAmount = pending.reduce((s, p) => s + (Number(p.amount) || 0), 0);
 
   return NextResponse.json({
