@@ -121,18 +121,14 @@ export default function ReturnItemsPage() {
     return item.available_quantity - selectedQty;
   };
 
-  const handleAddItem = (itemId: string, isChecked: boolean) => {
+  const handleAddItem = (item: AvailableItem, isChecked: boolean) => {
     if (isChecked) {
-      // Add item with default quantity set to max available
-      const item = availableItems.find((i) => i.id === itemId);
-      if (!item) return;
-
-      const existing = selectedItems.find((i) => i.item_id === itemId && (i as any).location === item.location);
+      const existing = selectedItems.find((i) => i.item_id === item.id && (i as any).location === item.location);
       if (!existing) {
         setSelectedItems([
           ...selectedItems,
           {
-            item_id: itemId,
+            item_id: item.id,
             quantity: Math.round(item.available_quantity * 2) / 2,
             unit_price: item.unit_price,
             location: item.location,
@@ -140,10 +136,7 @@ export default function ReturnItemsPage() {
         ]);
       }
     } else {
-      // Remove item when unchecked
-      const item = availableItems.find((i) => i.id === itemId);
-      if (!item) return;
-      handleRemoveItem(itemId, item.location);
+      handleRemoveItem(item.id, item.location);
     }
   };
 
@@ -510,7 +503,7 @@ export default function ReturnItemsPage() {
                         <input
                           type="checkbox"
                           checked={!!selectedItem}
-                          onChange={(e) => handleAddItem(item.id, e.target.checked)}
+                          onChange={(e) => handleAddItem(item, e.target.checked)}
                           className="w-4 h-4 text-red-600 rounded cursor-pointer"
                         />
                         <div className="flex-1">
