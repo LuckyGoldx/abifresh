@@ -100,17 +100,19 @@ export default function SuperAdminDashboard() {
         const dashboardRes = await api.get('/api/admin/dashboard/stats', { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => ({ data: {} as any }));
         const dashboardData = dashboardRes.data || {};
 
-        // Fetch staff_sales total quantity (superadmin-only: commission staff items)
+        // Fetch staff_sales total quantity + count (superadmin-only: commission staff items)
         let totalStaffItems = 0;
+        let staffSalesCount = 0;
         try {
           const staffSalesRes = await api.get('/api/admin/staff-sales-items-summary');
           if (staffSalesRes.data?.total_quantity) totalStaffItems = staffSalesRes.data.total_quantity;
+          if (staffSalesRes.data?.total_count) staffSalesCount = staffSalesRes.data.total_count;
         } catch {}
 
         setStats({
           today_sales: todayStats.sales,
           today_amount: todayStats.amount,
-          total_sales: allTimeStats.sales,
+          total_sales: allTimeStats.sales + staffSalesCount,
           total_amount: allTimeStats.amount,
           total_staff_sales: dashboardData.total_staff_sales || 0,
           total_items: allTimeStats.items,
@@ -284,10 +286,10 @@ export default function SuperAdminDashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={Users} title="Total Staff" value={stats.total_staff} color="bg-violet-500" onClick={() => router.push('/superadmin/staff')} />
             <StatCard icon={UserCheck} title="Active Users" value={stats.active_users} color="bg-teal-500" />
-            <StatCard icon={ShoppingCart} title="Total Items Sold" value={formatQty(stats.total_items)} color="bg-sky-500" />
+            <StatCard icon={ShoppingCart} title="Total Quantity Sold" value={formatQty(stats.total_items)} color="bg-sky-500" />
             <StatCard icon={TrendingUp} title="Total Transactions" value={stats.total_sales} color="bg-indigo-500" />
             <StatCard icon={Database} title="Total Sales (Staff Table)" value={`₦${stats.total_staff_sales.toLocaleString()}`} color="bg-purple-600" />
-            <StatCard icon={Package} title="Total Items (Staff Table)" value={formatQty(stats.total_staff_items)} color="bg-fuchsia-600" />
+            <StatCard icon={Package} title="Total Quantity Sold (Staff Table)" value={formatQty(stats.total_staff_items)} color="bg-fuchsia-600" />
           </div>
 
           {/* Charts Row */}
