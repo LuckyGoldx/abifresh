@@ -303,6 +303,7 @@ export async function GET(req: NextRequest) {
   let salesTableTotal = 0;
   let salesTableQuantity = 0;
   let salesTableCount = 0;
+  let salesItemsCount = 0;
   {
     const PAGE = 1000;
     let from = 0;
@@ -319,9 +320,11 @@ export async function GET(req: NextRequest) {
       let totalSaleQty = 0;
       for (const sale of data) {
         totalSaleAmt += parseFloat(sale.total_amount) || 0;
+        salesTableCount++;
         const items = sale.sales_items || [];
         for (const si of items) {
           totalSaleQty += parseFloat(si.quantity) || 0;
+          salesItemsCount++;
         }
       }
       salesTableTotal += totalSaleAmt;
@@ -338,7 +341,7 @@ export async function GET(req: NextRequest) {
   const totalRevenue = staffSalesTotal + salesTableTotal;
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + (e.expense_amount || 0), 0);
   const totalItemsSold = staffSalesQuantity + salesTableQuantity;
-  const totalTransactionsCount = (receiptsRaw || []).length + staffSalesCount;
+  const totalTransactionsCount = staffSalesCount + salesItemsCount;
   const avgTransaction = totalTransactionsCount > 0 ? totalRevenue / totalTransactionsCount : 0;
 
   // Calculate Total Cost Price Sold using immutable transaction-time cost_price
