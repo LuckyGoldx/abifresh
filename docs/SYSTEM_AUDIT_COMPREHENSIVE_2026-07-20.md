@@ -354,7 +354,40 @@ A well-designed server-side cache module that is never imported by any route han
 
 ---
 
-## 11. COMPLETE ISSUE INVENTORY
+## 11. THE RED TAG — Payment Adjustment Visual Warning
+
+### 11.1 What It Is
+
+When the Blessing/Kefas fix pattern is applied (redirecting wasted payment units from overpaid items to unpaid items), the `items_paid_for` entries are rewritten — their sum no longer equals the original payment `amount`. The admin staff-detail page detects this mismatch and shows a **red warning banner** (`page.tsx:578-588`):
+
+> **🔴 Amount Adjusted** — Items total (₦X) differs from payment amount (₦Y) by ₦Z. This payment was corrected to fix an over-allocation from the old grouped-item payment model.
+
+### 11.2 When It Appears
+
+| Condition | Trigger | Action |
+|---|---|---|
+| `itemsTotal !== payAmount` (difference > ₦1) | The sum of `items_paid_for[].amount` != `payment.amount` | RED tag shown |
+| `itemsTotal === payAmount` | Normal 1:1 payment (all new payments) | No tag |
+| `itemsTotal === payAmount` after total_amount -16000 fix | Ambrose fix — only `total_amount` changed, not `items_paid_for` | No tag |
+
+### 11.3 Why It's Not a Bug
+
+The red tag is **intentional**. When we restructure a payment to fix over-allocation (e.g., Blessing's ₦13,500 redirected from a wasted entry to an unpaid item), the `items_paid_for` amounts change but the payment's monetary `amount` stays the same. The red tag tells the admin: "This payment was manually restructured. The money is correct. The item breakdown reflects the restructuring."
+
+### 11.4 Current Staff With Red Tags
+
+| Staff | Payments Tagged | Reason |
+|---|---|---|
+| **Blessing** | `219b3f2c` | ₦13,500 redirected from DELE MATERNITY PAD to unpaid items |
+| **Kefas** | `219b3f2c` | ₦13,500 redirected from JUSTFIT CARRY PACK S4 entry |
+
+### 11.5 No Red Tag for Ambrose
+
+The Ambrose fix used `total_amount - 16000` on a `staff_sales` row — `items_paid_for` was never modified. No payment records changed. No red tag appears.
+
+---
+
+## 12. COMPLETE ISSUE INVENTORY
 
 | # | Category | Severity | File | Issue |
 |---|---|---|---|---|

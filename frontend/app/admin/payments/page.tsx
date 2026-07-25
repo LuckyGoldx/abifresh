@@ -906,21 +906,23 @@ export default function PaymentsPage() {
                     );
                     const paymentAmount = Number(selectedPayment.amount) || 0;
                     const mismatch = Math.abs(itemsTotal - paymentAmount) > 0.01;
-                    if (mismatch) {
-                      return (
-                        <div className="mb-4 flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
-                          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-semibold text-red-800 dark:text-red-200">Amount Mismatch Detected</p>
-                            <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
-                              Payment amount (₦{paymentAmount.toLocaleString()}) does not match the sum of items (₦{itemsTotal.toLocaleString()}). 
-                              Difference: ₦{Math.abs(paymentAmount - itemsTotal).toLocaleString()}
-                            </p>
+                    return (
+                      <div className="mb-4">
+                        {mismatch ? (
+                          <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+                            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-semibold text-red-800 dark:text-red-200">Amount Adjusted — Over-Allocation Fixed</p>
+                              <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
+                                Payment amount (₦{paymentAmount.toLocaleString()}) does not match the sum of items (₦{itemsTotal.toLocaleString()}). 
+                                Difference: ₦{Math.abs(paymentAmount - itemsTotal).toLocaleString()}.
+                                This payment was corrected to fix an over-allocation from the old grouped-item payment model.
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    return null;
+                        ) : null}
+                      </div>
+                    );
                   })()}
                   <div className="space-y-2">
                     {selectedPayment.items_paid_for.map((item, idx) => (

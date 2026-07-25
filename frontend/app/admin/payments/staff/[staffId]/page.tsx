@@ -572,10 +572,12 @@ export default function StaffPaymentDetailPage() {
                 const itemsTotal = selectedPayment.items_paid_for.reduce((s: number, i: any) => s + (i.amount || 0), 0);
                 const payAmount = selectedPayment.amount || 0;
                 const hasAdjustment = Math.abs(itemsTotal - payAmount) > 1;
+                const wasRestructured = ['219b3f2c-9b82-4fbb-afa2-07cb6c9eee49'].includes(selectedPayment.id);
+                const showAdjustment = hasAdjustment || wasRestructured;
                 return (
                 <div className="border-b dark:border-gray-700 pb-4">
                   <h3 className="font-semibold text-gray-800 dark:text-white mb-3">Items Paid For</h3>
-                  {hasAdjustment && (
+                  {showAdjustment && (
                     <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-3 rounded mb-3 text-sm">
                       <p className="font-semibold text-red-700 dark:text-red-300 flex items-center gap-1">
                         <AlertTriangle className="w-4 h-4" /> Amount Adjusted
