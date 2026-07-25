@@ -337,8 +337,8 @@ export async function GET(req: NextRequest) {
   // Total revenue = staff-attributed sales only (matches payments system)
   const totalRevenue = staffSalesTotal + salesTableTotal;
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + (e.expense_amount || 0), 0);
-  const totalItemsSold = (receiptItems || []).reduce((sum: number, ri: any) => sum + (ri.quantity || 0), 0) + staffSalesQuantity + salesTableQuantity;
-  const totalTransactionsCount = (receiptsRaw || []).length + staffSalesCount + salesTableCount;
+  const totalItemsSold = (receiptItems || []).reduce((sum: number, ri: any) => sum + (ri.quantity || 0), 0) + staffSalesQuantity;
+  const totalTransactionsCount = (receiptsRaw || []).length + staffSalesCount;
   const avgTransaction = totalTransactionsCount > 0 ? totalRevenue / totalTransactionsCount : 0;
 
   // Calculate Total Cost Price Sold using immutable transaction-time cost_price
