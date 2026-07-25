@@ -32,8 +32,19 @@ export async function GET(req: NextRequest) {
   const todayAmount = todayData.reduce((s, r) => s + (Number(r.total_amount) || 0), 0);
   const todayItems = todayData.reduce((s, r) => s + (r.items_count || (r.receipt_items?.length || 0)), 0);
 
-  // All-time stats from receipts (for total_sales count)
-  const totalSales = allReceiptsData.length;
+  // All-time stats from receipts + staff_sales (for total_sales count)
+  let totalSales = allReceiptsData.length;
+  let salesFrom = 0;
+  const SALES_PAGE = 1000;
+  while (true) {
+    const { data } = await supabaseAdmin
+      .from('staff_sales')
+      .select('id')
+      .range(salesFrom, salesFrom + SALES_PAGE - 1);
+    if (!data || data.length === 0) break;
+    totalSales += data.length;
+    salesFrom += SALES_PAGE;
+  }
 
   // All-time total items from staff_sales + sales (matches payments/reports)
   let totalItems = 0;
