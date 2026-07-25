@@ -452,7 +452,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className="card border-l-4 border-l-purple-500 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Items Sold</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Quantity Sold</p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-600 break-words">{formatQty(report?.summary.total_items_sold || 0)}</p>
           <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 opacity-20 self-end flex-shrink-0" />
         </div>

@@ -272,38 +272,61 @@ export async function GET(req: NextRequest) {
 
   // Fetch staff_sales total (commission & non-commission staff) — paginated
   let staffSalesTotal = 0;
+  let staffSalesQuantity = 0;
+  let staffSalesCount = 0;
   {
     const PAGE = 1000;
     let from = 0;
     while (true) {
       let q = supabaseAdmin
         .from('staff_sales')
-        .select('total_amount')
+        .select('total_amount, quantity')
         .gte('created_at', fromISO)
         .lte('created_at', toISO);
       if (filteredStaffIds.length > 0) q = q.in('staff_id', filteredStaffIds);
       const { data } = await q.range(from, from + PAGE - 1);
       if (!data || data.length === 0) break;
-      staffSalesTotal += data.reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
+      let totalAmt = 0;
+      let totalQty = 0;
+      for (const s of data) {
+        totalAmt += parseFloat(s.total_amount) || 0;
+        totalQty += parseFloat(s.quantity) || 0;
+      }
+      staffSalesTotal += totalAmt;
+      staffSalesQuantity += totalQty;
+      staffSalesCount += data.length;
       from += PAGE;
     }
   }
 
   // Fetch sales table total (sales staff) — paginated
   let salesTableTotal = 0;
+  let salesTableQuantity = 0;
+  let salesTableCount = 0;
   {
     const PAGE = 1000;
     let from = 0;
     while (true) {
       let q = supabaseAdmin
         .from('sales')
-        .select('total_amount')
+        .select('id, total_amount, sales_items(quantity)')
         .gte('created_at', fromISO)
         .lte('created_at', toISO);
       if (filteredStaffIds.length > 0) q = q.in('staff_id', filteredStaffIds);
       const { data } = await q.range(from, from + PAGE - 1);
       if (!data || data.length === 0) break;
-      salesTableTotal += data.reduce((sum: number, s: any) => sum + (parseFloat(s.total_amount) || 0), 0);
+      let totalSaleAmt = 0;
+      let totalSaleQty = 0;
+      for (const sale of data) {
+        totalSaleAmt += parseFloat(sale.total_amount) || 0;
+        const items = sale.sales_items || [];
+        for (const si of items) {
+          totalSaleQty += parseFloat(si.quantity) || 0;
+        }
+      }
+      salesTableTotal += totalSaleAmt;
+      salesTableQuantity += totalSaleQty;
+      salesTableCount += data.length;
       from += PAGE;
     }
   }
@@ -314,8 +337,8 @@ export async function GET(req: NextRequest) {
   // Total revenue = staff-attributed sales only (matches payments system)
   const totalRevenue = staffSalesTotal + salesTableTotal;
   const totalExpenses = expenses.reduce((sum: number, e: any) => sum + (e.expense_amount || 0), 0);
-  const totalItemsSold = (receiptItems || []).reduce((sum: number, ri: any) => sum + (ri.quantity || 0), 0);
-  const totalTransactionsCount = (receiptsRaw || []).length;
+  const totalItemsSold = (receiptItems || []).reduce((sum: number, ri: any) => sum + (ri.quantity || 0), 0) + staffSalesQuantity + salesTableQuantity;
+  const totalTransactionsCount = (receiptsRaw || []).length + staffSalesCount + salesTableCount;
   const avgTransaction = totalTransactionsCount > 0 ? totalRevenue / totalTransactionsCount : 0;
 
   // Calculate Total Cost Price Sold using immutable transaction-time cost_price
@@ -555,7 +578,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     summary: {
-      total_transactions: receipts.length, total_sales: totalRevenue, total_sales_receipts: totalRevenueFromReceipts, total_expenses: totalExpenses,
+      total_transactions: totalTransactionsCount, total_sales: totalRevenue, total_sales_receipts: totalRevenueFromReceipts, total_expenses: totalExpenses,
       total_profit: totalOverallProfit,
       total_main_profit: totalMainProfit,
       total_credit_profit: totalCreditProfit,
