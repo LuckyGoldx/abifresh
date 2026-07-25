@@ -900,6 +900,28 @@ export default function PaymentsPage() {
               {selectedPayment.items_paid_for && selectedPayment.items_paid_for.length > 0 && (
                 <div className="border-b dark:border-gray-700 pb-4">
                   <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">Items Paid For</h3>
+                  {(() => {
+                    const itemsTotal = (selectedPayment.items_paid_for || []).reduce(
+                      (sum: number, item: any) => sum + (Number(item.amount) || 0), 0
+                    );
+                    const paymentAmount = Number(selectedPayment.amount) || 0;
+                    const mismatch = Math.abs(itemsTotal - paymentAmount) > 0.01;
+                    if (mismatch) {
+                      return (
+                        <div className="mb-4 flex items-start gap-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+                          <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-semibold text-red-800 dark:text-red-200">Amount Mismatch Detected</p>
+                            <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
+                              Payment amount (₦{paymentAmount.toLocaleString()}) does not match the sum of items (₦{itemsTotal.toLocaleString()}). 
+                              Difference: ₦{Math.abs(paymentAmount - itemsTotal).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   <div className="space-y-2">
                     {selectedPayment.items_paid_for.map((item, idx) => (
                       <div
