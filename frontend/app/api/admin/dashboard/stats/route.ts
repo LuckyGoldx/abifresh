@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
   const tomorrowStr = tomorrow.toISOString();
 
   const [todayReceipts, allReceipts, staffCount, pendingPayments] = await Promise.all([
-    supabaseAdmin.from('receipts').select('id, total_amount, items_count').gte('created_at', todayStr).lt('created_at', tomorrowStr),
-    supabaseAdmin.from('receipts').select('id, total_amount, items_count'),
+    supabaseAdmin.from('receipts').select('id, total_amount, items_count, receipt_items(id)').gte('created_at', todayStr).lt('created_at', tomorrowStr),
+    supabaseAdmin.from('receipts').select('id, total_amount, items_count, receipt_items(id)'),
     supabaseAdmin.from('users').select('id', { count: 'exact', head: true }),
     supabaseAdmin.from('staff_payments').select('id, amount').eq('status', 'pending'),
   ]);
@@ -30,11 +30,37 @@ export async function GET(req: NextRequest) {
 
   const todaySales = todayData.length;
   const todayAmount = todayData.reduce((s, r) => s + (Number(r.total_amount) || 0), 0);
-  const todayItems = todayData.reduce((s, r) => s + (r.items_count || 0), 0);
+  const todayItems = todayData.reduce((s, r) => s + (r.items_count || (r.receipt_items?.length || 0)), 0);
 
-  // All-time stats from receipts (for total_sales count and items count)
+  // All-time stats from receipts (for total_sales count)
   const totalSales = allReceiptsData.length;
-  const totalItems = allReceiptsData.reduce((s, r) => s + (r.items_count || 0), 0);
+
+  // All-time total items from staff_sales + sales (matches payments/reports)
+  let totalItems = 0;
+  const QUANTITY_PAGE = 1000;
+  let qtyFrom = 0;
+  while (true) {
+    const { data } = await supabaseAdmin
+      .from('staff_sales')
+      .select('quantity')
+      .range(qtyFrom, qtyFrom + QUANTITY_PAGE - 1);
+    if (!data || data.length === 0) break;
+    totalItems += data.reduce((sum: number, s: any) => sum + (parseFloat(s.quantity) || 0), 0);
+    qtyFrom += QUANTITY_PAGE;
+  }
+  qtyFrom = 0;
+  while (true) {
+    const { data } = await supabaseAdmin
+      .from('sales')
+      .select('id, sales_items(quantity)')
+      .range(qtyFrom, qtyFrom + QUANTITY_PAGE - 1);
+    if (!data || data.length === 0) break;
+    totalItems += data.reduce((sum: number, s: any) => {
+      const items = s.sales_items || [];
+      return sum + items.reduce((isum: number, si: any) => isum + (parseFloat(si.quantity) || 0), 0);
+    }, 0);
+    qtyFrom += QUANTITY_PAGE;
+  }
 
   // All-time total amount from staff_sales + sales (matches payments/reports)
   let totalAmount = 0;

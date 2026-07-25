@@ -23,6 +23,7 @@ export default function SuperAdminDashboard() {
     total_amount: 0,
     total_staff_sales: 0,
     total_items: 0,
+    total_staff_items: 0,
     total_staff: 0,
     pending_approvals: 0,
     pending_amount: 0,
@@ -99,6 +100,13 @@ export default function SuperAdminDashboard() {
         const dashboardRes = await api.get('/api/admin/dashboard/stats', { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => ({ data: {} as any }));
         const dashboardData = dashboardRes.data || {};
 
+        // Fetch staff_sales total quantity (superadmin-only: commission staff items)
+        let totalStaffItems = 0;
+        try {
+          const staffSalesRes = await api.get('/api/admin/staff-sales-items-summary');
+          if (staffSalesRes.data?.total_quantity) totalStaffItems = staffSalesRes.data.total_quantity;
+        } catch {}
+
         setStats({
           today_sales: todayStats.sales,
           today_amount: todayStats.amount,
@@ -106,6 +114,7 @@ export default function SuperAdminDashboard() {
           total_amount: allTimeStats.amount,
           total_staff_sales: dashboardData.total_staff_sales || 0,
           total_items: allTimeStats.items,
+          total_staff_items: totalStaffItems,
           total_staff: allStaff.length,
           pending_approvals: paymentRes.data?.length || 0,
           pending_amount: pendingAmount,
@@ -278,6 +287,7 @@ export default function SuperAdminDashboard() {
             <StatCard icon={ShoppingCart} title="Total Items Sold" value={formatQty(stats.total_items)} color="bg-sky-500" />
             <StatCard icon={TrendingUp} title="Total Transactions" value={stats.total_sales} color="bg-indigo-500" />
             <StatCard icon={Database} title="Total Sales (Staff Table)" value={`₦${stats.total_staff_sales.toLocaleString()}`} color="bg-purple-600" />
+            <StatCard icon={Package} title="Total Items (Staff Table)" value={formatQty(stats.total_staff_items)} color="bg-fuchsia-600" />
           </div>
 
           {/* Charts Row */}

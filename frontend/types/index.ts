@@ -205,9 +205,9 @@ export interface AdminDashboardStats {
 }
 
 export interface SuperAdminDashboardStats extends AdminDashboardStats {
-  total_staff_sales: number;
   active_users: number;
   inactive_users: number;
+  total_staff_items: number;
 }
 
 export interface SalesDashboardStats {
