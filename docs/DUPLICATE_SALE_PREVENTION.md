@@ -144,15 +144,70 @@ for (const s of recentSales) {
 | **Idempotency key** | Network retry, tab replay, curl | Backend (header check) | ✅ Done |
 | **30-second guard** | Human retry (thought it failed) | Backend (before processing) | ✅ Done |
 
-## Files Modified
+## All Routes With Idempotency
+
+| Route | Action | Reason | Status |
+|---|---|---|---|
+| `staff/store/make-sales` | Create staff sales (commission/non-commission) | Double-click creates duplicate sales + double inventory deduct | ✅ |
+| `sales/create-sale` | Create front-desk sales (sales staff) | Double-click creates duplicate sales + double inventory deduct | ✅ |
+| `staff/post-items-to-staff` | Post items from main store to staff | Double-click deducts inventory twice from active store | ✅ |
+| `staff/returns` | Create return request | Duplicate creates pending returns that admin must manually reject | ✅ |
+| `sales/returned-items/[id]/accept` | Accept returned item (sales staff) | Double-click adds quantity to active store twice | ✅ |
+| `sales/returned-items/[id]/reject` | Reject returned item (sales staff) | Double-click restocks requester inventory twice | ✅ |
+| `admin/returned-items/[id]/accept` | Accept returned item (admin) | Same as sales — double inventory restock | ✅ |
+| `admin/returned-items/[id]/reject` | Reject returned item (admin) | Same as sales — double inventory return | ✅ |
+| `staff/posted-items/[id]/accept` | Accept posted item | Double-click adds quantity to staff store twice | ✅ |
+| `staff/posted-items/[id]/reject` | Reject posted item | Double-click returns quantity to active store twice | ✅ |
+| `staff/payments/request` | Submit payment request (commission/non-commission staff) | Duplicate creates pending payment that admin must reject | ✅ |
+| `sales/payments/request` | Submit payment request (sales staff) | Duplicate creates pending payment that admin must reject | ✅ |
+| `admin/commissions/pay` | Pay commission to staff | **Double-click pays commission twice (real money)** | ✅ |
+
+## Routes That DON'T Need Idempotency
+
+| Route | Why It's Naturally Protected |
+|---|---|
+| `admin/payments/[id]/approve` | Line 133: `if (status !== 'pending') return 409` + Line 141: `.eq('status', 'pending')` optimistic lock |
+| `admin/payments/[id]/reject` | Same pattern — status `pending → rejected` guarded by status check |
+| `sales/returned-items/[id]/reject` (admin) | Only updates status text — no inventory impact on duplicate |
+
+## All Files Modified
+
+### Backend Routes
 
 | File | Change |
 |---|---|
-| `lib/server/idempotency.ts` | New — shared idempotency helper with PRIMARY KEY guard |
-| `app/api/staff/store/make-sales/route.ts` | Wrapped with `withIdempotency` (line 13) |
-| `app/api/sales/create-sale/route.ts` | Wrapped with `withIdempotency` (line 17) |
-| `app/staff/make-sale/page.tsx` | `Idempotency-Key` header with `crypto.randomUUID()` (line 282) |
-| `app/sales/make-sale/page.tsx` | `Idempotency-Key` header with `crypto.randomUUID()` (line 304) |
+| `lib/server/idempotency.ts` | **New** — shared helper with PRIMARY KEY guard + error cleanup |
+| `app/api/staff/store/make-sales/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/sales/create-sale/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/staff/post-items-to-staff/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/staff/returns/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/sales/returned-items/[id]/accept/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/sales/returned-items/[id]/reject/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/admin/returned-items/[id]/accept/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/admin/returned-items/[id]/reject/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/staff/posted-items/[id]/accept/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/staff/posted-items/[id]/reject/route.ts` | Wrapped with `withIdempotency` |
+| `app/api/staff/payments/request/route.ts` | Wrapped with `withIdempotency` (formData, not JSON) |
+| `app/api/sales/payments/request/route.ts` | Wrapped with `withIdempotency` (formData, not JSON) |
+| `app/api/admin/commissions/pay/route.ts` | Wrapped with `withIdempotency` |
+
+### Frontend Pages (all send `Idempotency-Key` header)
+
+| Page | Change |
+|---|---|
+| `app/staff/make-sale/page.tsx` | `crypto.randomUUID()` in POST headers |
+| `app/sales/make-sale/page.tsx` | `crypto.randomUUID()` in POST headers |
+| `app/sales/post-items-to-staff/page.tsx` | `crypto.randomUUID()` in POST headers |
+| `app/staff/return-items/page.tsx` | `crypto.randomUUID()` in POST headers |
+| `app/sales/returned-items/page.tsx` | `crypto.randomUUID()` for accept + reject |
+| `app/admin/returned-items/page.tsx` | `crypto.randomUUID()` for accept + reject |
+| `app/superadmin/returned-items/page.tsx` | `crypto.randomUUID()` for accept + reject |
+| `app/staff/available-items/page.tsx` | `crypto.randomUUID()` for accept + reject |
+| `app/staff/payments/page.tsx` | `crypto.randomUUID()` in fetch headers |
+| `app/sales/payments/page.tsx` | `crypto.randomUUID()` in fetch headers |
+| `app/admin/commissions/page.tsx` | `crypto.randomUUID()` in POST headers |
+
+**Total**: 13 backend routes + 11 frontend pages = 24 files with idempotency protection.
 
 ## SQL Required (Run in Supabase)
 

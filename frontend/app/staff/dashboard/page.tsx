@@ -83,9 +83,12 @@ export default function StaffDashboard() {
   // unit_price on each row = actual sold price (price_jalingo OR price_outside + logistics).
   // total_amount = unit_price × quantity. items.unit_price (purchase cost) is never used here.
   const salesHistoryArray = Array.isArray(salesHistory) ? salesHistory : [];
-  const todayString = new Date().toISOString().split('T')[0];
+  const todayString = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
-  const todaysSales     = salesHistoryArray.filter(s => new Date(s.sale_date).toISOString().split('T')[0] === todayString);
+  const todaysSales     = salesHistoryArray.filter(s => {
+    const saleDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(s.sale_date));
+    return saleDateStr === todayString;
+  });
   const todaysTotalSales = todaysSales.reduce((sum, s) => sum + (s.total_amount || 0), 0);
   const todaysItemsSold  = todaysSales.length;
   const todaysTotalUnits = todaysSales.reduce((sum, s) => sum + (s.quantity || 0), 0);

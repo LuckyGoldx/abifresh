@@ -70,7 +70,9 @@ export async function GET(req: NextRequest) {
     });
 
   // Build individual items — one row per staff_sale with remaining quantity
-  const allItems = (sales || []).map((sale: any) => {
+  const allItemsRaw: any[] = [];
+  const recentSales: any[] = [];
+  (sales || []).forEach((sale: any) => {
     const originalQuantity = parseFloat(sale.quantity) || 0;
     const paidOrPendingQty = paidOrPendingQuantities.get(sale.id) || 0;
     let remainingQuantity = Math.max(0, originalQuantity - paidOrPendingQty);
@@ -79,7 +81,7 @@ export async function GET(req: NextRequest) {
     const outsideJalingo = sale.sold_outside_jalingo || sale.location === 'Outside Jalingo';
     const unitPrice = parseFloat(sale.unit_price) || 0;
 
-    return {
+    const item = {
       id: sale.id,
       item_id: sale.item_id,
       item_name: sale.items?.name || 'Unknown',
@@ -93,7 +95,23 @@ export async function GET(req: NextRequest) {
       receipt_number: sale.receipt_number || (Array.isArray(sale.receipt) ? sale.receipt[0]?.receipt_number : sale.receipt?.receipt_number) || '',
       payment_method: sale.payment_method || 'cash',
     };
-  }).filter((item: any) => item.quantity > 0);
+
+    allItemsRaw.push(item);
+
+    // Push to recentSales with original quantity for dashboard calculations
+    recentSales.push({
+      id: sale.id,
+      item_name: item.item_name,
+      quantity: originalQuantity,
+      unit_price: unitPrice,
+      total_amount: originalQuantity * unitPrice,
+      sale_date: sale.sale_date,
+      receipt_number: item.receipt_number,
+      payment_method: item.payment_method,
+      sold_outside_jalingo: outsideJalingo,
+    });
+  });
+  const allItems = allItemsRaw.filter((item: any) => item.quantity > 0);
 
   const rawOutstanding = allItems.reduce((s: number, i: any) => s + (i.total_amount || 0), 0);
 
@@ -105,6 +123,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     allItems,
+    recentSales,
     stats: {
       allTimeQuantity,
       allTimeTotalAmount,
