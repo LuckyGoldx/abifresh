@@ -390,9 +390,9 @@ export default function ComprehensiveReportsPage() {
     const isCreditProfitable = creditProfit >= 0;
 
     const cardMeta: Record<string, { label: string; formula: string }> = {
-      total_sales: { label: 'Sum of all sales revenue from both staff_sales and sales tables within the selected date range.', formula: 'staff_sales.total_amount + sales.total_amount' },
-      total_profit: { label: 'Overall profit including both main sales and credit sales.', formula: 'totalMainProfit + totalCreditProfit = mainSalesProfit + creditSalesProfit' },
-      main_profit: { label: 'Profit from main sales operations only (excluding credit sales).', formula: 'totalRevenue − (totalCostPriceSold + totalExpenses + totalCommissionPaid)' },
+      total_sales: { label: 'Estimated total sales revenue — the amount staff would owe if all sold items were submitted and paid for. Includes both staff_sales and sales table data within the selected date range.', formula: 'staff_sales.total_amount + sales.total_amount' },
+      total_profit: { label: 'Estimated overall profit — what the profit WOULD be if all sold items were paid by staff. Includes both main sales and credit sales profit.', formula: 'totalMainProfit + totalCreditProfit = mainSalesProfit + creditSalesProfit' },
+      main_profit: { label: 'Estimated profit from main sales only — what the profit WOULD be if all sold items were paid by staff. Excludes credit sales.', formula: 'totalRevenue − (totalCostPriceSold + totalExpenses + totalCommissionPaid)' },
       credit_profit: { label: 'Profit from credit sales — what customers paid minus the cost of goods.', formula: 'totalCreditsPaid − totalCreditCostCollected' },
       cost_price_sold: { label: 'Total cost price of all items sold. Uses the cost_price recorded at sale time, falling back to items.unit_price if not set.', formula: 'Σ(receipt_items.cost_price × quantity)' },
       total_expenses: { label: 'Sum of all staff expense claims submitted and approved within the date range.', formula: 'Σ(staff_expenses.expense_amount)' },
@@ -457,6 +457,14 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
       )}
+      {/* Total Approved Payments — actual money collected vs Total Sales estimated revenue */}
+      <div className="card border-l-4 border-l-slate-600 overflow-visible">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Approved Payments<InfoTip id="total_approved_payments" /></p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-700 dark:text-slate-300 break-words">₦{(report?.summary.total_approved_payments || 0).toLocaleString()}</p>
+          <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-slate-600 opacity-20 self-end flex-shrink-0" />
+        </div>
+      </div>
 
       <div className={`card border-l-4 ${isOverallProfitable ? 'border-l-green-500' : 'border-l-red-500'} overflow-visible`}>
         <div className="flex flex-col gap-2">
@@ -481,14 +489,6 @@ export default function ComprehensiveReportsPage() {
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Estimated Main Sales Profit<InfoTip id="main_profit" /></p>
           <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isMainProfitable ? 'text-emerald-700 dark:text-emerald-400' : 'text-orange-700 dark:text-orange-400'} break-words`}>₦{mainProfit.toLocaleString()}</p>
-        </div>
-      </div>
-
-      <div className="card border-l-4 border-l-slate-600 overflow-visible">
-        <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Approved Payments<InfoTip id="total_approved_payments" /></p>
-          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-700 dark:text-slate-300 break-words">₦{(report?.summary.total_approved_payments || 0).toLocaleString()}</p>
-          <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-slate-600 opacity-20 self-end flex-shrink-0" />
         </div>
       </div>
 
