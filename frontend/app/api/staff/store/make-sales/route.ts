@@ -66,7 +66,26 @@ export async function POST(req: NextRequest) {
       const commissionEarned = commissionPerUnit * quantity;
       const totalAmount = (unit_price * quantity) + (logistics_fee * quantity);
 
-      // Create staff_sales record FIRST (inventory update only happens if this succeeds)
+      // 1. Update staff_store quantity_sold FIRST with optimistic lock
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from('staff_store')
+        .update({
+          quantity_sold: (storeEntry.quantity_sold || 0) + quantity,
+          last_updated: new Date().toISOString(),
+        })
+        .eq('id', storeEntry.id)
+        .eq('quantity_sold', storeEntry.quantity_sold)
+        .select()
+        .single();
+
+      if (updateError || !updated) {
+        return NextResponse.json(
+          { error: 'Stock level changed during checkout. Please retry.' },
+          { status: 409 }
+        );
+      }
+
+      // 2. Inventory updated — create staff_sales record
       const { data: saleRecord, error: saleError } = await supabaseAdmin
         .from('staff_sales')
         .insert([{
@@ -89,25 +108,6 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (saleError) return NextResponse.json({ error: saleError.message }, { status: 400 });
-
-      // Update staff_store quantity_sold atomically — rejects if another checkout changed it
-      const { data: updated, error: updateError } = await supabaseAdmin
-        .from('staff_store')
-        .update({
-          quantity_sold: (storeEntry.quantity_sold || 0) + quantity,
-          last_updated: new Date().toISOString(),
-        })
-        .eq('id', storeEntry.id)
-        .eq('quantity_sold', storeEntry.quantity_sold)
-        .select()
-        .single();
-
-      if (updateError || !updated) {
-        return NextResponse.json(
-          { error: 'Stock level changed during checkout. Please retry.' },
-          { status: 409 }
-        );
-      }
 
       salesRecords.push(saleRecord);
     }
