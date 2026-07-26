@@ -17,25 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No items provided' }, { status: 400 });
     }
 
-    // Create sale record
-    const { data: saleData, error: saleError } = await supabaseAdmin
-      .from('sales')
-      .insert([
-        {
-          staff_id: authResult.id,
-          receipt_number: `REC-${Date.now()}`,
-          receipt_id: receipt_id || null,
-          total_amount,
-          payment_method,
-          sold_outside_jalingo,
-        },
-      ])
-      .select()
-      .single();
-
-    if (saleError) return NextResponse.json({ error: saleError.message }, { status: 400 });
-
-    // Fetch all items' cost prices and current quantities in two batch queries
+    // 1. Fetch current inventory quantities
     const itemIds = items.map((i: any) => i.item_id).filter(Boolean);
 
     const [dbItemsResult, quantitiesResult] = await Promise.all([
@@ -53,7 +35,49 @@ export async function POST(req: NextRequest) {
     const quantitiesMap = new Map<string, number>();
     (quantitiesResult.data || []).forEach((i: any) => quantitiesMap.set(i.id, i.active_store_quantity || 0));
 
-    // Batch insert all sales_items in one query
+    // 2. Deduct inventory FIRST with optimistic lock (before creating any records)
+    const updateResults = await Promise.all(
+      items.map((item: any) => {
+        const currentQty = quantitiesMap.get(item.item_id) || 0;
+        const newQty = Math.max(0, currentQty - item.quantity);
+        return supabaseAdmin
+          .from('items')
+          .update({ active_store_quantity: newQty })
+          .eq('id', item.item_id)
+          .eq('active_store_quantity', currentQty)
+          .select()
+          .single();
+      })
+    );
+
+    for (const r of updateResults) {
+      if (r.error || !r.data) {
+        return NextResponse.json(
+          { error: 'Stock level changed during checkout. Please retry.' },
+          { status: 409 }
+        );
+      }
+    }
+
+    // 3. Inventory succeeded — create sale record
+    const { data: saleData, error: saleError } = await supabaseAdmin
+      .from('sales')
+      .insert([
+        {
+          staff_id: authResult.id,
+          receipt_number: `REC-${Date.now()}`,
+          receipt_id: receipt_id || null,
+          total_amount,
+          payment_method,
+          sold_outside_jalingo,
+        },
+      ])
+      .select()
+      .single();
+
+    if (saleError) return NextResponse.json({ error: saleError.message }, { status: 400 });
+
+    // 4. Insert all sales_items
     const salesItemsData = items.map((item: any) => ({
       sale_id: saleData.id,
       item_id: item.item_id,
@@ -69,7 +93,7 @@ export async function POST(req: NextRequest) {
 
     if (bulkInsertError) return NextResponse.json({ error: bulkInsertError.message }, { status: 400 });
 
-    // Update daily sales summary (before inventory deduction)
+    // 5. Update daily sales summary
     const saleDate = new Date().toISOString().split('T')[0];
     const itemsCount = items.reduce((sum: number, i: any) => sum + (i.quantity || 1), 0);
     const { data: existingDSS } = await supabaseAdmin
@@ -98,31 +122,6 @@ export async function POST(req: NextRequest) {
         number_of_transactions: 1,
       });
       if (dssError) return NextResponse.json({ error: dssError.message }, { status: 400 });
-    }
-
-    // Batch update active_store_quantity for all items (optimistic lock prevents race conditions)
-    const updateResults = await Promise.all(
-      items.map((item: any) => {
-        const currentQty = quantitiesMap.get(item.item_id) || 0;
-        const newQty = Math.max(0, currentQty - item.quantity);
-        return supabaseAdmin
-          .from('items')
-          .update({ active_store_quantity: newQty })
-          .eq('id', item.item_id)
-          .eq('active_store_quantity', currentQty)
-          .select()
-          .single();
-      })
-    );
-
-    // Check if any item's stock changed during checkout (race condition)
-    for (const r of updateResults) {
-      if (r.error || !r.data) {
-        return NextResponse.json(
-          { error: 'Stock level changed during checkout. Please retry.' },
-          { status: 409 }
-        );
-      }
     }
 
     return NextResponse.json(
