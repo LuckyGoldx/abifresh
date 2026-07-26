@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, hasRole } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import { withIdempotency } from '@/lib/server/idempotency';
 
 export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
@@ -10,11 +11,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
+  const idempotencyKey = req.headers.get('Idempotency-Key') || req.headers.get('idempotency-key') || null;
+
   try {
-    const { items, total_amount, payment_method, sold_outside_jalingo, receipt_id } = await req.json();
+    return await withIdempotency(idempotencyKey, async () => {
+      const { items, total_amount, payment_method, sold_outside_jalingo, receipt_id } = await req.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'No items provided' }, { status: 400 });
+    }
+
+    // Duplicate guard: check if identical sale was submitted within 60 seconds
+    const sixtySecAgo = new Date(Date.now() - 60000).toISOString();
+    const saleSignature = JSON.stringify({ items, total_amount, payment_method, sold_outside_jalingo });
+    const { data: recentSales } = await supabaseAdmin
+      .from('sales')
+      .select('id, created_at, total_amount, payment_method, sold_outside_jalingo, sales_items(item_id, quantity, unit_price)')
+      .eq('staff_id', authResult.id)
+      .gte('created_at', sixtySecAgo)
+      .limit(20);
+
+    if (recentSales && recentSales.length > 0) {
+      for (const s of recentSales) {
+        const saleItems = (s.sales_items || []).map((si: any) => ({
+          item_id: si.item_id,
+          quantity: si.quantity,
+          unit_price: si.unit_price,
+        }));
+        const sig = JSON.stringify({ items: saleItems, total_amount: s.total_amount, payment_method: s.payment_method, sold_outside_jalingo: s.sold_outside_jalingo });
+        if (sig === saleSignature) {
+          return NextResponse.json(
+            { error: 'Duplicate sale detected. An identical sale was submitted within the last 60 seconds.' },
+            { status: 409 }
+          );
+        }
+      }
     }
 
     // 1. Fetch current inventory quantities
@@ -128,6 +159,7 @@ export async function POST(req: NextRequest) {
       { sale_id: saleData.id, receipt_number: saleData.receipt_number, message: 'Sale completed successfully' },
       { status: 201 }
     );
+  });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

@@ -301,7 +301,7 @@ export default function MakeSalePage() {
       };
 
       await api.post('/api/sales/create-sale', saleData, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${token}`, 'Idempotency-Key': crypto.randomUUID() },
       });
 
       // Create receipt only after sale + inventory succeeded

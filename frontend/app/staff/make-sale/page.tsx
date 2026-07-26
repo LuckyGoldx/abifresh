@@ -279,7 +279,7 @@ export default function MakeSalePage() {
       };
 
       const saleRes = await api.post('/api/staff/store/make-sales', saleData, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { 'Authorization': `Bearer ${token}`, 'Idempotency-Key': crypto.randomUUID() },
       });
       const saleIds: string[] = saleRes.data?.sales?.map((s: any) => s.id) || [];
 

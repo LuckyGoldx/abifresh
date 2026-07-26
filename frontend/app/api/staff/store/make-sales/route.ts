@@ -1,16 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import { withIdempotency } from '@/lib/server/idempotency';
 
 export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
 
+  const idempotencyKey = req.headers.get('Idempotency-Key') || req.headers.get('idempotency-key') || null;
+
   try {
-    const { items, payment_method, sold_outside_jalingo, receipt_id, receipt_number } = await req.json();
+    return await withIdempotency(idempotencyKey, async () => {
+      const { items, payment_method, sold_outside_jalingo, receipt_id, receipt_number } = await req.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'items array is required' }, { status: 400 });
+    }
+
+    // Duplicate guard: check if identical sale was submitted within 60 seconds
+    const sixtySecAgo = new Date(Date.now() - 60000).toISOString();
+    const saleSignature = JSON.stringify({ items, payment_method, sold_outside_jalingo });
+    const { data: recentSales } = await supabaseAdmin
+      .from('staff_sales')
+      .select('receipt_number, created_at, item_id, quantity, unit_price, payment_method, sold_outside_jalingo')
+      .eq('staff_id', authResult.id)
+      .gte('created_at', sixtySecAgo)
+      .limit(50);
+
+    if (recentSales && recentSales.length > 0) {
+      // Group recent sales by created_at (same transaction has close timestamps)
+      const recentGroups = new Map<string, { items: any[]; payment_method: string; sold_outside_jalingo: boolean }>();
+      for (const s of recentSales) {
+        const key = s.created_at?.substring(0, 16);  // group by minute
+        if (!recentGroups.has(key)) recentGroups.set(key, { items: [], payment_method: s.payment_method || '', sold_outside_jalingo: s.sold_outside_jalingo || false });
+        const g = recentGroups.get(key)!;
+        g.items.push({ item_id: s.item_id, quantity: s.quantity, unit_price: s.unit_price });
+      }
+      for (const [, group] of recentGroups) {
+        const sig = JSON.stringify({ items: group.items, payment_method: group.payment_method, sold_outside_jalingo: group.sold_outside_jalingo });
+        if (sig === saleSignature) {
+          return NextResponse.json(
+            { error: 'Duplicate sale detected. An identical sale was submitted within the last 60 seconds.' },
+            { status: 409 }
+          );
+        }
+      }
     }
 
     const isCommissionStaff = ['commission_staff', 'staff_commission'].includes(authResult.role);
@@ -116,6 +150,7 @@ export async function POST(req: NextRequest) {
       { message: 'Sales recorded successfully', sales: salesRecords, count: salesRecords.length },
       { status: 201 }
     );
+  });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
