@@ -405,6 +405,7 @@ export default function ComprehensiveReportsPage() {
       total_credits_paid: { label: 'Amount repaid by credit customers — actual cash collected from debtors.', formula: 'Σ(credit_repayments.amount)' },
       total_real_main_profit: { label: 'Profit from main sales using actual approved payments (not total revenue). More conservative than estimated.', formula: 'totalApprovedPayments − (totalCostPriceSold + totalExpenses + totalCommissionPaid)' },
       total_real_profit: { label: 'Overall profit using actual approved payments plus credit profit.', formula: 'mainSalesProfit + creditSalesProfit' },
+      total_approved_payments: { label: 'Sum of all staff payment requests approved by admin. This is actual money collected from staff (not sales revenue).', formula: 'Σ(staff_payments.amount WHERE status = approved)' },
     };
 
     const InfoTip = ({ id }: { id: string }) => {
@@ -465,13 +466,13 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className={`card border-l-4 border-l-indigo-600 overflow-visible`}>
+      <div className={`card border-l-4 border-l-lime-600 overflow-visible`}>
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Profit<InfoTip id="total_real_profit" /></p>
           {(() => {
             const realProfit = report?.summary.total_real_profit || 0;
             const isProfitable = realProfit >= 0;
-            return <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isProfitable ? 'text-indigo-700 dark:text-indigo-400' : 'text-red-600'} break-words`}>₦{realProfit.toLocaleString()}</p>;
+            return <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isProfitable ? 'text-lime-600 dark:text-lime-300' : 'text-pink-600 dark:text-pink-300'} break-words`}>₦{realProfit.toLocaleString()}</p>;
           })()}
         </div>
       </div>
@@ -483,13 +484,21 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className={`card border-l-4 border-l-indigo-500 overflow-visible`}>
+      <div className="card border-l-4 border-l-slate-600 overflow-visible">
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Approved Payments<InfoTip id="total_approved_payments" /></p>
+          <p className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-700 dark:text-slate-300 break-words">₦{(report?.summary.total_approved_payments || 0).toLocaleString()}</p>
+          <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-slate-600 opacity-20 self-end flex-shrink-0" />
+        </div>
+      </div>
+
+      <div className={`card border-l-4 border-l-cyan-600 overflow-visible`}>
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Main Sales Profit<InfoTip id="total_real_main_profit" /></p>
           {(() => {
             const realMain = report?.summary.total_real_main_profit || 0;
             const isProfitable = realMain >= 0;
-            return <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isProfitable ? 'text-indigo-700 dark:text-indigo-400' : 'text-red-600'} break-words`}>₦{realMain.toLocaleString()}</p>;
+            return <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isProfitable ? 'text-cyan-600 dark:text-cyan-300' : 'text-fuchsia-600 dark:text-fuchsia-300'} break-words`}>₦{realMain.toLocaleString()}</p>;
           })()}
         </div>
       </div>
