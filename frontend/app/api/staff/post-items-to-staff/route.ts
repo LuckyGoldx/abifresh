@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, hasRole } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import { withIdempotency } from '@/lib/server/idempotency';
 
 export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
@@ -10,8 +11,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
+  const idempotencyKey = req.headers.get('Idempotency-Key') || req.headers.get('idempotency-key') || null;
+
   try {
-    const { staff_id, item_id, quantity, notes, location } = await req.json();
+    return await withIdempotency(idempotencyKey, async () => {
+      const { staff_id, item_id, quantity, notes, location } = await req.json();
 
     const itemLocation = location || 'Inside Jalingo';
 
@@ -72,6 +76,7 @@ export async function POST(req: NextRequest) {
       { posted_item: posted, message: 'Item posted to staff successfully' },
       { status: 201 }
     );
+  });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }

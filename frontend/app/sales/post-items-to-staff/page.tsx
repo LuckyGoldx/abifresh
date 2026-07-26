@@ -77,6 +77,8 @@ export default function PostItemsPage() {
         item_id: selectedItem,
         quantity: qty,
         notes: notes || null,
+      }, {
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
       });
 
       const staffName = staffList.find(s => s.id === selectedStaff)?.name || 'Staff';
