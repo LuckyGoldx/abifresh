@@ -158,6 +158,27 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Fetch total approved payments (all payment types except credit_remittance)
+  let totalApprovedPayments = 0;
+  if (!hasStaffFilter || filteredStaffIds.length > 0) {
+    const PAGE = 1000;
+    let from = 0;
+    while (true) {
+      let q = supabaseAdmin
+        .from('staff_payments')
+        .select('amount')
+        .eq('status', 'approved')
+        .neq('payment_type', 'credit_remittance')
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO);
+      if (filteredStaffIds.length > 0) q = q.in('staff_id', filteredStaffIds);
+      const { data } = await q.range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      totalApprovedPayments += data.reduce((sum: number, p: any) => sum + (parseFloat(p.amount) || 0), 0);
+      from += PAGE;
+    }
+  }
+
   // Fetch total commission paid: sum of staff_payments.amount where admin paid commission.
   let totalCommissionPaid = 0;
   if (!hasStaffFilter || filteredStaffIds.length > 0) {
@@ -579,11 +600,18 @@ export async function GET(req: NextRequest) {
   const totalMainProfit = totalProfit;
   const totalOverallProfit = totalMainProfit + totalCreditProfit;
 
+  // Real (non-estimated) profit: uses actual approved payments instead of totalRevenue
+  const totalRealMainProfit = totalApprovedPayments - (totalCostPriceSold + totalExpenses + totalCommissionPaid);
+  const totalRealProfit = totalRealMainProfit + totalCreditProfit;
+
   return NextResponse.json({
     summary: {
       total_transactions: totalTransactionsCount, total_sales: totalRevenue, total_sales_receipts: totalRevenueFromReceipts, total_expenses: totalExpenses,
       total_profit: totalOverallProfit,
       total_main_profit: totalMainProfit,
+      total_real_profit: totalRealProfit,
+      total_real_main_profit: totalRealMainProfit,
+      total_approved_payments: totalApprovedPayments,
       total_credit_profit: totalCreditProfit,
       total_credit_cost_collected: totalCreditCostCollected, total_items_sold: totalItemsSold, avg_transaction: avgTransaction,
       total_cost_price_sold: totalCostPriceSold,

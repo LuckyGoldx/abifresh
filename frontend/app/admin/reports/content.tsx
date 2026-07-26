@@ -31,6 +31,9 @@ interface ComprehensiveReport {
     total_expenses: number;
     total_profit: number;
     total_main_profit: number;
+    total_real_profit: number;
+    total_real_main_profit: number;
+    total_approved_payments: number;
     total_credit_profit: number;
     total_credit_cost_collected: number;
     total_items_sold: number;
@@ -388,7 +391,7 @@ export default function ComprehensiveReportsPage() {
 
     const cardMeta: Record<string, { label: string; formula: string }> = {
       total_sales: { label: 'Sum of all sales revenue from both staff_sales and sales tables within the selected date range.', formula: 'staff_sales.total_amount + sales.total_amount' },
-      total_profit: { label: 'Profit after subtracting cost price, expenses, and commission paid from total sales.', formula: 'totalRevenue − (totalCostPriceSold + totalExpenses + totalCommissionPaid)' },
+      total_profit: { label: 'Overall profit including both main sales and credit sales.', formula: 'totalMainProfit + totalCreditProfit = mainSalesProfit + creditSalesProfit' },
       main_profit: { label: 'Profit from main sales operations only (excluding credit sales).', formula: 'totalRevenue − (totalCostPriceSold + totalExpenses + totalCommissionPaid)' },
       credit_profit: { label: 'Profit from credit sales — what customers paid minus the cost of goods.', formula: 'totalCreditsPaid − totalCreditCostCollected' },
       cost_price_sold: { label: 'Total cost price of all items sold. Uses the cost_price recorded at sale time, falling back to items.unit_price if not set.', formula: 'Σ(receipt_items.cost_price × quantity)' },
@@ -400,6 +403,8 @@ export default function ComprehensiveReportsPage() {
       commission_generated: { label: 'Total commission earned by all commission staff from approved payments.', formula: 'Σ(staff_sales.approved_commission)' },
       commission_paid: { label: 'Total commission cash actually disbursed to staff members.', formula: 'Σ(staff_payments.amount WHERE payment_type = commission AND status = paid)' },
       total_credits_paid: { label: 'Amount repaid by credit customers — actual cash collected from debtors.', formula: 'Σ(credit_repayments.amount)' },
+      total_real_main_profit: { label: 'Profit from main sales using actual approved payments (not total revenue). More conservative than estimated.', formula: 'totalApprovedPayments − (totalCostPriceSold + totalExpenses + totalCommissionPaid)' },
+      total_real_profit: { label: 'Overall profit using actual approved payments plus credit profit.', formula: 'mainSalesProfit + creditSalesProfit' },
     };
 
     const InfoTip = ({ id }: { id: string }) => {
@@ -434,7 +439,7 @@ export default function ComprehensiveReportsPage() {
 
     return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-      <div className="card border-l-4 border-l-blue-600 overflow-hidden">
+      <div className="card border-l-4 border-l-blue-600 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales<InfoTip id="total_sales" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-400 break-words">₦{(report?.summary.total_sales || 0).toLocaleString()}</p>
@@ -443,7 +448,7 @@ export default function ComprehensiveReportsPage() {
       </div>
 
       {pathname.startsWith('/superadmin') && (
-      <div className="card border-l-4 border-l-purple-600 overflow-hidden">
+      <div className="card border-l-4 border-l-purple-600 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales (Receipts)<InfoTip id="total_sales" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-700 dark:text-purple-400 break-words">₦{(report?.summary.total_sales_receipts || 0).toLocaleString()}</p>
@@ -452,29 +457,51 @@ export default function ComprehensiveReportsPage() {
       </div>
       )}
 
-      <div className={`card border-l-4 ${isOverallProfitable ? 'border-l-green-500' : 'border-l-red-500'} overflow-hidden`}>
+      <div className={`card border-l-4 ${isOverallProfitable ? 'border-l-green-500' : 'border-l-red-500'} overflow-visible`}>
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Profit<InfoTip id="total_profit" /></p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Estimated Total Profit<InfoTip id="total_profit" /></p>
           <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isOverallProfitable ? 'text-green-600' : 'text-red-600'} break-words`}>₦{overallProfit.toLocaleString()}</p>
           <TrendingUp className={`w-6 h-6 sm:w-8 sm:h-8 ${isOverallProfitable ? 'text-green-500' : 'text-red-500'} opacity-20 self-end flex-shrink-0`} />
         </div>
       </div>
 
-      <div className={`card border-l-4 ${isMainProfitable ? 'border-l-emerald-600' : 'border-l-orange-600'} overflow-hidden`}>
+      <div className={`card border-l-4 border-l-indigo-600 overflow-visible`}>
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Main Sales Profit<InfoTip id="main_profit" /></p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Profit<InfoTip id="total_real_profit" /></p>
+          {(() => {
+            const realProfit = report?.summary.total_real_profit || 0;
+            const isProfitable = realProfit >= 0;
+            return <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isProfitable ? 'text-indigo-700 dark:text-indigo-400' : 'text-red-600'} break-words`}>₦{realProfit.toLocaleString()}</p>;
+          })()}
+        </div>
+      </div>
+
+      <div className={`card border-l-4 ${isMainProfitable ? 'border-l-emerald-600' : 'border-l-orange-600'} overflow-visible`}>
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Estimated Main Sales Profit<InfoTip id="main_profit" /></p>
           <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isMainProfitable ? 'text-emerald-700 dark:text-emerald-400' : 'text-orange-700 dark:text-orange-400'} break-words`}>₦{mainProfit.toLocaleString()}</p>
         </div>
       </div>
 
-      <div className={`card border-l-4 ${isCreditProfitable ? 'border-l-teal-500' : 'border-l-amber-500'} overflow-hidden`}>
+      <div className={`card border-l-4 border-l-indigo-500 overflow-visible`}>
+        <div className="flex flex-col gap-2">
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Main Sales<InfoTip id="total_real_main_profit" /></p>
+          {(() => {
+            const realMain = report?.summary.total_real_main_profit || 0;
+            const isProfitable = realMain >= 0;
+            return <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isProfitable ? 'text-indigo-700 dark:text-indigo-400' : 'text-red-600'} break-words`}>₦{realMain.toLocaleString()}</p>;
+          })()}
+        </div>
+      </div>
+
+      <div className={`card border-l-4 ${isCreditProfitable ? 'border-l-teal-500' : 'border-l-amber-500'} overflow-visible`}>
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Credit Sales Profit<InfoTip id="credit_profit" /></p>
           <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isCreditProfitable ? 'text-teal-700 dark:text-teal-400' : 'text-amber-700 dark:text-amber-400'} break-words`}>₦{creditProfit.toLocaleString()}</p>
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-orange-600 overflow-hidden">
+      <div className="card border-l-4 border-l-orange-600 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Cost Price Sold<InfoTip id="cost_price_sold" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-orange-700 dark:text-orange-400 break-words">₦{(report?.summary.total_cost_price_sold || 0).toLocaleString()}</p>
@@ -482,7 +509,7 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-rose-600 overflow-hidden">
+      <div className="card border-l-4 border-l-rose-600 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Expenses<InfoTip id="total_expenses" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-rose-700 dark:text-rose-400 break-words">₦{(report?.summary.total_expenses || 0).toLocaleString()}</p>
@@ -490,7 +517,7 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-red-700 overflow-hidden">
+      <div className="card border-l-4 border-l-red-700 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Grand Expenses<InfoTip id="grand_expenses" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-red-800 dark:text-red-300 break-words">₦{((report?.summary.total_expenses || 0) + (report?.summary.total_commission_paid || 0)).toLocaleString()}</p>
@@ -498,7 +525,7 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-purple-500 overflow-hidden">
+      <div className="card border-l-4 border-l-purple-500 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Quantity Sold<InfoTip id="total_quantity" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-600 break-words">{formatQty(report?.summary.total_items_sold || 0)}</p>
@@ -506,7 +533,7 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-teal-600 overflow-hidden">
+      <div className="card border-l-4 border-l-teal-600 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Transactions<InfoTip id="total_transactions" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-teal-700 dark:text-teal-400 break-words">{report?.summary.total_transactions || 0}</p>
@@ -514,7 +541,7 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-sky-600 overflow-hidden">
+      <div className="card border-l-4 border-l-sky-600 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Avg Transaction Value<InfoTip id="avg_transaction" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-sky-700 dark:text-sky-400 break-words">₦{(report?.summary.avg_transaction || 0).toLocaleString('en-NG', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>
@@ -522,7 +549,7 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-amber-500 overflow-hidden">
+      <div className="card border-l-4 border-l-amber-500 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Commission Generated<InfoTip id="commission_generated" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-amber-600 break-words">₦{(report?.summary.total_commission_generated || 0).toLocaleString()}</p>
@@ -530,7 +557,7 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-emerald-500 overflow-hidden">
+      <div className="card border-l-4 border-l-emerald-500 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Commission Paid<InfoTip id="commission_paid" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-emerald-600 break-words">₦{(report?.summary.total_commission_paid || 0).toLocaleString()}</p>
@@ -538,7 +565,7 @@ export default function ComprehensiveReportsPage() {
         </div>
       </div>
 
-      <div className="card border-l-4 border-l-pink-500 overflow-hidden">
+      <div className="card border-l-4 border-l-pink-500 overflow-visible">
         <div className="flex flex-col gap-2">
           <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Paid Credits<InfoTip id="total_credits_paid" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-pink-600 break-words">₦{(report?.summary.total_credits_paid || 0).toLocaleString()}</p>
@@ -677,15 +704,15 @@ export default function ComprehensiveReportsPage() {
     <div className="space-y-6">
       {/* Expenses Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card border-l-4 border-l-red-500 overflow-hidden">
+        <div className="card border-l-4 border-l-red-500 overflow-visible">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Total Expenses</p>
           <p className="text-3xl font-bold text-red-600 break-words">₦{(report?.summary.total_expenses || 0).toLocaleString()}</p>
         </div>
-        <div className="card border-l-4 border-l-yellow-500 overflow-hidden">
+        <div className="card border-l-4 border-l-yellow-500 overflow-visible">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Expense Entries</p>
           <p className="text-3xl font-bold text-yellow-600 break-words">{report?.expenses.by_staff?.length || 0}</p>
         </div>
-        <div className="card border-l-4 border-l-orange-500 overflow-hidden">
+        <div className="card border-l-4 border-l-orange-500 overflow-visible">
           <p className="text-gray-600 dark:text-gray-400 text-sm">Avg Expense per Entry</p>
           <p className="text-3xl font-bold text-orange-600 break-words">
             ₦{report?.expenses.by_staff && report.expenses.by_staff.length > 0
@@ -771,7 +798,7 @@ export default function ComprehensiveReportsPage() {
 
       {/* Inventory Summary KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-        <div className="card border-l-4 border-l-indigo-500 overflow-hidden">
+        <div className="card border-l-4 border-l-indigo-500 overflow-visible">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Total Items</p>
           <p className="text-2xl md:text-3xl font-bold text-indigo-600 break-words">
             {((report?.inventory.main_store_total || 0) + (report?.inventory.active_store_total || 0) + (report?.inventory.staff_store_total || 0) + (report?.inventory.credit_store_total || 0))}
@@ -780,22 +807,22 @@ export default function ComprehensiveReportsPage() {
             Quantity: {((report?.inventory.main_store_total_quantity || 0) + (report?.inventory.active_store_total_quantity || 0) + (report?.inventory.staff_store_total_quantity || 0) + (report?.inventory.credit_store_total_quantity || 0))}
           </p>
         </div>
-        <div className="card border-l-4 border-l-blue-500 overflow-hidden">
+        <div className="card border-l-4 border-l-blue-500 overflow-visible">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Main Store</p>
           <p className="text-2xl md:text-3xl font-bold text-blue-600 break-words">{report?.inventory.main_store_total || 0}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.main_store_total_quantity || 0}</p>
         </div>
-        <div className="card border-l-4 border-l-green-500 overflow-hidden">
+        <div className="card border-l-4 border-l-green-500 overflow-visible">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Active Store</p>
           <p className="text-2xl md:text-3xl font-bold text-green-600 break-words">{report?.inventory.active_store_total || 0}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.active_store_total_quantity || 0}</p>
         </div>
-        <div className="card border-l-4 border-l-purple-500 overflow-hidden">
+        <div className="card border-l-4 border-l-purple-500 overflow-visible">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Staff Store</p>
           <p className="text-2xl md:text-3xl font-bold text-purple-600 break-words">{report?.inventory.staff_store_total || 0}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.staff_store_total_quantity || 0}</p>
         </div>
-        <div className="card border-l-4 border-l-rose-500 overflow-hidden">
+        <div className="card border-l-4 border-l-rose-500 overflow-visible">
           <p className="text-gray-600 dark:text-gray-400 text-xs md:text-sm">Credit Store</p>
           <p className="text-2xl md:text-3xl font-bold text-rose-600 break-words">{report?.inventory.credit_store_total || 0}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 md:mt-2">Quantity: {report?.inventory.credit_store_total_quantity || 0}</p>
@@ -1215,7 +1242,7 @@ export default function ComprehensiveReportsPage() {
     <div className="space-y-6">
       {/* Credits Summary KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card border-l-4 border-l-pink-600 overflow-hidden">
+        <div className="card border-l-4 border-l-pink-600 overflow-visible">
           <div className="flex flex-col gap-2">
             <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Credits Amount</p>
             <p className="text-lg sm:text-2xl md:text-3xl font-bold text-pink-700 dark:text-pink-400 break-words">₦{(report?.summary.total_credits_amount || 0).toLocaleString()}</p>
@@ -1223,7 +1250,7 @@ export default function ComprehensiveReportsPage() {
           </div>
         </div>
 
-        <div className="card border-l-4 border-l-blue-600 overflow-hidden">
+        <div className="card border-l-4 border-l-blue-600 overflow-visible">
           <div className="flex flex-col gap-2">
             <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Credits Paid</p>
             <p className="text-lg sm:text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-400 break-words">₦{(report?.summary.total_credits_paid || 0).toLocaleString()}</p>
@@ -1231,7 +1258,7 @@ export default function ComprehensiveReportsPage() {
           </div>
         </div>
 
-        <div className="card border-l-4 border-l-orange-600 overflow-hidden">
+        <div className="card border-l-4 border-l-orange-600 overflow-visible">
           <div className="flex flex-col gap-2">
             <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Credits Outstanding</p>
             <p className="text-lg sm:text-2xl md:text-3xl font-bold text-orange-700 dark:text-orange-400 break-words">₦{((report?.summary.total_credits_amount || 0) - (report?.summary.total_credits_paid || 0)).toLocaleString()}</p>
@@ -1239,7 +1266,7 @@ export default function ComprehensiveReportsPage() {
           </div>
         </div>
 
-        <div className="card border-l-4 border-l-purple-600 overflow-hidden">
+        <div className="card border-l-4 border-l-purple-600 overflow-visible">
           <div className="flex flex-col gap-2">
             <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Creditors</p>
             <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-700 dark:text-purple-400 break-words">{report?.summary.total_creditors || 0}</p>
