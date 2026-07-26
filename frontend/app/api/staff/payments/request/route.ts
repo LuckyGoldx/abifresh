@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
 import { validateItemsPaidFor } from '@/lib/server/payment-validation';
+import { withIdempotency } from '@/lib/server/idempotency';
 
 /**
  * Compress image receipt to WebP format.
@@ -33,9 +34,11 @@ export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
 
+  const idempotencyKey = req.headers.get('Idempotency-Key') || req.headers.get('idempotency-key') || null;
+
   try {
-    // Always parse as FormData — frontend always sends multipart/form-data
-    const formData = await req.formData();
+    return await withIdempotency(idempotencyKey, async () => {
+      const formData = await req.formData();
     const amount = formData.get('amount') as string;
     const payment_method = formData.get('payment_method') as string;
     const reference_number = (formData.get('reference_number') as string) || null;
@@ -144,6 +147,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ payment: data, message: 'Payment request submitted' }, { status: 201 });
+  });
   } catch (error: any) {
     console.error('Staff payment POST error:', error);
     return NextResponse.json({ error: error.message || 'Failed to process payment request' }, { status: 400 });

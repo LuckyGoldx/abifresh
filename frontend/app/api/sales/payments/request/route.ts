@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, hasRole } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
 import { validateItemsPaidFor } from '@/lib/server/payment-validation';
+import { withIdempotency } from '@/lib/server/idempotency';
 
 /**
  * Compress image receipt to WebP format.
@@ -33,8 +34,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
+  const idempotencyKey = req.headers.get('Idempotency-Key') || req.headers.get('idempotency-key') || null;
+
   try {
-    const formData = await req.formData();
+    return await withIdempotency(idempotencyKey, async () => {
+      const formData = await req.formData();
     const amount = parseFloat(formData.get('amount') as string);
     const staff_name = formData.get('staff_name') as string;
     const items_paid_for_raw = formData.get('items_paid_for') as string;
@@ -171,6 +175,7 @@ export async function POST(req: NextRequest) {
       payment,
       message: 'Payment request submitted successfully',
     }, { status: 201 });
+  });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to submit payment request' }, { status: 400 });
   }

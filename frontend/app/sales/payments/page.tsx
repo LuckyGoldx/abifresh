@@ -311,7 +311,7 @@ export default function SalesPaymentsPage() {
 
       const response = await fetch('/api/sales/payments/request', {
         method: 'POST',
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        headers: authToken ? { Authorization: `Bearer ${authToken}`, 'Idempotency-Key': crypto.randomUUID() } : {},
         body: formData,
       });
 

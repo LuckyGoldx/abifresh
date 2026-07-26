@@ -188,6 +188,8 @@ export default function ReturnItemsPage() {
       await api.post('/api/staff/returns', {
         receiver_staff_id: selectedSalesStaff,
         items: selectedItems,
+      }, {
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
       });
 
       toast.success('✅ Return request created successfully');

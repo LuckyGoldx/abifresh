@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, hasRole } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import { withIdempotency } from '@/lib/server/idempotency';
 
 export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
@@ -9,8 +10,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
   }
 
-  const body = await req.json();
-  const { staff_id, amount, notes } = body;
+  const idempotencyKey = req.headers.get('Idempotency-Key') || req.headers.get('idempotency-key') || null;
+
+  try {
+    return await withIdempotency(idempotencyKey, async () => {
+      const body = await req.json();
+      const { staff_id, amount, notes } = body;
 
   if (!staff_id || !amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
     return NextResponse.json({ error: 'staff_id and a valid positive amount are required' }, { status: 400 });
@@ -86,4 +91,8 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   return NextResponse.json({ message: 'Commission payment created successfully', payment: data }, { status: 201 });
+  });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/server/auth';
 import { supabaseAdmin } from '@/lib/server/supabase-admin';
+import { withIdempotency } from '@/lib/server/idempotency';
 
 export async function GET(req: NextRequest) {
   const authResult = await verifyAuth(req);
@@ -39,8 +40,11 @@ export async function POST(req: NextRequest) {
   const authResult = await verifyAuth(req);
   if (authResult instanceof NextResponse) return authResult;
 
+  const idempotencyKey = req.headers.get('Idempotency-Key') || req.headers.get('idempotency-key') || null;
+
   try {
-    const { receiver_staff_id, items } = await req.json();
+    return await withIdempotency(idempotencyKey, async () => {
+      const { receiver_staff_id, items } = await req.json();
 
     if (!receiver_staff_id || !items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'receiver_staff_id and items array are required' }, { status: 400 });
@@ -76,6 +80,7 @@ export async function POST(req: NextRequest) {
       { message: 'Return request created successfully', returns: insertedReturns || [] },
       { status: 201 }
     );
+  });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Failed to create return request' }, { status: 400 });
   }

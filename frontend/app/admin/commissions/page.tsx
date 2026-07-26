@@ -212,7 +212,8 @@ export default function AdminCommissionsPage() {
           staff_id: selectedStaff.staff_id,
           amount: amount,
           notes: paymentNotes || `Commission payment for ${selectedStaff.staff_name}`,
-        }
+        },
+        { headers: { 'Idempotency-Key': crypto.randomUUID() } }
       );
 
       showAlert('Commission payment created successfully!');

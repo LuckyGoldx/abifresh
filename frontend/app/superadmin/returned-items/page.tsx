@@ -91,7 +91,7 @@ export default function SuperAdminReturnedItemsPage() {
 
     try {
       setIsSubmitting(true);
-      await api.post(`/api/admin/returned-items/${selectedAcceptItem.id}/accept`);
+      await api.post(`/api/admin/returned-items/${selectedAcceptItem.id}/accept`, {}, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       toast.success('✅ Returned item accepted and moved to active store');
       setShowAcceptModal(false);
       setSelectedAcceptItem(null);
@@ -124,7 +124,7 @@ export default function SuperAdminReturnedItemsPage() {
       setIsSubmitting(true);
       await api.post(`/api/admin/returned-items/${selectedRejectItem}/reject`, {
         reject_reason: rejectionReason,
-      });
+      }, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       toast.success('✅ Item rejected and returned to requester');
       setShowRejectModal(false);
       // If detail modal was open for this item, close it

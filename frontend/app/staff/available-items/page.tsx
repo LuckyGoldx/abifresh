@@ -38,7 +38,7 @@ export default function AvailableItemsPage() {
       setError('');
       setSuccess('');
 
-      await api.post(`/api/staff/posted-items/${id}/accept`);
+      await api.post(`/api/staff/posted-items/${id}/accept`, {}, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       
       setSuccess('Item accepted! You can now sell it.');
       fetchPostedItems();
@@ -55,7 +55,7 @@ export default function AvailableItemsPage() {
       setError('');
       setSuccess('');
 
-      await api.post(`/api/staff/posted-items/${id}/reject`, { reason });
+      await api.post(`/api/staff/posted-items/${id}/reject`, { reason }, { headers: { 'Idempotency-Key': crypto.randomUUID() } });
       
       setSuccess('Item rejected.');
       fetchPostedItems();
