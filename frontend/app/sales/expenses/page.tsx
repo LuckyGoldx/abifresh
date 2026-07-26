@@ -11,6 +11,7 @@ import Modal from '@/components/Modal';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 import ExpenseTable from '@/components/expenses/ExpenseTable';
 import ExpenseDetailModal from '@/components/expenses/ExpenseDetailModal';
+import Pagination from '@/components/Pagination';
 import { useAuthStore } from '@/store/auth';
 
 const FALLBACK_CATEGORIES = ['Transport', 'Supplies', 'Food & Refreshments', 'Utilities', 'Maintenance', 'Communication', 'Fuel', 'Other'];
@@ -32,8 +33,16 @@ export default function ExpensesPage() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [expensePage, setExpensePage] = useState(1);
+  const EXPENSES_PER_PAGE = 20;
 
   useEffect(() => { fetchExpenses(); }, []);
+
+  // Reset page when expenses change
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(expenses.length / EXPENSES_PER_PAGE));
+    if (expensePage > maxPage) setExpensePage(1);
+  }, [expenses.length]);
 
   const fetchExpenses = async () => {
     try { const r = await api.get('/api/sales/expenses'); setExpenses(r.data); } catch { addToast('Failed to fetch expenses', 'error'); } finally { setIsLoading(false); }
@@ -65,7 +74,19 @@ export default function ExpensesPage() {
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1"><ExpenseForm amount={amount} category={category} description={description} expenseDate={expenseDate} categories={categories} submitting={submitting} showCustomInput={showCustomInput} customInputValue={customInputValue} canAddCustom={isAdmin} onAmountChange={setAmount} onCategoryChange={setCategory} onDescriptionChange={setDescription} onExpenseDateChange={setExpenseDate} onShowCustomInput={setShowCustomInput} onCustomInputValueChange={setCustomInputValue} onAddCustomCategory={addCategory} onSubmit={handleOpenPreview} /></div>
-      <div className="lg:col-span-2"><ExpenseTable expenses={expenses} onViewExpense={(e) => { setSelectedExpense(e); setShowDetailModal(true); }} /></div>
+      <div className="lg:col-span-2">
+        <ExpenseTable
+          expenses={expenses.slice((expensePage - 1) * EXPENSES_PER_PAGE, expensePage * EXPENSES_PER_PAGE)}
+          onViewExpense={(e) => { setSelectedExpense(e); setShowDetailModal(true); }}
+        />
+        <div className="mt-2">
+          <Pagination
+            currentPage={expensePage}
+            totalPages={Math.ceil(expenses.length / EXPENSES_PER_PAGE)}
+            onPageChange={setExpensePage}
+          />
+        </div>
+      </div>
     </div>
     <Modal isOpen={showPreviewModal} onClose={() => setShowPreviewModal(false)} title="Preview Expense Request">
       <div className="space-y-3 py-2 text-sm text-gray-700 dark:text-gray-300">

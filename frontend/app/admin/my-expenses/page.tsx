@@ -11,6 +11,7 @@ import Modal from '@/components/Modal';
 import ExpenseForm from '@/components/expenses/ExpenseForm';
 import ExpenseTable from '@/components/expenses/ExpenseTable';
 import ExpenseDetailModal from '@/components/expenses/ExpenseDetailModal';
+import Pagination from '@/components/Pagination';
 import { useAuthStore } from '@/store/auth';
 
 const FALLBACK_CATEGORIES = ['Rent', 'Vehicle License Renewal', 'Local Government Levy', 'Vehicle Maintenance', 'Utilities', 'Others'];
@@ -31,6 +32,8 @@ export default function AdminExpensesPage() {
   const [customInputValue, setCustomInputValue] = useState('');
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [expensePage, setExpensePage] = useState(1);
+  const EXPENSES_PER_PAGE = 20;
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{ amount: string; category: string } | null>(null);
   const [renamingCategory, setRenamingCategory] = useState(false);
@@ -38,6 +41,12 @@ export default function AdminExpensesPage() {
   const selectedCat = categories.find(c => c.name === category);
 
   useEffect(() => { fetchExpenses(); }, []);
+
+  // Reset page when expenses change
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(expenses.length / EXPENSES_PER_PAGE));
+    if (expensePage > maxPage) setExpensePage(1);
+  }, [expenses.length]);
 
   const fetchExpenses = async () => {
     try { const r = await api.get('/api/admin/my-expenses'); setExpenses(r.data); } catch { addToast('Failed to fetch expenses', 'error'); } finally { setIsLoading(false); }
@@ -73,7 +82,19 @@ export default function AdminExpensesPage() {
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-1"><ExpenseForm amount={amount} category={category} description={description} expenseDate={expenseDate} categories={categories} submitting={submitting} showCustomInput={showCustomInput} customInputValue={customInputValue} canAddCustom={true} onAmountChange={setAmount} onCategoryChange={setCategory} onDescriptionChange={setDescription} onExpenseDateChange={setExpenseDate} onShowCustomInput={setShowCustomInput} onCustomInputValueChange={setCustomInputValue} onAddCustomCategory={addCategory} onSubmit={handleSubmit} onRenameClick={() => { setRenameValue(category); setRenamingCategory(true); }} showRenameInput={renamingCategory} renameValue={renameValue} onRenameValueChange={setRenameValue} onRenameSubmit={handleRename} onRenameCancel={() => setRenamingCategory(false)} /></div>
-      <div className="lg:col-span-2"><ExpenseTable expenses={expenses} onViewExpense={(e) => { setSelectedExpense(e); setShowDetailModal(true); }} /></div>
+      <div className="lg:col-span-2">
+        <ExpenseTable
+          expenses={expenses.slice((expensePage - 1) * EXPENSES_PER_PAGE, expensePage * EXPENSES_PER_PAGE)}
+          onViewExpense={(e) => { setSelectedExpense(e); setShowDetailModal(true); }}
+        />
+        <div className="mt-2">
+          <Pagination
+            currentPage={expensePage}
+            totalPages={Math.ceil(expenses.length / EXPENSES_PER_PAGE)}
+            onPageChange={setExpensePage}
+          />
+        </div>
+      </div>
     </div>
     <Modal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)}>
       <div className="text-center"><div className="w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" /></div><h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Expense Recorded!</h3><p className="text-sm text-gray-500 dark:text-gray-400 mb-6">₦{successInfo ? parseFloat(successInfo.amount).toLocaleString() : '0'} — {successInfo?.category || ''}</p><button onClick={() => { setShowSuccessModal(false); setSuccessInfo(null); }} className="w-full bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2.5 rounded-xl transition">Done</button></div>
