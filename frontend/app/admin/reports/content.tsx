@@ -485,7 +485,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className={`card border-l-4 border-l-indigo-500 overflow-visible`}>
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Main Sales<InfoTip id="total_real_main_profit" /></p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Main Sales Profit<InfoTip id="total_real_main_profit" /></p>
           {(() => {
             const realMain = report?.summary.total_real_main_profit || 0;
             const isProfitable = realMain >= 0;
