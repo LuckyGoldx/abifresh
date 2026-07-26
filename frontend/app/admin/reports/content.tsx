@@ -404,7 +404,7 @@ export default function ComprehensiveReportsPage() {
     const isCreditProfitable = creditProfit >= 0;
 
     const cardMeta: Record<string, { label: string; formula: string }> = {
-      total_sales: { label: 'Estimated total sales revenue — the amount staff would owe if all sold items were submitted and paid for. Includes both staff_sales and sales table data within the selected date range.', formula: 'staff_sales.total_amount + sales.total_amount' },
+      total_sales: { label: 'Total revenue from all recorded sales — commission staff (staff_sales) plus front-desk (sales). This is not an estimate; it is the actual sum of all sale transactions in the system.', formula: 'Σ(staff_sales.total_amount) + Σ(sales.total_amount)' },
       total_profit: { label: 'Estimated overall profit — what the profit WOULD be if all sold items were paid by staff. Includes both main sales and credit sales profit.', formula: 'totalMainProfit + totalCreditProfit = mainSalesProfit + creditSalesProfit' },
       main_profit: { label: 'Estimated profit from main sales only — what the profit WOULD be if all sold items were paid by staff. Excludes credit sales.', formula: 'totalRevenue − (totalCostPriceSold + totalExpenses + totalCommissionPaid)' },
       credit_profit: { label: 'Profit from credit sales — what customers paid minus the cost of goods.', formula: 'totalCreditsPaid − totalCreditCostCollected' },
