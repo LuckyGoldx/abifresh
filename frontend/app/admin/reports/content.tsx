@@ -87,6 +87,8 @@ export default function ComprehensiveReportsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const [report, setReport] = useState<ComprehensiveReport | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  const tipRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadingLabel, setLoadingLabel] = useState('Loading report data...');
@@ -384,11 +386,57 @@ export default function ComprehensiveReportsPage() {
     const isMainProfitable = mainProfit >= 0;
     const isCreditProfitable = creditProfit >= 0;
 
+    const cardMeta: Record<string, { label: string; formula: string }> = {
+      total_sales: { label: 'Sum of all sales revenue from both staff_sales and sales tables within the selected date range.', formula: 'staff_sales.total_amount + sales.total_amount' },
+      total_profit: { label: 'Profit after subtracting cost price, expenses, and commission paid from total sales.', formula: 'totalRevenue − (totalCostPriceSold + totalExpenses + totalCommissionPaid)' },
+      main_profit: { label: 'Profit from main sales operations only (excluding credit sales).', formula: 'totalRevenue − (totalCostPriceSold + totalExpenses + totalCommissionPaid)' },
+      credit_profit: { label: 'Profit from credit sales — what customers paid minus the cost of goods.', formula: 'totalCreditsPaid − totalCreditCostCollected' },
+      cost_price_sold: { label: 'Total cost price of all items sold. Uses the cost_price recorded at sale time, falling back to items.unit_price if not set.', formula: 'Σ(receipt_items.cost_price × quantity)' },
+      total_expenses: { label: 'Sum of all staff expense claims submitted and approved within the date range.', formula: 'Σ(staff_expenses.expense_amount)' },
+      grand_expenses: { label: 'Total expenses plus commission paid to staff.', formula: 'totalExpenses + total_commission_paid' },
+      total_quantity: { label: 'Total number of individual items sold (not transactions). Each unit of multi-item sales counts separately.', formula: 'staffSalesQuantity + salesTableQuantity' },
+      total_transactions: { label: 'Count of unique sale transactions — each sale button click is one transaction.', formula: 'staffSalesCount + salesItemsCount' },
+      avg_transaction: { label: 'Average revenue per transaction. Higher value means larger average order size.', formula: 'totalRevenue ÷ totalTransactionsCount' },
+      commission_generated: { label: 'Total commission earned by all commission staff from approved payments.', formula: 'Σ(staff_sales.approved_commission)' },
+      commission_paid: { label: 'Total commission cash actually disbursed to staff members.', formula: 'Σ(staff_payments.amount WHERE payment_type = commission AND status = paid)' },
+      total_credits_paid: { label: 'Amount repaid by credit customers — actual cash collected from debtors.', formula: 'Σ(credit_repayments.amount)' },
+    };
+
+    const InfoTip = ({ id }: { id: string }) => {
+      const meta = cardMeta[id];
+      if (!meta) return null;
+      const isOpen = activeTooltip === id;
+      return (
+        <div className="relative inline-flex items-center">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setActiveTooltip(isOpen ? null : id); }}
+            onMouseEnter={() => setActiveTooltip(id)}
+            onMouseLeave={() => setActiveTooltip(null)}
+            className="ml-1.5 w-4 h-4 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 inline-flex items-center justify-center text-[10px] font-bold flex-shrink-0 hover:bg-blue-400 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white transition-colors"
+            aria-label="Info"
+          >
+            ?
+          </button>
+          {isOpen && (
+            <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 text-xs pointer-events-auto" ref={(el) => { tipRefs.current[id] = el; }}>
+              <p className="text-gray-700 dark:text-gray-300 mb-1.5 leading-relaxed">{meta.label}</p>
+              <div className="bg-gray-100 dark:bg-gray-900 rounded p-2">
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold mb-0.5">Formula</p>
+                <code className="text-[11px] text-blue-700 dark:text-blue-300 font-mono break-all">{meta.formula}</code>
+              </div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-white dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700"></div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
     return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
       <div className="card border-l-4 border-l-blue-600 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales<InfoTip id="total_sales" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-blue-700 dark:text-blue-400 break-words">₦{(report?.summary.total_sales || 0).toLocaleString()}</p>
           <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -397,7 +445,7 @@ export default function ComprehensiveReportsPage() {
       {pathname.startsWith('/superadmin') && (
       <div className="card border-l-4 border-l-purple-600 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales (Receipts)</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Sales (Receipts)<InfoTip id="total_sales" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-700 dark:text-purple-400 break-words">₦{(report?.summary.total_sales_receipts || 0).toLocaleString()}</p>
           <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -406,7 +454,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className={`card border-l-4 ${isOverallProfitable ? 'border-l-green-500' : 'border-l-red-500'} overflow-hidden`}>
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Profit</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Profit<InfoTip id="total_profit" /></p>
           <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isOverallProfitable ? 'text-green-600' : 'text-red-600'} break-words`}>₦{overallProfit.toLocaleString()}</p>
           <TrendingUp className={`w-6 h-6 sm:w-8 sm:h-8 ${isOverallProfitable ? 'text-green-500' : 'text-red-500'} opacity-20 self-end flex-shrink-0`} />
         </div>
@@ -414,21 +462,21 @@ export default function ComprehensiveReportsPage() {
 
       <div className={`card border-l-4 ${isMainProfitable ? 'border-l-emerald-600' : 'border-l-orange-600'} overflow-hidden`}>
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Main Sales Profit</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Main Sales Profit<InfoTip id="main_profit" /></p>
           <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isMainProfitable ? 'text-emerald-700 dark:text-emerald-400' : 'text-orange-700 dark:text-orange-400'} break-words`}>₦{mainProfit.toLocaleString()}</p>
         </div>
       </div>
 
       <div className={`card border-l-4 ${isCreditProfitable ? 'border-l-teal-500' : 'border-l-amber-500'} overflow-hidden`}>
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Credit Sales Profit</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Credit Sales Profit<InfoTip id="credit_profit" /></p>
           <p className={`text-lg sm:text-2xl md:text-3xl font-bold ${isCreditProfitable ? 'text-teal-700 dark:text-teal-400' : 'text-amber-700 dark:text-amber-400'} break-words`}>₦{creditProfit.toLocaleString()}</p>
         </div>
       </div>
 
       <div className="card border-l-4 border-l-orange-600 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Cost Price Sold</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Cost Price Sold<InfoTip id="cost_price_sold" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-orange-700 dark:text-orange-400 break-words">₦{(report?.summary.total_cost_price_sold || 0).toLocaleString()}</p>
           <Warehouse className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -436,7 +484,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className="card border-l-4 border-l-rose-600 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Expenses</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Expenses<InfoTip id="total_expenses" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-rose-700 dark:text-rose-400 break-words">₦{(report?.summary.total_expenses || 0).toLocaleString()}</p>
           <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-rose-600 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -444,7 +492,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className="card border-l-4 border-l-red-700 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Grand Expenses</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Grand Expenses<InfoTip id="grand_expenses" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-red-800 dark:text-red-300 break-words">₦{((report?.summary.total_expenses || 0) + (report?.summary.total_commission_paid || 0)).toLocaleString()}</p>
           <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-red-700 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -452,7 +500,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className="card border-l-4 border-l-purple-500 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Quantity Sold</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Quantity Sold<InfoTip id="total_quantity" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-purple-600 break-words">{formatQty(report?.summary.total_items_sold || 0)}</p>
           <ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -460,7 +508,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className="card border-l-4 border-l-teal-600 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Transactions</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Transactions<InfoTip id="total_transactions" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-teal-700 dark:text-teal-400 break-words">{report?.summary.total_transactions || 0}</p>
           <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -468,7 +516,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className="card border-l-4 border-l-sky-600 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Avg Transaction Value</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Avg Transaction Value<InfoTip id="avg_transaction" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-sky-700 dark:text-sky-400 break-words">₦{(report?.summary.avg_transaction || 0).toLocaleString('en-NG', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</p>
           <Package className="w-6 h-6 sm:w-8 sm:h-8 text-sky-600 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -476,7 +524,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className="card border-l-4 border-l-amber-500 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Commission Generated</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Commission Generated<InfoTip id="commission_generated" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-amber-600 break-words">₦{(report?.summary.total_commission_generated || 0).toLocaleString()}</p>
           <Users className="w-6 h-6 sm:w-8 sm:h-8 text-amber-500 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -484,7 +532,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className="card border-l-4 border-l-emerald-500 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Commission Paid</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Commission Paid<InfoTip id="commission_paid" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-emerald-600 break-words">₦{(report?.summary.total_commission_paid || 0).toLocaleString()}</p>
           <User className="w-6 h-6 sm:w-8 sm:h-8 text-emerald-500 opacity-20 self-end flex-shrink-0" />
         </div>
@@ -492,7 +540,7 @@ export default function ComprehensiveReportsPage() {
 
       <div className="card border-l-4 border-l-pink-500 overflow-hidden">
         <div className="flex flex-col gap-2">
-          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Paid Credits</p>
+          <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Total Paid Credits<InfoTip id="total_credits_paid" /></p>
           <p className="text-lg sm:text-2xl md:text-3xl font-bold text-pink-600 break-words">₦{(report?.summary.total_credits_paid || 0).toLocaleString()}</p>
           <CreditCard className="w-6 h-6 sm:w-8 sm:h-8 text-pink-500 opacity-20 self-end flex-shrink-0" />
         </div>
