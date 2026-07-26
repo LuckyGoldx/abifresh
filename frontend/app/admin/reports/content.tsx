@@ -120,6 +120,20 @@ export default function ComprehensiveReportsPage() {
     fetchReport();
   }, [filters]);
 
+  // Close tooltip on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!activeTooltip) return;
+      const target = e.target as HTMLElement;
+      const tipEl = tipRefs.current[activeTooltip];
+      // Check if click is inside the tooltip or on its info button
+      if (tipEl && (tipEl.contains(target) || target.closest(`[data-tip-id="${activeTooltip}"]`))) return;
+      setActiveTooltip(null);
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [activeTooltip]);
+
   useEffect(() => {
     checkTabsScroll();
     window.addEventListener('resize', checkTabsScroll);
@@ -416,6 +430,7 @@ export default function ComprehensiveReportsPage() {
         <div className="relative inline-flex items-center">
           <button
             type="button"
+            data-tip-id={id}
             onClick={(e) => { e.stopPropagation(); setActiveTooltip(isOpen ? null : id); }}
             onMouseEnter={() => setActiveTooltip(id)}
             onMouseLeave={() => setActiveTooltip(null)}
